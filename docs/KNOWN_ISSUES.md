@@ -24,6 +24,12 @@ either player's up/down and light attack (or Enter). Pausing alters no sim state
 — hitstun frames, health, and the round clock all resume exactly where they
 stopped.
 
+Since 1.5f the debug overlay covers frame-stepping: **F5** holds the tree paused
+and advances exactly one simulation frame per press (while slow-mo is on), **F2**
+adds a live frame-advantage readout during HITSTUN/BLOCKSTUN, and **F6** refills
+both fighters at their round positions without disturbing the match phase. The
+overlay mutes itself in headless runs so the test suites stay quiet.
+
 ## Input map
 
 `game/tools/setup_input.gd` is the single source of truth for the `p1_*` /
@@ -56,8 +62,9 @@ that section by hand afterward — the simulation step comes from
 - **Hype meter has no spender.** It fills on hit/block/whiff but no move costs
   meter yet.
 - **No character/stage select.** Fixed matchup + Bus Stop (Night).
-- **Debug overlay is basic.** Boxes/frame-state/input-history/slow-mo only; no
-  frame-step, frame advantage, AI state, or reset/refill hotkeys.
+- **Debug overlay is dev-only.** Boxes, frame state, frame advantage, input
+  history, slow-mo, frame-step and refill/reset hotkeys exist; it has no AI state
+  view (there is no AI yet) and no hitbox-invariant assertions.
 - **No throw tech or wake-up invulnerability.**
 
 ## Known edge cases
@@ -80,8 +87,9 @@ that section by hand afterward — the simulation step comes from
 - `game/tests/combat_test.gd` — hits, chip damage (including the chip-cannot-KO
   floor), low vs stand-block, throw unblockability, jump arc, P2 bindings,
   blockstring blocking, shared hitstop, KO landing, real-key input-map
-  resolution, pause freezing fighters, and the pause menu (navigation by both
-  players, resume keeping mid-hitstun state, restart).
+  resolution, pause freezing fighters, the pause menu (navigation by both
+  players, resume keeping mid-hitstun state, restart), debug frame-step,
+  frame advantage and the F6 refill.
 - `game/tests/round_flow_test.gd` — intro→fight, KO, round wins, timeout
   resolution, double KO -> draw (no pip, round advances, match still ends),
   the round clock frozen during hitstop, a hit on the timer's final frame

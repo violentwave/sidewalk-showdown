@@ -149,6 +149,20 @@ func _reset_match() -> void:
 	round_number = 1
 	_begin_round()
 
+# Debug frame-step: advance exactly one simulation frame while the tree stays
+# paused. Fighters tick first, then the match, mirroring process_physics_priority.
+func step_simulation_frame() -> void:
+	if p1 == null or p2 == null:
+		return
+	var tree := get_tree()
+	var was_paused := tree.paused
+	var dt := 1.0 / float(Engine.physics_ticks_per_second)
+	tree.paused = false
+	p1._physics_process(dt)
+	p2._physics_process(dt)
+	_physics_process(dt)
+	tree.paused = was_paused
+
 # ---------------- Simulation ----------------
 func _physics_process(_delta: float) -> void:
 	if get_tree().paused:

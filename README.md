@@ -52,6 +52,11 @@ stopped.
 Debug: **F1** boxes (on by default), **F2** frame state, **F3** input history,
 **F4** slow motion.
 
+Debug: **F1** boxes (on by default), **F2** frame state + frame advantage,
+**F3** input history, **F4** slow motion, **F5** frame-step (advances one sim
+frame per press while slow-mo is on), **F6** refill both fighters (full health
+and meter at round positions, without restarting the round).
+
 ## Builds
 
 `.github/workflows/export.yml` exports both desktop targets on every push to

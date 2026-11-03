@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/stages/stage.gd" id="1"]
+[ext_resource type="Texture2D" path="res://art/stages/bus_stop/BusStopNight.png" id="2"]
+
+[node name="BusStopNight" type="Node2D"]
+script = ExtResource("1")
+floor_y = 150.0
+left_bound = 24.0
+right_bound = 296.0
+spawn_p1_x = 110.0
+spawn_p2_x = 210.0
+
+[node name="Background" type="Sprite2D" parent="."]
+modulate = Color(0.62, 0.62, 0.7, 1)
+position = Vector2(160, 90)
+scale = Vector2(0.2083, 0.2083)
+texture = ExtResource("2")
+centered = true

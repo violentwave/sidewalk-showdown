@@ -46,6 +46,23 @@ ends.
 Debug: **F1** boxes (on by default), **F2** frame state, **F3** input history,
 **F4** slow motion.
 
+## Builds
+
+`.github/workflows/export.yml` exports both desktop targets on every push to
+`main` and on `v*` tags: a Linux x86_64 binary and a Windows x64 `.exe`, with the
+PCK embedded so each artifact is a single runnable file. Grab them from the
+**Artifacts** section of a run in the Actions tab — they are named
+`sidewalk-showdown-linux-<short sha>` and `sidewalk-showdown-windows-<short sha>`.
+
+Presets live in `game/export_presets.cfg` (`linux`, `windows`). Locally, with the
+4.7.2 export templates installed:
+
+```bash
+godot --headless --path game --import
+godot --headless --path game --export-release linux build/linux/sidewalk_showdown.x86_64
+godot --headless --path game --export-release windows build/windows/sidewalk_showdown.exe
+```
+
 ## Source of truth
 
 | Doc | Purpose |

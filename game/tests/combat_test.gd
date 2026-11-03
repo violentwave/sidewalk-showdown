@@ -97,5 +97,18 @@ func _run() -> void:
 	_check("jump leaves the ground", p1.position.y < 150.0, "y=%.1f" % p1.position.y)
 	await _step(40)
 
+	# --- 6. P2 input map ---
+	_reset_fighters(100, 200)
+	Input.action_press("p2_left")
+	await _step(6)
+	Input.action_release("p2_left")
+	_check("P2 moves with own keys", p2.position.x < 200.0, "x=%.1f" % p2.position.x)
+	await _step(2)
+	Input.action_press("p2_light")
+	await _step(2)
+	Input.action_release("p2_light")
+	_check("P2 attacks with own keys", p2.state == FighterBase.State.ATTACK, "state=%d" % p2.state)
+	await _step(30)
+
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

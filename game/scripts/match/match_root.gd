@@ -5,6 +5,7 @@ enum Phase { INTRO, FIGHT, KO, ROUND_END, MATCH_END }
 
 const STAGE_SCENE := preload("res://scenes/stages/bus_stop_night.tscn")
 const HUD_SCENE := preload("res://scenes/match/MatchHUD.tscn")
+const DEBUG_SCRIPT := preload("res://scripts/debug/debug_overlay.gd")
 const FIGHTER_SCENE := preload("res://scenes/fighters/FighterBase.tscn")
 const PEGGY_DATA := preload("res://resources/fighters/peg_leg_peggy.tres")
 const RICHARD_DATA := preload("res://resources/fighters/whiskey_richard.tres")
@@ -17,6 +18,7 @@ const WINS_TO_TAKE_MATCH := 2
 
 var stage: Node2D
 var hud: MatchHUD
+var debug_overlay: DebugOverlay
 var p1: FighterBase
 var p2: FighterBase
 
@@ -45,6 +47,10 @@ func _ready() -> void:
 
 	p1.ko.connect(_on_fighter_ko.bind(p1))
 	p2.ko.connect(_on_fighter_ko.bind(p2))
+
+	debug_overlay = DEBUG_SCRIPT.new()
+	add_child(debug_overlay)
+	debug_overlay.bind(p1, p2)
 
 	_begin_round()
 

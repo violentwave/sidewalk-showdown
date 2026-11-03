@@ -43,8 +43,10 @@ blockstun — and hold down-away to crouch-block lows. Chip damage cannot KO: a
 blocked hit always leaves the defender at 1 HP. `Enter` restarts after a match
 ends.
 
-Debug: **F1** boxes (on by default), **F2** frame state, **F3** input history,
-**F4** slow motion.
+Debug: **F1** boxes (on by default), **F2** frame state + frame advantage,
+**F3** input history, **F4** slow motion, **F5** frame-step (advances one sim
+frame per press while slow-mo is on), **F6** refill both fighters (full health
+and meter at round positions, without restarting the round).
 
 ## Source of truth
 

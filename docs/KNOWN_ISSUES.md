@@ -1,4 +1,4 @@
-# Known Issues — Phase 1.5d (Greybox Combat)
+# Known Issues — Phase 1.5f (Greybox Combat)
 
 Exit criteria from GDD §13 Phase 1: two boxes can fight, hits feel responsive,
 blocking works, round flow works, match can end/restart. **All met.**
@@ -8,6 +8,12 @@ jump arc states, P1/P2 input separation, P2 pause, frame-locked gravity, and the
 1.5d pass — device-agnostic keyboard bindings covered by a real-key test, a pause
 that freezes the fighters and the round timer, silhouettes that scale with
 fighter height, and a chip-damage floor so blocked hits can never KO.
+
+Since 1.5f the debug overlay covers frame-stepping: **F5** holds the tree paused
+and advances exactly one simulation frame per press (while slow-mo is on), **F2**
+adds a live frame-advantage readout during HITSTUN/BLOCKSTUN, and **F6** refills
+both fighters at their round positions without disturbing the match phase. The
+overlay mutes itself in headless runs so the test suites stay quiet.
 
 ## Input map
 
@@ -43,8 +49,9 @@ that section by hand afterward — the simulation step comes from
 - **No character/stage select.** Fixed matchup + Bus Stop (Night).
 - **No pause menu.** Esc (P1) / Numpad 0 (P2) freeze the simulation and show a
   label; there is no menu, options, or resume/quit choice yet.
-- **Debug overlay is basic.** Boxes/frame-state/input-history/slow-mo only; no
-  frame-step, frame advantage, AI state, or reset/refill hotkeys.
+- **Debug overlay is dev-only.** Boxes, frame state, frame advantage, input
+  history, slow-mo, frame-step and refill/reset hotkeys exist; it has no AI state
+  view (there is no AI yet) and no hitbox-invariant assertions.
 - **No throw tech or wake-up invulnerability.**
 
 ## Known edge cases
@@ -71,7 +78,7 @@ that section by hand afterward — the simulation step comes from
 - `game/tests/combat_test.gd` — hits, chip damage (including the chip-cannot-KO
   floor), low vs stand-block, throw unblockability, jump arc, P2 bindings,
   blockstring blocking, shared hitstop, KO landing, real-key input-map
-  resolution, pause freezing fighters.
+  resolution, pause freezing fighters, debug frame-step and the F6 refill.
 - `game/tests/round_flow_test.gd` — intro→fight, KO, round wins, timeout
   resolution, best-of-3 match end.
 - `.github/workflows/tests.yml` runs both suites on push/PR.

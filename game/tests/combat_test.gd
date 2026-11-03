@@ -211,5 +211,58 @@ func _run() -> void:
 	paused = false
 	await _step(2)
 
+	# --- 13. debug overlay: frame-step and frame advantage ---
+	var overlay: DebugOverlay = scene.debug_overlay
+	_check("overlay bound to fighters", overlay != null and overlay.p1 == p1 and overlay.p2 == p2,
+		"bound=%s" % str(overlay != null))
+	overlay.slow_motion = true
+	var step_before := p1.state_frame
+	overlay.step_frame()
+	_check("frame-step advances exactly one frame", p1.state_frame == step_before + 1,
+		"state_frame %d -> %d" % [step_before, p1.state_frame])
+	var one_step := p1.state_frame
+	overlay.step_frame()
+	_check("frame-step is one frame per press", p1.state_frame == one_step + 1,
+		"state_frame %d -> %d" % [one_step, p1.state_frame])
+	_check("frame-step keeps the tree paused", paused, "paused=%s" % str(paused))
+	overlay.slow_motion = false
+	paused = false
+	var idle_frame := p1.state_frame
+	overlay.step_frame()
+	_check("frame-step is inert without slow-mo", p1.state_frame == idle_frame,
+		"state_frame %d -> %d" % [idle_frame, p1.state_frame])
+
+	_reset_fighters(100, 120)
+	p2.receive_hit(p1, light)
+	p1.hitstop_frames = 0
+	p2.hitstop_frames = 0
+	await _step(1)
+	_check("frame advantage reads out during hitstun", overlay._advantage_text() != "",
+		"adv='%s'" % overlay._advantage_text())
+
+	# --- 14. debug overlay reset ---
+	p1.health = 120.0
+	p2.health = 60.0
+	p1.meter = 5.0
+	p1.position = Vector2(160, 120)
+	p2.position = Vector2(200, 140)
+	p2._force_state(FighterBase.State.HITSTUN)
+	var phase_before: int = scene.phase
+	overlay.reset_fighters()
+	_check("reset restores full health",
+		is_equal_approx(p1.health, p1.max_health) and is_equal_approx(p2.health, p2.max_health),
+		"p1=%.1f p2=%.1f" % [p1.health, p2.health])
+	_check("reset fills meter", is_equal_approx(p1.meter, p1.max_meter), "meter=%.1f" % p1.meter)
+	_check("reset restores round positions",
+		is_equal_approx(p1.position.x, scene.stage.spawn_p1_x)
+			and is_equal_approx(p2.position.x, scene.stage.spawn_p2_x)
+			and is_equal_approx(p1.position.y, scene.stage.floor_y),
+		"p1=%s p2=%s" % [str(p1.position), str(p2.position)])
+	_check("reset returns fighters to idle",
+		p1.state == FighterBase.State.IDLE and p2.state == FighterBase.State.IDLE,
+		"p1=%d p2=%d" % [p1.state, p2.state])
+	_check("reset keeps the match phase", scene.phase == phase_before,
+		"phase=%d -> %d" % [phase_before, scene.phase])
+
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

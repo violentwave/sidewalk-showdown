@@ -28,6 +28,9 @@ var round_number := 1
 var wins: Array[int] = [0, 0]
 var timer_frames := ROUND_SECONDS * 60
 var ko_loser: FighterBase
+var ko_draw := false
+var ko_frame := -1
+var sim_frame := 0
 
 func _ready() -> void:
 	process_physics_priority = 100 # run after fighters update their state
@@ -75,6 +78,8 @@ func _begin_round() -> void:
 	phase = Phase.INTRO
 	phase_frame = 0
 	ko_loser = null
+	ko_draw = false
+	ko_frame = -1
 	hud.set_timer(float(ROUND_SECONDS))
 	hud.set_pips(wins[0], wins[1])
 	hud.show_message("ROUND %d" % round_number)
@@ -87,9 +92,22 @@ func _start_fight() -> void:
 	hud.clear_message()
 
 func _on_fighter_ko(loser: FighterBase) -> void:
+	if phase == Phase.KO:
+		# A second KO inside the same simulation frame means both fighters died
+		# on the trade: make it a draw round instead of crediting the first signal.
+		if ko_frame == sim_frame and p1.health <= 0.0 and p2.health <= 0.0:
+			ko_draw = true
+			ko_loser = null
+			for f: FighterBase in [p1, p2]:
+				if f.health <= 0.0 and f.state != FighterBase.State.KO:
+					f._force_state(FighterBase.State.KO)
+			hud.show_message("DOUBLE K.O.")
+		return
 	if phase != Phase.FIGHT:
 		return
 	ko_loser = loser
+	ko_frame = sim_frame
+	ko_draw = false
 	phase = Phase.KO
 	phase_frame = 0
 	p1.input_enabled = false
@@ -98,7 +116,7 @@ func _on_fighter_ko(loser: FighterBase) -> void:
 	winner._force_state(FighterBase.State.WIN)
 	hud.show_message("K.O.")
 
-func _finish_round(winner_index: int) -> void:
+func _finish_round(winner_index: int, double_ko := false) -> void:
 	if winner_index >= 0:
 		wins[winner_index] += 1
 	hud.set_pips(wins[0], wins[1])
@@ -110,7 +128,7 @@ func _finish_round(winner_index: int) -> void:
 	else:
 		phase = Phase.ROUND_END
 		if winner_index < 0:
-			hud.show_message("DRAW")
+			hud.show_message("DOUBLE K.O.\nDRAW" if double_ko else "DRAW")
 		else:
 			var winner := p1 if winner_index == 0 else p2
 			hud.show_message("%s\nTAKES THE ROUND" % winner.data.display_name.to_upper())
@@ -135,6 +153,7 @@ func _physics_process(_delta: float) -> void:
 	if get_tree().paused:
 		return
 
+	sim_frame += 1
 	phase_frame += 1
 	match phase:
 		Phase.INTRO:
@@ -147,13 +166,15 @@ func _physics_process(_delta: float) -> void:
 				_timeout_round()
 				return
 			_separate_pushboxes()
-			_detect_hits(p1, p2)
-			_detect_hits(p2, p1)
+			_resolve_hits()
 		Phase.KO:
 			_separate_pushboxes()
 			if phase_frame >= KO_FRAMES:
-				var winner_index := 0 if ko_loser == p2 else 1
-				_finish_round(winner_index)
+				if ko_draw:
+					_finish_round(-1, true)
+				else:
+					var winner_index := 0 if ko_loser == p2 else 1
+					_finish_round(winner_index)
 		Phase.ROUND_END:
 			if phase_frame >= ROUND_END_FRAMES:
 				round_number += 1
@@ -168,18 +189,28 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_tree().paused = paused
 		hud.set_paused(paused)
 
-func _detect_hits(attacker: FighterBase, defender: FighterBase) -> void:
+# Poll both fighters before applying either hit, so a same-frame trade lands
+# both hits. Resolving them in sequence let the first KO interrupt the second
+# attacker (state leaves ATTACK) and silently win every exchange.
+func _resolve_hits() -> void:
+	var move_a := _poll_hit(p1, p2)
+	var move_b := _poll_hit(p2, p1)
+	if move_a != null:
+		p1.on_attack_connected(p2.receive_hit(p1, move_a))
+	if move_b != null:
+		p2.on_attack_connected(p1.receive_hit(p2, move_b))
+
+func _poll_hit(attacker: FighterBase, defender: FighterBase) -> MoveData:
 	if attacker.state != FighterBase.State.ATTACK:
-		return
+		return null
 	if attacker.current_move == null or attacker.move_already_hit:
-		return
+		return null
 	var hb := attacker.get_hitbox_rect()
 	if hb.size == Vector2.ZERO:
-		return
+		return null
 	if not hb.intersects(defender.hurtbox_rect()):
-		return
-	var was_hit := defender.receive_hit(attacker, attacker.current_move)
-	attacker.on_attack_connected(was_hit)
+		return null
+	return attacker.current_move
 
 func _separate_pushboxes() -> void:
 	if p1.state == FighterBase.State.KO or p2.state == FighterBase.State.KO:

@@ -43,6 +43,12 @@ blockstun — and hold down-away to crouch-block lows. Chip damage cannot KO: a
 blocked hit always leaves the defender at 1 HP. `Enter` restarts after a match
 ends.
 
+Pause (Esc or Numpad 0) opens a menu either player can drive: W/S or the arrow
+keys (Numpad 8/2) move the selection, and J, Numpad 1, or Enter picks
+**RESUME**, **RESTART MATCH**, or **QUIT TO DESKTOP**. Pausing freezes the fight
+mid-frame, so hitstun, health, and the round clock resume exactly where they
+stopped.
+
 Debug: **F1** boxes (on by default), **F2** frame state, **F3** input history,
 **F4** slow motion.
 

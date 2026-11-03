@@ -1,4 +1,4 @@
-# Known Issues — Phase 1.5d (Greybox Combat)
+# Known Issues — Phase 1.5f (Greybox Combat)
 
 Exit criteria from GDD §13 Phase 1: two boxes can fight, hits feel responsive,
 blocking works, round flow works, match can end/restart. **All met.**
@@ -8,6 +8,12 @@ jump arc states, P1/P2 input separation, P2 pause, frame-locked gravity, and the
 1.5d pass — device-agnostic keyboard bindings covered by a real-key test, a pause
 that freezes the fighters and the round timer, silhouettes that scale with
 fighter height, and a chip-damage floor so blocked hits can never KO.
+
+Since 1.5f pause is a real menu rather than a label: Esc (P1) / Numpad 0 (P2)
+freeze the fight and open RESUME / RESTART MATCH / QUIT TO DESKTOP, driven by
+either player's up/down and light attack (or Enter). Pausing alters no sim state
+— hitstun frames, health, and the round clock all resume exactly where they
+stopped.
 
 ## Input map
 
@@ -41,8 +47,6 @@ that section by hand afterward — the simulation step comes from
 - **Hype meter has no spender.** It fills on hit/block/whiff but no move costs
   meter yet.
 - **No character/stage select.** Fixed matchup + Bus Stop (Night).
-- **No pause menu.** Esc (P1) / Numpad 0 (P2) freeze the simulation and show a
-  label; there is no menu, options, or resume/quit choice yet.
 - **Debug overlay is basic.** Boxes/frame-state/input-history/slow-mo only; no
   frame-step, frame advantage, AI state, or reset/refill hotkeys.
 - **No throw tech or wake-up invulnerability.**
@@ -71,7 +75,8 @@ that section by hand afterward — the simulation step comes from
 - `game/tests/combat_test.gd` — hits, chip damage (including the chip-cannot-KO
   floor), low vs stand-block, throw unblockability, jump arc, P2 bindings,
   blockstring blocking, shared hitstop, KO landing, real-key input-map
-  resolution, pause freezing fighters.
+  resolution, pause freezing fighters, and the pause menu (navigation by both
+  players, resume keeping mid-hitstun state, restart).
 - `game/tests/round_flow_test.gd` — intro→fight, KO, round wins, timeout
   resolution, best-of-3 match end.
 - `.github/workflows/tests.yml` runs both suites on push/PR.

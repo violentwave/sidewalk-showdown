@@ -28,6 +28,7 @@ var round_number := 1
 var wins: Array[int] = [0, 0]
 var timer_frames := ROUND_SECONDS * 60
 var ko_loser: FighterBase
+var pause_index := 0
 
 func _ready() -> void:
 	process_physics_priority = 100 # run after fighters update their state
@@ -163,10 +164,53 @@ func _physics_process(_delta: float) -> void:
 				_reset_match()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_echo():
+		return
 	if event.is_action_pressed("p1_pause") or event.is_action_pressed("p2_pause"):
-		var paused := not get_tree().paused
-		get_tree().paused = paused
-		hud.set_paused(paused)
+		_toggle_pause()
+		return
+	if not get_tree().paused:
+		return
+	# Menu navigation uses the players' own actions rather than ui_up/ui_down,
+	# which also match the arrow keys and would step the selection twice.
+	if event.is_action_pressed("p1_up") or event.is_action_pressed("p2_up"):
+		_move_pause_selection(-1)
+	elif event.is_action_pressed("p1_down") or event.is_action_pressed("p2_down"):
+		_move_pause_selection(1)
+	elif (event.is_action_pressed("p1_light") or event.is_action_pressed("p2_light")
+			or event.is_action_pressed("ui_confirm")):
+		_confirm_pause_selection()
+
+# ---------------- Pause menu ----------------
+func _toggle_pause() -> void:
+	var paused := not get_tree().paused
+	get_tree().paused = paused
+	if paused:
+		pause_index = 0
+	hud.set_paused(paused)
+
+func _unpause() -> void:
+	get_tree().paused = false
+	hud.set_paused(false)
+
+func _move_pause_selection(dir: int) -> void:
+	var count := hud.pause_option_count()
+	if count <= 0:
+		return
+	pause_index = wrapi(pause_index + dir, 0, count)
+	hud.set_pause_selection(pause_index)
+
+func _confirm_pause_selection() -> void:
+	match pause_index:
+		1:
+			# Start the new match unpaused so its intro frames actually run.
+			_unpause()
+			_reset_match()
+		2:
+			_unpause()
+			get_tree().quit()
+		_:
+			_unpause()
 
 func _detect_hits(attacker: FighterBase, defender: FighterBase) -> void:
 	if attacker.state != FighterBase.State.ATTACK:

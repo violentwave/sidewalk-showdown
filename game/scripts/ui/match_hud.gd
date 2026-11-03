@@ -1,0 +1,147 @@
+# MatchHUD — flat pixel HUD built in code for reliable 320x180 layout.
+class_name MatchHUD
+extends CanvasLayer
+
+const BAR_W := 126.0
+const P1_X := 8.0
+const P2_X := 186.0
+const BAR_Y := 10.0
+const BAR_H := 8.0
+const METER_Y := 168.0
+const METER_H := 5.0
+
+var p1_fill: ColorRect
+var p2_fill: ColorRect
+var p1_meter_fill: ColorRect
+var p2_meter_fill: ColorRect
+var timer_label: Label
+var p1_name: Label
+var p2_name: Label
+var p1_combo: Label
+var p2_combo: Label
+var message: Label
+var pause_root: Control
+var pips_p1: Array[ColorRect] = []
+var pips_p2: Array[ColorRect] = []
+
+func _ready() -> void:
+	_build()
+
+func _build() -> void:
+	var root := Control.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(root)
+
+	_rect(root, Vector2(P1_X, BAR_Y), Vector2(BAR_W, BAR_H), Color(0.06, 0.05, 0.05, 0.9))
+	_rect(root, Vector2(P2_X, BAR_Y), Vector2(BAR_W, BAR_H), Color(0.06, 0.05, 0.05, 0.9))
+	p1_fill = _rect(root, Vector2(P1_X, BAR_Y), Vector2(BAR_W, BAR_H), Color(0.95, 0.62, 0.15))
+	p2_fill = _rect(root, Vector2(P2_X, BAR_Y), Vector2(BAR_W, BAR_H), Color(0.9, 0.28, 0.2))
+
+	_rect(root, Vector2(P1_X, METER_Y), Vector2(BAR_W, METER_H), Color(0.06, 0.05, 0.05, 0.9))
+	_rect(root, Vector2(P2_X, METER_Y), Vector2(BAR_W, METER_H), Color(0.06, 0.05, 0.05, 0.9))
+	p1_meter_fill = _rect(root, Vector2(P1_X, METER_Y), Vector2(0, METER_H), Color(0.35, 0.8, 1.0))
+	p2_meter_fill = _rect(root, Vector2(P2_X, METER_Y), Vector2(0, METER_H), Color(0.35, 0.8, 1.0))
+
+	timer_label = _label(root, "99", Vector2(140, 2), Vector2(40, 14), HORIZONTAL_ALIGNMENT_CENTER, 10, Color(1, 0.95, 0.85))
+	p1_name = _label(root, "PEG LEG PEGGY", Vector2(P1_X, 20), Vector2(140, 12), HORIZONTAL_ALIGNMENT_LEFT, 10, Color(0.95, 0.8, 0.55))
+	p2_name = _label(root, "WHISKEY RICHARD", Vector2(172, 20), Vector2(140, 12), HORIZONTAL_ALIGNMENT_RIGHT, 10, Color(0.95, 0.7, 0.65))
+
+	for i in 2:
+		pips_p1.append(_rect(root, Vector2(P1_X + i * 7, 34), Vector2(4, 4), Color(0.2, 0.2, 0.2)))
+		pips_p2.append(_rect(root, Vector2(P2_X + BAR_W - 4 - i * 7, 34), Vector2(4, 4), Color(0.2, 0.2, 0.2)))
+
+	p1_combo = _label(root, "", Vector2(P1_X, 64), Vector2(110, 14), HORIZONTAL_ALIGNMENT_LEFT, 10, Color(1, 0.9, 0.4))
+	p2_combo = _label(root, "", Vector2(202, 64), Vector2(110, 14), HORIZONTAL_ALIGNMENT_RIGHT, 10, Color(1, 0.9, 0.4))
+
+	message = _label(root, "", Vector2(40, 76), Vector2(240, 34), HORIZONTAL_ALIGNMENT_CENTER, 14, Color(1, 0.95, 0.8))
+	message.visible = false
+
+	pause_root = Control.new()
+	pause_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	pause_root.visible = false
+	root.add_child(pause_root)
+	_rect(pause_root, Vector2.ZERO, Vector2(320, 180), Color(0, 0, 0, 0.65))
+	_label(pause_root, "PAUSED\nESC TO RESUME", Vector2(60, 70), Vector2(200, 40), HORIZONTAL_ALIGNMENT_CENTER, 12, Color(1, 1, 1))
+
+func bind(p1: FighterBase, p2: FighterBase) -> void:
+	p1_name.text = p1.data.display_name.to_upper()
+	p2_name.text = p2.data.display_name.to_upper()
+	p1.health_changed.connect(_on_p1_health)
+	p2.health_changed.connect(_on_p2_health)
+	p1.meter_changed.connect(_on_p1_meter)
+	p2.meter_changed.connect(_on_p2_meter)
+	p1.combo_changed.connect(_on_p1_combo)
+	p2.combo_changed.connect(_on_p2_combo)
+	_on_p1_health(p1.health, p1.max_health)
+	_on_p2_health(p2.health, p2.max_health)
+	_on_p1_meter(p1.meter, p1.max_meter)
+	_on_p2_meter(p2.meter, p2.max_meter)
+
+func _rect(parent: Control, pos: Vector2, size: Vector2, color: Color) -> ColorRect:
+	var r := ColorRect.new()
+	r.position = pos
+	r.size = size
+	r.color = color
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(r)
+	return r
+
+func _label(parent: Control, text: String, pos: Vector2, size: Vector2,
+		align: HorizontalAlignment, font_size: int, color: Color) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.position = pos
+	l.size = size
+	l.horizontal_alignment = align
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var settings := LabelSettings.new()
+	settings.font_size = font_size
+	settings.font_color = color
+	settings.outline_size = 1
+	settings.outline_color = Color(0, 0, 0, 0.95)
+	l.label_settings = settings
+	parent.add_child(l)
+	return l
+
+func _on_p1_health(value: float, max_value: float) -> void:
+	var w := BAR_W * clampf(value / max_value, 0.0, 1.0)
+	p1_fill.size.x = w
+
+func _on_p2_health(value: float, max_value: float) -> void:
+	var w := BAR_W * clampf(value / max_value, 0.0, 1.0)
+	p2_fill.size.x = w
+	p2_fill.position.x = P2_X + BAR_W - w
+
+func _on_p1_meter(value: float, max_value: float) -> void:
+	p1_meter_fill.size.x = BAR_W * clampf(value / max_value, 0.0, 1.0)
+
+func _on_p2_meter(value: float, max_value: float) -> void:
+	var w := BAR_W * clampf(value / max_value, 0.0, 1.0)
+	p2_meter_fill.size.x = w
+	p2_meter_fill.position.x = P2_X + BAR_W - w
+
+func _on_p1_combo(count: int) -> void:
+	p1_combo.text = "%d HITS" % count if count >= 2 else ""
+
+func _on_p2_combo(count: int) -> void:
+	p2_combo.text = "%d HITS" % count if count >= 2 else ""
+
+func set_timer(seconds: float) -> void:
+	timer_label.text = "%d" % int(ceilf(seconds))
+
+func set_pips(p1_wins: int, p2_wins: int) -> void:
+	for i in pips_p1.size():
+		pips_p1[i].color = Color(0.95, 0.62, 0.15) if i < p1_wins else Color(0.2, 0.2, 0.2)
+		pips_p2[i].color = Color(0.9, 0.28, 0.2) if i < p2_wins else Color(0.2, 0.2, 0.2)
+
+func show_message(text: String) -> void:
+	message.text = text
+	message.visible = true
+
+func clear_message() -> void:
+	message.visible = false
+
+func set_paused(paused: bool) -> void:
+	pause_root.visible = paused

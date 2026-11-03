@@ -43,10 +43,11 @@ func _reset_fighters(p1_x: float, p2_x: float) -> void:
 
 
 func _run() -> void:
-	await _step(3)
+	await _step(65) # let round intro finish
 	p1 = scene.p1
 	p2 = scene.p2
 	_check("fighters spawned", p1 != null and p2 != null)
+	_check("match reaches FIGHT phase", scene.phase == 1, "phase=%d" % scene.phase)
 
 	# --- 1. clean hit ---
 	_reset_fighters(100, 120)

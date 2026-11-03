@@ -1,0 +1,22 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  godot-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: false
+      - name: Import project
+        run: godot --headless --path game --import
+      - name: Combat tests
+        run: godot --headless --path game --script res://tests/combat_test.gd
+      - name: Round flow tests
+        run: godot --headless --path game --script res://tests/round_flow_test.gd

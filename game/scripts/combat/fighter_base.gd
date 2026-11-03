@@ -101,7 +101,7 @@ func begin_round(spawn_pos: Vector2, opponent_x: float) -> void:
 	meter_changed.emit(meter, max_meter)
 	combo_changed.emit(0)
 
-func _physics_process(delta: float) -> void:
+func _physics_process(_delta: float) -> void:
 	_poll_input()
 	_tick_combo()
 
@@ -139,7 +139,7 @@ func _physics_process(delta: float) -> void:
 		State.KO:
 			velocity.x = move_toward(velocity.x, 0.0, 200.0 * delta_fixed())
 
-	_apply_gravity(delta)
+	_apply_gravity(delta_fixed())
 	_integrate()
 	if stage:
 		clamp_to_stage()
@@ -253,7 +253,7 @@ func _try_start_attack() -> bool:
 		return false
 	var stance := _current_stance()
 
-	if _consume("grab", BUFFER_GRAB):
+	if grounded and _consume("grab", BUFFER_GRAB):
 		var grab := data.find_move(MoveData.InputType.GRAB, MoveData.Stance.STAND)
 		if grab:
 			_start_move(grab)

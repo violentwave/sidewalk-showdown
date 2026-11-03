@@ -95,7 +95,7 @@ func _on_fighter_ko(loser: FighterBase) -> void:
 	winner._force_state(FighterBase.State.WIN)
 	hud.show_message("K.O.")
 
-func _finish_round(winner_index: int, label: String) -> void:
+func _finish_round(winner_index: int) -> void:
 	if winner_index >= 0:
 		wins[winner_index] += 1
 	hud.set_pips(wins[0], wins[1])
@@ -120,7 +120,7 @@ func _timeout_round() -> void:
 		winner = 0
 	elif p2.health > p1.health + 0.1:
 		winner = 1
-	_finish_round(winner, "TIME")
+	_finish_round(winner)
 
 func _reset_match() -> void:
 	wins = [0, 0]
@@ -150,7 +150,7 @@ func _physics_process(_delta: float) -> void:
 			_separate_pushboxes()
 			if phase_frame >= KO_FRAMES:
 				var winner_index := 0 if ko_loser == p2 else 1
-				_finish_round(winner_index, "K.O.")
+				_finish_round(winner_index)
 		Phase.ROUND_END:
 			if phase_frame >= ROUND_END_FRAMES:
 				round_number += 1

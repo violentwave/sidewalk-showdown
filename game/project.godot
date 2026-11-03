@@ -24,13 +24,9 @@ window/size/window_height_override=720
 window/stretch/mode="canvas_items"
 window/stretch/scale_mode="integer"
 
-[hydra_upload_settings]
+[physics]
 
-default_save_folder="res://art"
-
-[imports]
-
-textures/canvas_textures/default_texture_filter=0
+common/physics_ticks_per_second=60
 
 [input]
 

@@ -6,7 +6,8 @@ legends eventually turn on him.
 
 **Engine:** Godot 4.x (in `game/`)
 **Target:** PC first (Windows / Linux / macOS)
-**Status:** Phase 1 — greybox combat prototype
+**Status:** Phase 1.5 — greybox combat prototype, audit-hardened
+**License:** TBD — treat as all-rights-reserved until a LICENSE file is added.
 
 ## Quick start
 

@@ -1,0 +1,56 @@
+name: export
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    name: Export ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x86_64
+            preset: linux
+            artifact: sidewalk-showdown-linux
+            out: build/linux/sidewalk_showdown.x86_64
+            dir: build/linux
+          - name: Windows x64
+            preset: windows
+            artifact: sidewalk-showdown-windows
+            out: build/windows/sidewalk_showdown.exe
+            dir: build/windows
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Resolve short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: true
+
+      - name: Import project
+        run: godot --headless --path game --import
+
+      - name: Export (${{ matrix.preset }})
+        run: |
+          mkdir -p "${{ matrix.dir }}"
+          godot --headless --path game --export-release "${{ matrix.preset }}" "${{ matrix.out }}"
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}-${{ steps.sha.outputs.short }}
+          path: ${{ matrix.dir }}
+          if-no-files-found: error
+          retention-days: 30

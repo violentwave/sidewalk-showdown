@@ -20,9 +20,9 @@ godot --headless --path game --script res://tests/round_flow_test.gd  # round fl
 
 | Action | P1 (Peg Leg Peggy) | P2 (Whiskey Richard) |
 |---|---|---|
-| Move | A / D | ← / → |
-| Jump | W | ↑ |
-| Crouch | S | ↓ |
+| Move | A / D | ← / → (or Numpad 4 / 6) |
+| Jump | W | ↑ (or Numpad 8) |
+| Crouch | S | ↓ (or Numpad 2) |
 | Light attack | J | Numpad 1 or `,` |
 | Heavy attack | K | Numpad 3 or `.` |
 | Special | L | Numpad 5 or `/` |
@@ -30,9 +30,16 @@ godot --headless --path game --script res://tests/round_flow_test.gd  # round fl
 | METHtality | I | Numpad 9 or `'` |
 | Pause | Esc | Numpad 0 |
 
+Both players share one keyboard: P1 is **WASD only**, and the arrow keys are
+reserved for P2. P2 can move with either the arrows or Numpad 2/4/6/8. Regenerate
+the input map with
+`godot --headless --path game --script res://tools/setup_input.gd` if you change
+the table above.
+
 Specials are directional (GDD §4.4): neutral, forward (toward opponent), back,
-down, and air. Block by holding away from the opponent; hold down-away to
-crouch-block lows. `Enter` restarts after a match ends.
+down, and air. Block by holding away from the opponent — including during
+blockstun — and hold down-away to crouch-block lows. `Enter` restarts after a
+match ends.
 
 Debug: **F1** boxes (on by default), **F2** frame state, **F3** input history,
 **F4** slow motion.

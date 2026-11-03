@@ -160,7 +160,7 @@ func _physics_process(_delta: float) -> void:
 				_reset_match()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("p1_pause"):
+	if event.is_action_pressed("p1_pause") or event.is_action_pressed("p2_pause"):
 		var paused := not get_tree().paused
 		get_tree().paused = paused
 		hud.set_paused(paused)

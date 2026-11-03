@@ -1,6 +1,20 @@
-# One-shot helper: adds P2 input actions to project.godot with correct serialization.
-# Run once: godot --headless --path game --script res://tools/setup_input.gd
+# Canonical input-map generator. Re-run after changing the controls table:
+#   godot --headless --path game --script res://tools/setup_input.gd
+# P1 is WASD-only; the arrow keys belong to P2 (plus numpad movement).
 extends SceneTree
+
+const P1 := {
+	"p1_left": [KEY_A],
+	"p1_right": [KEY_D],
+	"p1_up": [KEY_W],
+	"p1_down": [KEY_S],
+	"p1_light": [KEY_J],
+	"p1_heavy": [KEY_K],
+	"p1_special": [KEY_L],
+	"p1_grab": [KEY_U],
+	"p1_meth": [KEY_I],
+	"p1_pause": [KEY_ESCAPE],
+}
 
 const P2 := {
 	"p2_left": [KEY_LEFT, KEY_KP_4],
@@ -16,13 +30,14 @@ const P2 := {
 }
 
 func _init() -> void:
-	for action: String in P2:
-		var events: Array = []
-		for code: int in P2[action]:
-			var ev := InputEventKey.new()
-			ev.physical_keycode = code
-			events.append(ev)
-		ProjectSettings.set_setting("input/" + action, {"deadzone": 0.2, "events": events})
+	for actions: Dictionary in [P1, P2]:
+		for action: String in actions:
+			var events: Array = []
+			for code: int in actions[action]:
+				var ev := InputEventKey.new()
+				ev.physical_keycode = code
+				events.append(ev)
+			ProjectSettings.set_setting("input/" + action, {"deadzone": 0.2, "events": events})
 	ProjectSettings.save()
-	print("P2 input actions written.")
+	print("P1/P2 input actions written.")
 	quit()

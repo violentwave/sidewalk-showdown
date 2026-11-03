@@ -62,7 +62,7 @@ func _build() -> void:
 	pause_root.visible = false
 	root.add_child(pause_root)
 	_rect(pause_root, Vector2.ZERO, Vector2(320, 180), Color(0, 0, 0, 0.65))
-	_label(pause_root, "PAUSED\nESC TO RESUME", Vector2(60, 70), Vector2(200, 40), HORIZONTAL_ALIGNMENT_CENTER, 12, Color(1, 1, 1))
+	_label(pause_root, "PAUSED\nESC / NUM0 TO RESUME", Vector2(60, 70), Vector2(200, 40), HORIZONTAL_ALIGNMENT_CENTER, 12, Color(1, 1, 1))
 
 func bind(p1: FighterBase, p2: FighterBase) -> void:
 	p1_name.text = p1.data.display_name.to_upper()

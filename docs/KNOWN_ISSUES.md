@@ -1,4 +1,4 @@
-# Known Issues — Phase 1.5d (Greybox Combat)
+# Known Issues — Phase 1.5e (Greybox Combat)
 
 Exit criteria from GDD §13 Phase 1: two boxes can fight, hits feel responsive,
 blocking works, round flow works, match can end/restart. **All met.**
@@ -8,6 +8,10 @@ jump arc states, P1/P2 input separation, P2 pause, frame-locked gravity, and the
 1.5d pass — device-agnostic keyboard bindings covered by a real-key test, a pause
 that freezes the fighters and the round timer, silhouettes that scale with
 fighter height, and a chip-damage floor so blocked hits can never KO.
+
+Since 1.5e a trade that kills both fighters resolves as a **draw round**: neither
+side gets a win pip, the HUD shows `DOUBLE K.O. / DRAW`, and the round advances
+normally inside the same best-of-3.
 
 ## Input map
 
@@ -49,8 +53,6 @@ that section by hand afterward — the simulation step comes from
 
 ## Known edge cases
 
-- **Double KO** awards the round to the first fighter whose `ko` signal fires;
-  there is no draw/replay handling for simultaneous KOs.
 - **Round timer** ticks during hitstop, and a hit that lands on the same frame
   the timer expires is discarded.
 - **Timeout tie** (equal health) resolves as a draw round with no win awarded.
@@ -73,5 +75,6 @@ that section by hand afterward — the simulation step comes from
   blockstring blocking, shared hitstop, KO landing, real-key input-map
   resolution, pause freezing fighters.
 - `game/tests/round_flow_test.gd` — intro→fight, KO, round wins, timeout
-  resolution, best-of-3 match end.
+  resolution, double KO → draw (no pip, round advances, match still ends),
+  best-of-3 match end.
 - `.github/workflows/tests.yml` runs both suites on push/PR.

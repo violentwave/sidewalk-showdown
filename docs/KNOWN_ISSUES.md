@@ -13,6 +13,11 @@ Since 1.5e a trade that kills both fighters resolves as a **draw round**: neithe
 side gets a win pip, the HUD shows `DOUBLE K.O. / DRAW`, and the round advances
 normally inside the same best-of-3.
 
+Since 1.5e the round clock also respects hitstop: while either fighter has
+hitstop frames left the timer holds, so a frozen exchange never burns time. Hits
+are resolved before the timeout check, so a hit landing on the timer's final
+frame counts — and a KO on that frame wins the round instead of being discarded.
+
 ## Input map
 
 `game/tools/setup_input.gd` is the single source of truth for the `p1_*` /
@@ -53,8 +58,13 @@ that section by hand afterward — the simulation step comes from
 
 ## Known edge cases
 
+<<<<<<< HEAD
 - **Round timer** ticks during hitstop, and a hit that lands on the same frame
   the timer expires is discarded.
+=======
+- **Double KO** awards the round to the first fighter whose `ko` signal fires;
+  there is no draw/replay handling for simultaneous KOs.
+>>>>>>> freebuff/timer-hitstop
 - **Timeout tie** (equal health) resolves as a draw round with no win awarded.
 - Frame data is provisional, derived from GDD §5.6–§5.10. It lives in
   `game/resources/fighters/*.tres` and can be regenerated with
@@ -75,6 +85,11 @@ that section by hand afterward — the simulation step comes from
   blockstring blocking, shared hitstop, KO landing, real-key input-map
   resolution, pause freezing fighters.
 - `game/tests/round_flow_test.gd` — intro→fight, KO, round wins, timeout
+<<<<<<< HEAD
   resolution, double KO → draw (no pip, round advances, match still ends),
   best-of-3 match end.
+=======
+  resolution, the round clock frozen during hitstop, a hit on the timer's final
+  frame counting, best-of-3 match end.
+>>>>>>> freebuff/timer-hitstop
 - `.github/workflows/tests.yml` runs both suites on push/PR.

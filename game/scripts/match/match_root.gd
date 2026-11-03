@@ -160,13 +160,21 @@ func _physics_process(_delta: float) -> void:
 			if phase_frame >= INTRO_FRAMES:
 				_start_fight()
 		Phase.FIGHT:
+			_separate_pushboxes()
+			# Both attackers' hits are polled before either is applied, so a
+			# same-frame trade lands both hits (double-ko), and the hits resolve
+			# before the clock so a hit on the timer's final frame still counts
+			# and a KO there beats the timeout (timer-hitstop).
+			_resolve_hits()
+			if phase != Phase.FIGHT:
+				return
+			# Hitstop freezes the whole exchange, so it must not burn the clock.
+			if p1.hitstop_frames > 0 or p2.hitstop_frames > 0:
+				return
 			timer_frames -= 1
 			hud.set_timer(float(timer_frames) / 60.0)
 			if timer_frames <= 0:
 				_timeout_round()
-				return
-			_separate_pushboxes()
-			_resolve_hits()
 		Phase.KO:
 			_separate_pushboxes()
 			if phase_frame >= KO_FRAMES:

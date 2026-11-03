@@ -1,0 +1,22 @@
+# Godot 4
+.godot/
+game/.godot/
+*.tmp
+
+# Exports / builds
+game/export/
+game/build/
+*.apk
+*.exe
+*.pck
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+
+# Editor cruft
+.vscode/
+.idea/
+*.swp

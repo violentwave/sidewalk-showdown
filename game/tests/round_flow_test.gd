@@ -75,5 +75,61 @@ func _run() -> void:
 	await _step(105)
 	_check("match ends at two wins", scene.phase == 4 and scene.wins[0] == 2, "phase=%d wins=%s" % [scene.phase, str(scene.wins)])
 
+	# --- Fresh match: round clock vs hitstop ---
+	scene._reset_match()
+	await _step(65)
+	_check("fresh match fighting", scene.phase == 1 and scene.wins[0] == 0 and scene.wins[1] == 0,
+		"phase=%d wins=%s" % [scene.phase, str(scene.wins)])
+
+	# (a) hitstop freezes the clock
+	p1.health = 1000.0
+	p2.health = 1000.0
+	p1.position = Vector2(100, 150)
+	p2.position = Vector2(120, 150)
+	p1.facing = 1
+	p2.facing = -1
+	p1.reset_state()
+	p2.reset_state()
+	p2.receive_hit(p1, light)
+	var hitstop := maxi(p1.hitstop_frames, p2.hitstop_frames)
+	var frozen: int = scene.timer_frames
+	await _step(maxi(1, hitstop - 1))
+	_check("timer frozen during hitstop",
+		scene.timer_frames == frozen and maxi(p1.hitstop_frames, p2.hitstop_frames) > 0,
+		"timer %d -> %d, hitstop=%d" % [frozen, scene.timer_frames, maxi(p1.hitstop_frames, p2.hitstop_frames)])
+	await _step(12)
+	_check("timer resumes after hitstop", scene.timer_frames < frozen,
+		"timer %d -> %d" % [frozen, scene.timer_frames])
+
+	# (b) a hit landing on the clock's final frame still counts. Measure the
+	# impact frame first, then replay with the timer expiring on exactly it.
+	p1.health = 990.0
+	p2.health = 1000.0
+	p1.position = Vector2(120, 150)
+	p2.position = Vector2(146, 150)
+	p1.reset_state()
+	p2.reset_state()
+	p1._start_move(light)
+	var impact := 0
+	while p2.health >= 1000.0 and impact < 30:
+		scene.timer_frames = 999
+		await _step(1)
+		impact += 1
+	_check("attack connects", p2.health < 1000.0, "hp=%.1f after %d frames" % [p2.health, impact])
+
+	p1.health = 990.0
+	p2.health = 1000.0
+	p1.position = Vector2(120, 150)
+	p2.position = Vector2(146, 150)
+	p1.reset_state()
+	p2.reset_state()
+	p1._start_move(light)
+	scene.timer_frames = impact
+	await _step(impact + 20)
+	# p2 is ahead on health until this hit lands; if the timeout discarded it,
+	# p2 would take the round instead.
+	_check("hit on the timer's final frame counts", scene.wins[0] == 1,
+		"wins=%s p1=%.1f p2=%.1f" % [str(scene.wins), p1.health, p2.health])
+
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

@@ -141,14 +141,21 @@ func _physics_process(_delta: float) -> void:
 			if phase_frame >= INTRO_FRAMES:
 				_start_fight()
 		Phase.FIGHT:
+			_separate_pushboxes()
+			# Resolve hits before touching the clock: a hit landing on the timer's
+			# final frame must count (and a KO there beats the timeout) instead of
+			# being dropped by an earlier _timeout_round().
+			_detect_hits(p1, p2)
+			_detect_hits(p2, p1)
+			if phase != Phase.FIGHT:
+				return
+			# Hitstop freezes the whole exchange, so it must not burn the clock.
+			if p1.hitstop_frames > 0 or p2.hitstop_frames > 0:
+				return
 			timer_frames -= 1
 			hud.set_timer(float(timer_frames) / 60.0)
 			if timer_frames <= 0:
 				_timeout_round()
-				return
-			_separate_pushboxes()
-			_detect_hits(p1, p2)
-			_detect_hits(p2, p1)
 		Phase.KO:
 			_separate_pushboxes()
 			if phase_frame >= KO_FRAMES:

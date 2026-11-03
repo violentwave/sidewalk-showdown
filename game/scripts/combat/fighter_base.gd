@@ -1,6 +1,4 @@
-# FighterBase — shared fighter controller.
-# Phase 1: movement, jump, crouch, facing, state machine skeleton.
-# Simulation runs on fixed 60Hz physics ticks; frame counters are sim frames.
+# FighterBase — shared fighter controller. Simulation = fixed 60Hz physics ticks.
 class_name FighterBase
 extends CharacterBody2D
 
@@ -12,8 +10,15 @@ enum State {
 	GRAB, KO, WIN,
 }
 
-# --- Identity / tuning (data resources arrive in commit 2) ---
+signal state_changed(new_state: State)
+signal health_changed(value: float, max_value: float)
+signal meter_changed(value: float, max_value: float)
+signal combo_changed(count: int)
+signal ko
+
+# --- Identity (FighterData overrides these) ---
 @export var player_index: int = 1
+@export var data: FighterData
 @export var body_color: Color = Color(0.95, 0.55, 0.15)
 @export var walk_speed_fwd: float = 90.0
 @export var walk_speed_back: float = 70.0
@@ -22,7 +27,7 @@ enum State {
 @export var body_width: float = 28.0
 @export var body_height: float = 56.0
 
-# --- Match context, set by MatchRoot ---
+# --- Match context ---
 var opponent: FighterBase
 var stage: Node2D
 var input_enabled := true
@@ -33,17 +38,50 @@ var state_frame := 0
 var facing := 1
 var grounded := true
 var crouching := false
-var health := 1000
-var max_health := 1000
+var health := 1000.0
+var max_health := 1000.0
 var meter := 0.0
+var max_meter := 100.0
 var hitstop_frames := 0
 
-signal state_changed(new_state: State)
+var current_move: MoveData
+var move_hit_confirmed := false
+var move_already_hit := false
+var hitstun_frames := 0
+var blockstun_frames := 0
+var knockdown_frames := 0
+var wakeup_frames := 0
+
+var combo_hits := 0
+var frames_since_hit := 0
+
+# --- Input buffer ---
+const BUFFER_NORMAL := 5
+const BUFFER_SPECIAL := 7
+const BUFFER_GRAB := 5
+const BUFFER_MAX_AGE := 20
+var input_buffer: Dictionary = {}
+var input_history: Array[String] = []
 
 func _ready() -> void:
 	$Silhouette.modulate = body_color
 	$FacingMarker.modulate = body_color.lightened(0.35)
+	if data:
+		apply_data(data)
 	state_changed.connect(_on_state_changed)
+
+func apply_data(d: FighterData) -> void:
+	data = d
+	max_health = d.max_health
+	health = d.max_health
+	walk_speed_fwd = d.walk_speed_fwd
+	walk_speed_back = d.walk_speed_back
+	jump_speed = d.jump_speed
+	body_width = d.body_width
+	body_height = d.body_height
+	body_color = d.body_color
+	$Silhouette.modulate = body_color
+	$FacingMarker.modulate = body_color.lightened(0.35)
 
 func begin_round(spawn_pos: Vector2, opponent_x: float) -> void:
 	position = spawn_pos
@@ -53,11 +91,20 @@ func begin_round(spawn_pos: Vector2, opponent_x: float) -> void:
 	health = max_health
 	meter = 0.0
 	hitstop_frames = 0
+	combo_hits = 0
+	frames_since_hit = 0
+	current_move = null
+	input_buffer.clear()
 	facing = 1 if opponent_x > spawn_pos.x else -1
-	_set_state(State.IDLE)
-	_sync_visuals()
+	_force_state(State.IDLE)
+	_emit_health()
+	meter_changed.emit(meter, max_meter)
+	combo_changed.emit(0)
 
 func _physics_process(delta: float) -> void:
+	_poll_input()
+	_tick_combo()
+
 	if hitstop_frames > 0:
 		hitstop_frames -= 1
 		return
@@ -70,13 +117,27 @@ func _physics_process(delta: float) -> void:
 		State.IDLE, State.WALK_F, State.WALK_B:
 			_grounded_movement(axis, down)
 		State.CROUCH:
-			_crouch_logic(axis)
+			_crouch_logic(down)
 		State.JUMP_START, State.JUMP_RISE, State.JUMP_FALL:
-			_air_movement(axis, delta)
+			_air_movement(axis)
 		State.LAND:
 			velocity.x = 0.0
 			if state_frame >= 2:
 				_set_state(State.IDLE)
+		State.ATTACK:
+			_attack_logic()
+		State.HITSTUN:
+			_stun_logic(hitstun_frames)
+		State.BLOCKSTUN:
+			_stun_logic(blockstun_frames)
+		State.KNOCKDOWN:
+			_knockdown_logic()
+		State.WAKE_UP:
+			velocity.x = move_toward(velocity.x, 0.0, 400.0 * delta_fixed())
+			if state_frame >= wakeup_frames:
+				_set_state(State.IDLE)
+		State.KO:
+			velocity.x = move_toward(velocity.x, 0.0, 200.0 * delta_fixed())
 
 	_apply_gravity(delta)
 	_integrate()
@@ -85,15 +146,13 @@ func _physics_process(delta: float) -> void:
 		_landing_check(stage.floor_y)
 	_sync_visuals()
 
-# --- Movement ---
+# ---------------- Movement ----------------
 func _grounded_movement(axis: float, down: bool) -> void:
-	if not input_enabled:
-		axis = 0.0
-		down = false
-
+	if _try_start_attack():
+		return
 	_update_facing()
 
-	if _pressed("up") and input_enabled:
+	if _pressed("up"):
 		velocity.y = -jump_speed
 		grounded = false
 		_set_state(State.JUMP_START)
@@ -111,14 +170,49 @@ func _grounded_movement(axis: float, down: bool) -> void:
 		velocity.x = axis * (walk_speed_fwd if forward else walk_speed_back)
 		_set_state(State.WALK_F if forward else State.WALK_B)
 
-func _crouch_logic(axis: float) -> void:
+func _crouch_logic(down: bool) -> void:
+	if _try_start_attack():
+		return
 	velocity.x = 0.0
-	if not _down() or not input_enabled:
+	if not down:
 		_set_state(State.IDLE)
 
-func _air_movement(axis: float, _delta: float) -> void:
+func _air_movement(axis: float) -> void:
+	if _try_start_attack():
+		return
 	if input_enabled:
 		velocity.x = axis * walk_speed_fwd
+
+func _attack_logic() -> void:
+	if current_move == null:
+		_set_state(State.IDLE)
+		return
+	velocity.x = move_toward(velocity.x, 0.0, 400.0 * delta_fixed())
+
+	if move_hit_confirmed and state_frame > current_move.startup:
+		if _try_cancel():
+			return
+	if state_frame >= current_move.total_frames():
+		if not move_already_hit:
+			finish_move_whiff()
+		if not grounded:
+			_set_state(State.JUMP_FALL)
+		else:
+			_set_state(State.CROUCH if _down() else State.IDLE)
+
+func _stun_logic(duration: int) -> void:
+	velocity.x = move_toward(velocity.x, 0.0, 350.0 * delta_fixed())
+	if state_frame >= duration:
+		if not grounded:
+			_set_state(State.JUMP_FALL)
+		else:
+			_set_state(State.CROUCH if _down() else State.IDLE)
+
+func _knockdown_logic() -> void:
+	velocity.x = move_toward(velocity.x, 0.0, 250.0 * delta_fixed())
+	if state_frame >= knockdown_frames:
+		wakeup_frames = 12
+		_force_state(State.WAKE_UP)
 
 func _apply_gravity(delta: float) -> void:
 	if not grounded:
@@ -131,14 +225,239 @@ func delta_fixed() -> float:
 	return 1.0 / Engine.physics_ticks_per_second
 
 func _landing_check(floor_y: float) -> void:
-	if position.y >= floor_y:
-		position.y = floor_y
-		velocity.y = 0.0
-		if not grounded:
-			grounded = true
+	if position.y < floor_y:
+		return
+	position.y = floor_y
+	velocity.y = 0.0
+	if grounded:
+		return
+	grounded = true
+	current_move = null
+	match state:
+		State.ATTACK, State.JUMP_START, State.JUMP_RISE, State.JUMP_FALL:
+			_set_state(State.LAND)
+		State.HITSTUN, State.KNOCKDOWN:
+			# stay in the stun; land into idle when frames run out
+			pass
+		_:
 			_set_state(State.LAND)
 
-# --- Helpers ---
+# ---------------- Attacks ----------------
+func _try_start_attack() -> bool:
+	if data == null or not input_enabled:
+		return false
+	var stance := _current_stance()
+
+	if _consume("grab", BUFFER_GRAB):
+		var grab := data.find_move(MoveData.InputType.GRAB, MoveData.Stance.STAND)
+		if grab:
+			_start_move(grab)
+			return true
+
+	if _consume("special", BUFFER_SPECIAL):
+		var special := data.find_move(_special_input(stance), stance)
+		if special:
+			_start_move(special)
+			return true
+
+	if _consume("light", BUFFER_NORMAL):
+		var light := data.find_move(MoveData.InputType.LIGHT, stance)
+		if light:
+			_start_move(light)
+			return true
+
+	if _consume("heavy", BUFFER_NORMAL):
+		var heavy := data.find_move(MoveData.InputType.HEAVY, stance)
+		if heavy:
+			_start_move(heavy)
+			return true
+
+	return false
+
+func _try_cancel() -> bool:
+	if current_move == null:
+		return false
+	var allowed_special := current_move.input in [MoveData.InputType.LIGHT, MoveData.InputType.HEAVY]
+	var allowed_normal := current_move.input == MoveData.InputType.LIGHT
+
+	if allowed_special and _consume("special", BUFFER_SPECIAL):
+		var special := data.find_move(_special_input(_current_stance()), _current_stance())
+		if special:
+			_start_move(special)
+			return true
+	if allowed_normal and _consume("light", BUFFER_NORMAL):
+		var light := data.find_move(MoveData.InputType.LIGHT, _current_stance())
+		if light:
+			_start_move(light)
+			return true
+	if allowed_normal and _consume("heavy", BUFFER_NORMAL):
+		var heavy := data.find_move(MoveData.InputType.HEAVY, _current_stance())
+		if heavy:
+			_start_move(heavy)
+			return true
+	return false
+
+func _start_move(move: MoveData) -> void:
+	current_move = move
+	move_hit_confirmed = false
+	move_already_hit = false
+	velocity.x = 0.0
+	_force_state(State.ATTACK)
+
+func _current_stance() -> MoveData.Stance:
+	if not grounded:
+		return MoveData.Stance.AIR
+	if _down() or crouching:
+		return MoveData.Stance.CROUCH
+	return MoveData.Stance.STAND
+
+func _special_input(stance: MoveData.Stance) -> MoveData.InputType:
+	if stance == MoveData.Stance.AIR:
+		return MoveData.InputType.SPECIAL_AIR
+	if _down():
+		return MoveData.InputType.SPECIAL_DOWN
+	var axis := _axis("left", "right")
+	if axis != 0.0 and signf(axis) == float(facing):
+		return MoveData.InputType.SPECIAL_FWD
+	if axis != 0.0:
+		return MoveData.InputType.SPECIAL_BACK
+	return MoveData.InputType.SPECIAL_NEUTRAL
+
+func get_hitbox_rect() -> Rect2:
+	if state != State.ATTACK or current_move == null:
+		return Rect2()
+	if not current_move.is_active_frame(state_frame):
+		return Rect2()
+	return current_move.hitbox_rect(position, facing)
+
+func on_attack_connected(was_hit: bool) -> void:
+	move_already_hit = true
+	move_hit_confirmed = was_hit
+
+func finish_move_whiff() -> void:
+	if current_move:
+		add_meter(current_move.meter_gain_whiff)
+
+# ---------------- Damage ----------------
+func is_holding_back() -> bool:
+	if not input_enabled:
+		return false
+	var axis := _axis("left", "right")
+	return axis != 0.0 and signf(axis) != float(facing)
+
+func is_blocking() -> bool:
+	if not grounded:
+		return false
+	if state in [State.ATTACK, State.HITSTUN, State.BLOCKSTUN, State.KNOCKDOWN, State.WAKE_UP, State.KO]:
+		return false
+	return is_holding_back()
+
+func can_block(move: MoveData) -> bool:
+	if move.level == MoveData.Level.THROW:
+		return false
+	var crouch_block := _down() or state == State.CROUCH
+	if crouch_block:
+		return move.level in [MoveData.Level.LOW, MoveData.Level.MID]
+	return move.level in [MoveData.Level.OVERHEAD, MoveData.Level.MID]
+
+func receive_hit(attacker: FighterBase, move: MoveData) -> bool:
+	if state == State.KO:
+		return false
+
+	if is_blocking() and can_block(move):
+		health = maxf(0.0, health - move.block_damage)
+		add_meter(move.meter_gain_receive)
+		attacker.add_meter(move.meter_gain_block)
+		blockstun_frames = move.blockstun
+		hitstop_frames = maxi(hitstop_frames, move.hitstop)
+		velocity.x = float(attacker.facing) * 45.0
+		combo_hits = 0
+		combo_changed.emit(0)
+		_force_state(State.BLOCKSTUN)
+		_emit_health()
+		return false
+
+	var scaled := move.damage * _damage_scale()
+	health = maxf(0.0, health - scaled)
+	combo_hits += 1
+	frames_since_hit = 0
+	combo_changed.emit(combo_hits)
+	add_meter(move.meter_gain_receive)
+	attacker.add_meter(move.meter_gain_hit)
+	hitstop_frames = maxi(hitstop_frames, move.hitstop)
+
+	var dir := 1.0 if position.x >= attacker.position.x else -1.0
+	velocity = Vector2(dir * move.knockback.x, -move.knockback.y)
+	_emit_health()
+
+	if health <= 0.0:
+		velocity = Vector2(dir * 130.0, -170.0)
+		_force_state(State.KO)
+		ko.emit()
+		return true
+
+	if move.knockdown:
+		knockdown_frames = 30
+		_force_state(State.KNOCKDOWN)
+	else:
+		hitstun_frames = move.hitstun
+		_force_state(State.HITSTUN)
+	return true
+
+func _damage_scale() -> float:
+	var hits := combo_hits + 1
+	if hits <= 2:
+		return 1.0
+	elif hits == 3:
+		return 0.85
+	elif hits == 4:
+		return 0.70
+	elif hits >= 5:
+		return 0.55
+	return 1.0
+
+func reset_state() -> void:
+	_force_state(State.IDLE)
+	velocity = Vector2.ZERO
+	current_move = null
+	hitstop_frames = 0
+	hitstun_frames = 0
+	blockstun_frames = 0
+	knockdown_frames = 0
+	combo_hits = 0
+	frames_since_hit = 0
+	input_buffer.clear()
+	grounded = true
+	_sync_visuals()
+
+func add_meter(amount: float) -> void:
+	meter = clampf(meter + amount, 0.0, max_meter)
+	meter_changed.emit(meter, max_meter)
+
+func _emit_health() -> void:
+	health_changed.emit(health, max_health)
+
+# ---------------- Input ----------------
+func _poll_input() -> void:
+	if not input_enabled:
+		return
+	for action in ["light", "heavy", "special", "grab", "meth", "up"]:
+		if Input.is_action_just_pressed("p%d_%s" % [player_index, action]):
+			input_buffer[action] = 0
+			input_history.append(action)
+			if input_history.size() > 60:
+				input_history.pop_front()
+	for key in input_buffer.keys():
+		input_buffer[key] += 1
+		if input_buffer[key] > BUFFER_MAX_AGE:
+			input_buffer.erase(key)
+
+func _consume(action: String, window: int) -> bool:
+	if input_buffer.has(action) and input_buffer[action] <= window + 1:
+		input_buffer.erase(action)
+		return true
+	return false
+
 func _axis(left: String, right: String) -> float:
 	if not input_enabled:
 		return 0.0
@@ -150,6 +469,13 @@ func _pressed(action: String) -> bool:
 func _down() -> bool:
 	return _pressed("down")
 
+func _tick_combo() -> void:
+	frames_since_hit += 1
+	if combo_hits > 0 and frames_since_hit > 40 and state not in [State.HITSTUN, State.KNOCKDOWN]:
+		combo_hits = 0
+		combo_changed.emit(0)
+
+# ---------------- Misc ----------------
 func _update_facing() -> void:
 	if opponent:
 		facing = 1 if opponent.position.x >= position.x else -1
@@ -158,17 +484,15 @@ func clamp_to_stage() -> void:
 	if stage:
 		position.x = clampf(position.x, stage.left_bound, stage.right_bound)
 
+func _pushbox_height() -> float:
+	return body_height * (0.65 if (crouching or state == State.CROUCH) else 1.0)
+
 func pushbox_rect() -> Rect2:
-	var h := body_height
-	if crouching or state == State.CROUCH:
-		h = body_height * 0.65
+	var h := _pushbox_height()
 	return Rect2(position.x - body_width * 0.5, position.y - h, body_width, h)
 
 func hurtbox_rect() -> Rect2:
-	var h := body_height
-	if crouching or state == State.CROUCH:
-		h = body_height * 0.65
-	return Rect2(position.x - body_width * 0.5, position.y - h, body_width, h)
+	return pushbox_rect()
 
 func _set_state(new_state: State) -> void:
 	if new_state != state:
@@ -176,13 +500,17 @@ func _set_state(new_state: State) -> void:
 		state_frame = 0
 		state_changed.emit(new_state)
 
+func _force_state(new_state: State) -> void:
+	state = new_state
+	state_frame = 0
+	state_changed.emit(new_state)
+
 func _sync_visuals() -> void:
-	var h := body_height
-	if state == State.CROUCH or crouching:
-		h = body_height * 0.65
+	var h := _pushbox_height()
 	$Silhouette.scale.y = h / body_height
 	$FacingMarker.position.x = facing * body_width * 0.5
 	$FacingMarker.scale.x = facing
+	$FacingMarker.position.y = -h + 8.0
 
 func _on_state_changed(new_state: State) -> void:
 	if new_state == State.CROUCH:

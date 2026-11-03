@@ -27,6 +27,13 @@ func _check(label: String, condition: bool, detail: String = "") -> void:
 		print("FAIL: ", label, "  ", detail)
 
 
+func _press(action: String) -> void:
+	var ev := InputEventAction.new()
+	ev.action = action
+	ev.pressed = true
+	scene._unhandled_input(ev)
+
+
 func _reset_fighters(p1_x: float, p2_x: float) -> void:
 	p1.position = Vector2(p1_x, 150)
 	p2.position = Vector2(p2_x, 150)
@@ -199,17 +206,60 @@ func _run() -> void:
 	p2.health = 1000.0
 	await _step(2)
 
-	# --- 13. pause freezes fighters, not the match controller ---
-	paused = true
-	await _step(3)
-	var frozen_frame := p1.state_frame
-	await _step(6)
-	_check("pause freezes fighters", p1.state_frame == frozen_frame,
-		"frame %d -> %d" % [frozen_frame, p1.state_frame])
+	# --- 13. pause menu freezes the sim mid-hitstun ---
+	_reset_fighters(100, 120)
+	p1.health = 1000.0
+	p2.health = 1000.0
+	p2.receive_hit(p1, light)
+	p1.hitstop_frames = 0
+	p2.hitstop_frames = 0
+	await _step(2)
+	_check("p2 is in hitstun", p2.state == FighterBase.State.HITSTUN, "state=%d" % p2.state)
+	var hp_before := p2.health
+	var p2_frame := p2.state_frame
+
+	_press("p1_pause")
+	await _step(4)
+	_check("pause freezes fighters", p2.state_frame == p2_frame,
+		"frame %d -> %d" % [p2_frame, p2.state_frame])
 	_check("pause keeps match controller running", scene.can_process(),
 		"can_process=%s" % str(scene.can_process()))
-	paused = false
+	_check("pause opens the menu", paused and scene.pause_index == 0,
+		"paused=%s index=%d" % [str(paused), scene.pause_index])
+
+	# --- 14. both players navigate, selection does not touch the sim ---
+	_press("p2_down")
+	_check("P2 moves the menu selection", scene.pause_index == 1, "index=%d" % scene.pause_index)
+	_press("p1_up")
+	_check("P1 moves the menu selection", scene.pause_index == 0, "index=%d" % scene.pause_index)
+	_press("p1_up")
+	_check("menu wraps to the last option", scene.pause_index == 2, "index=%d" % scene.pause_index)
+	_press("p1_down")
+	_check("menu wraps to the first option", scene.pause_index == 0, "index=%d" % scene.pause_index)
+
+	await _step(6)
+	_check("menu input does not advance sim",
+		p2.state_frame == p2_frame and is_equal_approx(p2.health, hp_before),
+		"frame %d -> %d hp %.1f" % [p2_frame, p2.state_frame, p2.health])
+
+	_press("p2_light") # RESUME is selected
+	await _step(3)
+	_check("light attack resumes", not paused, "paused=%s" % str(paused))
+	_check("sim resumes mid-hitstun",
+		p2.state == FighterBase.State.HITSTUN and p2.state_frame > p2_frame
+			and is_equal_approx(p2.health, hp_before),
+		"state=%d frame=%d hp=%.1f" % [p2.state, p2.state_frame, p2.health])
+	await _step(25)
+
+	# --- 15. restart match from the menu ---
+	_press("p2_pause")
+	_press("p2_down")
+	_check("restart option selected", scene.pause_index == 1, "index=%d" % scene.pause_index)
+	_press("ui_confirm")
 	await _step(2)
+	_check("restart match from the menu",
+		not paused and scene.round_number == 1 and scene.wins[0] == 0 and scene.wins[1] == 0,
+		"paused=%s round=%d wins=%s" % [str(paused), scene.round_number, str(scene.wins)])
 
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

@@ -1,4 +1,4 @@
-# Known Issues — Phase 1.5e (Greybox Combat)
+# Known Issues — Phase 1.5f (Greybox Combat)
 
 Exit criteria from GDD §13 Phase 1: two boxes can fight, hits feel responsive,
 blocking works, round flow works, match can end/restart. **All met.**
@@ -17,6 +17,12 @@ Since 1.5e the round clock also respects hitstop: while either fighter has
 hitstop frames left the timer holds, so a frozen exchange never burns time. Hits
 are resolved before the timeout check, so a hit landing on the timer's final
 frame counts — and a KO on that frame wins the round instead of being discarded.
+
+Since 1.5f pause is a real menu rather than a label: Esc (P1) / Numpad 0 (P2)
+freeze the fight and open RESUME / RESTART MATCH / QUIT TO DESKTOP, driven by
+either player's up/down and light attack (or Enter). Pausing alters no sim state
+— hitstun frames, health, and the round clock all resume exactly where they
+stopped.
 
 ## Input map
 
@@ -50,21 +56,12 @@ that section by hand afterward — the simulation step comes from
 - **Hype meter has no spender.** It fills on hit/block/whiff but no move costs
   meter yet.
 - **No character/stage select.** Fixed matchup + Bus Stop (Night).
-- **No pause menu.** Esc (P1) / Numpad 0 (P2) freeze the simulation and show a
-  label; there is no menu, options, or resume/quit choice yet.
 - **Debug overlay is basic.** Boxes/frame-state/input-history/slow-mo only; no
   frame-step, frame advantage, AI state, or reset/refill hotkeys.
 - **No throw tech or wake-up invulnerability.**
 
 ## Known edge cases
 
-<<<<<<< HEAD
-- **Round timer** ticks during hitstop, and a hit that lands on the same frame
-  the timer expires is discarded.
-=======
-- **Double KO** awards the round to the first fighter whose `ko` signal fires;
-  there is no draw/replay handling for simultaneous KOs.
->>>>>>> freebuff/timer-hitstop
 - **Timeout tie** (equal health) resolves as a draw round with no win awarded.
 - Frame data is provisional, derived from GDD §5.6–§5.10. It lives in
   `game/resources/fighters/*.tres` and can be regenerated with
@@ -83,13 +80,10 @@ that section by hand afterward — the simulation step comes from
 - `game/tests/combat_test.gd` — hits, chip damage (including the chip-cannot-KO
   floor), low vs stand-block, throw unblockability, jump arc, P2 bindings,
   blockstring blocking, shared hitstop, KO landing, real-key input-map
-  resolution, pause freezing fighters.
+  resolution, pause freezing fighters, and the pause menu (navigation by both
+  players, resume keeping mid-hitstun state, restart).
 - `game/tests/round_flow_test.gd` — intro→fight, KO, round wins, timeout
-<<<<<<< HEAD
-  resolution, double KO → draw (no pip, round advances, match still ends),
-  best-of-3 match end.
-=======
-  resolution, the round clock frozen during hitstop, a hit on the timer's final
-  frame counting, best-of-3 match end.
->>>>>>> freebuff/timer-hitstop
+  resolution, double KO -> draw (no pip, round advances, match still ends),
+  the round clock frozen during hitstop, a hit on the timer's final frame
+  counting, best-of-3 match end.
 - `.github/workflows/tests.yml` runs both suites on push/PR.

@@ -182,6 +182,11 @@ func _air_movement(axis: float) -> void:
 		return
 	if input_enabled:
 		velocity.x = axis * walk_speed_fwd
+	# Advance the jump state so animation/blocking can read the arc.
+	if state == State.JUMP_START and state_frame > 1:
+		_set_state(State.JUMP_RISE if velocity.y < 0.0 else State.JUMP_FALL)
+	elif state == State.JUMP_RISE and velocity.y >= 0.0:
+		_set_state(State.JUMP_FALL)
 
 func _attack_logic() -> void:
 	if current_move == null:
@@ -236,7 +241,7 @@ func _landing_check(floor_y: float) -> void:
 	match state:
 		State.ATTACK, State.JUMP_START, State.JUMP_RISE, State.JUMP_FALL:
 			_set_state(State.LAND)
-		State.HITSTUN, State.KNOCKDOWN:
+		State.HITSTUN, State.KNOCKDOWN, State.KO:
 			# stay in the stun; land into idle when frames run out
 			pass
 		_:
@@ -348,7 +353,9 @@ func is_holding_back() -> bool:
 func is_blocking() -> bool:
 	if not grounded:
 		return false
-	if state in [State.ATTACK, State.HITSTUN, State.BLOCKSTUN, State.KNOCKDOWN, State.WAKE_UP, State.KO]:
+	# BLOCKSTUN is intentionally allowed: holding back must keep blocking
+	# successive hits in a blockstring.
+	if state in [State.ATTACK, State.HITSTUN, State.KNOCKDOWN, State.WAKE_UP, State.KO]:
 		return false
 	return is_holding_back()
 
@@ -370,6 +377,7 @@ func receive_hit(attacker: FighterBase, move: MoveData) -> bool:
 		attacker.add_meter(move.meter_gain_block)
 		blockstun_frames = move.blockstun
 		hitstop_frames = maxi(hitstop_frames, move.hitstop)
+		attacker.hitstop_frames = maxi(attacker.hitstop_frames, move.hitstop)
 		velocity.x = float(attacker.facing) * 45.0
 		combo_hits = 0
 		combo_changed.emit(0)
@@ -385,6 +393,7 @@ func receive_hit(attacker: FighterBase, move: MoveData) -> bool:
 	add_meter(move.meter_gain_receive)
 	attacker.add_meter(move.meter_gain_hit)
 	hitstop_frames = maxi(hitstop_frames, move.hitstop)
+	attacker.hitstop_frames = maxi(attacker.hitstop_frames, move.hitstop)
 
 	var dir := 1.0 if position.x >= attacker.position.x else -1.0
 	velocity = Vector2(dir * move.knockback.x, -move.knockback.y)
@@ -392,6 +401,7 @@ func receive_hit(attacker: FighterBase, move: MoveData) -> bool:
 
 	if health <= 0.0:
 		velocity = Vector2(dir * 130.0, -170.0)
+		grounded = false # let gravity arc the loser back down to the stage
 		_force_state(State.KO)
 		ko.emit()
 		return true

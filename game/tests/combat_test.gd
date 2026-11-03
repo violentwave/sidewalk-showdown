@@ -110,5 +110,55 @@ func _run() -> void:
 	_check("P2 attacks with own keys", p2.state == FighterBase.State.ATTACK, "state=%d" % p2.state)
 	await _step(30)
 
+	# --- 7. blockstun still blocks ---
+	_reset_fighters(100, 120)
+	Input.action_press("p2_right") # p2 faces left, right = away
+	await _step(3)
+	p2.receive_hit(p1, light)
+	p2.hitstop_frames = 0
+	p2.receive_hit(p1, light)
+	_check("blockstun keeps blocking", is_equal_approx(p2.health, 1000.0 - light.block_damage * 2.0),
+		"hp=%.1f" % p2.health)
+	Input.action_release("p2_right")
+
+	# --- 8. attacker shares hitstop ---
+	_reset_fighters(100, 120)
+	p1._start_move(light)
+	var hit_frames := 0
+	while p2.health >= 1000.0 and hit_frames < 30:
+		await _step(1)
+		hit_frames += 1
+	_check("attacker freezes on hit", p1.hitstop_frames > 0 and p2.hitstop_frames > 0,
+		"p1=%d p2=%d" % [p1.hitstop_frames, p2.hitstop_frames])
+	await _step(20)
+
+	# --- 9. jump arc advances through rise and fall ---
+	_reset_fighters(100, 200)
+	Input.action_press("p1_up")
+	await _step(1)
+	Input.action_release("p1_up")
+	var saw_rise := false
+	var saw_fall := false
+	for i in 60:
+		await _step(1)
+		if p1.state == FighterBase.State.JUMP_RISE:
+			saw_rise = true
+		if p1.state == FighterBase.State.JUMP_FALL:
+			saw_fall = true
+			break
+	_check("jump transitions rise -> fall", saw_rise and saw_fall,
+		"rise=%s fall=%s state=%d" % [saw_rise, saw_fall, p1.state])
+	await _step(40)
+
+	# --- 10. KO loser lands and stays KO (last: ends the round) ---
+	_reset_fighters(100, 120)
+	p2.health = 1.0
+	p1._start_move(light)
+	await _step(60)
+	_check("KO loser lands on stage", is_equal_approx(p2.position.y, 150.0) and p2.grounded,
+		"y=%.1f grounded=%s" % [p2.position.y, p2.grounded])
+	_check("KO state persists after landing", p2.state == FighterBase.State.KO,
+		"state=%d" % p2.state)
+
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

@@ -330,5 +330,45 @@ func _run() -> void:
 	overlay.slow_motion = false
 	paused = false
 
+	# --- 19. grounded throw connects, airborne throw whiffs ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	var throw_move: MoveData = p1.data.find_move(MoveData.InputType.GRAB, MoveData.Stance.STAND)
+	_check("grab data present", throw_move != null and throw_move.level == MoveData.Level.THROW)
+	p1._start_move(throw_move)
+	await _step(throw_move.total_frames() + 4)
+	_check("grounded throw connects",
+		is_equal_approx(p2.health, 1000.0 - throw_move.damage)
+			and p2.state == FighterBase.State.KNOCKDOWN,
+		"hp=%.1f state=%d" % [p2.health, p2.state])
+
+	# --- 20. airborne defender is not grabbed, and the window survives ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	p1.health = 1000.0
+	p2.health = 1000.0
+	# 11.25px up with 60px/s down: gravity (900px/s^2 = 15px/s per frame) makes
+	# the descent 1.25/1.5/1.75/2.0/2.25 px over five frames, then 2.5 on the
+	# sixth, so the throw's first active frame (5) brushes an airborne defender
+	# and the second (6) sees them land.
+	p2.position = Vector2(120, 150.0 - 11.25)
+	p2.velocity = Vector2(0, 60.0)
+	p2.grounded = false
+	p2._force_state(FighterBase.State.JUMP_FALL)
+	p1._start_move(throw_move)
+	await _step(5)
+	_check("airborne defender is not grabbed",
+		not p2.grounded and is_equal_approx(p2.health, 1000.0),
+		"grounded=%s hp=%.1f" % [str(p2.grounded), p2.health])
+	_check("brushed throw keeps its active window", not p1.move_already_hit,
+		"move_already_hit=%s" % str(p1.move_already_hit))
+	await _step(3)
+	_check("throw lands once the defender is grounded in the window",
+		is_equal_approx(p2.health, 1000.0 - throw_move.damage)
+			and p2.state == FighterBase.State.KNOCKDOWN,
+		"grounded=%s hp=%.1f state=%d" % [str(p2.grounded), p2.health, p2.state])
+
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

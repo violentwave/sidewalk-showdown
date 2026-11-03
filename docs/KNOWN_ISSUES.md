@@ -23,6 +23,9 @@ Engine and feel:
 - A real pause menu (RESUME / RESTART MATCH / QUIT TO DESKTOP) driven by either
   player's up/down plus light attack or Enter. Pausing alters no simulation
   state: hitstun frames, health and the clock resume exactly where they stopped.
+- A grounded throw cannot grab an airborne defender. The brush does not consume
+  the throw's active window, so the grab still lands if the defender touches down
+  inside it.
 
 Debug overlay:
 
@@ -90,17 +93,24 @@ that section by hand afterward — the simulation step comes from
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **45 checks**: clean hits and damage-vs-data,
+- `game/tests/combat_test.gd` — **50 checks**: clean hits and damage-vs-data,
   block chip, low vs stand block, throw unblockability, jump arc, P2 bindings,
   blockstun blocking, shared hitstop, KO landing, real-key input-map resolution,
   the chip-cannot-KO floor, pause freezing fighters and opening the menu, menu
   navigation by both players, resume preserving mid-hitstun state, restart from
   the menu, debug frame-step (one frame per press, gated while the menu is
-  open), the frame-advantage readout, and the F6 refill.
+  open), the frame-advantage readout, the F6 refill, and grounded throws whiffing
+  on an airborne defender while the active throw window survives the brush.
 - `game/tests/round_flow_test.gd` — **18 checks**: intro→fight, KO phase, round
   wins, timeout resolution, a simultaneous KO resolving as a draw with no pip
   and the round advancing, a match still ending after a draw round, the clock
   frozen during hitstop, and a hit on the timer's final frame counting.
-- `.github/workflows/tests.yml` runs both suites on push and pull request.
+- `game/tests/air_probe.gd` — metrics only, no assertions: air reach envelope,
+  damage per arc, first-to-hit trade matrix, blocked advantage and the
+  whiff-punish window. Prints a report and always exits 0, so it can never fail a
+  suite; `docs/PROPOSALS.md` §3 holds the methodology and targets.
+- `.github/workflows/tests.yml` runs both suites plus the air probe on push, pull
+  request and manual dispatch.
 - `.github/workflows/export.yml` builds Linux/Windows artifacts on `main` and
-  `v*` tags.
+  `v*` tags, can be dispatched by hand, and caches the export templates per
+  Godot version.

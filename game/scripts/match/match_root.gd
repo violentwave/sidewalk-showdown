@@ -284,6 +284,13 @@ func _poll_hit(attacker: FighterBase, defender: FighterBase) -> MoveData:
 		return null
 	if not hb.intersects(defender.hurtbox_rect()):
 		return null
+	# A grounded throw cannot grab a defender who has left the ground. This is
+	# rejected before the move is returned on purpose: _resolve_hits() only calls
+	# on_attack_connected() for a non-null move, so the brush does not consume the
+	# throw's active window and the grab still lands on a later active frame if the
+	# defender touches down inside it.
+	if attacker.current_move.level == MoveData.Level.THROW and not defender.grounded:
+		return null
 	return attacker.current_move
 
 func _separate_pushboxes() -> void:

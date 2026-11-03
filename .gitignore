@@ -6,6 +6,8 @@ game/.godot/
 # Exports / builds
 game/export/
 game/build/
+# Repo-root export output (where the CI export workflow writes)
+/build/
 *.apk
 *.exe
 *.pck

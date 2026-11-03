@@ -4,9 +4,15 @@ on:
   push:
     branches: [main]
     tags: ["v*"]
+  # Allow dry-running the export without pushing, e.g. from the Actions tab or
+  # `gh workflow run export.yml`.
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+env:
+  GODOT_VERSION: "4.7.2"
 
 jobs:
   export:
@@ -33,11 +39,24 @@ jobs:
         id: sha
         run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
+      # The ~1GB export templates only change when the Godot version does.
+      # setup-godot caches its own download, but only in the runner's local tool
+      # cache, which hosted runners do not keep between jobs — so keep the
+      # installed templates in the Actions cache instead.
+      - name: Cache Godot export templates
+        id: templates
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/godot/export_templates
+          key: godot-${{ env.GODOT_VERSION }}-templates-${{ runner.os }}
+
       - uses: chickensoft-games/setup-godot@v2
         with:
-          version: 4.7.2
+          version: ${{ env.GODOT_VERSION }}
           use-dotnet: false
-          include-templates: true
+          # On a cache hit the templates are already restored into Godot's
+          # export_templates directory, so skip the download.
+          include-templates: ${{ steps.templates.outputs.cache-hit != 'true' }}
 
       - name: Import project
         run: godot --headless --path game --import

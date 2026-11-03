@@ -54,8 +54,9 @@ Debug: **F1** boxes (on by default), **F2** frame state, **F3** input history,
 
 Debug: **F1** boxes (on by default), **F2** frame state + frame advantage,
 **F3** input history, **F4** slow motion, **F5** frame-step (advances one sim
-frame per press while slow-mo is on), **F6** refill both fighters (full health
-and meter at round positions, without restarting the round).
+frame per press while slow-mo is on and the pause menu is closed), **F6** refill
+both fighters (full health and meter at round positions, without restarting the
+round).
 
 ## Builds
 
@@ -83,6 +84,7 @@ godot --headless --path game --export-release windows build/windows/sidewalk_sho
 | `CHARACTERS.md` | Roster bible (archetypes, rivals, data direction) |
 | `docs/SIDEWALK_SHOWDOWN_NON_DEFINING_ASSET_PROMPTS.md` | 315 art-generation prompts |
 | `docs/KNOWN_ISSUES.md` | Current prototype gaps |
+| `docs/PROPOSALS.md` | Designs for the open combat gaps (wake-up invuln, throw tech, air balance) |
 
 **Canon locks:** Tripp Vlogs is the only boss and is NOT playable. Roster = 15
 fighters. Every fighter has one unique METHtality. No real towns, brands, or

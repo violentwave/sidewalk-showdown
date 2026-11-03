@@ -113,13 +113,16 @@ func _advantage_text() -> String:
 func _state_name(f: FighterBase) -> String:
 	return FighterBase.State.keys()[f.state]
 
-# F5: hold the tree paused and advance exactly one simulation frame.
+# F5: hold the tree paused and advance exactly one simulation frame. Gated off
+# while the pause menu is open, so the sim never advances underneath the menu.
 func step_frame() -> void:
 	if not slow_motion or p1 == null or p2 == null:
 		return
+	var root := get_parent()
+	if root != null and root.has_method("is_pause_menu_open") and root.is_pause_menu_open():
+		return
 	frame_step = true
 	get_tree().paused = true
-	var root := get_parent()
 	if root != null and root.has_method("step_simulation_frame"):
 		root.step_simulation_frame()
 

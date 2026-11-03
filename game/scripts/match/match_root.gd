@@ -32,6 +32,7 @@ var ko_draw := false
 var ko_frame := -1
 var sim_frame := 0
 var pause_index := 0
+var pause_menu_open := false
 
 func _ready() -> void:
 	process_physics_priority = 100 # run after fighters update their state
@@ -228,13 +229,20 @@ func _unhandled_input(event: InputEvent) -> void:
 func _toggle_pause() -> void:
 	var paused := not get_tree().paused
 	get_tree().paused = paused
+	pause_menu_open = paused
 	if paused:
 		pause_index = 0
 	hud.set_paused(paused)
 
 func _unpause() -> void:
 	get_tree().paused = false
+	pause_menu_open = false
 	hud.set_paused(false)
+
+# Debug frame-step asks before stepping: the sim must never advance underneath
+# the pause menu.
+func is_pause_menu_open() -> bool:
+	return pause_menu_open
 
 func _move_pause_selection(dir: int) -> void:
 	var count := hud.pause_option_count()

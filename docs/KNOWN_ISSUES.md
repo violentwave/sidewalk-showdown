@@ -3,32 +3,34 @@
 Exit criteria from GDD §13 Phase 1: two boxes can fight, hits feel responsive,
 blocking works, round flow works, match can end/restart. **All met.**
 
-Phase 1.5d audit fixes now in: KO landing, shared hitstop, blockstun blocking,
-jump arc states, P1/P2 input separation, P2 pause, frame-locked gravity, and the
-1.5d pass — device-agnostic keyboard bindings covered by a real-key test, a pause
-that freezes the fighters and the round timer, silhouettes that scale with
-fighter height, and a chip-damage floor so blocked hits can never KO.
+## What 1.5f contains
 
-Since 1.5e a trade that kills both fighters resolves as a **draw round**: neither
-side gets a win pip, the HUD shows `DOUBLE K.O. / DRAW`, and the round advances
-normally inside the same best-of-3.
+Engine and feel:
 
-Since 1.5e the round clock also respects hitstop: while either fighter has
-hitstop frames left the timer holds, so a frozen exchange never burns time. Hits
-are resolved before the timeout check, so a hit landing on the timer's final
-frame counts — and a KO on that frame wins the round instead of being discarded.
+- KO landing, shared hitstop, blockstun blocking, jump rise/fall states,
+  frame-locked gravity, P1/P2 input separation.
+- Device-agnostic keyboard bindings (`device = -1`) covered by a real-key test.
+  A concrete device id (`16`) never matches a real keyboard and silently kills
+  every control, which is exactly what happened before the fix.
+- Silhouettes scale with fighter height, so the art matches its own hurtbox.
+- Chip damage floors at 1 HP — a blocked hit can never KO.
+- A same-frame trade lands both hits, and two KOs in the same frame resolve as a
+  **draw round**: no pip, `DOUBLE K.O. / DRAW`, round advances inside the same
+  best-of-3.
+- The round clock holds while either fighter is in hitstop, and hits resolve
+  before the timeout, so a hit on the clock's final frame counts and a KO there
+  beats the timeout.
+- A real pause menu (RESUME / RESTART MATCH / QUIT TO DESKTOP) driven by either
+  player's up/down plus light attack or Enter. Pausing alters no simulation
+  state: hitstun frames, health and the clock resume exactly where they stopped.
 
-Since 1.5f pause is a real menu rather than a label: Esc (P1) / Numpad 0 (P2)
-freeze the fight and open RESUME / RESTART MATCH / QUIT TO DESKTOP, driven by
-either player's up/down and light attack (or Enter). Pausing alters no sim state
-— hitstun frames, health, and the round clock all resume exactly where they
-stopped.
+Debug overlay:
 
-Since 1.5f the debug overlay covers frame-stepping: **F5** holds the tree paused
-and advances exactly one simulation frame per press (while slow-mo is on), **F2**
-adds a live frame-advantage readout during HITSTUN/BLOCKSTUN, and **F6** refills
-both fighters at their round positions without disturbing the match phase. The
-overlay mutes itself in headless runs so the test suites stay quiet.
+- F1 boxes, F2 frame state + frame advantage, F3 input history, F4 slow motion,
+  F5 frame-step (one simulation frame per press, only while slow-mo is on and
+  the pause menu is closed), F6 refill both fighters.
+- The overlay mutes itself in headless runs, so it never draws or reads input
+  during the suites.
 
 ## Input map
 
@@ -63,17 +65,21 @@ that section by hand afterward — the simulation step comes from
   meter yet.
 - **No character/stage select.** Fixed matchup + Bus Stop (Night).
 - **Debug overlay is dev-only.** Boxes, frame state, frame advantage, input
-  history, slow-mo, frame-step and refill/reset hotkeys exist; it has no AI state
-  view (there is no AI yet) and no hitbox-invariant assertions.
-- **No throw tech or wake-up invulnerability.**
+  history, slow motion, frame-step and refill exist; there is no AI state view
+  (there is no AI yet) and no hitbox-invariant assertions.
+- **No throw tech or wake-up invulnerability.** Designs, effort estimates and
+  the breakage each implies are written up in `docs/PROPOSALS.md`.
 
 ## Known edge cases
 
 - **Timeout tie** (equal health) resolves as a draw round with no win awarded.
+- **Air specials are unbalanced.** Landing cancels a move, so air moves have no
+  landing recovery, and every jump attack is an `OVERHEAD` that a crouching
+  block cannot stop. Measurement methodology and targets are in
+  `docs/PROPOSALS.md`; do not tune `resources/fighters/*.tres` without sign-off.
 - Frame data is provisional, derived from GDD §5.6–§5.10. It lives in
   `game/resources/fighters/*.tres` and can be regenerated with
   `game/tools/gen_fighter_data.gd`.
-- Air specials exist in data but have had no balance pass.
 - Damage scaling is per-defender combo count: 100/100/85/70/55% for hits
   1–2/3/4/5+, floor **55%**. Chip damage never kills — a blocked hit floors the
   defender at 1 HP.
@@ -84,14 +90,17 @@ that section by hand afterward — the simulation step comes from
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — hits, chip damage (including the chip-cannot-KO
-  floor), low vs stand-block, throw unblockability, jump arc, P2 bindings,
-  blockstring blocking, shared hitstop, KO landing, real-key input-map
-  resolution, pause freezing fighters, the pause menu (navigation by both
-  players, resume keeping mid-hitstun state, restart), debug frame-step,
-  frame advantage and the F6 refill.
-- `game/tests/round_flow_test.gd` — intro→fight, KO, round wins, timeout
-  resolution, double KO -> draw (no pip, round advances, match still ends),
-  the round clock frozen during hitstop, a hit on the timer's final frame
-  counting, best-of-3 match end.
-- `.github/workflows/tests.yml` runs both suites on push/PR.
+- `game/tests/combat_test.gd` — **45 checks**: clean hits and damage-vs-data,
+  block chip, low vs stand block, throw unblockability, jump arc, P2 bindings,
+  blockstun blocking, shared hitstop, KO landing, real-key input-map resolution,
+  the chip-cannot-KO floor, pause freezing fighters and opening the menu, menu
+  navigation by both players, resume preserving mid-hitstun state, restart from
+  the menu, debug frame-step (one frame per press, gated while the menu is
+  open), the frame-advantage readout, and the F6 refill.
+- `game/tests/round_flow_test.gd` — **18 checks**: intro→fight, KO phase, round
+  wins, timeout resolution, a simultaneous KO resolving as a draw with no pip
+  and the round advancing, a match still ending after a draw round, the clock
+  frozen during hitstop, and a hit on the timer's final frame counting.
+- `.github/workflows/tests.yml` runs both suites on push and pull request.
+- `.github/workflows/export.yml` builds Linux/Windows artifacts on `main` and
+  `v*` tags.

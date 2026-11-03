@@ -77,9 +77,9 @@ func _draw() -> void:
 func _state_text() -> String:
 	if p1 == null or p2 == null:
 		return ""
-	var text := "P1 %s f%d\nP2 %s f%d\nFPS %d" % [
-		_state_name(p1), p1.state_frame,
-		_state_name(p2), p2.state_frame,
+	var text := "P1 %s f%d%s\nP2 %s f%d%s\nFPS %d" % [
+		_state_name(p1), p1.state_frame, _invuln_text(p1),
+		_state_name(p2), p2.state_frame, _invuln_text(p2),
 		Engine.get_frames_per_second(),
 	]
 	var adv := _advantage_text()
@@ -112,6 +112,34 @@ func _advantage_text() -> String:
 
 func _state_name(f: FighterBase) -> String:
 	return FighterBase.State.keys()[f.state]
+
+# Invulnerability countdown for the fighter's frame-state line: " INV 4f" while
+# the universal wake-up window covers strikes (and throws), then " THROWINV 2f"
+# for the throw-only tail. A reversal shows its own authored invuln frames in the
+# same slot. Empty when nothing is active, so the line is unchanged otherwise.
+# Counted in simulation frames, which is also why hitstop stretches the window in
+# wall-clock time: the countdown is keyed on state_frame.
+func _invuln_text(f: FighterBase) -> String:
+	if f == null:
+		return ""
+	if f.state == FighterBase.State.WAKE_UP:
+		var strike := (f.data.wakeup_invuln_frames if f.data else 6) - f.state_frame
+		if strike > 0:
+			return " INV %df" % strike
+		var thrown := (f.data.wakeup_throw_invuln_frames if f.data else 8) - f.state_frame
+		if thrown > 0:
+			return " THROWINV %df" % thrown
+		return ""
+	if f.state == FighterBase.State.ATTACK and f.current_move != null:
+		var move := f.current_move
+		if move.invuln_kind == MoveData.Invuln.NONE:
+			return ""
+		if f.state_frame < move.invuln_start or f.state_frame >= move.invuln_end:
+			return ""
+		if move.invuln_kind == MoveData.Invuln.THROW:
+			return " THROWINV %df" % (move.invuln_end - f.state_frame)
+		return " INV %df" % (move.invuln_end - f.state_frame)
+	return ""
 
 # F5: hold the tree paused and advance exactly one simulation frame. Gated off
 # while the pause menu is open, so the sim never advances underneath the menu.

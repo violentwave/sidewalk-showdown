@@ -470,5 +470,67 @@ func _run() -> void:
 			and p2.state == FighterBase.State.KNOCKDOWN,
 		"hp=%.1f state=%d" % [p2.health, p2.state])
 
+	# --- 27. F2 readout shows the wake-up invulnerability countdown ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	await _step(1)
+	var idle_readout := overlay._invuln_text(p2)
+	_force_wakeup(p2)
+	await _step(1)
+	var strike_readout := overlay._invuln_text(p2)
+	await _step(6)
+	var throw_readout := overlay._invuln_text(p2)
+	var state_readout := overlay._state_text()
+	_check("invuln readout is empty while idle", idle_readout == "", "readout='%s'" % idle_readout)
+	_check("readout shows the wake-up strike window",
+		strike_readout == " INV %df" % (p2.data.wakeup_invuln_frames - 1),
+		"readout='%s' frame=%d" % [strike_readout, p2.state_frame])
+	_check("readout switches to THROWINV for the throw tail",
+		throw_readout == " THROWINV %df" % (p2.data.wakeup_throw_invuln_frames - p2.state_frame),
+		"readout='%s' frame=%d" % [throw_readout, p2.state_frame])
+	_check("frame-state text carries the countdown",
+		state_readout.contains("THROWINV") and state_readout.contains("P2 WAKE_UP"),
+		"text='%s'" % state_readout.replace("\n", " | "))
+
+	# --- 28. a reversal's own invuln frames use the same readout slot ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	var reversal: MoveData = p1.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.STAND)
+	var saved_kind := reversal.invuln_kind
+	var saved_end := reversal.invuln_end
+	reversal.invuln_kind = MoveData.Invuln.FULL
+	reversal.invuln_end = 6
+	p1._start_move(reversal)
+	await _step(1)
+	_check("readout shows a reversal's own invuln frames",
+		overlay._invuln_text(p1) == " INV %df" % (6 - p1.state_frame),
+		"readout='%s' frame=%d" % [overlay._invuln_text(p1), p1.state_frame])
+	reversal.invuln_kind = saved_kind
+	reversal.invuln_end = saved_end
+
+	# --- 29. hitstop freezes the countdown: the window counts simulation frames ---
+	# PROPOSALS §1 assumes exactly this ("an 8-frame invulnerable window can last
+	# longer than 8 real frames if a hit lands"). Asserted as documented behaviour,
+	# not changed: _physics_process() decrements hitstop and returns before
+	# state_frame advances, so the invuln query keeps returning true.
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	_force_wakeup(p2)
+	await _step(2)
+	var frozen_frame := p2.state_frame
+	p2.hitstop_frames = 3 # what receive_hit() grants on a trade
+	await _step(3)
+	var frozen_invuln := p2.is_invulnerable_to(light_move)
+	_check("hitstop freezes the wake-up invuln countdown",
+		p2.state_frame == frozen_frame and frozen_invuln,
+		"frame %d -> %d invuln=%s" % [frozen_frame, p2.state_frame, str(frozen_invuln)])
+	await _step(4)
+	_check("the countdown resumes, and expires, after hitstop",
+		p2.state_frame == frozen_frame + 4 and not p2.is_invulnerable_to(light_move),
+		"frame=%d invuln=%s" % [p2.state_frame, str(p2.is_invulnerable_to(light_move))])
+
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

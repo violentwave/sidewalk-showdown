@@ -42,8 +42,10 @@ never sets `move_already_hit` and the first vulnerable frame is the one that lan
 Shipped defaults: `FighterData.wakeup_invuln_frames = 6`,
 `wakeup_throw_invuln_frames = 8`, `wakeup_frames = 12`, plus per-move
 `invuln_kind` / `invuln_start` / `invuln_end` on `MoveData`. Not done: no move
-authors reversal invincibility yet, and the debug overlay does not show the invuln
-countdown.
+authors reversal invincibility yet. The overlay's F2 readout now shows the
+countdown (`INV 4f` / `THROWINV 2f`), and a test confirms the hitstop caveat
+below — the window is counted in simulation frames, so hitstop stretches it in
+wall-clock time.
 
 ### How mainstream 2D fighters handle it
 

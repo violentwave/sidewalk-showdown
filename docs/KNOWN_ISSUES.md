@@ -37,7 +37,10 @@ Engine and feel:
 
 Debug overlay:
 
-- F1 boxes, F2 frame state + frame advantage, F3 input history, F4 slow motion,
+- F1 boxes, F2 frame state + frame advantage + the invulnerability countdown
+  (`INV 4f` while the wake-up window covers strikes, `THROWINV 2f` for its
+  throw-only tail, and a reversal's own authored frames in the same slot),
+  F3 input history, F4 slow motion,
   F5 frame-step (one simulation frame per press, only while slow-mo is on and
   the pause menu is closed), F6 refill both fighters.
 - The overlay mutes itself in headless runs, so it never draws or reads input
@@ -101,7 +104,7 @@ that section by hand afterward — the simulation step comes from
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **58 checks**: clean hits and damage-vs-data,
+- `game/tests/combat_test.gd` — **65 checks**: clean hits and damage-vs-data,
   block chip, low vs stand block, throw unblockability, jump arc, P2 bindings,
   blockstun blocking, shared hitstop, KO landing, real-key input-map resolution,
   the chip-cannot-KO floor, pause freezing fighters and opening the menu, menu
@@ -111,8 +114,10 @@ that section by hand afterward — the simulation step comes from
   an airborne defender while the active throw window survives the brush, and
   wake-up invulnerability: a frame-1 meaty whiffs, the invulnerable brush
   survives to a frame-6 hit, strike and throw windows expire separately,
-  `wakeup_frames` is read from data, and the wake-up gate leaves the
-  airborne-throw guard intact.
+  `wakeup_frames` is read from data, the wake-up gate leaving the airborne-throw
+  guard intact, the F2 invulnerability countdown (strike window, throw tail,
+  reversal frames, empty when idle), and hitstop freezing that countdown before
+  it resumes.
 - `game/tests/round_flow_test.gd` — **18 checks**: intro→fight, KO phase, round
   wins, timeout resolution, a simultaneous KO resolving as a draw with no pip
   and the round advancing, a match still ending after a draw round, the clock

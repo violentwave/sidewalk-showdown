@@ -161,4 +161,5 @@ p2_pause={
 
 [rendering]
 
+environment/defaults/default_clear_color=Color(0.06, 0.055, 0.06, 1)
 textures/canvas_textures/default_texture_filter=0

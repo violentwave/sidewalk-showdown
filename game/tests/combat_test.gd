@@ -49,6 +49,14 @@ func _reset_fighters(p1_x: float, p2_x: float) -> void:
 	p2.reset_state()
 
 
+# Drop a fighter straight into WAKE_UP. The wake-up length is seeded from data
+# the way _knockdown_logic() does it, otherwise the forced state sees
+# wakeup_frames == 0 and falls through to IDLE on the next tick.
+func _force_wakeup(f: FighterBase) -> void:
+	f.wakeup_frames = f.data.wakeup_frames
+	f._force_state(FighterBase.State.WAKE_UP)
+
+
 func _run() -> void:
 	await _step(65) # let round intro finish
 	p1 = scene.p1
@@ -369,6 +377,98 @@ func _run() -> void:
 		is_equal_approx(p2.health, 1000.0 - throw_move.damage)
 			and p2.state == FighterBase.State.KNOCKDOWN,
 		"grounded=%s hp=%.1f state=%d" % [str(p2.grounded), p2.health, p2.state])
+
+	# --- 21. wake-up invulnerability: a meaty on wake-up frame 1 whiffs ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	var light_move: MoveData = p1.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+	_force_wakeup(p2)
+	p1._start_move(light_move)
+	await _step(light_move.total_frames() + 2)
+	_check("wake-up invulnerability blocks a frame-1 meaty",
+		is_equal_approx(p2.health, 1000.0) and not p1.move_already_hit,
+		"hp=%.1f already_hit=%s" % [p2.health, str(p1.move_already_hit)])
+
+	# --- 22. the invuln brush does not consume the active window ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	_force_wakeup(p2)
+	await _step(2)
+	p1._start_move(light_move)
+	await _step(3)
+	_check("invulnerable brush is not counted as a hit",
+		is_equal_approx(p2.health, 1000.0) and not p1.move_already_hit,
+		"frame=%d hp=%.1f" % [p2.state_frame, p2.health])
+	await _step(2)
+	_check("meaty lands on the first vulnerable frame",
+		is_equal_approx(p2.health, 1000.0 - light_move.damage),
+		"frame=%d hp=%.1f" % [p2.state_frame, p2.health])
+
+	# --- 23. strike and throw invuln are separate timers ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	_force_wakeup(p2)
+	await _step(6)
+	var strike_live := not p2.is_invulnerable_to(light_move)
+	var throw_shut := p2.is_invulnerable_to(throw_move)
+	await _step(2)
+	_check("wake-up strike invuln ends before throw invuln",
+		p2.state == FighterBase.State.WAKE_UP and strike_live and throw_shut
+			and not p2.is_invulnerable_to(throw_move),
+		"frame=%d strike_live=%s throw_shut=%s" % [p2.state_frame, str(strike_live), str(throw_shut)])
+
+	# --- 24. a wake-up throw is rejected until its own window ends ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	_force_wakeup(p2)
+	await _step(2)
+	p1._start_move(throw_move)
+	await _step(5)
+	_check("wake-up throw is rejected inside the throw-invuln window",
+		is_equal_approx(p2.health, 1000.0) and not p1.move_already_hit,
+		"frame=%d hp=%.1f" % [p2.state_frame, p2.health])
+	await _step(3)
+	_check("wake-up throw lands once the throw-invuln window ends",
+		is_equal_approx(p2.health, 1000.0 - throw_move.damage)
+			and p2.state == FighterBase.State.KNOCKDOWN,
+		"frame=%d hp=%.1f state=%d" % [p2.state_frame, p2.health, p2.state])
+
+	# --- 25. wakeup_frames comes from FighterData ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	var authored_wakeup := p2.data.wakeup_frames
+	p2.data.wakeup_frames = 20
+	p2.knockdown_frames = 2
+	p2._force_state(FighterBase.State.KNOCKDOWN)
+	await _step(4)
+	var override_took := p2.state == FighterBase.State.WAKE_UP and p2.wakeup_frames == 20
+	await _step(18)
+	_check("wakeup_frames is read from FighterData",
+		override_took and p2.state == FighterBase.State.IDLE,
+		"wakeup=%d state=%d" % [p2.wakeup_frames, p2.state])
+	p2.data.wakeup_frames = authored_wakeup
+
+	# --- 26. the wake-up gate does not shadow the airborne-throw guard ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	# Same descent as test 20: frame 5 brushes an airborne defender, frame 6 lands.
+	p2.position = Vector2(120, 150.0 - 11.25)
+	p2.velocity = Vector2(0, 60.0)
+	p2.grounded = false
+	p2._force_state(FighterBase.State.JUMP_FALL)
+	var airborne_is_vulnerable := not p2.is_invulnerable_to(throw_move)
+	p1._start_move(throw_move)
+	await _step(8)
+	_check("wake-up invuln does not shadow the airborne throw guard",
+		airborne_is_vulnerable and is_equal_approx(p2.health, 1000.0 - throw_move.damage)
+			and p2.state == FighterBase.State.KNOCKDOWN,
+		"hp=%.1f state=%d" % [p2.health, p2.state])
 
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

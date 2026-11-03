@@ -1,6 +1,6 @@
 # Implementation Proposals — Wake-up Invuln, Throw Tech, Air Special Balance
 
-Status: **specification only, no code written.** Each section covers how mainstream
+Status: **§1 implemented; §2 and §3 are still specification only.** Each section covers how mainstream
 2D fighters handle the mechanic, a concrete design for this project's fixed-60 Hz
 data-driven architecture, effort, and what it would break.
 
@@ -34,7 +34,16 @@ writing, `aff988e`):
 
 ---
 
-## 1. Wake-up invulnerability
+## 1. Wake-up invulnerability — implemented
+
+Status: **implemented**. The gate sits in `_poll_hit()` — the merged successor to
+`_detect_hits()` — ahead of the airborne-throw guard, so an invulnerable brush
+never sets `move_already_hit` and the first vulnerable frame is the one that lands.
+Shipped defaults: `FighterData.wakeup_invuln_frames = 6`,
+`wakeup_throw_invuln_frames = 8`, `wakeup_frames = 12`, plus per-move
+`invuln_kind` / `invuln_start` / `invuln_end` on `MoveData`. Not done: no move
+authors reversal invincibility yet, and the debug overlay does not show the invuln
+countdown.
 
 ### How mainstream 2D fighters handle it
 

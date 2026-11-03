@@ -11,6 +11,15 @@ extends Resource
 @export var body_width: float = 28.0
 @export var body_height: float = 56.0
 @export var body_color: Color = Color(0.95, 0.55, 0.15)
+
+@export_group("Knockdown")
+# Total frames in WAKE_UP; the invulnerable slice inside it is authored separately.
+@export var wakeup_frames: int = 12
+# Frames of universal wake-up invulnerability, counted from WAKE_UP frame 0.
+@export var wakeup_invuln_frames: int = 6
+# Throws stay rejected for this long; raise it if throw loops appear.
+@export var wakeup_throw_invuln_frames: int = 8
+
 @export var moves: Array[MoveData] = []
 
 func find_move(input: MoveData.InputType, stance: MoveData.Stance) -> MoveData:

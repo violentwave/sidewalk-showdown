@@ -284,6 +284,15 @@ func _poll_hit(attacker: FighterBase, defender: FighterBase) -> MoveData:
 		return null
 	if not hb.intersects(defender.hurtbox_rect()):
 		return null
+	# An invulnerable defender (wake-up window, or a reversal's authored invuln
+	# frames) is skipped before the move is returned, for the same reason as the
+	# throw guard below: _resolve_hits() only calls on_attack_connected() for a
+	# non-null move, so the brush costs the attacker nothing and the first frame
+	# the defender is vulnerable is the frame that connects. Folding this into
+	# receive_hit() instead would burn the whole active window on the brush and
+	# make a meaty impossible.
+	if defender.is_invulnerable_to(attacker.current_move):
+		return null
 	# A grounded throw cannot grab a defender who has left the ground. This is
 	# rejected before the move is returned on purpose: _resolve_hits() only calls
 	# on_attack_connected() for a non-null move, so the brush does not consume the

@@ -26,6 +26,14 @@ Engine and feel:
 - A grounded throw cannot grab an airborne defender. The brush does not consume
   the throw's active window, so the grab still lands if the defender touches down
   inside it.
+- Wake-up invulnerability, data-driven: `FighterData.wakeup_invuln_frames` (6)
+  rejects strikes and throws from the first wake-up frame,
+  `wakeup_throw_invuln_frames` (8) holds throws off past that, and
+  `wakeup_frames` (12) moved out of the hard-code into data. Reversal moves can
+  author their own `MoveData.invuln_kind` / `invuln_start` / `invuln_end`. The
+  gate lives in `_poll_hit()` ahead of the throw guard, so an invulnerable brush
+  never consumes the active window: the first vulnerable frame is the frame that
+  connects, which is what makes a meaty expressible.
 
 Debug overlay:
 
@@ -70,8 +78,8 @@ that section by hand afterward — the simulation step comes from
 - **Debug overlay is dev-only.** Boxes, frame state, frame advantage, input
   history, slow motion, frame-step and refill exist; there is no AI state view
   (there is no AI yet) and no hitbox-invariant assertions.
-- **No throw tech or wake-up invulnerability.** Designs, effort estimates and
-  the breakage each implies are written up in `docs/PROPOSALS.md`.
+- **No throw tech.** The design, effort estimate and the breakage it implies are
+  written up in `docs/PROPOSALS.md` §2.
 
 ## Known edge cases
 
@@ -93,14 +101,18 @@ that section by hand afterward — the simulation step comes from
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **50 checks**: clean hits and damage-vs-data,
+- `game/tests/combat_test.gd` — **58 checks**: clean hits and damage-vs-data,
   block chip, low vs stand block, throw unblockability, jump arc, P2 bindings,
   blockstun blocking, shared hitstop, KO landing, real-key input-map resolution,
   the chip-cannot-KO floor, pause freezing fighters and opening the menu, menu
   navigation by both players, resume preserving mid-hitstun state, restart from
   the menu, debug frame-step (one frame per press, gated while the menu is
-  open), the frame-advantage readout, the F6 refill, and grounded throws whiffing
-  on an airborne defender while the active throw window survives the brush.
+  open), the frame-advantage readout, the F6 refill, grounded throws whiffing on
+  an airborne defender while the active throw window survives the brush, and
+  wake-up invulnerability: a frame-1 meaty whiffs, the invulnerable brush
+  survives to a frame-6 hit, strike and throw windows expire separately,
+  `wakeup_frames` is read from data, and the wake-up gate leaves the
+  airborne-throw guard intact.
 - `game/tests/round_flow_test.gd` — **18 checks**: intro→fight, KO phase, round
   wins, timeout resolution, a simultaneous KO resolving as a draw with no pip
   and the round advancing, a match still ending after a draw round, the clock

@@ -1,14 +1,6 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/combat/fighter_base.gd" id="1"]
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_push"]
-resource_local_to_scene = true
-size = Vector2(28, 56)
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_hurt"]
-resource_local_to_scene = true
-size = Vector2(28, 56)
 
 [node name="FighterBase" type="CharacterBody2D"]
 script = ExtResource("1")
@@ -21,7 +13,3 @@ polygon = PackedVector2Array(-14, 0, 14, 0, 14, -56, 4, -56, 4, -63, -4, -63, -4
 position = Vector2(14, -40)
 color = Color(1, 0.85, 0.6, 1)
 polygon = PackedVector2Array(0, -4, 7, 0, 0, 4)
-
-[node name="Pushbox" type="CollisionShape2D" parent="."]
-position = Vector2(0, -28)
-shape = SubResource("RectangleShape2D_push")

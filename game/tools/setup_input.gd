@@ -36,8 +36,15 @@ func _init() -> void:
 			for code: int in actions[action]:
 				var ev := InputEventKey.new()
 				ev.physical_keycode = code
+				# -1 = accept the event from any device. Leaving this unset lets the
+				# serializer stamp a concrete device id (e.g. 16) into project.godot,
+				# and then no real keyboard event (device 0) ever matches the action.
+				ev.device = -1
 				events.append(ev)
 			ProjectSettings.set_setting("input/" + action, {"deadzone": 0.2, "events": events})
+	# NOTE: save() rewrites project.godot and drops settings whose value equals the
+	# engine default, which includes the explicit [physics] 60 Hz entry. Re-add it
+	# by hand after regenerating the map.
 	ProjectSettings.save()
 	print("P1/P2 input actions written.")
 	quit()

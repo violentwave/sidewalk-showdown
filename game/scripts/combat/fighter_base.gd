@@ -27,6 +27,10 @@ signal ko
 @export var body_width: float = 28.0
 @export var body_height: float = 56.0
 
+# Height of the Silhouette polygon in FighterBase.tscn. Visuals scale against
+# this constant, not body_height, so each fighter's art matches its own hurtbox.
+const SILHOUETTE_HEIGHT := 56.0
+
 # --- Match context ---
 var opponent: FighterBase
 var stage: Node2D
@@ -372,7 +376,8 @@ func receive_hit(attacker: FighterBase, move: MoveData) -> bool:
 		return false
 
 	if is_blocking() and can_block(move):
-		health = maxf(0.0, health - move.block_damage)
+		# Chip damage is a pressure tool, never a kill: blocked hits floor at 1 HP.
+		health = maxf(1.0, health - move.block_damage)
 		add_meter(move.meter_gain_receive)
 		attacker.add_meter(move.meter_gain_block)
 		blockstun_frames = move.blockstun
@@ -517,7 +522,7 @@ func _force_state(new_state: State) -> void:
 
 func _sync_visuals() -> void:
 	var h := _pushbox_height()
-	$Silhouette.scale.y = h / body_height
+	$Silhouette.scale.y = h / SILHOUETTE_HEIGHT
 	$FacingMarker.position.x = facing * body_width * 0.5
 	$FacingMarker.scale.x = facing
 	$FacingMarker.position.y = -h + 8.0

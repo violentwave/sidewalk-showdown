@@ -1,10 +1,35 @@
-# Known Issues — Phase 1.5 (Greybox Combat)
+# Known Issues — Phase 1.5d (Greybox Combat)
 
 Exit criteria from GDD §13 Phase 1: two boxes can fight, hits feel responsive,
 blocking works, round flow works, match can end/restart. **All met.**
 
-Phase 1.5 audit fixes (KO landing, shared hitstop, blockstun blocking, jump arc
-states, P1/P2 input separation, P2 pause, frame-locked gravity) are in.
+Phase 1.5d audit fixes now in: KO landing, shared hitstop, blockstun blocking,
+jump arc states, P1/P2 input separation, P2 pause, frame-locked gravity, and the
+1.5d pass — device-agnostic keyboard bindings covered by a real-key test, a pause
+that freezes the fighters and the round timer, silhouettes that scale with
+fighter height, and a chip-damage floor so blocked hits can never KO.
+
+## Input map
+
+`game/tools/setup_input.gd` is the single source of truth for the `p1_*` /
+`p2_*` actions. Do not hand-edit the `[input]` section of `project.godot`; change
+the generator and regenerate:
+
+```bash
+godot --headless --path game --script res://tools/setup_input.gd
+```
+
+Every event is written with `device = -1` (matches any device). A concrete device
+id — `16` is what Godot's text serializer stamps in if nobody sets it — never
+matches a real keyboard, which reports device `0`, so the bindings look correct
+in the editor and are dead in play. `game/tests/combat_test.gd` replays each
+mapped key as a device-0 event and fails if any of them stops resolving.
+
+Regeneration caveat: `ProjectSettings.save()` omits settings whose value equals
+the engine default, and `physics/common/physics_ticks_per_second = 60` *is* the
+default. Regenerating therefore deletes the explicit `[physics]` section. Re-add
+that section by hand afterward — the simulation step comes from
+`Engine.physics_ticks_per_second` via `FighterBase.delta_fixed()`.
 
 ## Deliberate gaps (next phases)
 
@@ -16,10 +41,11 @@ states, P1/P2 input separation, P2 pause, frame-locked gravity) are in.
 - **Hype meter has no spender.** It fills on hit/block/whiff but no move costs
   meter yet.
 - **No character/stage select.** Fixed matchup + Bus Stop (Night).
+- **No pause menu.** Esc (P1) / Numpad 0 (P2) freeze the simulation and show a
+  label; there is no menu, options, or resume/quit choice yet.
 - **Debug overlay is basic.** Boxes/frame-state/input-history/slow-mo only; no
   frame-step, frame advantage, AI state, or reset/refill hotkeys.
 - **No throw tech or wake-up invulnerability.**
-- **Pause is a stub.** Esc / Numpad 0 freezes the tree and shows a label; no menu.
 
 ## Known edge cases
 
@@ -32,7 +58,9 @@ states, P1/P2 input separation, P2 pause, frame-locked gravity) are in.
   `game/resources/fighters/*.tres` and can be regenerated with
   `game/tools/gen_fighter_data.gd`.
 - Air specials exist in data but have had no balance pass.
-- Damage scaling is per-defender combo count (85/70/55%, floor 35%).
+- Damage scaling is per-defender combo count: 100/100/85/70/55% for hits
+  1–2/3/4/5+, floor **55%**. Chip damage never kills — a blocked hit floors the
+  defender at 1 HP.
 - HUD uses the default Godot font at pixel-safe sizes; the final pixel font
   arrives with UI art direction (GDD Phase 4).
 - **Licensing is undecided.** Treat the repo as all-rights-reserved until a
@@ -40,9 +68,10 @@ states, P1/P2 input separation, P2 pause, frame-locked gravity) are in.
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — hits, chip damage, low vs stand-block, throw
-  unblockability, jump arc, P2 bindings, blockstring blocking, shared hitstop,
-  KO landing.
+- `game/tests/combat_test.gd` — hits, chip damage (including the chip-cannot-KO
+  floor), low vs stand-block, throw unblockability, jump arc, P2 bindings,
+  blockstring blocking, shared hitstop, KO landing, real-key input-map
+  resolution, pause freezing fighters.
 - `game/tests/round_flow_test.gd` — intro→fight, KO, round wins, timeout
   resolution, best-of-3 match end.
 - `.github/workflows/tests.yml` runs both suites on push/PR.

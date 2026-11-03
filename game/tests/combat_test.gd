@@ -160,5 +160,56 @@ func _run() -> void:
 	_check("KO state persists after landing", p2.state == FighterBase.State.KO,
 		"state=%d" % p2.state)
 
+	# --- 11. real keyboard events resolve through the input map ---
+	# Input.action_press() bypasses the InputMap, so it cannot catch a binding
+	# that is stamped with the wrong device id. Replay each mapped key as the
+	# device-0 event a physical keyboard actually produces.
+	var unmapped: Array[String] = []
+	for action in InputMap.get_actions():
+		var an := String(action)
+		if not (an.begins_with("p1_") or an.begins_with("p2_")):
+			continue
+		var mapped := InputMap.action_get_events(action)
+		if mapped.is_empty():
+			unmapped.append("%s:none" % an)
+			continue
+		for e: InputEventKey in mapped:
+			var probe := InputEventKey.new()
+			probe.physical_keycode = e.physical_keycode
+			probe.keycode = e.keycode
+			probe.device = 0 # what a real keyboard reports
+			if not InputMap.event_is_action(probe, action):
+				unmapped.append("%s:%s" % [an, OS.get_keycode_string(e.physical_keycode)])
+	_check("keyboard events match input map", unmapped.is_empty(), str(unmapped))
+
+	# --- 12. chip damage cannot KO ---
+	# The KO round above ended the match and disabled fighter input; re-enable it
+	# so p2 can actually hold back and block these hits.
+	_reset_fighters(100, 120)
+	p2.input_enabled = true
+	p2.health = 1.0
+	Input.action_press("p2_right") # p2 faces left, right = away
+	await _step(3)
+	for i in 5:
+		p2.receive_hit(p1, light)
+		p2.hitstop_frames = 0
+	_check("chip damage cannot KO", p2.state != FighterBase.State.KO and p2.health >= 1.0,
+		"hp=%.2f state=%d" % [p2.health, p2.state])
+	Input.action_release("p2_right")
+	p2.health = 1000.0
+	await _step(2)
+
+	# --- 13. pause freezes fighters, not the match controller ---
+	paused = true
+	await _step(3)
+	var frozen_frame := p1.state_frame
+	await _step(6)
+	_check("pause freezes fighters", p1.state_frame == frozen_frame,
+		"frame %d -> %d" % [frozen_frame, p1.state_frame])
+	_check("pause keeps match controller running", scene.can_process(),
+		"can_process=%s" % str(scene.can_process()))
+	paused = false
+	await _step(2)
+
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

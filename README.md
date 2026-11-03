@@ -6,7 +6,7 @@ legends eventually turn on him.
 
 **Engine:** Godot 4.x (in `game/`)
 **Target:** PC first (Windows / Linux / macOS)
-**Status:** Phase 1.5 — greybox combat prototype, audit-hardened
+**Status:** Phase 1.5d — greybox combat prototype, audit-hardened
 **License:** TBD — treat as all-rights-reserved until a LICENSE file is added.
 
 ## Quick start
@@ -39,8 +39,9 @@ the table above.
 
 Specials are directional (GDD §4.4): neutral, forward (toward opponent), back,
 down, and air. Block by holding away from the opponent — including during
-blockstun — and hold down-away to crouch-block lows. `Enter` restarts after a
-match ends.
+blockstun — and hold down-away to crouch-block lows. Chip damage cannot KO: a
+blocked hit always leaves the defender at 1 HP. `Enter` restarts after a match
+ends.
 
 Debug: **F1** boxes (on by default), **F2** frame state, **F3** input history,
 **F4** slow motion.
@@ -80,7 +81,7 @@ docs/            Supporting docs and archives
   hitstun, blockstun, hitstop, buffer windows) is in simulation frames.
 - **Fighters are data.** `resources/fighters/*.tres` define stats and moves;
   the engine never hard-codes a character. Regenerate via
-  `godot --headless --script res://tools/gen_fighter_data.gd`.
+  `godot --headless --path game --script res://tools/gen_fighter_data.gd`.
 - **Separate combat boxes** (push/hurt/hit) computed from `MoveData`.
 - Asset naming in `art/exports/`: lowercase snake_case
   (`spr_whiskey_richard_idle.png`, `stage_bus_stop_night_bg_far.png`).

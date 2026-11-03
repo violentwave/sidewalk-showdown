@@ -59,6 +59,9 @@ func _spawn_fighter(index: int, data: FighterData) -> FighterBase:
 	f.player_index = index
 	f.data = data
 	f.stage = stage
+	# MatchRoot runs with PROCESS_MODE_ALWAYS so the pause key keeps working;
+	# fighters must not inherit that or they keep simulating while paused.
+	f.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(f)
 	return f
 

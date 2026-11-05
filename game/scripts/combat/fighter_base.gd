@@ -359,7 +359,11 @@ func is_invulnerable_to(move: MoveData) -> bool:
 		if move.level == MoveData.Level.THROW \
 				and state_frame < (data.wakeup_throw_invuln_frames if data else 8):
 			return true
-	if current_move != null and current_move.invuln_kind != MoveData.Invuln.NONE:
+	# current_move survives the move's final frame (attack logic returns to IDLE
+	# without clearing it), so gate on ATTACK: otherwise the invuln window would
+	# be re-read against the fresh IDLE state_frame and lingers after the move.
+	if state == State.ATTACK and current_move != null \
+			and current_move.invuln_kind != MoveData.Invuln.NONE:
 		if state_frame >= current_move.invuln_start and state_frame < current_move.invuln_end:
 			match current_move.invuln_kind:
 				MoveData.Invuln.FULL:

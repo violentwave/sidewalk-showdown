@@ -178,7 +178,8 @@ func _run() -> void:
 	# --- 11. real keyboard events resolve through the input map ---
 	# Input.action_press() bypasses the InputMap, so it cannot catch a binding
 	# that is stamped with the wrong device id. Replay each mapped key as the
-	# device-0 event a physical keyboard actually produces.
+	# device-16 event a physical keyboard actually produces (real events seen via
+	# XTest carry device 16; bindings must be device -1 to accept them).
 	var unmapped: Array[String] = []
 	for action in InputMap.get_actions():
 		var an := String(action)
@@ -192,7 +193,7 @@ func _run() -> void:
 			var probe := InputEventKey.new()
 			probe.physical_keycode = e.physical_keycode
 			probe.keycode = e.keycode
-			probe.device = 0 # what a real keyboard reports
+			probe.device = 16 # what a physical keyboard reports
 			if not InputMap.event_is_action(probe, action):
 				unmapped.append("%s:%s" % [an, OS.get_keycode_string(e.physical_keycode)])
 	_check("keyboard events match input map", unmapped.is_empty(), str(unmapped))
@@ -295,8 +296,14 @@ func _run() -> void:
 	p1.hitstop_frames = 0
 	p2.hitstop_frames = 0
 	await _step(1)
-	_check("frame advantage reads out during hitstun", overlay._advantage_text() != "",
-		"adv='%s'" % overlay._advantage_text())
+	# p1 is idle, so its remaining recovery is 0 and the advantage equals the
+	# defender's remaining hitstun. The old formula (attacker frame minus total
+	# hitstun) reported a large negative number here.
+	var adv_remaining := maxi(0, p2.hitstun_frames - p2.state_frame)
+	var adv_expected := "ADV P1 %+d f0/%dhit" % [adv_remaining, adv_remaining]
+	_check("frame advantage reads out during hitstun",
+		overlay._advantage_text() == adv_expected,
+		"adv='%s' expected='%s'" % [overlay._advantage_text(), adv_expected])
 
 	# --- 17. debug overlay reset ---
 	p1.health = 120.0
@@ -531,6 +538,36 @@ func _run() -> void:
 	_check("the countdown resumes, and expires, after hitstop",
 		p2.state_frame == frozen_frame + 4 and not p2.is_invulnerable_to(light_move),
 		"frame=%d invuln=%s" % [p2.state_frame, str(p2.is_invulnerable_to(light_move))])
+
+	# --- 30. authored invuln does not linger after the move ends ---
+	# _attack_logic() returns to IDLE without clearing current_move, so the query
+	# must also require ATTACK; otherwise the reversal's invuln window is re-read
+	# against the fresh IDLE state_frame and the fighter stays intangible.
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	var saving_input := p1.input_enabled
+	p1.input_enabled = false
+	var lingering_move: MoveData = p1.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.STAND)
+	var saved_lingering_kind := lingering_move.invuln_kind
+	var saved_lingering_start := lingering_move.invuln_start
+	var saved_lingering_end := lingering_move.invuln_end
+	lingering_move.invuln_kind = MoveData.Invuln.FULL
+	lingering_move.invuln_start = 0
+	lingering_move.invuln_end = 6
+	p1._start_move(lingering_move)
+	var step_guard := 0
+	while p1.state == FighterBase.State.ATTACK and step_guard < 120:
+		await _step(1)
+		step_guard += 1
+	_check("authored invuln ends with the move",
+		p1.state == FighterBase.State.IDLE and not p1.is_invulnerable_to(light_move),
+		"state=%d frame=%d invuln=%s" % [p1.state, p1.state_frame,
+			str(p1.is_invulnerable_to(light_move))])
+	lingering_move.invuln_kind = saved_lingering_kind
+	lingering_move.invuln_start = saved_lingering_start
+	lingering_move.invuln_end = saved_lingering_end
+	p1.input_enabled = saving_input
 
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

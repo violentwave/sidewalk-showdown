@@ -91,9 +91,8 @@ func _state_text() -> String:
 		text += "  SLOW-MO"
 	return text
 
-# Frame advantage: the attacker's current frame minus the defender's remaining
-# stun frames, for whichever fighter is currently stunned. A negative number
-# means the attacker recovers while the defender is still stunned (attacker plus).
+# Frame advantage at the current stun: the defender's remaining stun minus the
+# attacker's remaining recovery. Positive means the attacker recovers first.
 func _advantage_text() -> String:
 	if p1 == null or p2 == null:
 		return ""
@@ -101,14 +100,19 @@ func _advantage_text() -> String:
 		var attacker: FighterBase = pair[0]
 		var defender: FighterBase = pair[1]
 		if defender.state == FighterBase.State.HITSTUN:
-			return "ADV %s %+d f%d/%dhit" % [
-				pair[2], attacker.state_frame - defender.hitstun_frames,
-				attacker.state_frame, defender.hitstun_frames]
+			var stun := maxi(0, defender.hitstun_frames - defender.state_frame)
+			var recovery := _remaining_recovery(attacker)
+			return "ADV %s %+d f%d/%dhit" % [pair[2], stun - recovery, recovery, stun]
 		if defender.state == FighterBase.State.BLOCKSTUN:
-			return "ADV %s %+d f%d/%dblk" % [
-				pair[2], attacker.state_frame - defender.blockstun_frames,
-				attacker.state_frame, defender.blockstun_frames]
+			var stun := maxi(0, defender.blockstun_frames - defender.state_frame)
+			var recovery := _remaining_recovery(attacker)
+			return "ADV %s %+d f%d/%dblk" % [pair[2], stun - recovery, recovery, stun]
 	return ""
+
+func _remaining_recovery(f: FighterBase) -> int:
+	if f.state == FighterBase.State.ATTACK and f.current_move != null:
+		return maxi(0, f.current_move.total_frames() - f.state_frame)
+	return 0
 
 func _state_name(f: FighterBase) -> String:
 	return FighterBase.State.keys()[f.state]

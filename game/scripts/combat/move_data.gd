@@ -43,6 +43,12 @@ enum Invuln { NONE, STRIKE, THROW, FULL }
 @export var invuln_start: int = 0 # inclusive, frames from move start
 @export var invuln_end: int = 0 # exclusive
 
+@export_group("Meter spender (EX)")
+# Set on strengthened variants: the move costs this much hype meter and is only
+# reachable through the EX input, never through the base special lookup.
+@export var meter_cost: float = 0.0
+@export var ex: bool = false
+
 func total_frames() -> int:
 	return startup + active + recovery
 

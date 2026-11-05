@@ -272,9 +272,7 @@ func _try_start_attack() -> bool:
 			return true
 
 	if _consume("special", BUFFER_SPECIAL):
-		var special := data.find_move(_special_input(stance), stance)
-		if special:
-			_start_move(special)
+		if _try_start_special(stance):
 			return true
 
 	if _consume("light", BUFFER_NORMAL):
@@ -298,9 +296,7 @@ func _try_cancel() -> bool:
 	var allowed_normal := current_move.input == MoveData.InputType.LIGHT
 
 	if allowed_special and _consume("special", BUFFER_SPECIAL):
-		var special := data.find_move(_special_input(_current_stance()), _current_stance())
-		if special:
-			_start_move(special)
+		if _try_start_special(_current_stance()):
 			return true
 	if allowed_normal and _consume("light", BUFFER_NORMAL):
 		var light := data.find_move(MoveData.InputType.LIGHT, _current_stance())
@@ -312,6 +308,23 @@ func _try_cancel() -> bool:
 		if heavy:
 			_start_move(heavy)
 			return true
+	return false
+
+# Special starter shared by neutral startup and cancel windows. Holding heavy
+# asks for the EX row: meter is spent only if the EX exists and can be paid for.
+# Otherwise the base special comes out and the buffered special is not wasted.
+func _try_start_special(stance: MoveData.Stance) -> bool:
+	var input := _special_input(stance)
+	if _pressed("heavy"):
+		var ex := data.find_ex_move(input, stance)
+		if ex and spend_meter(ex.meter_cost):
+			_consume("heavy", BUFFER_NORMAL)
+			_start_move(ex)
+			return true
+	var special := data.find_move(input, stance)
+	if special:
+		_start_move(special)
+		return true
 	return false
 
 func _start_move(move: MoveData) -> void:
@@ -563,6 +576,17 @@ func reset_state() -> void:
 func add_meter(amount: float) -> void:
 	meter = clampf(meter + amount, 0.0, max_meter)
 	meter_changed.emit(meter, max_meter)
+
+# Pay for an EX move before it starts. Returns false (and spends nothing) when
+# the bar is short, which makes the caller fall back to the base special.
+func spend_meter(cost: float) -> bool:
+	if cost <= 0.0:
+		return true
+	if meter + 0.001 < cost:
+		return false
+	meter = maxf(0.0, meter - cost)
+	meter_changed.emit(meter, max_meter)
+	return true
 
 func _emit_health() -> void:
 	health_changed.emit(health, max_health)

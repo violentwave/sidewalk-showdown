@@ -192,6 +192,43 @@ hitbox_offset = Vector2(20, -36)
 hitbox_size = Vector2(30, 40)
 hitstop = 6
 
+[sub_resource type="Resource" id="Resource_exneu1"]
+script = ExtResource("1_3p5s5")
+id = "peggy_neutral_ex"
+input = 2
+startup = 7
+active = 3
+recovery = 17
+damage = 120.0
+block_damage = 7.0
+hitstun = 22
+blockstun = 14
+knockback = Vector2(120, 0)
+hitbox_offset = Vector2(28, -40)
+hitbox_size = Vector2(44, 20)
+hitstop = 10
+meter_cost = 50.0
+ex = true
+
+[sub_resource type="Resource" id="Resource_exfwd1"]
+script = ExtResource("1_3p5s5")
+id = "peggy_forward_ex"
+input = 3
+startup = 9
+active = 4
+recovery = 20
+damage = 145.0
+block_damage = 9.0
+hitstun = 24
+blockstun = 15
+knockback = Vector2(150, 0)
+knockdown = true
+hitbox_offset = Vector2(32, -40)
+hitbox_size = Vector2(48, 24)
+hitstop = 10
+meter_cost = 50.0
+ex = true
+
 [resource]
 script = ExtResource("2_3bfml")
 id = "peg_leg_peggy"
@@ -201,4 +238,4 @@ walk_speed_back = 72.0
 jump_speed = 285.0
 body_width = 26.0
 body_height = 54.0
-moves = Array[ExtResource("1_3p5s5")]([SubResource("Resource_y6umg"), SubResource("Resource_uih6c"), SubResource("Resource_6j227"), SubResource("Resource_ppeoy"), SubResource("Resource_hhveu"), SubResource("Resource_w4klc"), SubResource("Resource_r5ltk"), SubResource("Resource_6cwq4"), SubResource("Resource_7xrol"), SubResource("Resource_ntf5t"), SubResource("Resource_cd7l2"), SubResource("Resource_q14mv")])
+moves = Array[ExtResource("1_3p5s5")]([SubResource("Resource_y6umg"), SubResource("Resource_uih6c"), SubResource("Resource_6j227"), SubResource("Resource_ppeoy"), SubResource("Resource_hhveu"), SubResource("Resource_w4klc"), SubResource("Resource_r5ltk"), SubResource("Resource_6cwq4"), SubResource("Resource_7xrol"), SubResource("Resource_ntf5t"), SubResource("Resource_cd7l2"), SubResource("Resource_q14mv"), SubResource("Resource_exneu1"), SubResource("Resource_exfwd1")])

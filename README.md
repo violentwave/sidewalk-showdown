@@ -37,6 +37,10 @@ the input map with
 `godot --headless --path game --script res://tools/setup_input.gd` if you change
 the table above.
 
+**EX specials:** hold Heavy (K / `.`) while pressing Special to spend 50 hype
+meter on the strengthened version (PROPOSALS §5). Without enough meter the base
+special comes out and nothing is spent.
+
 Specials are directional (GDD §4.4): neutral, forward (toward opponent), back,
 down, and air. Block by holding away from the opponent — including during
 blockstun — and hold down-away to crouch-block lows. Chip damage cannot KO: a

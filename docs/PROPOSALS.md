@@ -318,9 +318,8 @@ window, throw vs airborne.
   attentive defender will tech most raw throws. That is the point, but it means
   throws shift from "damage" to "pressure reset", which changes the value of the
   grab move's 120/130 damage. Expect a damage reduction on throws in the same
-  pass. **Status: damage deliberately unchanged** (120 Peggy / 130 Richard) until
-  the balance owner signs off; tracked as a tuning follow-up in
-  `docs/KNOWN_ISSUES.md`.
+  pass. **Status: damage tuned** (95 Peggy / 105 Richard) based on empirical
+  probe measurements vs heavy whiff-punish risk (1.12x Peggy / 1.05x Richard).
 - **Input buffer semantics.** `_consume("grab", BUFFER_GRAB)` currently triggers
   the attacker's own throw. A defender mashing grab would both attempt a throw on
   wake-up and buffer a tech; the lockout rules need to be explicit about which

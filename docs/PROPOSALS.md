@@ -1,6 +1,6 @@
 # Implementation Proposals — Wake-up Invuln, Throw Tech, Air Special Balance
 
-Status: **§1 and §2 implemented; §3 is still specification only.** Each section covers how mainstream
+Status: **§1, §2 and §5 implemented; §3 is still specification only.** Each section covers how mainstream
 2D fighters handle the mechanic, a concrete design for this project's fixed-60 Hz
 data-driven architecture, effort, and what it would break.
 
@@ -450,6 +450,85 @@ move.
 tuning pass ~1–2 days once landing recovery exists, and the landing-recovery
 feature itself ~0.5 day (new `MoveData.landing_recovery`, `_landing_check` branch,
 one test).
+
+---
+
+## 5. Hype meter spenders — EX specials (implemented)
+
+### Current meter economy (measured from the data)
+
+There is nothing to spend meter on today, so the meter is a scoreboard. The
+numbers, read from `MoveData` and verified as **not overridden** in either
+`resources/fighters/*.tres`:
+
+| Event | Gain | Notes |
+|---|---|---|
+| Attacker lands a hit | **+6** | `meter_gain_hit` default on every move |
+| Attacker gets a hit blocked | **+3** | `meter_gain_block` |
+| Attacker's move whiffs | **+1.5** | `meter_gain_whiff`, paid at the move's end |
+| Defender is hit or blocks | **+4** | `meter_gain_receive` |
+
+`max_meter = 100` (`FighterBase`), so a full bar is about **17 clean hits**, or a
+typical round: roughly 10 hits landed and 10 taken per fighter gives 60 + 40 =
+**one full bar per round**, before whiff income. That makes a 50-cost spender
+land about twice per match — strong enough to matter, rare enough to read as a
+moment.
+
+### Design
+
+- **EX = the special input while holding heavy.** There is no extra button on
+  the 6-button-lite layout, so heavy (K / `.`) acts as the modifier: `L`, `L+K`,
+  etc. The EX move is the same stance/direction special, strengthened.
+- **`MoveData.meter_cost` + `MoveData.ex`.** EX variants are ordinary data rows:
+  same `input` / `stance`, `ex = true`, `meter_cost = 50`. All tuning stays in
+  `resources/fighters/*.tres`; the engine has no balance literals.
+- **`FighterData.find_move()` never returns an EX row**; `find_ex_move()` does.
+  A normal special press when the meter is short falls back to the base special
+  (the input is never eaten) and leaves meter untouched.
+- **Spending happens before the move starts** (`_try_start_attack` /
+  `_try_cancel` via `spend_meter()`), clamps at 0, and cannot go negative.
+- **Scope**: each vertical-slice fighter gets EX variants of the neutral and
+  forward specials (4 rows total). Down/back/air specials keep their base
+  versions until the air-balance pass; EX cancels are already wired because the
+  special-cancel path shares the same starter.
+
+### Tuning (50 meter each)
+
+Peggy — faster, more damage, still the rushdown:
+
+| Move | Startup | Active | Recovery | Damage | Block | Hitstop | Hitbox |
+|---|---|---|---|---|---|---|---|
+| `peggy_neutral` | 9 | 3 | 19 | 95 | 6 | 8 | 40×20 |
+| `peggy_neutral_ex` | **7** | 3 | **17** | **120** | 7 | 10 | 44×20 |
+| `peggy_forward` | 11 | 4 | 22 | 110 | 7 | 8 | 44×22 |
+| `peggy_forward_ex` | **9** | 4 | **20** | **145** | 9 | 10 | 48×24 |
+
+Richard — longer reach and bigger stun, still the counterpuncher:
+
+| Move | Startup | Active | Recovery | Damage | Block | Hitstop | Hitbox |
+|---|---|---|---|---|---|---|---|
+| `richard_neutral` | 9 | 3 | 19 | 105 | 6 | 8 | 40×20 |
+| `richard_neutral_ex` | **7** | 4 | **17** | **135** | 8 | 10 | 44×20 |
+| `richard_forward` | 11 | 4 | 22 | 120 | 7 | 8 | 44×22 |
+| `richard_forward_ex` | **9** | 4 | **20** | **150** | 9 | 10 | 48×24 |
+
+Both EX rows keep/have `knockdown` on the forward variant, so the meter buys a
+hard knockdown into the wake-up game rather than only raw damage. Every EX is
+strictly better on damage and startup; the cost is paid up front, so a whiffed
+EX is a real loss.
+
+The air probe is unchanged by these rows (they are ground-only), which is the
+intended outcome of the tuning pass: EX must not disturb the air-special
+envelope tracked by PROPOSALS §3.
+
+### Tests
+
+- meter is deducted by `meter_cost` when the EX starts, and an EX move is
+  actually the active move;
+- insufficient meter starts the base special instead, meter unchanged;
+- the EX row differs from the base row in damage and startup;
+- spending exactly the remaining meter floors at 0;
+- `find_move()` ignores EX rows (no accidental base-move regression).
 
 ---
 

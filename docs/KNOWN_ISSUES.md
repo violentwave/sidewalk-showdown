@@ -45,6 +45,14 @@ Engine and feel:
   any light/heavy/special/meth buffered in the window locks the tech out, so
   mashing a second button loses to the throw. The airborne guard and wake-up
   throw invuln both run before tech, so they still win.
+- Hype meter has a spender (PROPOSALS §5): hold **Heavy** with **Special** to
+  use the EX variant of the neutral/forward special for 50 meter. `MoveData`
+  gained `meter_cost` / `ex`; `FighterData.find_move()` skips EX rows and
+  `find_ex_move()` returns them. Meter is paid in `_try_start_attack()` /
+  `_try_cancel()` before the move starts, floors at 0, and a short bar falls back
+  to the base special with no meter spent. Current economy (all defaults, no
+  `.tres` overrides): +6 hit, +3 block, +1.5 whiff, +4 receive, max 100 — about
+  one bar per round, two EX per bar.
 
 Debug overlay:
 
@@ -86,8 +94,6 @@ that section by hand afterward — the simulation step comes from
 - **No CPU AI.** Both fighters are human-controlled (GDD Phase 3 baseline).
 - **METHtality is a stub.** Button is buffered (`p1_meth`/`p2_meth`) but no
   finisher state, prompt, or cinematic exists yet.
-- **Hype meter has no spender.** It fills on hit/block/whiff but no move costs
-  meter yet.
 - **No character/stage select.** Fixed matchup + Bus Stop (Night).
 - **Debug overlay is dev-only.** Boxes, frame state, frame advantage, input
   history, slow motion, frame-step and refill exist; there is no AI state view
@@ -132,7 +138,7 @@ that section by hand afterward — the simulation step comes from
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **79 checks**: clean hits and damage-vs-data,
+- `game/tests/combat_test.gd` — **87 checks**: clean hits and damage-vs-data,
   block chip, low vs stand block, throw unblockability, jump arc, P2 bindings,
   blockstun blocking, shared hitstop, KO landing, real-key input-map resolution,
   the chip-cannot-KO floor, pause freezing fighters and opening the menu, menu
@@ -149,7 +155,10 @@ that section by hand afterward — the simulation step comes from
   damage and pushes them apart, a stale buffer does not tech, a mashed second
   button locks the tech out, a whiffed throw measures 22 frames of recovery, the
   airborne guard wins over tech, and wake-up throw invuln still rejects the throw
-  before tech becomes possible.
+  before tech becomes possible, plus EX specials: special+heavy starts the EX
+  row and deducts 50 meter, a short bar falls back to the base special without
+  spending, EX data differs from base in damage/startup, `find_move()` skips EX
+  rows, both fighters have neutral+forward EX rows, and spending floors at 0.
 - `game/tests/round_flow_test.gd` — **30 checks**: intro→fight, KO phase, round
   wins, timeout resolution, a simultaneous KO awarding a pip to both and the
   round advancing, a 2-2 scoreline continuing into a decisive round that ends on

@@ -192,6 +192,43 @@ hitbox_offset = Vector2(20, -36)
 hitbox_size = Vector2(30, 40)
 hitstop = 6
 
+[sub_resource type="Resource" id="Resource_exneu2"]
+script = ExtResource("1_msf33")
+id = "richard_neutral_ex"
+input = 2
+startup = 7
+active = 4
+recovery = 17
+damage = 135.0
+block_damage = 8.0
+hitstun = 24
+blockstun = 14
+knockback = Vector2(120, 0)
+hitbox_offset = Vector2(28, -40)
+hitbox_size = Vector2(44, 20)
+hitstop = 10
+meter_cost = 50.0
+ex = true
+
+[sub_resource type="Resource" id="Resource_exfwd2"]
+script = ExtResource("1_msf33")
+id = "richard_forward_ex"
+input = 3
+startup = 9
+active = 4
+recovery = 20
+damage = 150.0
+block_damage = 9.0
+hitstun = 26
+blockstun = 15
+knockback = Vector2(160, 0)
+knockdown = true
+hitbox_offset = Vector2(32, -40)
+hitbox_size = Vector2(48, 24)
+hitstop = 10
+meter_cost = 50.0
+ex = true
+
 [resource]
 script = ExtResource("2_q356m")
 id = "whiskey_richard"
@@ -202,4 +239,4 @@ jump_speed = 250.0
 body_width = 32.0
 body_height = 60.0
 body_color = Color(0.85, 0.2, 0.18, 1)
-moves = Array[ExtResource("1_msf33")]([SubResource("Resource_pg16p"), SubResource("Resource_xpv88"), SubResource("Resource_vk58c"), SubResource("Resource_75gwo"), SubResource("Resource_ca3gu"), SubResource("Resource_q7pvm"), SubResource("Resource_03lvw"), SubResource("Resource_5un5y"), SubResource("Resource_ym2rh"), SubResource("Resource_a4wx8"), SubResource("Resource_6y8f7"), SubResource("Resource_1gr5g")])
+moves = Array[ExtResource("1_msf33")]([SubResource("Resource_pg16p"), SubResource("Resource_xpv88"), SubResource("Resource_vk58c"), SubResource("Resource_75gwo"), SubResource("Resource_ca3gu"), SubResource("Resource_q7pvm"), SubResource("Resource_03lvw"), SubResource("Resource_5un5y"), SubResource("Resource_ym2rh"), SubResource("Resource_a4wx8"), SubResource("Resource_6y8f7"), SubResource("Resource_1gr5g"), SubResource("Resource_exneu2"), SubResource("Resource_exfwd2")])

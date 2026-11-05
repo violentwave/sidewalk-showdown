@@ -708,5 +708,60 @@ func _run() -> void:
 			and is_equal_approx(p2.health, 1000.0),
 		"p1=%d p2=%d hp=%.1f" % [p1.state, p2.state, p2.health])
 
+	# --- 37. EX specials: meter spend, fallback, data, floor ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 200)
+	p1.meter = 100.0
+	Input.action_press("p1_heavy")
+	Input.action_press("p1_special")
+	await _step(2)
+	Input.action_release("p1_heavy")
+	Input.action_release("p1_special")
+	_check("EX special starts from special+heavy",
+		p1.state == FighterBase.State.ATTACK and p1.current_move != null
+			and p1.current_move.ex,
+		"state=%d move=%s" % [p1.state,
+			p1.current_move.id if p1.current_move else "null"])
+	_check("EX spends its meter cost", is_equal_approx(p1.meter, 50.0),
+		"meter=%.1f" % p1.meter)
+
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 200)
+	p1.meter = 20.0
+	Input.action_press("p1_heavy")
+	Input.action_press("p1_special")
+	await _step(2)
+	Input.action_release("p1_heavy")
+	Input.action_release("p1_special")
+	_check("insufficient meter falls back to the base special",
+		p1.state == FighterBase.State.ATTACK and p1.current_move != null
+			and not p1.current_move.ex and p1.current_move.id == "peggy_neutral"
+			and is_equal_approx(p1.meter, 20.0),
+		"move=%s meter=%.1f" % [p1.current_move.id if p1.current_move else "null", p1.meter])
+
+	var base_neutral := p1.data.find_move(MoveData.InputType.SPECIAL_NEUTRAL, MoveData.Stance.STAND)
+	var ex_neutral := p1.data.find_ex_move(MoveData.InputType.SPECIAL_NEUTRAL, MoveData.Stance.STAND)
+	var ex_forward := p1.data.find_ex_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+	_check("EX variants differ from base in damage and startup",
+		ex_neutral.damage > base_neutral.damage
+			and ex_neutral.startup < base_neutral.startup
+			and ex_forward != null and ex_forward.meter_cost == 50.0,
+		"base=%.0f/%d ex=%.0f/%d" % [base_neutral.damage, base_neutral.startup,
+			ex_neutral.damage, ex_neutral.startup])
+	_check("find_move never returns an EX row",
+		not base_neutral.ex and ex_neutral.ex)
+	_check("both fighters have neutral and forward EX rows",
+		p2.data.find_ex_move(MoveData.InputType.SPECIAL_NEUTRAL, MoveData.Stance.STAND) != null
+			and p2.data.find_ex_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND) != null)
+
+	p1.meter = 50.0
+	var paid := p1.spend_meter(50.0)
+	_check("meter floors at 0 when the exact cost is paid", paid and p1.meter == 0.0,
+		"meter=%.1f" % p1.meter)
+	_check("an empty bar rejects spending", not p1.spend_meter(1.0) and p1.meter == 0.0,
+		"meter=%.1f" % p1.meter)
+
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

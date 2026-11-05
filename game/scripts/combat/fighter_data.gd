@@ -34,11 +34,23 @@ extends Resource
 
 func find_move(input: MoveData.InputType, stance: MoveData.Stance) -> MoveData:
 	for move in moves:
-		if move.input == input and move.stance == stance:
+		if not move.ex and move.input == input and move.stance == stance:
 			return move
 	# stance fallback: air -> stand, crouch -> stand
 	if stance != MoveData.Stance.STAND:
 		for move in moves:
-			if move.input == input and move.stance == MoveData.Stance.STAND:
+			if not move.ex and move.input == input and move.stance == MoveData.Stance.STAND:
+				return move
+	return null
+
+# EX variants live in the same data array; the base lookup above skips them so
+# the normal special input never silently spends meter.
+func find_ex_move(input: MoveData.InputType, stance: MoveData.Stance) -> MoveData:
+	for move in moves:
+		if move.ex and move.input == input and move.stance == stance:
+			return move
+	if stance != MoveData.Stance.STAND:
+		for move in moves:
+			if move.ex and move.input == input and move.stance == MoveData.Stance.STAND:
 				return move
 	return null

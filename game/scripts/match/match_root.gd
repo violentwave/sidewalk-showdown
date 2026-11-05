@@ -11,10 +11,14 @@ const PEGGY_DATA := preload("res://resources/fighters/peg_leg_peggy.tres")
 const RICHARD_DATA := preload("res://resources/fighters/whiskey_richard.tres")
 
 const ROUND_SECONDS := 99
+const SUDDEN_DEATH_SECONDS := 30
 const INTRO_FRAMES := 60
 const KO_FRAMES := 100
 const ROUND_END_FRAMES := 90
 const WINS_TO_TAKE_MATCH := 2
+# PROPOSALS/GDD draw resolution: two timeout ties are draws with no pip; the
+# third one starts a single sudden-death round.
+const TIMEOUT_TIES_BEFORE_SUDDEN_DEATH := 2
 
 var stage: Node2D
 var hud: MatchHUD
@@ -31,6 +35,11 @@ var ko_loser: FighterBase
 var ko_draw := false
 var ko_frame := -1
 var sim_frame := 0
+# Draw resolution (Phase 2): each fighter's damage output this round feeds the
+# sudden-death tiebreak; timeout_ties counts consecutive tied clock-outs.
+var timeout_ties := 0
+var sudden_death := false
+var round_damage: Array[float] = [0.0, 0.0]
 var pause_index := 0
 var pause_menu_open := false
 
@@ -76,15 +85,21 @@ func _begin_round() -> void:
 	p2.begin_round(Vector2(stage.spawn_p2_x, stage.floor_y), stage.spawn_p1_x)
 	p1.input_enabled = false
 	p2.input_enabled = false
-	timer_frames = ROUND_SECONDS * 60
+	timer_frames = (SUDDEN_DEATH_SECONDS if sudden_death else ROUND_SECONDS) * 60
 	phase = Phase.INTRO
 	phase_frame = 0
 	ko_loser = null
 	ko_draw = false
 	ko_frame = -1
-	hud.set_timer(float(ROUND_SECONDS))
+	round_damage = [0.0, 0.0]
+	hud.set_timer(float(timer_frames) / 60.0)
 	hud.set_pips(wins[0], wins[1])
-	hud.show_message("ROUND %d" % round_number)
+	if sudden_death:
+		hud.show_message("SUDDEN DEATH")
+	elif wins[0] >= WINS_TO_TAKE_MATCH and wins[1] >= WINS_TO_TAKE_MATCH:
+		hud.show_message("DECISIVE ROUND")
+	else:
+		hud.show_message("ROUND %d" % round_number)
 
 func _start_fight() -> void:
 	phase = Phase.FIGHT
@@ -119,21 +134,66 @@ func _on_fighter_ko(loser: FighterBase) -> void:
 	hud.show_message("K.O.")
 
 func _finish_round(winner_index: int, double_ko := false) -> void:
-	if winner_index >= 0:
+	var tiebreak_note := ""
+	# Sudden death always terminates: a tie (clock-out or double KO) is resolved
+	# by the documented tiebreak below instead of starting another round.
+	if sudden_death and (double_ko or winner_index < 0):
+		winner_index = _sudden_death_tiebreak()
+		tiebreak_note = "\nWON ON TIEBREAK"
+	if double_ko and not sudden_death:
+		# Street Fighter convention: both fighters take the round.
+		wins[0] += 1
+		wins[1] += 1
+	elif winner_index >= 0:
 		wins[winner_index] += 1
 	hud.set_pips(wins[0], wins[1])
 	phase_frame = 0
-	if wins[0] >= WINS_TO_TAKE_MATCH or wins[1] >= WINS_TO_TAKE_MATCH:
-		phase = Phase.MATCH_END
-		var champion := p1 if wins[0] >= WINS_TO_TAKE_MATCH else p2
-		hud.show_message("%s WINS THE MATCH\nENTER TO RESTART" % champion.data.display_name.to_upper())
+	if sudden_death:
+		_end_match(winner_index, tiebreak_note)
+		return
+	if _match_has_winner():
+		_end_match(0 if wins[0] > wins[1] else 1)
+		return
+	phase = Phase.ROUND_END
+	if winner_index < 0:
+		hud.show_message("DOUBLE K.O.\nBOTH TAKE THE ROUND" if double_ko else "DRAW")
 	else:
-		phase = Phase.ROUND_END
-		if winner_index < 0:
-			hud.show_message("DOUBLE K.O.\nDRAW" if double_ko else "DRAW")
-		else:
-			var winner := p1 if winner_index == 0 else p2
-			hud.show_message("%s\nTAKES THE ROUND" % winner.data.display_name.to_upper())
+		var winner := p1 if winner_index == 0 else p2
+		hud.show_message("%s\nTAKES THE ROUND" % winner.data.display_name.to_upper())
+
+# A match is won by the first fighter to reach WINS_TO_TAKE_MATCH *and* lead the
+# other. A 2-2 scoreline (two double KOs, or a double KO levelling the set) does
+# not end the match: decisive rounds continue until one fighter wins outright.
+func _match_has_winner() -> bool:
+	if wins[0] == wins[1]:
+		return false
+	return maxi(wins[0], wins[1]) >= WINS_TO_TAKE_MATCH
+
+func _end_match(winner_index: int, note := "") -> void:
+	phase = Phase.MATCH_END
+	var champion := p1 if winner_index == 0 else p2
+	hud.show_message("%s WINS THE MATCH%s\nENTER TO RESTART"
+		% [champion.data.display_name.to_upper(), note])
+
+# Sudden death must end without a coin flip. Deterministic order:
+#   1. remaining health,
+#   2. damage dealt this round (chip included),
+#   3. hype meter,
+#   4. player index (P1) as the documented last resort.
+func _sudden_death_tiebreak() -> int:
+	if p1.health > p2.health + 0.1:
+		return 0
+	if p2.health > p1.health + 0.1:
+		return 1
+	if round_damage[0] > round_damage[1] + 0.1:
+		return 0
+	if round_damage[1] > round_damage[0] + 0.1:
+		return 1
+	if p1.meter > p2.meter + 0.1:
+		return 0
+	if p2.meter > p1.meter + 0.1:
+		return 1
+	return 0
 
 func _timeout_round() -> void:
 	p1.input_enabled = false
@@ -143,11 +203,22 @@ func _timeout_round() -> void:
 		winner = 0
 	elif p2.health > p1.health + 0.1:
 		winner = 1
+	var trigger_sudden_death := false
+	if winner < 0 and not sudden_death:
+		timeout_ties += 1
+		# Third tie: this round is still a draw (no pip), the next round is the
+		# final sudden-death round with a 30-second clock. Flag it after the
+		# round resolves, so this tie is not itself tiebroken.
+		trigger_sudden_death = timeout_ties > TIMEOUT_TIES_BEFORE_SUDDEN_DEATH
 	_finish_round(winner)
+	if trigger_sudden_death:
+		sudden_death = true
 
 func _reset_match() -> void:
 	wins = [0, 0]
 	round_number = 1
+	timeout_ties = 0
+	sudden_death = false
 	_begin_round()
 
 # Debug frame-step: advance exactly one simulation frame while the tree stays
@@ -270,9 +341,13 @@ func _resolve_hits() -> void:
 	var move_a := _poll_hit(p1, p2)
 	var move_b := _poll_hit(p2, p1)
 	if move_a != null:
+		var p2_before := p2.health
 		p1.on_attack_connected(p2.receive_hit(p1, move_a))
+		round_damage[0] += maxf(0.0, p2_before - p2.health)
 	if move_b != null:
+		var p1_before := p1.health
 		p2.on_attack_connected(p1.receive_hit(p2, move_b))
+		round_damage[1] += maxf(0.0, p1_before - p1.health)
 
 func _poll_hit(attacker: FighterBase, defender: FighterBase) -> MoveData:
 	if attacker.state != FighterBase.State.ATTACK:

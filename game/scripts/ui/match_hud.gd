@@ -9,6 +9,7 @@ const BAR_Y := 10.0
 const BAR_H := 8.0
 const METER_Y := 168.0
 const METER_H := 5.0
+const PIP_GAP := 7.0
 const PAUSE_OPTIONS := ["RESUME", "RESTART MATCH", "QUIT TO DESKTOP"]
 
 var p1_fill: ColorRect
@@ -23,6 +24,7 @@ var p2_combo: Label
 var message: Label
 var tech_flash: Label
 var tech_flash_frames: int = 0
+var hud_root: Control
 var pause_root: Control
 var pause_options: Array[Label] = []
 var pips_p1: Array[ColorRect] = []
@@ -42,6 +44,7 @@ func _build() -> void:
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
+	hud_root = root
 
 	_rect(root, Vector2(P1_X, BAR_Y), Vector2(BAR_W, BAR_H), Color(0.06, 0.05, 0.05, 0.9))
 	_rect(root, Vector2(P2_X, BAR_Y), Vector2(BAR_W, BAR_H), Color(0.06, 0.05, 0.05, 0.9))
@@ -58,8 +61,8 @@ func _build() -> void:
 	p2_name = _label(root, "WHISKEY RICHARD", Vector2(172, 20), Vector2(140, 12), HORIZONTAL_ALIGNMENT_RIGHT, 10, Color(0.95, 0.7, 0.65))
 
 	for i in 2:
-		pips_p1.append(_rect(root, Vector2(P1_X + i * 7, 34), Vector2(4, 4), Color(0.2, 0.2, 0.2)))
-		pips_p2.append(_rect(root, Vector2(P2_X + BAR_W - 4 - i * 7, 34), Vector2(4, 4), Color(0.2, 0.2, 0.2)))
+		pips_p1.append(_rect(root, Vector2(P1_X + i * PIP_GAP, 34), Vector2(4, 4), Color(0.2, 0.2, 0.2)))
+		pips_p2.append(_rect(root, Vector2(P2_X + BAR_W - 4 - i * PIP_GAP, 34), Vector2(4, 4), Color(0.2, 0.2, 0.2)))
 
 	p1_combo = _label(root, "", Vector2(P1_X, 64), Vector2(110, 14), HORIZONTAL_ALIGNMENT_LEFT, 10, Color(1, 0.9, 0.4))
 	p2_combo = _label(root, "", Vector2(202, 64), Vector2(110, 14), HORIZONTAL_ALIGNMENT_RIGHT, 10, Color(1, 0.9, 0.4))
@@ -161,7 +164,19 @@ func set_timer(seconds: float) -> void:
 	timer_label.text = "%d" % int(ceilf(seconds))
 
 func set_pips(p1_wins: int, p2_wins: int) -> void:
+	# Double KOs award both fighters a pip, so a score can pass 2-2; grow the
+	# rows instead of hiding wins.
+	var count := maxi(2, maxi(p1_wins, p2_wins))
+	while pips_p1.size() < count:
+		var i := pips_p1.size()
+		pips_p1.append(_rect(hud_root, Vector2(P1_X + i * PIP_GAP, 34),
+			Vector2(4, 4), Color(0.2, 0.2, 0.2)))
+		pips_p2.append(_rect(hud_root, Vector2(P2_X + BAR_W - 4 - i * PIP_GAP, 34),
+			Vector2(4, 4), Color(0.2, 0.2, 0.2)))
 	for i in pips_p1.size():
+		var slot_visible := i < count
+		pips_p1[i].visible = slot_visible
+		pips_p2[i].visible = slot_visible
 		pips_p1[i].color = Color(0.95, 0.62, 0.15) if i < p1_wins else Color(0.2, 0.2, 0.2)
 		pips_p2[i].color = Color(0.9, 0.28, 0.2) if i < p2_wins else Color(0.2, 0.2, 0.2)
 

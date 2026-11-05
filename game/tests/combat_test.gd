@@ -569,5 +569,144 @@ func _run() -> void:
 	lingering_move.invuln_end = saved_lingering_end
 	p1.input_enabled = saving_input
 
+	# --- 31. throw tech inside the window neutralizes both fighters ---
+	# PROPOSALS §2: a grab buffered within throw_tech_window (7f) breaks the
+	# throw. Grab is also the throw button, so the defender's own throw attempt
+	# is the tech input; the incoming throw breaks it instead of trading.
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	p1._start_move(throw_move)
+	await _step(2)
+	Input.action_press("p2_grab")
+	await _step(1)
+	Input.action_release("p2_grab")
+	await _step(3)
+	_check("tech neutralizes both fighters with no damage",
+		p1.state == FighterBase.State.TECH and p2.state == FighterBase.State.TECH
+			and is_equal_approx(p1.health, 1000.0) and is_equal_approx(p2.health, 1000.0),
+		"p1=%d p2=%d hp=%.1f/%.1f" % [p1.state, p2.state, p1.health, p2.health])
+	_check("tech lasts throw_tech_recovery frames on both",
+		p1.tech_frames == p1.data.throw_tech_recovery
+			and p2.tech_frames == p2.data.throw_tech_recovery,
+		"p1=%d p2=%d" % [p1.tech_frames, p2.tech_frames])
+	_check("overlay reports the TECH state",
+		overlay._state_text().contains("P1 TECH") and overlay._state_text().contains("P2 TECH"),
+		"text='%s'" % overlay._state_text().replace("\n", " | "))
+	await _step(12)
+	_check("tech pushes both fighters apart", p1.position.x < 100.0 and p2.position.x > 120.0,
+		"p1=%.1f p2=%.1f" % [p1.position.x, p2.position.x])
+	_check("both fighters leave TECH for neutral",
+		p1.state == FighterBase.State.IDLE and p2.state == FighterBase.State.IDLE,
+		"p1=%d p2=%d" % [p1.state, p2.state])
+
+	# --- 32. a grab buffer older than the window does not tech ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	p2.input_enabled = false
+	p2.input_buffer["grab"] = p2.data.throw_tech_window + 2
+	p1._start_move(throw_move)
+	await _step(10)
+	_check("tech after the window is a normal throw",
+		p2.state == FighterBase.State.KNOCKDOWN
+			and is_equal_approx(p2.health, 1000.0 - throw_move.damage),
+		"state=%d hp=%.1f" % [p2.state, p2.health])
+	p2.input_enabled = true
+
+	# --- 33. SF6-style lockout: mashing another button kills the tech ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	p1._start_move(throw_move)
+	await _step(2)
+	Input.action_press("p2_grab")
+	await _step(1)
+	Input.action_release("p2_grab")
+	Input.action_press("p2_light")
+	await _step(1)
+	Input.action_release("p2_light")
+	await _step(3)
+	_check("lockout prevents option-select mashing",
+		p2.state != FighterBase.State.TECH and p2.state == FighterBase.State.KNOCKDOWN
+			and is_equal_approx(p2.health, 1000.0 - throw_move.damage),
+		"state=%d hp=%.1f" % [p2.state, p2.health])
+
+	# --- 34. a whiffed throw recovers in throw_whiff_recovery frames ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 260)
+	p1.input_enabled = false
+	p2.input_enabled = false
+	p1._start_move(throw_move)
+	var whiff_frames := 0
+	while p1.state == FighterBase.State.ATTACK and whiff_frames < 120:
+		await _step(1)
+		whiff_frames += 1
+	var expected_whiff := throw_move.startup + throw_move.active + p1.data.throw_whiff_recovery
+	_check("throw whiff recovery is authored at 22 frames",
+		p1.data.throw_whiff_recovery == 22 and throw_move.recovery == 16,
+		"field=%d authored=%d" % [p1.data.throw_whiff_recovery, throw_move.recovery])
+	_check("whiffed throw measures the extended recovery",
+		whiff_frames == expected_whiff and p2.health >= 1000.0,
+		"frames=%d expected=%d hp=%.1f" % [whiff_frames, expected_whiff, p2.health])
+	p1.input_enabled = true
+	p2.input_enabled = true
+
+	# --- 35. the airborne-throw guard composes with tech ---
+	# Same descent as test 20: frame 5 brushes an airborne defender, frame 6 lands.
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	p2.input_enabled = false
+	p2.input_buffer["grab"] = 1
+	p2.position = Vector2(120, 150.0 - 11.25)
+	p2.velocity = Vector2(0, 60.0)
+	p2.grounded = false
+	p2._force_state(FighterBase.State.JUMP_FALL)
+	p1._start_move(throw_move)
+	await _step(5)
+	_check("no tech while the defender is airborne",
+		p2.state != FighterBase.State.TECH and is_equal_approx(p2.health, 1000.0),
+		"state=%d hp=%.1f" % [p2.state, p2.health])
+	await _step(2)
+	_check("the live tech buffer breaks the throw on landing",
+		p2.state == FighterBase.State.TECH and p1.state == FighterBase.State.TECH
+			and is_equal_approx(p2.health, 1000.0),
+		"p1=%d p2=%d hp=%.1f" % [p1.state, p2.state, p2.health])
+	p2.input_enabled = true
+
+	# --- 36. wake-up throw invuln composes with tech ---
+	# The throw's whole active window sits inside the 8f throw-invuln tail, so
+	# it is rejected outright; once the tail ends a fresh tech buffer works.
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	_force_wakeup(p2)
+	p1._start_move(throw_move)
+	Input.action_press("p2_grab")
+	await _step(1)
+	Input.action_release("p2_grab")
+	await _step(6)
+	_check("wake-up throw invuln rejects a teched throw",
+		p2.state != FighterBase.State.TECH and is_equal_approx(p2.health, 1000.0)
+			and not p1.move_already_hit,
+		"state=%d hp=%.1f already_hit=%s" % [p2.state, p2.health, str(p1.move_already_hit)])
+
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	_force_wakeup(p2)
+	await _step(4)
+	Input.action_press("p2_grab")
+	await _step(1)
+	Input.action_release("p2_grab")
+	p1._start_move(throw_move)
+	await _step(5)
+	_check("tech works once the throw-invuln tail ends",
+		p1.state == FighterBase.State.TECH and p2.state == FighterBase.State.TECH
+			and is_equal_approx(p2.health, 1000.0),
+		"p1=%d p2=%d hp=%.1f" % [p1.state, p2.state, p2.health])
+
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

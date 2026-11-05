@@ -111,7 +111,7 @@ func _advantage_text() -> String:
 
 func _remaining_recovery(f: FighterBase) -> int:
 	if f.state == FighterBase.State.ATTACK and f.current_move != null:
-		return maxi(0, f.current_move.total_frames() - f.state_frame)
+		return maxi(0, f._move_total(f.current_move) - f.state_frame)
 	return 0
 
 func _state_name(f: FighterBase) -> String:

@@ -84,7 +84,7 @@ godot --headless --path game --export-release windows build/windows/sidewalk_sho
 | `CHARACTERS.md` | Roster bible (archetypes, rivals, data direction) |
 | `docs/SIDEWALK_SHOWDOWN_NON_DEFINING_ASSET_PROMPTS.md` | 315 art-generation prompts |
 | `docs/KNOWN_ISSUES.md` | Current prototype gaps |
-| `docs/PROPOSALS.md` | Designs for the open combat gaps (wake-up invuln, throw tech, air balance) |
+| `docs/PROPOSALS.md` | Combat-gap designs: wake-up invuln and throw tech (implemented), air balance (spec) |
 
 **Canon locks:** Tripp Vlogs is the only boss and is NOT playable. Roster = 15
 fighters. Every fighter has one unique METHtality. No real towns, brands, or

@@ -21,6 +21,8 @@ var p2_name: Label
 var p1_combo: Label
 var p2_combo: Label
 var message: Label
+var tech_flash: Label
+var tech_flash_frames: int = 0
 var pause_root: Control
 var pause_options: Array[Label] = []
 var pips_p1: Array[ColorRect] = []
@@ -28,6 +30,12 @@ var pips_p2: Array[ColorRect] = []
 
 func _ready() -> void:
 	_build()
+
+func _process(_delta: float) -> void:
+	if tech_flash_frames > 0:
+		tech_flash_frames -= 1
+		if tech_flash_frames == 0:
+			tech_flash.visible = false
 
 func _build() -> void:
 	var root := Control.new()
@@ -59,6 +67,11 @@ func _build() -> void:
 	message = _label(root, "", Vector2(40, 76), Vector2(240, 34), HORIZONTAL_ALIGNMENT_CENTER, 14, Color(1, 0.95, 0.8))
 	message.visible = false
 
+	# TECH flash (PROPOSALS §2): both fighters' teched signals go here.
+	tech_flash = _label(root, "TECH", Vector2(110, 60), Vector2(100, 14),
+		HORIZONTAL_ALIGNMENT_CENTER, 12, Color(0.45, 0.95, 1.0))
+	tech_flash.visible = false
+
 	pause_root = Control.new()
 	pause_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	pause_root.visible = false
@@ -81,6 +94,8 @@ func bind(p1: FighterBase, p2: FighterBase) -> void:
 	p2.meter_changed.connect(_on_p2_meter)
 	p1.combo_changed.connect(_on_p1_combo)
 	p2.combo_changed.connect(_on_p2_combo)
+	p1.teched.connect(_on_teched)
+	p2.teched.connect(_on_teched)
 	_on_p1_health(p1.health, p1.max_health)
 	_on_p2_health(p2.health, p2.max_health)
 	_on_p1_meter(p1.meter, p1.max_meter)
@@ -135,6 +150,12 @@ func _on_p1_combo(count: int) -> void:
 
 func _on_p2_combo(count: int) -> void:
 	p2_combo.text = "%d HITS" % count if count >= 2 else ""
+
+# Both fighters emit teched on the same frame; showing once per emission is
+# harmless (the label simply restarts its 20-frame flash).
+func _on_teched() -> void:
+	tech_flash.visible = true
+	tech_flash_frames = 20
 
 func set_timer(seconds: float) -> void:
 	timer_label.text = "%d" % int(ceilf(seconds))

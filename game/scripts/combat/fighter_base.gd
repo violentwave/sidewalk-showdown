@@ -7,7 +7,7 @@ enum State {
 	JUMP_START, JUMP_RISE, JUMP_FALL, LAND,
 	ATTACK, BLOCK_STAND, BLOCK_CROUCH,
 	HITSTUN, BLOCKSTUN, KNOCKDOWN, WAKE_UP,
-	GRAB, KO, WIN,
+	TECH, GRAB, KO, WIN,
 }
 
 signal state_changed(new_state: State)
@@ -15,6 +15,7 @@ signal health_changed(value: float, max_value: float)
 signal meter_changed(value: float, max_value: float)
 signal combo_changed(count: int)
 signal ko
+signal teched
 
 # --- Identity (FighterData overrides these) ---
 @export var player_index: int = 1
@@ -55,6 +56,7 @@ var hitstun_frames := 0
 var blockstun_frames := 0
 var knockdown_frames := 0
 var wakeup_frames := 0
+var tech_frames := 0
 
 var combo_hits := 0
 var frames_since_hit := 0
@@ -97,6 +99,9 @@ func begin_round(spawn_pos: Vector2, opponent_x: float) -> void:
 	hitstop_frames = 0
 	combo_hits = 0
 	frames_since_hit = 0
+	knockdown_frames = 0
+	tech_frames = 0
+	wakeup_frames = 0
 	current_move = null
 	input_buffer.clear()
 	facing = 1 if opponent_x > spawn_pos.x else -1
@@ -140,6 +145,8 @@ func _physics_process(_delta: float) -> void:
 			velocity.x = move_toward(velocity.x, 0.0, 400.0 * delta_fixed())
 			if state_frame >= wakeup_frames:
 				_set_state(State.IDLE)
+		State.TECH:
+			_stun_logic(tech_frames)
 		State.KO:
 			velocity.x = move_toward(velocity.x, 0.0, 200.0 * delta_fixed())
 
@@ -201,7 +208,7 @@ func _attack_logic() -> void:
 	if move_hit_confirmed and state_frame > current_move.startup:
 		if _try_cancel():
 			return
-	if state_frame >= current_move.total_frames():
+	if state_frame >= _move_total(current_move):
 		if not move_already_hit:
 			finish_move_whiff()
 		if not grounded:
@@ -378,6 +385,17 @@ func finish_move_whiff() -> void:
 	if current_move:
 		add_meter(current_move.meter_gain_whiff)
 
+# Total frames of the move in play. Whiffed throws read FighterData's
+# throw_whiff_recovery instead of the grab's authored recovery (PROPOSALS §2):
+# the whiff must leave the thrower punishable by a light/heavy. A connected
+# throw keeps its authored frames, and teching both clears current_move.
+func _move_total(move: MoveData) -> int:
+	if move == null:
+		return 0
+	if move.level == MoveData.Level.THROW and not move_already_hit and data:
+		return move.startup + move.active + data.throw_whiff_recovery
+	return move.total_frames()
+
 # ---------------- Damage ----------------
 func is_holding_back() -> bool:
 	if not input_enabled:
@@ -390,7 +408,7 @@ func is_blocking() -> bool:
 		return false
 	# BLOCKSTUN is intentionally allowed: holding back must keep blocking
 	# successive hits in a blockstring.
-	if state in [State.ATTACK, State.HITSTUN, State.KNOCKDOWN, State.WAKE_UP, State.KO]:
+	if state in [State.ATTACK, State.HITSTUN, State.KNOCKDOWN, State.WAKE_UP, State.TECH, State.KO]:
 		return false
 	return is_holding_back()
 
@@ -405,6 +423,17 @@ func can_block(move: MoveData) -> bool:
 func receive_hit(attacker: FighterBase, move: MoveData) -> bool:
 	if state == State.KO:
 		return false
+
+	if move.level == MoveData.Level.THROW:
+		# Airborne defenders can't be thrown: the grab whiffs (bug-fix guard).
+		if not grounded:
+			return false
+		# PROPOSALS §2: the tech check runs before damage and consumes both grab
+		# buffers, so a defender who pressed grab in the window resolves the
+		# exchange as a tech rather than as damage.
+		if _can_tech():
+			_start_tech(attacker)
+			return false
 
 	if is_blocking() and can_block(move):
 		# Chip damage is a pressure tool, never a kill: blocked hits floor at 1 HP.
@@ -450,6 +479,60 @@ func receive_hit(attacker: FighterBase, move: MoveData) -> bool:
 		_force_state(State.HITSTUN)
 	return true
 
+# PROPOSALS §2 — SF6-style tech gate against the existing input buffer:
+#   - a grab buffered within data.throw_tech_window frames counts as a tech
+#     input; because grab is also the throw button, a throw attempt of the
+#     defender's own (ATTACK with a THROW move still in startup/active) counts
+#     as the tech input too — the incoming throw breaks it first.
+#   - committing to another button inside the window kills the tech (lockout),
+#     which makes mash option-selects lose to the throw.
+func _can_tech() -> bool:
+	if data == null:
+		return false
+	var grab_live: bool = input_buffer.has("grab") \
+			and input_buffer["grab"] <= data.throw_tech_window
+	var own_throw := state == State.ATTACK and current_move != null \
+			and current_move.level == MoveData.Level.THROW \
+			and state_frame < current_move.startup + current_move.active
+	if not grab_live and not own_throw:
+		return false
+	# Lockout: any other button pressed inside the window kills the tech.
+	for action in ["light", "heavy", "special", "meth"]:
+		if input_buffer.has(action) and input_buffer[action] <= data.throw_tech_window:
+			return false
+	# Already committed to a non-throw attack that hasn't left startup.
+	if state == State.ATTACK and current_move != null \
+			and current_move.level != MoveData.Level.THROW \
+			and state_frame < current_move.startup:
+		return false
+	return true
+
+# Tech resolves: no damage, no knockdown, both fighters consumed their buffered
+# grab, pushed apart ~20px each, and both sit in TECH for throw_tech_recovery
+# frames. current_move is cleared so the (already-connected) throw leaves no
+# leftover state for hitbox or invuln queries.
+func _start_tech(other: FighterBase) -> void:
+	var dur := data.throw_tech_recovery if data else 10
+	input_buffer.erase("grab")
+	tech_frames = dur
+	current_move = null
+	_force_state(State.TECH)
+	if other and other != self:
+		other.input_buffer.erase("grab")
+		other.tech_frames = dur
+		other.current_move = null
+		other._force_state(State.TECH)
+	var dir := signf(position.x - other.position.x) if other else -float(facing)
+	if dir == 0.0:
+		dir = -float(facing)
+	var push := dir * (20.0 / float(dur)) / delta_fixed()
+	velocity = Vector2(push, 0.0)
+	if other and other != self:
+		other.velocity = Vector2(-push, 0.0)
+	teched.emit()
+	if other and other != self:
+		other.teched.emit()
+
 func _damage_scale() -> float:
 	var hits := combo_hits + 1
 	if hits <= 2:
@@ -470,6 +553,7 @@ func reset_state() -> void:
 	hitstun_frames = 0
 	blockstun_frames = 0
 	knockdown_frames = 0
+	tech_frames = 0
 	combo_hits = 0
 	frames_since_hit = 0
 	input_buffer.clear()

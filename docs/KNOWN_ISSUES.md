@@ -1,4 +1,4 @@
-# Known Issues — Phase 1.5f (Greybox Combat)
+# Known Issues — Phase 2 (throw tech landed)
 
 Exit criteria from GDD §13 Phase 1: two boxes can fight, hits feel responsive,
 blocking works, round flow works, match can end/restart. **All met.**
@@ -34,6 +34,15 @@ Engine and feel:
   gate lives in `_poll_hit()` ahead of the throw guard, so an invulnerable brush
   never consumes the active window: the first vulnerable frame is the frame that
   connects, which is what makes a meaty expressible.
+- Throw tech (PROPOSALS §2), data-driven: `throw_tech_window` (7) frames of
+  buffered grab break a throw, `throw_tech_recovery` (10) is spent by **both**
+  fighters in a real `State.TECH` with a ~20 px push apart, and
+  `throw_whiff_recovery` (22) replaces the grab's authored 16-frame recovery on a
+  whiff. Tech consumes both grab buffers and emits `teched` (HUD flashes "TECH").
+  A defender's own throw startup doubles as the tech input (single throw button);
+  any light/heavy/special/meth buffered in the window locks the tech out, so
+  mashing a second button loses to the throw. The airborne guard and wake-up
+  throw invuln both run before tech, so they still win.
 
 Debug overlay:
 
@@ -81,12 +90,17 @@ that section by hand afterward — the simulation step comes from
 - **Debug overlay is dev-only.** Boxes, frame state, frame advantage, input
   history, slow motion, frame-step and refill exist; there is no AI state view
   (there is no AI yet) and no hitbox-invariant assertions.
-- **No throw tech.** The design, effort estimate and the breakage it implies are
-  written up in `docs/PROPOSALS.md` §2.
+- **Airborne throws remain rejected.** Throws stay grounded-only, unchanged.
+- **No throw-tech follow-ups yet.** Punish Counter throws, delayed-throw
+  pressure and shimmy baiting are design space, not implemented.
 
 ## Known edge cases
 
 - **Timeout tie** (equal health) resolves as a draw round with no win awarded.
+- **Throw damage is awaiting a tuning decision.** PROPOSALS §2 predicted that
+  120/130 throw damage becomes too strong once tech exists; the numbers were left
+  unchanged on purpose. Revisit after tech gets play data (tech rate vs whiff
+  punish rate); candidate direction is 90–100 for Peggy and 100–110 for Richard.
 - **Air specials are unbalanced.** Landing cancels a move, so air moves have no
   landing recovery, and every jump attack is an `OVERHEAD` that a crouching
   block cannot stop. Measurement methodology and targets are in
@@ -104,7 +118,7 @@ that section by hand afterward — the simulation step comes from
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **65 checks**: clean hits and damage-vs-data,
+- `game/tests/combat_test.gd` — **79 checks**: clean hits and damage-vs-data,
   block chip, low vs stand block, throw unblockability, jump arc, P2 bindings,
   blockstun blocking, shared hitstop, KO landing, real-key input-map resolution,
   the chip-cannot-KO floor, pause freezing fighters and opening the menu, menu
@@ -116,8 +130,12 @@ that section by hand afterward — the simulation step comes from
   survives to a frame-6 hit, strike and throw windows expire separately,
   `wakeup_frames` is read from data, the wake-up gate leaving the airborne-throw
   guard intact, the F2 invulnerability countdown (strike window, throw tail,
-  reversal frames, empty when idle), and hitstop freezing that countdown before
-  it resumes.
+  reversal frames, empty when idle), hitstop freezing that countdown before
+  it resumes, and throw tech: an in-window tech neutralizes both fighters with no
+  damage and pushes them apart, a stale buffer does not tech, a mashed second
+  button locks the tech out, a whiffed throw measures 22 frames of recovery, the
+  airborne guard wins over tech, and wake-up throw invuln still rejects the throw
+  before tech becomes possible.
 - `game/tests/round_flow_test.gd` — **18 checks**: intro→fight, KO phase, round
   wins, timeout resolution, a simultaneous KO resolving as a draw with no pip
   and the round advancing, a match still ending after a draw round, the clock

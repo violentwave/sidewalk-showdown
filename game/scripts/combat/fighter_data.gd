@@ -20,6 +20,16 @@ extends Resource
 # Throws stay rejected for this long; raise it if throw loops appear.
 @export var wakeup_throw_invuln_frames: int = 8
 
+@export_group("Throw Tech")
+# PROPOSALS §2: the defender can break a throw by having a grab buffered within
+# this many frames of the throw connecting (measured against input_buffer).
+@export var throw_tech_window: int = 7
+# Both fighters enter TECH for this long after a successful tech, pushed apart.
+@export var throw_tech_recovery: int = 10
+# Replaces the grab move's authored recovery when the throw whiffs, so raw
+# throws stay punishable. Damage stays unchanged; see KNOWN_ISSUES.md.
+@export var throw_whiff_recovery: int = 22
+
 @export var moves: Array[MoveData] = []
 
 func find_move(input: MoveData.InputType, stance: MoveData.Stance) -> MoveData:

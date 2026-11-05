@@ -1,6 +1,6 @@
 # Implementation Proposals — Wake-up Invuln, Throw Tech, Air Special Balance
 
-Status: **§1 implemented; §2 and §3 are still specification only.** Each section covers how mainstream
+Status: **§1 and §2 implemented; §3 is still specification only.** Each section covers how mainstream
 2D fighters handle the mechanic, a concrete design for this project's fixed-60 Hz
 data-driven architecture, effort, and what it would break.
 
@@ -190,7 +190,30 @@ airborne), plus overlay text and docs.
 
 ---
 
-## 2. Throw tech
+## 2. Throw tech — implemented
+
+As-built (Phase 2), in `FighterBase` + `FighterData`:
+
+- `throw_tech_window = 7`, `throw_tech_recovery = 10`, `throw_whiff_recovery = 22`
+  are data fields on `FighterData`. The grab `MoveData` keeps its authored
+  `recovery = 16`; a **whiffed** throw reads `throw_whiff_recovery` instead, so a
+  connected throw keeps its original frames.
+- Tech detection runs inside `receive_hit()` on the `THROW` path, after the
+  airborne guard, before damage. Both fighters go to a real `State.TECH` for
+  `throw_tech_recovery` frames, are pushed ~20 px apart, keep all health, and emit
+  `teched` (the HUD flashes "TECH" for 20 frames).
+- Because grab is also the throw button, a defender's **own throw attempt**
+  (ATTACK, THROW move still in startup/active) counts as the tech input: the
+  incoming throw breaks the attempt instead of trading with it. This is the
+  single-button equivalent of a dedicated tech input; without it, pressing grab
+  in neutral would consume the buffer as your own throw startup and no tech could
+  ever happen outside blockstun.
+- Lockout is frame-based on `input_buffer` ages: any `light` / `heavy` /
+  `special` / `meth` buffered within the 7-frame window kills the tech, and a
+  non-throw attack still in startup also kills it. Mashing a second button loses
+  to the throw.
+- The debug overlay shows `TECH` via the normal state name (no lying
+  `BLOCKSTUN`), and the frame-advantage readout uses the extended whiff total.
 
 ### How mainstream 2D fighters handle it
 
@@ -267,7 +290,8 @@ frames, and emit a `teched` signal so the HUD can flash "TECH".
 **Whiff**: the throw's authored `recovery` should rise from 16 to ~22 so a whiffed
 throw is punishable by a light/heavy at typical ranges. This is the single number
 that keeps the mechanic honest; without it, teching is the only counterplay and
-throws become a coin flip.
+throws become a coin flip. (Implemented as `FighterData.throw_whiff_recovery`,
+which overrides the grab's authored recovery only on a whiff.)
 
 **Verdict table this proposal encodes:**
 
@@ -294,7 +318,9 @@ window, throw vs airborne.
   attentive defender will tech most raw throws. That is the point, but it means
   throws shift from "damage" to "pressure reset", which changes the value of the
   grab move's 120/130 damage. Expect a damage reduction on throws in the same
-  pass.
+  pass. **Status: damage deliberately unchanged** (120 Peggy / 130 Richard) until
+  the balance owner signs off; tracked as a tuning follow-up in
+  `docs/KNOWN_ISSUES.md`.
 - **Input buffer semantics.** `_consume("grab", BUFFER_GRAB)` currently triggers
   the attacker's own throw. A defender mashing grab would both attempt a throw on
   wake-up and buffer a tech; the lockout rules need to be explicit about which

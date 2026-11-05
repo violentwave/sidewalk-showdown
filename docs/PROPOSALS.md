@@ -517,11 +517,12 @@ These are nominal single-hit ratios, not a combo or full-arc simulation.
 | Richard | `[3,3,3,0,0]/7` → `[2,2,2,0,0]/7` | `[3,3,3,0,0]/7` | 9/9 → 6/9 (67%) |
 
 Array positions are distances `[0,20,40,60,80]`. The reach target is ≤60%; the
-measured 67% misses it narrowly. With only three connecting jump-heavy starts,
-the next lower representable ratio is 33%, so forcing the cutoff would require
-removing another sampled connection (or using a harsher one-frame attack). We
-kept the two active frames and report the miss rather than tuning to a coarse
-threshold. Peggy's baseline-only d=60 reach was removed.
+measured 67% misses it narrowly. At each of d=0/20/40, the sample has 3 jump-heavy
+starts and 2 air-special starts. In aggregate, one fewer air-special sample would
+put the total at 5/9 (56%), but that would be a one-hit change in this small grid.
+We kept the two active frames and report the miss rather than tuning to that
+single-sample cutoff or a harsher one-frame attack. Peggy's baseline-only d=60
+reach was removed.
 
 | Attacker | Blocked advantage before → after (min/median/max) | Actual blocks | Whiff window before → after (min/median/max) | Whiff samples |
 |---|---:|---:|---:|---:|

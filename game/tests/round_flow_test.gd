@@ -52,6 +52,19 @@ func _place_for_double_ko() -> void:
 	p2.reset_state()
 
 
+# Burn a round on an equal-health clock-out, then let the next round's intro
+# finish so the caller is back in FIGHT.
+func _force_timeout_tie() -> void:
+	p1.health = 1000.0
+	p2.health = 1000.0
+	p1.reset_state()
+	p2.reset_state()
+	scene.timer_frames = 1
+	await _step(3)
+	await _step(95)
+	await _step(65)
+
+
 func _run() -> void:
 	await _step(65)
 	p1 = scene.p1
@@ -93,19 +106,23 @@ func _run() -> void:
 	_check("double KO detected", scene.ko_draw and scene.phase == 2,
 		"ko_draw=%s phase=%d" % [scene.ko_draw, scene.phase])
 	await _step(105)
-	_check("draw awards no pip", scene.wins[0] == 1 and scene.wins[1] == 1, str(scene.wins))
+	_check("double KO awards a pip to both", scene.wins[0] == 2 and scene.wins[1] == 2,
+		str(scene.wins))
 	_check("draw round ends", scene.phase == 3, "phase=%d" % scene.phase)
 	await _step(95)
-	_check("round advances after draw", scene.round_number == 4 and scene.phase == 0,
+	_check("round advances after double KO", scene.round_number == 4 and scene.phase == 0,
 		"round=%d phase=%d" % [scene.round_number, scene.phase])
 
-	# --- Round 4: a normal KO still ends the match after a draw round ---
+	# --- Round 4: 2-2 is decisive; an outright win ends the match ---
 	await _step(65)
+	_check("2-2 shows the decisive-round message", scene.hud.message.text == "DECISIVE ROUND",
+		"msg='%s'" % scene.hud.message.text)
 	_place_for_ko()
 	p1._start_move(light)
 	await _step(20)
 	await _step(105)
-	_check("match ends at two wins after a draw round", scene.phase == 4 and scene.wins[0] == 2,
+	_check("2-2 continues into a decisive round and ends on an outright win",
+		scene.phase == 4 and scene.wins[0] == 3 and scene.wins[1] == 2,
 		"phase=%d wins=%s" % [scene.phase, str(scene.wins)])
 
 	# --- Fresh match: round clock vs hitstop ---
@@ -163,6 +180,69 @@ func _run() -> void:
 	# p2 would take the round instead.
 	_check("hit on the timer's final frame counts", scene.wins[0] == 1,
 		"wins=%s p1=%.1f p2=%.1f" % [str(scene.wins), p1.health, p2.health])
+
+	# --- Draw resolution: three timeout ties reach sudden death ---
+	scene._reset_match()
+	await _step(65)
+	_check("reset clears draw-resolution state",
+		not scene.sudden_death and scene.timeout_ties == 0 and scene.wins == [0, 0],
+		"sd=%s ties=%d wins=%s" % [str(scene.sudden_death), scene.timeout_ties, str(scene.wins)])
+
+	await _force_timeout_tie()
+	_check("first timeout tie awards no pip",
+		scene.wins == [0, 0] and scene.timeout_ties == 1
+			and not scene.sudden_death and scene.phase == 1,
+		"wins=%s ties=%d sd=%s" % [str(scene.wins), scene.timeout_ties, str(scene.sudden_death)])
+	await _force_timeout_tie()
+	_check("second timeout tie still awards no pip",
+		scene.wins == [0, 0] and scene.timeout_ties == 2
+			and not scene.sudden_death and scene.phase == 1,
+		"wins=%s ties=%d sd=%s" % [str(scene.wins), scene.timeout_ties, str(scene.sudden_death)])
+	await _force_timeout_tie()
+	_check("third timeout tie reaches sudden death",
+		scene.sudden_death and scene.phase == 1 and scene.wins == [0, 0],
+		"wins=%s sd=%s phase=%d" % [str(scene.wins), str(scene.sudden_death), scene.phase])
+	_check("sudden death uses a 30-second clock",
+		scene.timer_frames <= 30 * 60 and scene.timer_frames > 29 * 60,
+		"timer=%d" % scene.timer_frames)
+
+	# A tie inside sudden death resolves by remaining health, then by damage
+	# dealt this round — this clock-out is equal health, p2 out-damaged p1.
+	p1.health = 800.0
+	p2.health = 800.0
+	scene.round_damage[0] = 40.0
+	scene.round_damage[1] = 300.0
+	scene.timer_frames = 1
+	await _step(3)
+	_check("a sudden-death timeout tie resolves by damage dealt",
+		scene.phase == 4 and scene.wins[1] == 1 and scene.wins[0] == 0,
+		"phase=%d wins=%s" % [scene.phase, str(scene.wins)])
+	_check("the tiebreak is announced", scene.hud.message.text.contains("TIEBREAK"),
+		"msg='%s'" % scene.hud.message.text)
+	p1.health = 500.0
+	p2.health = 500.0
+	scene.round_damage[0] = 0.0
+	scene.round_damage[1] = 0.0
+	p1.meter = 0.0
+	p2.meter = 0.0
+	_check("fully equal tiebreak fields fall back to P1 deterministically",
+		scene._sudden_death_tiebreak() == 0)
+
+	# --- Sudden death: the first clean win ends the match ---
+	scene._reset_match()
+	scene.sudden_death = true
+	scene._begin_round()
+	await _step(65)
+	_check("sudden death round starts fighting", scene.phase == 1 and scene.round_number == 1,
+		"phase=%d round=%d" % [scene.phase, scene.round_number])
+	_place_for_ko()
+	p1._start_move(light)
+	await _step(20)
+	_check("KO inside sudden death enters the KO phase", scene.phase == 2, "phase=%d" % scene.phase)
+	await _step(105)
+	_check("first clean win in sudden death ends the match",
+		scene.phase == 4 and scene.wins[0] == 1 and scene.wins[1] == 0,
+		"phase=%d wins=%s" % [scene.phase, str(scene.wins)])
 
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

@@ -15,8 +15,10 @@ Engine and feel:
 - Silhouettes scale with fighter height, so the art matches its own hurtbox.
 - Chip damage floors at 1 HP — a blocked hit can never KO.
 - A same-frame trade lands both hits, and two KOs in the same frame resolve as a
-  **draw round**: no pip, `DOUBLE K.O. / DRAW`, round advances inside the same
-  best-of-3.
+  **dual-pip draw round** (Street Fighter convention): both fighters take a win,
+  `DOUBLE K.O. / BOTH TAKE THE ROUND`, and the next round is played. A 2-2
+  scoreline does not end the match — decisive rounds continue until one fighter
+  wins a round outright (the HUD announces `DECISIVE ROUND`).
 - The round clock holds while either fighter is in hitstop, and hits resolve
   before the timeout, so a hit on the clock's final frame counts and a KO there
   beats the timeout.
@@ -96,7 +98,19 @@ that section by hand afterward — the simulation step comes from
 
 ## Known edge cases
 
-- **Timeout tie** (equal health) resolves as a draw round with no win awarded.
+- **Timeout ties**: equal health at time-out is a draw round with no pip. The
+  first two ties just advance the round; the **third** tie starts a final
+  **SUDDEN DEATH** round on a 30-second clock. In sudden death the first clean
+  win ends the match; a tie (clock-out or double KO) is resolved deterministically
+  instead of extending the match:
+  1. higher remaining health,
+  2. higher damage dealt during that round (chip counted),
+  3. higher hype meter,
+  4. P1 as the documented last resort.
+
+  The last two fallbacks exist only for a perfectly mirrored round; the
+  common double-KO-in-sudden-death case is decided by damage dealt. Any win in
+  sudden death ends the match regardless of the pip count.
 - **Throw damage is awaiting a tuning decision.** PROPOSALS §2 predicted that
   120/130 throw damage becomes too strong once tech exists; the numbers were left
   unchanged on purpose. Revisit after tech gets play data (tech rate vs whiff
@@ -136,10 +150,14 @@ that section by hand afterward — the simulation step comes from
   button locks the tech out, a whiffed throw measures 22 frames of recovery, the
   airborne guard wins over tech, and wake-up throw invuln still rejects the throw
   before tech becomes possible.
-- `game/tests/round_flow_test.gd` — **18 checks**: intro→fight, KO phase, round
-  wins, timeout resolution, a simultaneous KO resolving as a draw with no pip
-  and the round advancing, a match still ending after a draw round, the clock
-  frozen during hitstop, and a hit on the timer's final frame counting.
+- `game/tests/round_flow_test.gd` — **30 checks**: intro→fight, KO phase, round
+  wins, timeout resolution, a simultaneous KO awarding a pip to both and the
+  round advancing, a 2-2 scoreline continuing into a decisive round that ends on
+  an outright win, reset clearing draw state, the first two timeout ties
+  awarding no pip, the third tie starting a 30-second sudden-death round, a
+  sudden-death tie resolving by damage dealt (with the announced tiebreak), the
+  deterministic P1 fallback, a clean win in sudden death ending the match, the
+  clock frozen during hitstop, and a hit on the timer's final frame counting.
 - `game/tests/air_probe.gd` — metrics only, no assertions: air reach envelope,
   damage per arc, first-to-hit trade matrix, blocked advantage and the
   whiff-punish window. Prints a report and always exits 0, so it can never fail a

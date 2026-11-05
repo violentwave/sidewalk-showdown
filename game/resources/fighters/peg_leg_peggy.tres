@@ -5,6 +5,22 @@
 
 [sub_resource type="Resource" id="Resource_y6umg"]
 script = ExtResource("1_3p5s5")
+id = "peggy_meth"
+input = 2
+startup = 3
+recovery = 24
+damage = 1000.0
+block_damage = 0.0
+hitstun = 0
+knockback = Vector2(150, 0)
+knockdown = true
+hitbox_offset = Vector2(30, -40)
+hitbox_size = Vector2(60, 44)
+hitstop = 30
+meth = true
+
+[sub_resource type="Resource" id="Resource_uih6c"]
+script = ExtResource("1_3p5s5")
 id = "light"
 startup = 3
 recovery = 7
@@ -13,7 +29,7 @@ knockback = Vector2(55, 0)
 hitbox_offset = Vector2(22, -44)
 hitbox_size = Vector2(28, 16)
 
-[sub_resource type="Resource" id="Resource_uih6c"]
+[sub_resource type="Resource" id="Resource_6j227"]
 script = ExtResource("1_3p5s5")
 id = "heavy"
 input = 1
@@ -29,7 +45,7 @@ hitbox_offset = Vector2(26, -42)
 hitbox_size = Vector2(34, 22)
 hitstop = 6
 
-[sub_resource type="Resource" id="Resource_6j227"]
+[sub_resource type="Resource" id="Resource_ppeoy"]
 script = ExtResource("1_3p5s5")
 id = "crouch_light"
 stance = 1
@@ -40,7 +56,7 @@ knockback = Vector2(45, 0)
 hitbox_offset = Vector2(22, -24)
 hitbox_size = Vector2(30, 14)
 
-[sub_resource type="Resource" id="Resource_ppeoy"]
+[sub_resource type="Resource" id="Resource_hhveu"]
 script = ExtResource("1_3p5s5")
 id = "crouch_heavy"
 input = 1
@@ -59,7 +75,7 @@ hitbox_offset = Vector2(28, -20)
 hitbox_size = Vector2(36, 16)
 hitstop = 6
 
-[sub_resource type="Resource" id="Resource_hhveu"]
+[sub_resource type="Resource" id="Resource_w4klc"]
 script = ExtResource("1_3p5s5")
 id = "jump_light"
 stance = 2
@@ -74,7 +90,7 @@ knockback = Vector2(50, 0)
 hitbox_offset = Vector2(22, -38)
 hitbox_size = Vector2(30, 18)
 
-[sub_resource type="Resource" id="Resource_w4klc"]
+[sub_resource type="Resource" id="Resource_r5ltk"]
 script = ExtResource("1_3p5s5")
 id = "jump_heavy"
 input = 1
@@ -92,7 +108,7 @@ hitbox_offset = Vector2(26, -36)
 hitbox_size = Vector2(36, 24)
 hitstop = 6
 
-[sub_resource type="Resource" id="Resource_r5ltk"]
+[sub_resource type="Resource" id="Resource_6cwq4"]
 script = ExtResource("1_3p5s5")
 id = "peggy_neutral"
 input = 2
@@ -108,7 +124,7 @@ hitbox_offset = Vector2(26, -40)
 hitbox_size = Vector2(40, 20)
 hitstop = 8
 
-[sub_resource type="Resource" id="Resource_6cwq4"]
+[sub_resource type="Resource" id="Resource_7xrol"]
 script = ExtResource("1_3p5s5")
 id = "peggy_forward"
 input = 3
@@ -125,7 +141,7 @@ hitbox_offset = Vector2(30, -40)
 hitbox_size = Vector2(44, 22)
 hitstop = 8
 
-[sub_resource type="Resource" id="Resource_7xrol"]
+[sub_resource type="Resource" id="Resource_ntf5t"]
 script = ExtResource("1_3p5s5")
 id = "peggy_down"
 input = 4
@@ -142,7 +158,7 @@ hitbox_offset = Vector2(28, -18)
 hitbox_size = Vector2(42, 14)
 hitstop = 8
 
-[sub_resource type="Resource" id="Resource_ntf5t"]
+[sub_resource type="Resource" id="Resource_cd7l2"]
 script = ExtResource("1_3p5s5")
 id = "peggy_back"
 input = 5
@@ -157,7 +173,7 @@ hitbox_offset = Vector2(24, -40)
 hitbox_size = Vector2(34, 20)
 hitstop = 8
 
-[sub_resource type="Resource" id="Resource_cd7l2"]
+[sub_resource type="Resource" id="Resource_q14mv"]
 script = ExtResource("1_3p5s5")
 id = "peggy_air"
 input = 6
@@ -175,7 +191,7 @@ hitbox_offset = Vector2(26, -40)
 hitbox_size = Vector2(38, 26)
 hitstop = 8
 
-[sub_resource type="Resource" id="Resource_q14mv"]
+[sub_resource type="Resource" id="Resource_xal07"]
 script = ExtResource("1_3p5s5")
 id = "grab"
 input = 7
@@ -192,7 +208,7 @@ hitbox_offset = Vector2(20, -36)
 hitbox_size = Vector2(30, 40)
 hitstop = 6
 
-[sub_resource type="Resource" id="Resource_exneu1"]
+[sub_resource type="Resource" id="Resource_08v1d"]
 script = ExtResource("1_3p5s5")
 id = "peggy_neutral_ex"
 input = 2
@@ -210,7 +226,7 @@ hitstop = 10
 meter_cost = 50.0
 ex = true
 
-[sub_resource type="Resource" id="Resource_exfwd1"]
+[sub_resource type="Resource" id="Resource_macgv"]
 script = ExtResource("1_3p5s5")
 id = "peggy_forward_ex"
 input = 3
@@ -229,23 +245,6 @@ hitstop = 10
 meter_cost = 50.0
 ex = true
 
-[sub_resource type="Resource" id="Resource_methpeggy"]
-script = ExtResource("1_3p5s5")
-id = "peggy_meth"
-input = 2
-startup = 3
-active = 2
-recovery = 24
-damage = 1000.0
-block_damage = 0.0
-hitstun = 0
-knockback = Vector2(150, 0)
-knockdown = true
-hitbox_offset = Vector2(30, -40)
-hitbox_size = Vector2(60, 44)
-hitstop = 30
-meth = true
-
 [resource]
 script = ExtResource("2_3bfml")
 id = "peg_leg_peggy"
@@ -256,6 +255,5 @@ jump_speed = 285.0
 body_width = 26.0
 body_height = 54.0
 meth_name = "Walk the Plank"
-meth_health_threshold = 250.0
-meth_move = SubResource("Resource_methpeggy")
-moves = Array[ExtResource("1_3p5s5")]([SubResource("Resource_y6umg"), SubResource("Resource_uih6c"), SubResource("Resource_6j227"), SubResource("Resource_ppeoy"), SubResource("Resource_hhveu"), SubResource("Resource_w4klc"), SubResource("Resource_r5ltk"), SubResource("Resource_6cwq4"), SubResource("Resource_7xrol"), SubResource("Resource_ntf5t"), SubResource("Resource_cd7l2"), SubResource("Resource_q14mv"), SubResource("Resource_exneu1"), SubResource("Resource_exfwd1")])
+meth_move = SubResource("Resource_y6umg")
+moves = Array[ExtResource("1_3p5s5")]([SubResource("Resource_uih6c"), SubResource("Resource_6j227"), SubResource("Resource_ppeoy"), SubResource("Resource_hhveu"), SubResource("Resource_w4klc"), SubResource("Resource_r5ltk"), SubResource("Resource_6cwq4"), SubResource("Resource_7xrol"), SubResource("Resource_ntf5t"), SubResource("Resource_cd7l2"), SubResource("Resource_q14mv"), SubResource("Resource_xal07"), SubResource("Resource_08v1d"), SubResource("Resource_macgv")])

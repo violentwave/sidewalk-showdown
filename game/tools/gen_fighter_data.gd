@@ -1,5 +1,7 @@
 # One-shot data generator: builds FighterData resources via ResourceSaver so the
 # .tres format is always engine-canonical. Re-run after tuning the tables below.
+# Authors the base moves, the EX variants (PROPOSALS §5) and each fighter's
+# METHtality finisher (PROPOSALS §4); re-running regenerates all of them.
 extends SceneTree
 
 const LIGHT := MoveData.InputType.LIGHT
@@ -59,6 +61,21 @@ func _m(id: String, input: MoveData.InputType, stance: MoveData.Stance, level: M
 	return m
 
 
+# Tags a row as an EX variant: it costs meter and is only reachable through the
+# special+heavy input (PROPOSALS §5).
+func _ex(m: MoveData) -> MoveData:
+	m.meter_cost = 50.0
+	m.ex = true
+	return m
+
+
+# Tags a row as a METHtality finisher; FighterData.meth_move references it and
+# the ordinary move lookups never return it (PROPOSALS §4).
+func _meth(m: MoveData) -> MoveData:
+	m.meth = true
+	return m
+
+
 func _normals(light: Array, heavy: Array, clight: Array, cheavy: Array,
 		jlight: float, jheavy: float) -> Array[MoveData]:
 	return [
@@ -104,7 +121,15 @@ func _peggy() -> FighterData:
 		Color(0.95, 0.55, 0.15, 1.0))
 	var moves: Array[MoveData] = _normals([3, 7, 35], [7, 15, 85, 5], [4, 9, 30], [8, 18, 75, 4], 40, 80)
 	moves.append_array(_specials("peggy", 95, 110, 90, 85, 90, 120))
+	moves.append(_ex(_m("peggy_neutral_ex", SP_NEUTRAL, STAND, MID, 7, 3, 17, 120, 7.0,
+		22, 14, 120, false, Vector2(28, -40), Vector2(44, 20), 10)))
+	moves.append(_ex(_m("peggy_forward_ex", SP_FWD, STAND, MID, 9, 4, 20, 145, 9.0,
+		24, 15, 150, true, Vector2(32, -40), Vector2(48, 24), 10)))
 	f.moves = moves
+	f.meth_name = "Walk the Plank"
+	f.meth_health_threshold = 250.0
+	f.meth_move = _meth(_m("peggy_meth", SP_NEUTRAL, STAND, MID, 3, 2, 24, 1000, 0.0,
+		0, 8, 150, true, Vector2(30, -40), Vector2(60, 44), 30))
 	return f
 
 
@@ -113,5 +138,13 @@ func _richard() -> FighterData:
 		Color(0.85, 0.2, 0.18, 1.0))
 	var moves: Array[MoveData] = _normals([4, 9, 45], [9, 17, 100, 5], [5, 10, 35], [10, 19, 90, 5], 45, 90)
 	moves.append_array(_specials("richard", 105, 120, 95, 100, 100, 130))
+	moves.append(_ex(_m("richard_neutral_ex", SP_NEUTRAL, STAND, MID, 7, 4, 17, 135, 8.0,
+		24, 14, 120, false, Vector2(28, -40), Vector2(44, 20), 10)))
+	moves.append(_ex(_m("richard_forward_ex", SP_FWD, STAND, MID, 9, 4, 20, 150, 9.0,
+		26, 15, 160, true, Vector2(32, -40), Vector2(48, 24), 10)))
 	f.moves = moves
+	f.meth_name = "Flaming Belch"
+	f.meth_health_threshold = 250.0
+	f.meth_move = _meth(_m("richard_meth", SP_NEUTRAL, STAND, MID, 3, 2, 24, 1000, 0.0,
+		0, 8, 160, true, Vector2(32, -40), Vector2(64, 44), 30))
 	return f

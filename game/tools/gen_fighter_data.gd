@@ -120,7 +120,7 @@ func _peggy() -> FighterData:
 	var f := _fighter("peg_leg_peggy", "Peg Leg Peggy", 95.0, 72.0, 285.0, 26.0, 54.0,
 		Color(0.95, 0.55, 0.15, 1.0))
 	var moves: Array[MoveData] = _normals([3, 7, 35], [7, 15, 85, 5], [4, 9, 30], [8, 18, 75, 4], 40, 80)
-	moves.append_array(_specials("peggy", 95, 110, 90, 85, 90, 120))
+	moves.append_array(_specials("peggy", 95, 110, 90, 85, 90, 95))
 	moves.append(_ex(_m("peggy_neutral_ex", SP_NEUTRAL, STAND, MID, 7, 3, 17, 120, 7.0,
 		22, 14, 120, false, Vector2(28, -40), Vector2(44, 20), 10)))
 	moves.append(_ex(_m("peggy_forward_ex", SP_FWD, STAND, MID, 9, 4, 20, 145, 9.0,
@@ -137,7 +137,7 @@ func _richard() -> FighterData:
 	var f := _fighter("whiskey_richard", "Whiskey Richard", 70.0, 55.0, 250.0, 32.0, 60.0,
 		Color(0.85, 0.2, 0.18, 1.0))
 	var moves: Array[MoveData] = _normals([4, 9, 45], [9, 17, 100, 5], [5, 10, 35], [10, 19, 90, 5], 45, 90)
-	moves.append_array(_specials("richard", 105, 120, 95, 100, 100, 130))
+	moves.append_array(_specials("richard", 105, 120, 95, 100, 100, 105))
 	moves.append(_ex(_m("richard_neutral_ex", SP_NEUTRAL, STAND, MID, 7, 4, 17, 135, 8.0,
 		24, 14, 120, false, Vector2(28, -40), Vector2(44, 20), 10)))
 	moves.append(_ex(_m("richard_forward_ex", SP_FWD, STAND, MID, 9, 4, 20, 150, 9.0,

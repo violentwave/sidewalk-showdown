@@ -134,10 +134,12 @@ that section by hand afterward — the simulation step comes from
   The last two fallbacks exist only for a perfectly mirrored round; the
   common double-KO-in-sudden-death case is decided by damage dealt. Any win in
   sudden death ends the match regardless of the pip count.
-- **Throw damage is awaiting a tuning decision.** PROPOSALS §2 predicted that
-  120/130 throw damage becomes too strong once tech exists; the numbers were left
-  unchanged on purpose. Revisit after tech gets play data (tech rate vs whiff
-  punish rate); candidate direction is 90–100 for Peggy and 100–110 for Richard.
+- **Throw damage tuned.** PROPOSALS §2 predicted that 120/130 throw damage was
+  disproportionate once tech exists (outdamaging forward specials and standing heavies
+  at 1.30–1.41x heavy whiff-punish risk). Measured via empirical probe and tuned in
+  `gen_fighter_data.gd` to 95 for Peggy and 105 for Richard (9.5% / 10.5% max HP),
+  bringing throw reward vs heavy whiff-punish risk to 1.12x (Peggy) and 1.05x
+  (Richard) while keeping throws unblockable with hard knockdown advantage.
 - **Air specials are unbalanced.** Landing cancels a move, so air moves have no
   landing recovery, and every jump attack is an `OVERHEAD` that a crouching
   block cannot stop. Measurement methodology and targets are in

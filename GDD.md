@@ -496,6 +496,13 @@ If missed, standard victory animation plays.
 
 This makes METHtalities feel like a reward and keeps them from dominating match balance.
 
+**Implementation note (Phase 2):** the playable engine core uses an earlier,
+tighter kill-confirm gate rather than the match-ending-hit rule above: full hype
+meter, opponent at or below 25% health, opponent in hitstun/knockdown, and not
+invulnerable (so wake-up/reversal invuln rejects it). It drains the meter fully
+and reuses the normal KO flow. The cinematic finish-state in the recommendation
+is still future work; see `docs/PROPOSALS.md` §4.
+
 ### 5.10 Combos and Cancels
 
 Prototype combo rules:

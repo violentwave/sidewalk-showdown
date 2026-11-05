@@ -53,6 +53,15 @@ Engine and feel:
   to the base special with no meter spent. Current economy (all defaults, no
   `.tres` overrides): +6 hit, +3 block, +1.5 whiff, +4 receive, max 100 — about
   one bar per round, two EX per bar.
+- METHtality engine core (PROPOSALS §4), data-driven: buffered `p1_meth` /
+  `p2_meth` fires only when the hype meter is **full**, the opponent is at or
+  below `meth_health_threshold` (250 / 25%), the opponent is in hitstun or
+  knockdown, and the opponent is not invulnerable (wake-up / reversal invuln
+  rejects it). Meter drains fully on activation; the finisher starts from both
+  the neutral starter and the hit-confirm cancel path. Phase-1 presentation: a
+  30-frame hitstop freeze plus a `METHtality` HUD banner, then the normal KO flow
+  awards the round. Vertical slice: **Walk the Plank** (Peggy) and
+  **Flaming Belch** (Richard), each a distinct finisher row in `.tres`.
 
 Debug overlay:
 
@@ -92,8 +101,11 @@ that section by hand afterward — the simulation step comes from
 - **No animation.** Fighters are colored silhouettes; no sprite frames wired.
 - **No audio or VFX.** No hit sparks, crowd, UI sounds, music.
 - **No CPU AI.** Both fighters are human-controlled (GDD Phase 3 baseline).
-- **METHtality is a stub.** Button is buffered (`p1_meth`/`p2_meth`) but no
-  finisher state, prompt, or cinematic exists yet.
+- **METHtality presentation is minimal.** The rules, gate, spend and KO win are
+  real, but the finisher is a single point-blank hit with a long freeze and a
+  banner — no cinematic, camera, or choreography yet. The 25% threshold and 30f
+  freeze are first-pass balance numbers, and a whiffed finisher still spends the
+  full bar.
 - **No character/stage select.** Fixed matchup + Bus Stop (Night).
 - **Debug overlay is dev-only.** Boxes, frame state, frame advantage, input
   history, slow motion, frame-step and refill exist; there is no AI state view
@@ -138,7 +150,7 @@ that section by hand afterward — the simulation step comes from
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **87 checks**: clean hits and damage-vs-data,
+- `game/tests/combat_test.gd` — **97 checks**: clean hits and damage-vs-data,
   block chip, low vs stand block, throw unblockability, jump arc, P2 bindings,
   blockstun blocking, shared hitstop, KO landing, real-key input-map resolution,
   the chip-cannot-KO floor, pause freezing fighters and opening the menu, menu
@@ -158,7 +170,11 @@ that section by hand afterward — the simulation step comes from
   before tech becomes possible, plus EX specials: special+heavy starts the EX
   row and deducts 50 meter, a short bar falls back to the base special without
   spending, EX data differs from base in damage/startup, `find_move()` skips EX
-  rows, both fighters have neutral+forward EX rows, and spending floors at 0.
+  rows, both fighters have neutral+forward EX rows, and spending floors at 0,
+  plus METHtality: health/state/meter gates reject early, a legal trigger spends
+  the whole bar and starts the finisher row, the HUD announces it, the opponent
+  is KO'd, the round is awarded as a normal KO win, wake-up invuln blocks it, and
+  the two fighters' finishers are distinct.
 - `game/tests/round_flow_test.gd` — **30 checks**: intro→fight, KO phase, round
   wins, timeout resolution, a simultaneous KO awarding a pip to both and the
   round advancing, a 2-2 scoreline continuing into a decisive round that ends on

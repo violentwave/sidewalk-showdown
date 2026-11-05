@@ -1,6 +1,6 @@
 # Implementation Proposals — Wake-up Invuln, Throw Tech, Air Special Balance
 
-Status: **§1, §2 and §5 implemented; §3 is still specification only.** Each section covers how mainstream
+Status: **§1, §2, §4 and §5 implemented; §3 is still specification only.** Each section covers how mainstream
 2D fighters handle the mechanic, a concrete design for this project's fixed-60 Hz
 data-driven architecture, effort, and what it would break.
 
@@ -450,6 +450,86 @@ move.
 tuning pass ~1–2 days once landing recovery exists, and the landing-recovery
 feature itself ~0.5 day (new `MoveData.landing_recovery`, `_landing_check` branch,
 one test).
+
+---
+
+## 4. METHtality — engine core + vertical-slice finishers (implemented)
+
+### Canon locks (do not bend)
+
+- **One unique METHtality per fighter.** No shared finishers, no generic
+  "super" lost in translation.
+- **Tripp Vlogs is never playable** and therefore never gets a playable
+  METHtality; his boss presentation is a separate problem.
+- The 15-fighter roster keeps the canon names in `CHARACTERS.md`. The vertical
+  slice implements the two playable fighters:
+  - **Peg Leg Peggy — Walk the Plank** (homemade prosthetic / hardware-store
+    revenge),
+  - **Whiskey Richard — Flaming Belch** (whiskey fumes + absurd fire belch).
+
+### Trigger (engine core)
+
+The input already exists (`p1_meth` / `p2_meth`, buffered per action). A
+METHtality starts only when **all** of these hold, checked on the frame the
+buffered input is consumed:
+
+1. the fighter's hype meter is **full** (`100/100`);
+2. the opponent's health is **at or below** `FighterData.meth_health_threshold`
+   (250 = 25%);
+3. the opponent is in **hitstun or knockdown** (a real kill-confirm window, not
+   neutral);
+4. the opponent is **not invulnerable** to the finisher — this is what rejects
+   wake-up invulnerability and reversal invuln frames.
+
+The trigger is checked from both the neutral action starter
+(`_try_start_attack`) and the hit-confirm cancel path (`_try_cancel`), so
+"land a hit, press the button" works. The buffered input is only consumed on a
+successful trigger; a failed check leaves it to age out normally.
+
+On activation the meter **drains fully** (to 0), the finisher starts as a real
+move, and `meth_started` fires for presentation. A whiffed finisher is possible
+if the opponent recovers during startup — the meter is still spent.
+
+### Data
+
+- `MoveData.meth` marks the row as a finisher (never selected by ordinary
+  lookups; it lives outside `moves`, referenced by
+  `FighterData.meth_move`).
+- `FighterData` gains `meth_name`, `meth_health_threshold`, `meth_move` — all in
+  `resources/fighters/*.tres`, no engine literals.
+- Both finishers are 1000 damage, 3f startup / 2f active, `knockdown`, and
+  **30f hitstop** — enough damage to always finish an opponent already under the
+  threshold, and the long freeze is the phase-1 "screen freeze".
+
+### Presentation (phase 1 only)
+
+- Extended hitstop (30f) on the connecting finisher = the freeze.
+- HUD banner: `METHtality / WALK THE PLANK` (or `FLAMING BELCH`) for ~2 seconds.
+- The normal KO flow is reused untouched: health hits 0 → `ko` → KO phase →
+  pip → round/match end. No cinematic, no choreography, no unique camera.
+
+This is deliberately the cheapest honest version: the rules, gating, spend and
+win condition are real; the spectacle is a later phase.
+
+### Tests
+
+- above-threshold health blocks the trigger;
+- a neutral (non-stunned) opponent blocks the trigger;
+- a non-full meter blocks the trigger;
+- a valid trigger spends the whole bar, starts the finisher row, and shows the
+  banner;
+- wake-up invulnerability blocks the trigger;
+- the finisher ends the round as a normal KO win;
+- the two vertical-slice fighters have distinct finisher data.
+
+### What it would break / later work
+
+- The METHtality is currently a single hit at point-blank range; longer
+  cinematics will need a dedicated state and camera/anim systems that do not
+  exist yet.
+- AI and the CPU opponent must learn the same gate once AI exists.
+- The threshold (25%) and 30f freeze are first-pass balance numbers; treat them
+  as tunable data, not law.
 
 ---
 

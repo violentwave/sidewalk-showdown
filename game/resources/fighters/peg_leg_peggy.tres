@@ -229,6 +229,23 @@ hitstop = 10
 meter_cost = 50.0
 ex = true
 
+[sub_resource type="Resource" id="Resource_methpeggy"]
+script = ExtResource("1_3p5s5")
+id = "peggy_meth"
+input = 2
+startup = 3
+active = 2
+recovery = 24
+damage = 1000.0
+block_damage = 0.0
+hitstun = 0
+knockback = Vector2(150, 0)
+knockdown = true
+hitbox_offset = Vector2(30, -40)
+hitbox_size = Vector2(60, 44)
+hitstop = 30
+meth = true
+
 [resource]
 script = ExtResource("2_3bfml")
 id = "peg_leg_peggy"
@@ -238,4 +255,7 @@ walk_speed_back = 72.0
 jump_speed = 285.0
 body_width = 26.0
 body_height = 54.0
+meth_name = "Walk the Plank"
+meth_health_threshold = 250.0
+meth_move = SubResource("Resource_methpeggy")
 moves = Array[ExtResource("1_3p5s5")]([SubResource("Resource_y6umg"), SubResource("Resource_uih6c"), SubResource("Resource_6j227"), SubResource("Resource_ppeoy"), SubResource("Resource_hhveu"), SubResource("Resource_w4klc"), SubResource("Resource_r5ltk"), SubResource("Resource_6cwq4"), SubResource("Resource_7xrol"), SubResource("Resource_ntf5t"), SubResource("Resource_cd7l2"), SubResource("Resource_q14mv"), SubResource("Resource_exneu1"), SubResource("Resource_exfwd1")])

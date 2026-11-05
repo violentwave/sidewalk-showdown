@@ -57,6 +57,22 @@ func _force_wakeup(f: FighterBase) -> void:
 	f._force_state(FighterBase.State.WAKE_UP)
 
 
+# Put P1 in an aerial move just above the floor, with the requested move frame
+# selected. One physics step then touches down during startup/active/recovery.
+func _force_air_landing(move: MoveData, move_frame: int, defender_x := 300.0) -> void:
+	scene._begin_round()
+	scene._start_fight()
+	scene.set("phase", 4)
+	_reset_fighters(100.0, defender_x)
+	p1.input_enabled = false
+	p2.input_enabled = false
+	p1.position = Vector2(100.0, scene.stage.floor_y - 1.0)
+	p1.velocity = Vector2(0.0, 60.0)
+	p1.grounded = false
+	p1._start_move(move)
+	p1.state_frame = move_frame
+
+
 func _run() -> void:
 	await _step(65) # let round intro finish
 	p1 = scene.p1
@@ -858,6 +874,209 @@ func _run() -> void:
 			and p1.data.meth_move.id != p2.data.meth_move.id
 			and p1.data.meth_name != p2.data.meth_name
 			and p1.data.meth_move.meth and p2.data.meth_move.meth)
+
+	# --- 39. whiffed air moves use authored landing recovery ---
+	var air_light: MoveData = p1.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.AIR)
+	var air_heavy: MoveData = p1.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.AIR)
+	var air_special: MoveData = p1.data.find_move(MoveData.InputType.SPECIAL_AIR, MoveData.Stance.AIR)
+	var ground_light: MoveData = p1.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+	var peggy_throw: MoveData = p1.data.find_move(MoveData.InputType.GRAB, MoveData.Stance.STAND)
+	var richard_throw: MoveData = p2.data.find_move(MoveData.InputType.GRAB, MoveData.Stance.STAND)
+	_check("air-balance data regeneration preserves throw damage",
+		peggy_throw.damage == 95.0 and richard_throw.damage == 105.0,
+		"throw damage=%.1f/%.1f" % [peggy_throw.damage, richard_throw.damage])
+	_check("landing recovery is authored on aerial rows, not grounded attacks",
+		air_light.landing_recovery > 0 and air_heavy.landing_recovery > 0
+			and air_special.landing_recovery >= air_heavy.landing_recovery
+			and ground_light.landing_recovery == 0,
+		"jump=%d/%d air-special=%d ground=%d" % [air_light.landing_recovery,
+			air_heavy.landing_recovery, air_special.landing_recovery, ground_light.landing_recovery])
+
+	# Startup touchdown cancels the move before its first active frame.
+	_force_air_landing(air_special, maxi(1, air_special.startup / 2))
+	_check("startup landing begins before any active hitbox",
+		p1.get_hitbox_rect().size == Vector2.ZERO)
+	await _step(1)
+	_check("startup whiff lands into authored recovery with no stale move/hitbox",
+		p1.state == FighterBase.State.LAND
+			and p1.landing_recovery_frames == air_special.landing_recovery
+			and p1.current_move == null and p1.get_hitbox_rect().size == Vector2.ZERO,
+		"state=%d recovery=%d move=%s" % [p1.state, p1.landing_recovery_frames,
+			str(p1.current_move)])
+
+	# Active-frame touchdown removes the active hitbox immediately. LAND consumes
+	# exactly the authored simulation frames, excluding shared hitstop.
+	_force_air_landing(air_special, air_special.startup)
+	_check("active-frame landing fixture starts with a live hitbox",
+		p1.get_hitbox_rect().size != Vector2.ZERO)
+	await _step(1)
+	_check("active landing clears hitbox and move without replaying startup",
+		p1.state == FighterBase.State.LAND and p1.current_move == null
+			and p1.get_hitbox_rect().size == Vector2.ZERO and p1.state_frame == 0,
+		"state=%d frame=%d move=%s" % [p1.state, p1.state_frame, str(p1.current_move)])
+	var landing_frame_before_stop: int = p1.state_frame
+	paused = true
+	await _step(2)
+	paused = false
+	_check("pause freezes landing recovery", p1.state == FighterBase.State.LAND
+		and p1.state_frame == landing_frame_before_stop,
+		"state=%d frame=%d" % [p1.state, p1.state_frame])
+	p1.hitstop_frames = 2
+	await _step(2)
+	_check("hitstop freezes the landing-recovery countdown",
+		p1.state == FighterBase.State.LAND and p1.state_frame == landing_frame_before_stop,
+		"state=%d frame=%d" % [p1.state, p1.state_frame])
+	await _step(air_special.landing_recovery - 1)
+	_check("landing remains locked for all but its final authored frame",
+		p1.state == FighterBase.State.LAND,
+		"state=%d frame=%d recovery=%d" % [p1.state, p1.state_frame, air_special.landing_recovery])
+	await _step(1)
+	_check("fighter becomes actionable on the authored landing-recovery frame",
+		p1.state == FighterBase.State.IDLE,
+		"state=%d frame=%d" % [p1.state, p1.state_frame])
+
+	# Touchdown during authored aerial recovery has the same whiff penalty.
+	_force_air_landing(air_special, air_special.startup + air_special.active + 1)
+	_check("recovery-phase landing fixture has no live hitbox", p1.get_hitbox_rect().size == Vector2.ZERO)
+	await _step(1)
+	_check("recovery-phase whiff receives authored landing lockout",
+		p1.state == FighterBase.State.LAND
+			and p1.landing_recovery_frames == air_special.landing_recovery
+			and p1.current_move == null,
+		"state=%d recovery=%d" % [p1.state, p1.landing_recovery_frames])
+
+	_force_air_landing(air_special, air_special.total_frames() - 1)
+	p1.position.y = scene.stage.floor_y - 20.0
+	p1.velocity.y = 60.0
+	await _step(1)
+	_check("a whiff that finishes in the air falls with its move data intact",
+		p1.state == FighterBase.State.JUMP_FALL and p1.current_move == air_special
+			and not p1.grounded and p1.get_hitbox_rect().size == Vector2.ZERO,
+		"state=%d move=%s grounded=%s" % [p1.state, str(p1.current_move), str(p1.grounded)])
+	p1.position.y = scene.stage.floor_y - 1.0
+	p1.velocity.y = 60.0
+	await _step(1)
+	_check("falling touchdown applies the finished aerial move's recovery",
+		p1.state == FighterBase.State.LAND
+			and p1.landing_recovery_frames == air_special.landing_recovery
+			and p1.current_move == null,
+		"state=%d recovery=%d" % [p1.state, p1.landing_recovery_frames])
+
+	# A clean hit and a block both count as contact; neither gets the whiff penalty.
+	_force_air_landing(air_special, air_special.startup, 120.0)
+	var hit_hp_before: float = p2.health
+	scene._resolve_hits()
+	var hit_stop: int = p1.hitstop_frames
+	var hit_frame_before_stop: int = p1.state_frame
+	_check("airborne special connects through the real resolver before landing",
+		p1.move_already_hit and p2.health < hit_hp_before and hit_stop > 0,
+		"connected=%s hp=%.1f stop=%d" % [str(p1.move_already_hit), p2.health, hit_stop])
+	await _step(hit_stop)
+	_check("hitstop holds the airborne attacker above the landing transition",
+		p1.state == FighterBase.State.ATTACK and not p1.grounded
+			and p1.state_frame == hit_frame_before_stop,
+		"state=%d grounded=%s frame=%d" % [p1.state, str(p1.grounded), p1.state_frame])
+	await _step(1)
+	_check("a resolved hit lands with legacy recovery, not whiff recovery",
+		p1.state == FighterBase.State.LAND and p1.landing_recovery_frames == 2
+			and p1.current_move == null and p1.get_hitbox_rect().size == Vector2.ZERO,
+		"state=%d recovery=%d" % [p1.state, p1.landing_recovery_frames])
+
+	_force_air_landing(air_special, air_special.startup, 120.0)
+	p2.input_enabled = true
+	Input.action_press("p2_right") # facing left: hold away to block
+	scene._resolve_hits()
+	_check("air-special block resolves and counts as contact",
+		p1.move_already_hit and p2.state == FighterBase.State.BLOCKSTUN,
+		"connected=%s defender=%d" % [str(p1.move_already_hit), p2.state])
+	var block_stop: int = p1.hitstop_frames
+	await _step(block_stop + 1)
+	Input.action_release("p2_right")
+	_check("a blocked aerial move also uses legacy 2-frame landing recovery",
+		p1.state == FighterBase.State.LAND and p1.landing_recovery_frames == 2
+			and p1.current_move == null and p1.get_hitbox_rect().size == Vector2.ZERO,
+		"state=%d recovery=%d" % [p1.state, p1.landing_recovery_frames])
+	p1.input_enabled = true
+	Input.action_press("p1_left") # P1 faces right; left is away
+	_check("legacy 2-frame LAND keeps its existing block behavior", p1.is_blocking())
+	Input.action_release("p1_left")
+	p1.input_enabled = false
+
+	# An opponent hit interrupts an aerial move and its landing preserves the
+	# existing knockdown state instead of layering landing recovery over it.
+	_force_air_landing(air_special, 2, 120.0)
+	var anti_air: MoveData = p2.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.CROUCH)
+	p2._start_move(anti_air)
+	p2.state_frame = anti_air.startup
+	scene._resolve_hits()
+	p1.velocity.y = 60.0 # keep the interrupted fighter descending into the floor
+	var interrupt_stop: int = p1.hitstop_frames
+	_check("an anti-air hit interrupts aerial startup", p1.state == FighterBase.State.KNOCKDOWN,
+		"state=%d stop=%d" % [p1.state, interrupt_stop])
+	await _step(interrupt_stop + 1)
+	_check("landing during knockdown does not add aerial recovery",
+		p1.grounded and p1.state == FighterBase.State.KNOCKDOWN
+			and p1.landing_recovery_frames == 2 and p1.current_move == null,
+		"grounded=%s state=%d recovery=%d" % [str(p1.grounded), p1.state, p1.landing_recovery_frames])
+
+	# A hit during LAND recovery replaces the landing state with ordinary hitstun.
+	_force_air_landing(air_special, air_special.startup + air_special.active + 1, 120.0)
+	await _step(1)
+	var ground_poke: MoveData = p2.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+	p2._start_move(ground_poke)
+	p2.state_frame = ground_poke.startup
+	p1.input_enabled = true
+	Input.action_press("p1_left") # holding back cannot block extended whiff recovery
+	var land_hp_before_punish: float = p1.health
+	scene._resolve_hits()
+	Input.action_release("p1_left")
+	_check("whiff landing recovery cannot block and is interrupted by a hit",
+		p1.state == FighterBase.State.HITSTUN and p1.health < land_hp_before_punish,
+		"state=%d hp=%.1f/%.1f" % [p1.state, p1.health, land_hp_before_punish])
+	p1.input_enabled = false
+
+	# Match restart clears any landing-recovery data and returns both fighters to
+	# the normal intro state; grounded attacks still use their ordinary frames.
+	p1.move_hit_confirmed = true
+	p1.move_already_hit = true
+	scene._reset_match()
+	_check("restart clears landing recovery and the aerial move",
+		scene.phase == 0 and p1.state == FighterBase.State.IDLE
+			and p1.current_move == null and p1.landing_recovery_frames == 2
+			and not p1.move_hit_confirmed and not p1.move_already_hit,
+		"phase=%d state=%d recovery=%d" % [scene.phase, p1.state, p1.landing_recovery_frames])
+	await _step(65)
+	scene.set("phase", 4)
+	_reset_fighters(100.0, 200.0)
+	p1.input_enabled = false
+	var grounded_total := ground_light.total_frames()
+	p1._start_move(ground_light)
+	await _step(2)
+	_check("grounded attacks remain in their authored attack state and total",
+		p1.state == FighterBase.State.ATTACK and p1.current_move == ground_light
+			and ground_light.total_frames() == grounded_total
+			and ground_light.landing_recovery == 0,
+		"state=%d total=%d authored=%d" % [p1.state, ground_light.total_frames(), grounded_total])
+
+	var richard_air_special: MoveData = p2.data.find_move(MoveData.InputType.SPECIAL_AIR, MoveData.Stance.AIR)
+	scene._begin_round()
+	scene._start_fight()
+	scene.set("phase", 4)
+	_reset_fighters(100.0, 200.0)
+	p1.input_enabled = false
+	p2.input_enabled = false
+	p2.position = Vector2(200.0, scene.stage.floor_y - 1.0)
+	p2.velocity = Vector2(0.0, 60.0)
+	p2.grounded = false
+	p2._start_move(richard_air_special)
+	p2.state_frame = richard_air_special.startup
+	await _step(1)
+	_check("Whiskey Richard uses his authored aerial landing recovery",
+		p2.state == FighterBase.State.LAND
+			and p2.landing_recovery_frames == richard_air_special.landing_recovery
+			and p2.current_move == null and p2.get_hitbox_rect().size == Vector2.ZERO,
+		"state=%d recovery=%d data=%d" % [p2.state, p2.landing_recovery_frames,
+			richard_air_special.landing_recovery])
 
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

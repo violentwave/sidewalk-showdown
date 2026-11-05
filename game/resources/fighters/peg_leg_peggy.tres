@@ -89,6 +89,7 @@ blockstun = 9
 knockback = Vector2(50, 0)
 hitbox_offset = Vector2(22, -38)
 hitbox_size = Vector2(30, 18)
+landing_recovery = 8
 
 [sub_resource type="Resource" id="Resource_r5ltk"]
 script = ExtResource("1_3p5s5")
@@ -107,6 +108,7 @@ knockback = Vector2(80, 0)
 hitbox_offset = Vector2(26, -36)
 hitbox_size = Vector2(36, 24)
 hitstop = 6
+landing_recovery = 8
 
 [sub_resource type="Resource" id="Resource_6cwq4"]
 script = ExtResource("1_3p5s5")
@@ -179,17 +181,17 @@ id = "peggy_air"
 input = 6
 stance = 2
 level = 2
-startup = 10
-active = 4
+startup = 12
 recovery = 16
-damage = 90.0
+damage = 70.0
 block_damage = 5.0
 hitstun = 18
 blockstun = 12
 knockback = Vector2(90, 0)
 hitbox_offset = Vector2(26, -40)
-hitbox_size = Vector2(38, 26)
+hitbox_size = Vector2(34, 22)
 hitstop = 8
+landing_recovery = 12
 
 [sub_resource type="Resource" id="Resource_xal07"]
 script = ExtResource("1_3p5s5")

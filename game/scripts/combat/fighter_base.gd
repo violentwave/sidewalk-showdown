@@ -32,6 +32,7 @@ signal meth_started(move_name: String)
 # Height of the Silhouette polygon in FighterBase.tscn. Visuals scale against
 # this constant, not body_height, so each fighter's art matches its own hurtbox.
 const SILHOUETTE_HEIGHT := 56.0
+const DEFAULT_LANDING_FRAMES := 2
 
 # --- Match context ---
 var opponent: FighterBase
@@ -58,6 +59,7 @@ var blockstun_frames := 0
 var knockdown_frames := 0
 var wakeup_frames := 0
 var tech_frames := 0
+var landing_recovery_frames := DEFAULT_LANDING_FRAMES
 
 var combo_hits := 0
 var frames_since_hit := 0
@@ -104,7 +106,10 @@ func begin_round(spawn_pos: Vector2, opponent_x: float) -> void:
 	knockdown_frames = 0
 	tech_frames = 0
 	wakeup_frames = 0
+	landing_recovery_frames = DEFAULT_LANDING_FRAMES
 	current_move = null
+	move_hit_confirmed = false
+	move_already_hit = false
 	input_buffer.clear()
 	facing = 1 if opponent_x > spawn_pos.x else -1
 	_force_state(State.IDLE)
@@ -133,7 +138,7 @@ func _physics_process(_delta: float) -> void:
 			_air_movement(axis)
 		State.LAND:
 			velocity.x = 0.0
-			if state_frame >= 2:
+			if state_frame >= landing_recovery_frames:
 				_set_state(State.IDLE)
 		State.ATTACK:
 			_attack_logic()
@@ -251,7 +256,21 @@ func _landing_check(floor_y: float) -> void:
 	if grounded:
 		return
 	grounded = true
+	# Landing ends aerial attacks immediately. Only a still-running/finished air
+	# move that has not connected earns its authored recovery; contact is the
+	# reward, and interruption states keep their existing stun/KO behavior.
+	var landing_move: MoveData = current_move
+	var whiffed_air_move: bool = landing_move != null \
+			and landing_move.stance == MoveData.Stance.AIR \
+			and not move_already_hit \
+			and state in [State.ATTACK, State.JUMP_START, State.JUMP_RISE, State.JUMP_FALL]
+	landing_recovery_frames = DEFAULT_LANDING_FRAMES
+	if whiffed_air_move and landing_move != null:
+		landing_recovery_frames = landing_move.landing_recovery \
+			if landing_move.landing_recovery > 0 else DEFAULT_LANDING_FRAMES
 	current_move = null
+	move_hit_confirmed = false
+	move_already_hit = false
 	match state:
 		State.ATTACK, State.JUMP_START, State.JUMP_RISE, State.JUMP_FALL:
 			_set_state(State.LAND)
@@ -461,6 +480,10 @@ func is_holding_back() -> bool:
 func is_blocking() -> bool:
 	if not grounded:
 		return false
+	# Authored extended LAND is a whiff-recovery commitment: unlike the legacy
+	# 2-frame landing state, it cannot be cancelled into block by holding back.
+	if state == State.LAND and landing_recovery_frames > DEFAULT_LANDING_FRAMES:
+		return false
 	# BLOCKSTUN is intentionally allowed: holding back must keep blocking
 	# successive hits in a blockstring.
 	if state in [State.ATTACK, State.HITSTUN, State.KNOCKDOWN, State.WAKE_UP, State.TECH, State.KO]:
@@ -604,11 +627,14 @@ func reset_state() -> void:
 	_force_state(State.IDLE)
 	velocity = Vector2.ZERO
 	current_move = null
+	move_hit_confirmed = false
+	move_already_hit = false
 	hitstop_frames = 0
 	hitstun_frames = 0
 	blockstun_frames = 0
 	knockdown_frames = 0
 	tech_frames = 0
+	landing_recovery_frames = DEFAULT_LANDING_FRAMES
 	combo_hits = 0
 	frames_since_hit = 0
 	input_buffer.clear()

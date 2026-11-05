@@ -38,6 +38,11 @@ enum Invuln { NONE, STRIKE, THROW, FULL }
 @export_group("Feel")
 @export var hitstop: int = 4
 
+@export_group("Landing")
+# Extra authored air-move landing lockout after a whiff. Zero preserves the
+# legacy 2-frame LAND state. The field is used only for whiffed AIR moves.
+@export var landing_recovery: int = 0
+
 @export_group("Invulnerability")
 @export var invuln_kind: Invuln = Invuln.NONE
 @export var invuln_start: int = 0 # inclusive, frames from move start

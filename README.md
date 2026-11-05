@@ -96,6 +96,7 @@ godot --headless --path game --export-release windows build/windows/sidewalk_sho
 | `docs/KNOWN_ISSUES.md` | Current prototype gaps |
 | `docs/PROPOSALS.md` | Combat-gap designs: wake-up invuln, throw tech (implemented), air balance (spec) |
 | `docs/LICENSE_OPTIONS.md` | License decision report: all-rights-reserved vs CC BY-NC vs source-available |
+| `docs/MAIN_BRANCH_GUARD.md` | Main-branch tripwire behavior, landing procedure and limitations |
 
 **Canon locks:** Tripp Vlogs is the only boss and is NOT playable. Roster = 15
 fighters. Every fighter has one unique METHtality. No real towns, brands, or

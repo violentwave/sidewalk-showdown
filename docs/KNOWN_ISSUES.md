@@ -65,6 +65,12 @@ Engine and feel:
   30-frame hitstop freeze plus a `METHtality` HUD banner, then the normal KO flow
   awards the round. Vertical slice: **Walk the Plank** (Peggy) and
   **Flaming Belch** (Richard), each a distinct finisher row in `.tres`.
+- Air landing recovery (PROPOSALS §3), data-driven: jump light/heavy whiffs lock
+  LAND for 8f; air-special whiffs lock for 12f. The value is the total LAND
+  duration, not additive to legacy recovery. Hit/blocked aerial moves retain the
+  2f landing behavior; extended whiff recovery cannot block. Touchdown clears the
+  move and hit flags immediately, while hitstop/pause freeze the countdown and
+  hitstun/knockdown/KO landing semantics remain intact.
 
 Debug overlay:
 
@@ -140,10 +146,14 @@ that section by hand afterward — the simulation step comes from
   `gen_fighter_data.gd` to 95 for Peggy and 105 for Richard (9.5% / 10.5% max HP),
   bringing throw reward vs heavy whiff-punish risk to 1.12x (Peggy) and 1.05x
   (Richard) while keeping throws unblockable with hard knockdown advantage.
-- **Air specials are unbalanced.** Landing cancels a move, so air moves have no
-  landing recovery, and every jump attack is an `OVERHEAD` that a crouching
-  block cannot stop. Measurement methodology and targets are in
-  `docs/PROPOSALS.md`; do not tune `resources/fighters/*.tres` without sign-off.
+- **Air-special tuning remains a first pass.** Aerials remain `OVERHEAD`, so
+  crouch-block alone does not stop jump-ins. In the measured sample, air-special
+  reach fell from 133%/100% of jump-heavy starts to 67%/67%; the ≤60% target is
+  missed because the coarse counts are discrete. Direct damage ratios versus
+  crouch-heavy anti-airs are now 0.778/0.800 and whiff minima exceed 8f, but the
+  blocked-advantage target is not met (median +4/+3, attacker recovers first).
+  These are project hypotheses and small deterministic samples, not competitive
+  balance claims; see `docs/PROPOSALS.md` §3.
 - Frame data is provisional, derived from GDD §5.6–§5.10. It lives in
   `game/resources/fighters/*.tres` and can be regenerated with
   `game/tools/gen_fighter_data.gd` (which now also authors the EX rows and
@@ -160,7 +170,7 @@ that section by hand afterward — the simulation step comes from
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **98 checks**: clean hits and damage-vs-data,
+- `game/tests/combat_test.gd` — **124 checks**: clean hits and damage-vs-data,
   block chip, low vs stand block, throw unblockability, jump arc, P2 bindings,
   blockstun blocking, shared hitstop, KO landing, real-key input-map resolution,
   the chip-cannot-KO floor, pause freezing fighters and opening the menu, menu
@@ -184,7 +194,11 @@ that section by hand afterward — the simulation step comes from
   plus METHtality: health/state/meter gates reject early, a legal trigger spends
   the whole bar and starts the finisher row, the HUD announces it, the opponent
   is KO'd, the round is awarded as a normal KO win, wake-up invuln blocks it, and
-  the two fighters' finishers are distinct.
+  the two fighters' finishers are distinct. Aerial landing tests cover startup,
+  active, recovery and post-move falling touchdown; immediate hitbox/move clearing;
+  whiff vs hit/block landing delay; pause and hitstop; anti-air interruption;
+  un-blockable extended recovery vs legacy blockable LAND; reset/restart; P2 data;
+  unchanged grounded attacks; and throw damage remaining 95/105.
 - `game/tests/round_flow_test.gd` — **30 checks**: intro→fight, KO phase, round
   wins, timeout resolution, a simultaneous KO awarding a pip to both and the
   round advancing, a 2-2 scoreline continuing into a decisive round that ends on
@@ -193,10 +207,11 @@ that section by hand afterward — the simulation step comes from
   sudden-death tie resolving by damage dealt (with the announced tiebreak), the
   deterministic P1 fallback, a clean win in sudden death ending the match, the
   clock frozen during hitstop, and a hit on the timer's final frame counting.
-- `game/tests/air_probe.gd` — metrics only, no assertions: air reach envelope,
-  damage per arc, first-to-hit trade matrix, blocked advantage and the
-  whiff-punish window. Prints a report and always exits 0, so it can never fail a
-  suite; `docs/PROPOSALS.md` §3 holds the methodology and targets.
+- `game/tests/air_probe.gd` — metrics only, no assertions: both fighter
+  directions; sampled geometry candidates vs resolver-confirmed reach/trade,
+  direct damage ratios, hitstop, actual block advantage, and post-whiff
+  actionability. Prints a report and exits 0; `docs/PROPOSALS.md` §3 documents
+  the coarse grid, before/after metrics, and target limitations.
 - `.github/workflows/tests.yml` runs both suites plus the air probe on push, pull
   request and manual dispatch.
 - `.github/workflows/export.yml` builds Linux/Windows artifacts on `main` and

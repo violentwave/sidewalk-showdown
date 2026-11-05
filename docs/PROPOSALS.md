@@ -1,8 +1,9 @@
 # Implementation Proposals — Wake-up Invuln, Throw Tech, Air Special Balance
 
-Status: **§1, §2, §4 and §5 implemented; §3 is still specification only.** Each section covers how mainstream
-2D fighters handle the mechanic, a concrete design for this project's fixed-60 Hz
-data-driven architecture, effort, and what it would break.
+Status: **§1–§5 implemented or measured as a first pass.** §3 now includes
+data-driven whiff landing recovery, air-special tuning, and before/after probe
+results. Its thresholds are project hypotheses, not externally validated balance
+rules. Each section documents the design, implementation, and what remains open.
 
 Engine facts these proposals assume (verified against `main` at the time of
 writing, `aff988e`):
@@ -331,20 +332,21 @@ window, throw vs airborne.
 
 ## 3. Air special balance
 
-### Current state (measured from the data, not estimated)
+### Baseline before this pass (measured from the data)
 
-Every fighter's air special is close to a strict upgrade over its jump heavy:
+On the current-main baseline, both air specials had a larger hitbox and more
+damage than jump heavy, with no authored landing recovery:
 
-| Move | startup | active | recovery | damage | block_dmg | hitbox (w×h) | level |
-|---|---|---|---|---|---|---|---|
-| Peggy `jump_heavy` | 7 | 3 | 13 | 80 | 5 | 36×24 | OVERHEAD |
-| Peggy `peggy_air` | 10 | 4 | 16 | 90 | 5 | 38×26 | OVERHEAD |
-| Richard `jump_heavy` | 7 | 3 | 13 | 90 | 5 | 36×24 | OVERHEAD |
-| Richard `richard_air` | 10 | 4 | 16 | 100 | 5 | 38×26 | OVERHEAD |
+| Move | startup | active | recovery | damage | block_dmg | hitbox (w×h) | landing recovery | level |
+|---|---:|---:|---:|---:|---:|---:|---:|---|
+| Peggy `jump_heavy` | 7 | 3 | 13 | 80 | 5 | 36×24 | 0 (legacy 2f) | OVERHEAD |
+| Peggy `peggy_air` | 10 | 4 | 16 | 90 | 5 | 38×26 | 0 (legacy 2f) | OVERHEAD |
+| Richard `jump_heavy` | 7 | 3 | 13 | 90 | 5 | 36×24 | 0 (legacy 2f) | OVERHEAD |
+| Richard `richard_air` | 10 | 4 | 16 | 100 | 5 | 38×26 | 0 (legacy 2f) | OVERHEAD |
 
-Air specials cost 3 extra startup frames and 3 recovery frames, and gain 10 damage
-plus a slightly larger hitbox. Two structural facts make that trade far better
-than it looks:
+Air specials cost 3 extra startup frames and 3 recovery frames but gained 10
+damage and a larger hitbox. Two structural facts made that trade far better than
+it looked:
 
 1. **Every jump attack is `OVERHEAD`.** `can_block()` only allows `LOW` and `MID`
    while crouch-blocking, so all jump-ins beat crouch block by construction.
@@ -376,6 +378,35 @@ genre:
 - **Arc commitment.** Air specials that change trajectory (dive kicks) trade
   mobility or recovery for reach, so they are readable.
 
+### Landing-recovery rule (design locked before implementation)
+
+`MoveData.landing_recovery` is the **total number of simulation frames spent in
+the existing `LAND` state after a whiffed aerial move touches down**. It is not
+added to the legacy landing delay. The new value applies only when the move's
+stance is `AIR`, the fighter is still in the aerial move/jump state at touchdown,
+and that move has not connected. It applies whether touchdown interrupts startup,
+active frames, or aerial recovery. A blocked or cleanly hit aerial move uses the
+existing 2-frame landing delay instead; this makes contact, rather than a whiff,
+the reward. Ordinary jumps and grounded moves also retain the 2-frame delay.
+
+Touchdown immediately cancels the aerial move: clear `current_move` and its hit
+flags before entering `LAND`, so no hitbox can survive contact with the floor and
+no startup/active frame is replayed. A move that has already finished its authored
+airborne frames but is falling still carries its move data to touchdown and gets
+the same whiff landing penalty. If an opponent interrupts the aerial move and the
+fighter lands in hitstun, blockstun, knockdown, or KO, the existing interrupted
+state wins; landing recovery is not layered over it. Hitstop freezes the simulation
+before touchdown or during `LAND`, so the recovery countdown starts/continues only
+on non-hitstop simulation frames. Authored whiff recovery is vulnerable and cannot
+block; a hit interrupts it into ordinary hitstun/knockdown. The legacy 2-frame
+`LAND` state (ordinary jumps, hits, or blocks) retains its current block behavior.
+Buffered inputs may execute after `LAND` ends under the existing input buffer rules.
+
+This is a prototype rule, not a claim about a genre-wide standard. It limits the
+penalty to a whiff while preserving the reward for a hit or block. The data value
+is authored per move and evaluated against measured time to actionability; the
+current first-pass values and results are recorded below.
+
 ### Measurement methodology (headless harness)
 
 The repo already has the right shape for this: `game/tests/combat_test.gd` is a
@@ -384,39 +415,78 @@ reports `PASS`/`FAIL`. A balance probe is the same harness without assertions �
 it prints a table. Proposed `game/tests/air_probe.gd`:
 
 ```gdscript
-# For each move, each air-start frame, each spacing: does it connect, when,
-# and what does it leave behind?
+# For each fighter direction, move, sampled air-start frame, and spacing:
+# record geometry candidate overlap separately from the resolved contact.
 extends SceneTree
 # ...
-for move in [jump_light, jump_heavy, air_special]:
-    for start_frame in range(1, 39):        # jump lasts ~38f
-        for dist in [0, 20, 40, 60, 80, 100, 120]:
-            # reset, jump, start move at start_frame, step until land
-            # record: first contact frame, hit/block, advantage on block,
-            #         frames of vulnerability after landing
+for attacker, defender in [(P1, P2), (P2, P1)]:
+    for move in [jump_light, jump_heavy, air_special]:
+        for start_frame in [1, 6, 11, 16, 21, 26, 31, 36] if start_frame < airtime:
+            for dist in [0, 20, 40, 60, 80]:
+                # reset, jump, start move; sample boxes, then call real resolver
+                # record: geometry overlap, resolved outcome, hitstop, and state
 ```
 
 **Metrics to emit per move (CSV-ish, one row per configuration):**
 
-1. **Reach envelope** — for each distance, how many of the 38 air-start frames
-   connect. Wide envelope = forgiving jump-in. Target: an air special should
-   connect from *fewer* start frames than the jump normal it competes with.
-2. **Damage per arc** — damage of the jump-in, plus the guaranteed follow-up if
-   any (using the existing 100/100/85/70/55 % scaling, floor 55 %), divided by the
-   damage the defender's anti-air deals. Target ratio: air-to-anti-air ≤ 0.8.
-3. **Trade chart** — first-to-hit matrix between {jump_light, jump_heavy,
-   air_special} × {crouch_heavy, neutral_special} at each distance and start
-   frame, using `get_hitbox_rect()` vs `hurtbox_rect()` overlap (this is exactly
-   what `_detect_hits()` does, so the probe is measuring the real thing).
-4. **Blocked advantage** — `attacker frames remaining after landing` minus
-   `defender blockstun remaining`. The overlay's frame-advantage readout (landing
-   in a parallel branch) uses the same arithmetic, so the numbers will agree.
-5. **Whiff punish window** — frames between the hitbox going inactive and the
-   attacker being actionable again. Today this is ~2 (LAND) for anything that
-   touches down mid-move.
+The current probe runs both attacker/defender directions on distances
+`[0, 20, 40, 60, 80]` and candidate air-start frames `[1, 6, 11, 16, 21, 26,
+31, 36]`, omitting candidates at/after each fighter's measured touchdown
+(Peggy has eight valid starts; Richard has seven). Trade samples use start
+offsets `[3, 9, 15]`. This is a coarse deterministic sample, not a full sweep or
+a statistical balance study. The initial probe only
+counted box overlaps and used a different block-start grid; those old numbers
+must not be interpreted as resolved hits or block advantage.
 
-**Acceptance thresholds to propose (pending a tuning pass, no data changes
-without sign-off):**
+The whiff sample uses 170px spacing from the probe's 110px start, keeping both
+fighters within the stage bounds `[24, 296]`. The earlier 260px request placed the
+defender at x=370, which was clamped to x=296 (an actual gap of 186px); its label
+did not match the geometry and that result is superseded.
+
+The updated reach/trade sample records the active hitbox/hurtbox overlap before
+calling `MatchRoot._resolve_hits()`, then records the resolver's actual result
+separately. The resolver is the production two-sided path: it considers fighter
+state, invulnerability, block rules, prior contacts, shared hitstop, and moves
+that are interrupted by an earlier hit. Later samples in the same trajectory
+therefore reflect real interruptions rather than an independent no-reaction
+geometry sweep. A “geometry candidate” remains only evidence of sampled box
+overlap, not proof that damage was dealt.
+
+The direct damage table is authored, unscaled, single-hit damage; it does not
+simulate combo follow-ups. Anti-air ratios are reported against the defending
+fighter's crouch heavy and neutral special separately, since those are different
+comparison moves. Blocked advantage requires a real resolver-confirmed block and
+measures both fighters to first actionable state, including shared hitstop and
+landing. Its sign is `defender-actionable frames - attacker-actionable frames`:
+positive means the attacker recovers first; negative means the attacker is
+disadvantaged. The defender is held at the sample spacing to avoid walk drift.
+
+Whiff recovery is the attacker-side simulation frames from its last sampled
+active hitbox frame to becoming actionable. It follows the real state machine
+through hitstop and landing, but is not proof that a specific opponent move can
+punish at a practical spacing. Treat every output as measured finite samples,
+not an externally validated balance rule.
+
+1. **Reach envelope** — for each distance, how many of the valid sampled air-start
+   frames produce a geometry candidate and how many resolve as actual hits. Wide
+   envelope = more forgiving jump-in; report actual resolution separately.
+2. **Direct damage ratios** — nominal single-hit air damage divided by jump-heavy,
+   crouch-heavy anti-air, and neutral-special anti-air damage. These are not a
+   simulated full arc or combo calculation; follow-ups and combo scaling need a
+   separate measurement. Report which anti-air is the denominator.
+3. **Trade chart** — sampled geometric overlaps and resolver outcomes between
+   `{jump_light, jump_heavy, air_special}` × `{crouch_heavy, neutral_special}`.
+   The actual result uses the production two-sided hit resolver, not just box
+   overlap.
+4. **Blocked advantage** — actual defender actionable frames minus attacker
+   actionable frames after a resolver-confirmed block. Positive means attacker
+   recovers first; negative means attacker is disadvantaged. Shared hitstop and
+   landing rules are included.
+5. **Whiff window** — frames from the last sampled active hitbox frame to the
+   attacker's first actionable frame after a whiff, through landing recovery.
+
+**Exploratory targets (project-specific hypotheses, not externally proven
+balance rules):**
 
 | Metric | Target |
 |---|---|
@@ -425,30 +495,65 @@ without sign-off):**
 | Blocked jump-in advantage | ≤ −2 (attacker disadvantaged) |
 | Whiffed air move recovery before actionable | ≥ 8 frames |
 
-The first two are measurable today; the last two need the landing-recovery and
-frame-advantage work first, which is why the probe should come before any numbers
-move.
+### First-pass implementation and measured result
 
-### What it would break
+The generator is the source of truth. It authors `landing_recovery = 8` on both
+jump normals, and `landing_recovery = 12` on both air specials. The air-special
+data changes are:
 
-- **`_landing_check()` semantics.** Adding landing recovery means `_landing_check`
-  must distinguish "landed mid-move" from "landed in `HITSTUN`/`KO`", and
-  `current_move` must survive touchdown long enough to be read. That touches the
-  KO-landing test (`KO loser lands on stage`), which currently relies on the move
-  being cleared and the state staying `KO`. Expect to re-verify it.
-- **All fighters equally.** Air specials exist on both characters; changing
-  landing recovery is a global feel change (jump-ins become riskier for
-  everyone), not a per-character tweak.
-- **Round flow tests.** No interaction expected (they use grounded attacks), but
-  the KO test's 60-frame window should be re-checked if LAND grows.
-- **Data files.** Tuning `resources/fighters/*.tres` is out of scope for an
-  engineering pass; per the project's working rules those numbers need an explicit
-  request. This document proposes the *measurement*, not the new values.
+| Fighter | Baseline air special | First pass | Damage / jump heavy | Damage / opposing crouch heavy |
+|---|---|---|---:|---:|
+| Peggy | 10f / 4f, 90 damage, 38×26 | 12f / 2f, 70 damage, 34×22 | 0.875 | 0.778 |
+| Richard | 10f / 4f, 100 damage, 38×26 | 12f / 2f, 60 damage, 34×22 | 0.667 | 0.800 |
 
-**Effort:** probe ~6–8 h (it is a stripped-down copy of the combat test loop), one
-tuning pass ~1–2 days once landing recovery exists, and the landing-recovery
-feature itself ~0.5 day (new `MoveData.landing_recovery`, `_landing_check` branch,
-one test).
+Both keep 16f authored airborne recovery, 5 block damage, and 8f hitstop. EX,
+METHtality, and throw values were not changed. Direct ratios against the
+opponent's neutral special after tuning are 0.667 (Peggy) and 0.632 (Richard).
+These are nominal single-hit ratios, not a combo or full-arc simulation.
+
+| Attacker | Air-special resolved starts before → after | Jump-heavy resolved starts (unchanged) | Aggregate air / heavy |
+|---|---|---|---:|
+| Peggy | `[3,3,3,3,0]/8` → `[2,2,2,0,0]/8` | `[3,3,3,0,0]/8` | 12/9 → 6/9 (67%) |
+| Richard | `[3,3,3,0,0]/7` → `[2,2,2,0,0]/7` | `[3,3,3,0,0]/7` | 9/9 → 6/9 (67%) |
+
+Array positions are distances `[0,20,40,60,80]`. The reach target is ≤60%; the
+measured 67% misses it narrowly. With only three connecting jump-heavy starts,
+the next lower representable ratio is 33%, so forcing the cutoff would require
+removing another sampled connection (or using a harsher one-frame attack). We
+kept the two active frames and report the miss rather than tuning to a coarse
+threshold. Peggy's baseline-only d=60 reach was removed.
+
+| Attacker | Blocked advantage before → after (min/median/max) | Actual blocks | Whiff window before → after (min/median/max) | Whiff samples |
+|---|---:|---:|---:|---:|
+| Peggy | `1/4/9` → `2/4/6` | 3/8 → 2/8 | `3/12.5/25` → `15/25/35` | 6/8 → 5/8 |
+| Richard | `0/3/8` → `1/3/5` | 3/7 → 2/7 | `3/11/21` → `16/23.5/31` | 5/7 → 4/7 |
+
+The ≥8f whiff-recovery target is met by every measured first-pass whiff sample.
+The ≤−2 blocked-advantage target is **not** met: both air specials remain
+attacker-advantaged on the sampled blocks. This follows the documented whiff-only
+rule (contact retains the legacy 2f landing delay); we did not add recovery to a
+blocked move just to force the proposal number. Direct damage ratios against the
+crouch-heavy comparison move meet 0.8, but full-arc follow-ups are not measured.
+
+Targets are project hypotheses, not balance laws. Reach, anti-air, and block
+results are small deterministic samples; playtesting is still needed. The trade
+matrix is also limited to three start offsets and selected spacings, so it does
+not establish a universal matchup result.
+
+### Implementation interactions and remaining limits
+
+- `_landing_check()` now captures the air move's whiff/contact result before
+  clearing `current_move`; all active hitboxes are gone on touchdown. Existing
+  `HITSTUN`/`KNOCKDOWN`/`KO` landings retain their state. The KO landing test and
+  the full round-flow suite still pass.
+- Landing recovery is a global rule for the two current fighters, with per-move
+  data values. An extended whiff LAND cannot block; contact keeps legacy behavior.
+- `air_probe.gd` reports box candidates separately from resolver-confirmed hits,
+  blocks, hitstop, trade outcomes, and attacker actionability. Its whiff spacing
+  is 170px, inside the stage bounds; the previous 260px spacing was clamped.
+- No claim is made that these numbers are competitively final. The targets and
+  coarse sample are not externally validated; retain the before/after results
+  above when revising the design.
 
 ---
 

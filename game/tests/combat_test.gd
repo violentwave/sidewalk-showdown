@@ -27,6 +27,13 @@ func _check(label: String, condition: bool, detail: String = "") -> void:
 		print("FAIL: ", label, "  ", detail)
 
 
+func _press(action: String) -> void:
+	var ev := InputEventAction.new()
+	ev.action = action
+	ev.pressed = true
+	scene._unhandled_input(ev)
+
+
 func _reset_fighters(p1_x: float, p2_x: float) -> void:
 	p1.position = Vector2(p1_x, 150)
 	p2.position = Vector2(p2_x, 150)
@@ -40,6 +47,14 @@ func _reset_fighters(p1_x: float, p2_x: float) -> void:
 	p2.combo_hits = 0
 	p1.reset_state()
 	p2.reset_state()
+
+
+# Drop a fighter straight into WAKE_UP. The wake-up length is seeded from data
+# the way _knockdown_logic() does it, otherwise the forced state sees
+# wakeup_frames == 0 and falls through to IDLE on the next tick.
+func _force_wakeup(f: FighterBase) -> void:
+	f.wakeup_frames = f.data.wakeup_frames
+	f._force_state(FighterBase.State.WAKE_UP)
 
 
 func _run() -> void:
@@ -163,7 +178,8 @@ func _run() -> void:
 	# --- 11. real keyboard events resolve through the input map ---
 	# Input.action_press() bypasses the InputMap, so it cannot catch a binding
 	# that is stamped with the wrong device id. Replay each mapped key as the
-	# device-0 event a physical keyboard actually produces.
+	# device-16 event a physical keyboard actually produces (real events seen via
+	# XTest carry device 16; bindings must be device -1 to accept them).
 	var unmapped: Array[String] = []
 	for action in InputMap.get_actions():
 		var an := String(action)
@@ -177,7 +193,7 @@ func _run() -> void:
 			var probe := InputEventKey.new()
 			probe.physical_keycode = e.physical_keycode
 			probe.keycode = e.keycode
-			probe.device = 0 # what a real keyboard reports
+			probe.device = 16 # what a physical keyboard reports
 			if not InputMap.event_is_action(probe, action):
 				unmapped.append("%s:%s" % [an, OS.get_keycode_string(e.physical_keycode)])
 	_check("keyboard events match input map", unmapped.is_empty(), str(unmapped))
@@ -199,17 +215,359 @@ func _run() -> void:
 	p2.health = 1000.0
 	await _step(2)
 
-	# --- 13. pause freezes fighters, not the match controller ---
-	paused = true
-	await _step(3)
-	var frozen_frame := p1.state_frame
-	await _step(6)
-	_check("pause freezes fighters", p1.state_frame == frozen_frame,
-		"frame %d -> %d" % [frozen_frame, p1.state_frame])
+	# --- 13. pause menu freezes the sim mid-hitstun ---
+	_reset_fighters(100, 120)
+	p1.health = 1000.0
+	p2.health = 1000.0
+	p2.receive_hit(p1, light)
+	p1.hitstop_frames = 0
+	p2.hitstop_frames = 0
+	await _step(2)
+	_check("p2 is in hitstun", p2.state == FighterBase.State.HITSTUN, "state=%d" % p2.state)
+	var hp_before := p2.health
+	var p2_frame := p2.state_frame
+
+	_press("p1_pause")
+	await _step(4)
+	_check("pause freezes fighters", p2.state_frame == p2_frame,
+		"frame %d -> %d" % [p2_frame, p2.state_frame])
 	_check("pause keeps match controller running", scene.can_process(),
 		"can_process=%s" % str(scene.can_process()))
-	paused = false
+	_check("pause opens the menu", paused and scene.pause_index == 0,
+		"paused=%s index=%d" % [str(paused), scene.pause_index])
+
+	# --- 14. both players navigate, selection does not touch the sim ---
+	_press("p2_down")
+	_check("P2 moves the menu selection", scene.pause_index == 1, "index=%d" % scene.pause_index)
+	_press("p1_up")
+	_check("P1 moves the menu selection", scene.pause_index == 0, "index=%d" % scene.pause_index)
+	_press("p1_up")
+	_check("menu wraps to the last option", scene.pause_index == 2, "index=%d" % scene.pause_index)
+	_press("p1_down")
+	_check("menu wraps to the first option", scene.pause_index == 0, "index=%d" % scene.pause_index)
+
+	await _step(6)
+	_check("menu input does not advance sim",
+		p2.state_frame == p2_frame and is_equal_approx(p2.health, hp_before),
+		"frame %d -> %d hp %.1f" % [p2_frame, p2.state_frame, p2.health])
+
+	_press("p2_light") # RESUME is selected
+	await _step(3)
+	_check("light attack resumes", not paused, "paused=%s" % str(paused))
+	_check("sim resumes mid-hitstun",
+		p2.state == FighterBase.State.HITSTUN and p2.state_frame > p2_frame
+			and is_equal_approx(p2.health, hp_before),
+		"state=%d frame=%d hp=%.1f" % [p2.state, p2.state_frame, p2.health])
+	await _step(25)
+
+	# --- 15. restart match from the menu ---
+	_press("p2_pause")
+	_press("p2_down")
+	_check("restart option selected", scene.pause_index == 1, "index=%d" % scene.pause_index)
+	_press("ui_confirm")
 	await _step(2)
+	_check("restart match from the menu",
+		not paused and scene.round_number == 1 and scene.wins[0] == 0 and scene.wins[1] == 0,
+		"paused=%s round=%d wins=%s" % [str(paused), scene.round_number, str(scene.wins)])
+
+	# --- 16. debug overlay: frame-step and frame advantage ---
+	var overlay: DebugOverlay = scene.debug_overlay
+	_check("overlay bound to fighters", overlay != null and overlay.p1 == p1 and overlay.p2 == p2,
+		"bound=%s" % str(overlay != null))
+	overlay.slow_motion = true
+	var step_before := p1.state_frame
+	overlay.step_frame()
+	_check("frame-step advances exactly one frame", p1.state_frame == step_before + 1,
+		"state_frame %d -> %d" % [step_before, p1.state_frame])
+	var one_step := p1.state_frame
+	overlay.step_frame()
+	_check("frame-step is one frame per press", p1.state_frame == one_step + 1,
+		"state_frame %d -> %d" % [one_step, p1.state_frame])
+	_check("frame-step keeps the tree paused", paused, "paused=%s" % str(paused))
+	overlay.slow_motion = false
+	paused = false
+	var idle_frame := p1.state_frame
+	overlay.step_frame()
+	_check("frame-step is inert without slow-mo", p1.state_frame == idle_frame,
+		"state_frame %d -> %d" % [idle_frame, p1.state_frame])
+
+	_reset_fighters(100, 120)
+	p2.receive_hit(p1, light)
+	p1.hitstop_frames = 0
+	p2.hitstop_frames = 0
+	await _step(1)
+	# p1 is idle, so its remaining recovery is 0 and the advantage equals the
+	# defender's remaining hitstun. The old formula (attacker frame minus total
+	# hitstun) reported a large negative number here.
+	var adv_remaining := maxi(0, p2.hitstun_frames - p2.state_frame)
+	var adv_expected := "ADV P1 %+d f0/%dhit" % [adv_remaining, adv_remaining]
+	_check("frame advantage reads out during hitstun",
+		overlay._advantage_text() == adv_expected,
+		"adv='%s' expected='%s'" % [overlay._advantage_text(), adv_expected])
+
+	# --- 17. debug overlay reset ---
+	p1.health = 120.0
+	p2.health = 60.0
+	p1.meter = 5.0
+	p1.position = Vector2(160, 120)
+	p2.position = Vector2(200, 140)
+	p2._force_state(FighterBase.State.HITSTUN)
+	var phase_before: int = scene.phase
+	overlay.reset_fighters()
+	_check("reset restores full health",
+		is_equal_approx(p1.health, p1.max_health) and is_equal_approx(p2.health, p2.max_health),
+		"p1=%.1f p2=%.1f" % [p1.health, p2.health])
+	_check("reset fills meter", is_equal_approx(p1.meter, p1.max_meter), "meter=%.1f" % p1.meter)
+	_check("reset restores round positions",
+		is_equal_approx(p1.position.x, scene.stage.spawn_p1_x)
+			and is_equal_approx(p2.position.x, scene.stage.spawn_p2_x)
+			and is_equal_approx(p1.position.y, scene.stage.floor_y),
+		"p1=%s p2=%s" % [str(p1.position), str(p2.position)])
+	_check("reset returns fighters to idle",
+		p1.state == FighterBase.State.IDLE and p2.state == FighterBase.State.IDLE,
+		"p1=%d p2=%d" % [p1.state, p2.state])
+	_check("reset keeps the match phase", scene.phase == phase_before,
+		"phase=%d -> %d" % [phase_before, scene.phase])
+
+	# --- 18. frame-step is gated while the pause menu is open ---
+	overlay.slow_motion = true
+	_press("p1_pause")
+	_check("pause menu open for the gating test", paused and scene.pause_menu_open,
+		"paused=%s menu=%s" % [str(paused), str(scene.pause_menu_open)])
+	var gated_frame := p1.state_frame
+	overlay.step_frame()
+	_check("frame-step is gated while the pause menu is open",
+		p1.state_frame == gated_frame, "state_frame %d -> %d" % [gated_frame, p1.state_frame])
+	_press("p1_pause")
+	overlay.step_frame()
+	_check("frame-step works again once the menu closes",
+		p1.state_frame == gated_frame + 1, "state_frame %d -> %d" % [gated_frame, p1.state_frame])
+	overlay.slow_motion = false
+	paused = false
+
+	# --- 19. grounded throw connects, airborne throw whiffs ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	var throw_move: MoveData = p1.data.find_move(MoveData.InputType.GRAB, MoveData.Stance.STAND)
+	_check("grab data present", throw_move != null and throw_move.level == MoveData.Level.THROW)
+	p1._start_move(throw_move)
+	await _step(throw_move.total_frames() + 4)
+	_check("grounded throw connects",
+		is_equal_approx(p2.health, 1000.0 - throw_move.damage)
+			and p2.state == FighterBase.State.KNOCKDOWN,
+		"hp=%.1f state=%d" % [p2.health, p2.state])
+
+	# --- 20. airborne defender is not grabbed, and the window survives ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	p1.health = 1000.0
+	p2.health = 1000.0
+	# 11.25px up with 60px/s down: gravity (900px/s^2 = 15px/s per frame) makes
+	# the descent 1.25/1.5/1.75/2.0/2.25 px over five frames, then 2.5 on the
+	# sixth, so the throw's first active frame (5) brushes an airborne defender
+	# and the second (6) sees them land.
+	p2.position = Vector2(120, 150.0 - 11.25)
+	p2.velocity = Vector2(0, 60.0)
+	p2.grounded = false
+	p2._force_state(FighterBase.State.JUMP_FALL)
+	p1._start_move(throw_move)
+	await _step(5)
+	_check("airborne defender is not grabbed",
+		not p2.grounded and is_equal_approx(p2.health, 1000.0),
+		"grounded=%s hp=%.1f" % [str(p2.grounded), p2.health])
+	_check("brushed throw keeps its active window", not p1.move_already_hit,
+		"move_already_hit=%s" % str(p1.move_already_hit))
+	await _step(3)
+	_check("throw lands once the defender is grounded in the window",
+		is_equal_approx(p2.health, 1000.0 - throw_move.damage)
+			and p2.state == FighterBase.State.KNOCKDOWN,
+		"grounded=%s hp=%.1f state=%d" % [str(p2.grounded), p2.health, p2.state])
+
+	# --- 21. wake-up invulnerability: a meaty on wake-up frame 1 whiffs ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	var light_move: MoveData = p1.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+	_force_wakeup(p2)
+	p1._start_move(light_move)
+	await _step(light_move.total_frames() + 2)
+	_check("wake-up invulnerability blocks a frame-1 meaty",
+		is_equal_approx(p2.health, 1000.0) and not p1.move_already_hit,
+		"hp=%.1f already_hit=%s" % [p2.health, str(p1.move_already_hit)])
+
+	# --- 22. the invuln brush does not consume the active window ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	_force_wakeup(p2)
+	await _step(2)
+	p1._start_move(light_move)
+	await _step(3)
+	_check("invulnerable brush is not counted as a hit",
+		is_equal_approx(p2.health, 1000.0) and not p1.move_already_hit,
+		"frame=%d hp=%.1f" % [p2.state_frame, p2.health])
+	await _step(2)
+	_check("meaty lands on the first vulnerable frame",
+		is_equal_approx(p2.health, 1000.0 - light_move.damage),
+		"frame=%d hp=%.1f" % [p2.state_frame, p2.health])
+
+	# --- 23. strike and throw invuln are separate timers ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	_force_wakeup(p2)
+	await _step(6)
+	var strike_live := not p2.is_invulnerable_to(light_move)
+	var throw_shut := p2.is_invulnerable_to(throw_move)
+	await _step(2)
+	_check("wake-up strike invuln ends before throw invuln",
+		p2.state == FighterBase.State.WAKE_UP and strike_live and throw_shut
+			and not p2.is_invulnerable_to(throw_move),
+		"frame=%d strike_live=%s throw_shut=%s" % [p2.state_frame, str(strike_live), str(throw_shut)])
+
+	# --- 24. a wake-up throw is rejected until its own window ends ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	_force_wakeup(p2)
+	await _step(2)
+	p1._start_move(throw_move)
+	await _step(5)
+	_check("wake-up throw is rejected inside the throw-invuln window",
+		is_equal_approx(p2.health, 1000.0) and not p1.move_already_hit,
+		"frame=%d hp=%.1f" % [p2.state_frame, p2.health])
+	await _step(3)
+	_check("wake-up throw lands once the throw-invuln window ends",
+		is_equal_approx(p2.health, 1000.0 - throw_move.damage)
+			and p2.state == FighterBase.State.KNOCKDOWN,
+		"frame=%d hp=%.1f state=%d" % [p2.state_frame, p2.health, p2.state])
+
+	# --- 25. wakeup_frames comes from FighterData ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	var authored_wakeup := p2.data.wakeup_frames
+	p2.data.wakeup_frames = 20
+	p2.knockdown_frames = 2
+	p2._force_state(FighterBase.State.KNOCKDOWN)
+	await _step(4)
+	var override_took := p2.state == FighterBase.State.WAKE_UP and p2.wakeup_frames == 20
+	await _step(18)
+	_check("wakeup_frames is read from FighterData",
+		override_took and p2.state == FighterBase.State.IDLE,
+		"wakeup=%d state=%d" % [p2.wakeup_frames, p2.state])
+	p2.data.wakeup_frames = authored_wakeup
+
+	# --- 26. the wake-up gate does not shadow the airborne-throw guard ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	# Same descent as test 20: frame 5 brushes an airborne defender, frame 6 lands.
+	p2.position = Vector2(120, 150.0 - 11.25)
+	p2.velocity = Vector2(0, 60.0)
+	p2.grounded = false
+	p2._force_state(FighterBase.State.JUMP_FALL)
+	var airborne_is_vulnerable := not p2.is_invulnerable_to(throw_move)
+	p1._start_move(throw_move)
+	await _step(8)
+	_check("wake-up invuln does not shadow the airborne throw guard",
+		airborne_is_vulnerable and is_equal_approx(p2.health, 1000.0 - throw_move.damage)
+			and p2.state == FighterBase.State.KNOCKDOWN,
+		"hp=%.1f state=%d" % [p2.health, p2.state])
+
+	# --- 27. F2 readout shows the wake-up invulnerability countdown ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	await _step(1)
+	var idle_readout := overlay._invuln_text(p2)
+	_force_wakeup(p2)
+	await _step(1)
+	var strike_readout := overlay._invuln_text(p2)
+	await _step(6)
+	var throw_readout := overlay._invuln_text(p2)
+	var state_readout := overlay._state_text()
+	_check("invuln readout is empty while idle", idle_readout == "", "readout='%s'" % idle_readout)
+	_check("readout shows the wake-up strike window",
+		strike_readout == " INV %df" % (p2.data.wakeup_invuln_frames - 1),
+		"readout='%s' frame=%d" % [strike_readout, p2.state_frame])
+	_check("readout switches to THROWINV for the throw tail",
+		throw_readout == " THROWINV %df" % (p2.data.wakeup_throw_invuln_frames - p2.state_frame),
+		"readout='%s' frame=%d" % [throw_readout, p2.state_frame])
+	_check("frame-state text carries the countdown",
+		state_readout.contains("THROWINV") and state_readout.contains("P2 WAKE_UP"),
+		"text='%s'" % state_readout.replace("\n", " | "))
+
+	# --- 28. a reversal's own invuln frames use the same readout slot ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	var reversal: MoveData = p1.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.STAND)
+	var saved_kind := reversal.invuln_kind
+	var saved_end := reversal.invuln_end
+	reversal.invuln_kind = MoveData.Invuln.FULL
+	reversal.invuln_end = 6
+	p1._start_move(reversal)
+	await _step(1)
+	_check("readout shows a reversal's own invuln frames",
+		overlay._invuln_text(p1) == " INV %df" % (6 - p1.state_frame),
+		"readout='%s' frame=%d" % [overlay._invuln_text(p1), p1.state_frame])
+	reversal.invuln_kind = saved_kind
+	reversal.invuln_end = saved_end
+
+	# --- 29. hitstop freezes the countdown: the window counts simulation frames ---
+	# PROPOSALS §1 assumes exactly this ("an 8-frame invulnerable window can last
+	# longer than 8 real frames if a hit lands"). Asserted as documented behaviour,
+	# not changed: _physics_process() decrements hitstop and returns before
+	# state_frame advances, so the invuln query keeps returning true.
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	_force_wakeup(p2)
+	await _step(2)
+	var frozen_frame := p2.state_frame
+	p2.hitstop_frames = 3 # what receive_hit() grants on a trade
+	await _step(3)
+	var frozen_invuln := p2.is_invulnerable_to(light_move)
+	_check("hitstop freezes the wake-up invuln countdown",
+		p2.state_frame == frozen_frame and frozen_invuln,
+		"frame %d -> %d invuln=%s" % [frozen_frame, p2.state_frame, str(frozen_invuln)])
+	await _step(4)
+	_check("the countdown resumes, and expires, after hitstop",
+		p2.state_frame == frozen_frame + 4 and not p2.is_invulnerable_to(light_move),
+		"frame=%d invuln=%s" % [p2.state_frame, str(p2.is_invulnerable_to(light_move))])
+
+	# --- 30. authored invuln does not linger after the move ends ---
+	# _attack_logic() returns to IDLE without clearing current_move, so the query
+	# must also require ATTACK; otherwise the reversal's invuln window is re-read
+	# against the fresh IDLE state_frame and the fighter stays intangible.
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	var saving_input := p1.input_enabled
+	p1.input_enabled = false
+	var lingering_move: MoveData = p1.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.STAND)
+	var saved_lingering_kind := lingering_move.invuln_kind
+	var saved_lingering_start := lingering_move.invuln_start
+	var saved_lingering_end := lingering_move.invuln_end
+	lingering_move.invuln_kind = MoveData.Invuln.FULL
+	lingering_move.invuln_start = 0
+	lingering_move.invuln_end = 6
+	p1._start_move(lingering_move)
+	var step_guard := 0
+	while p1.state == FighterBase.State.ATTACK and step_guard < 120:
+		await _step(1)
+		step_guard += 1
+	_check("authored invuln ends with the move",
+		p1.state == FighterBase.State.IDLE and not p1.is_invulnerable_to(light_move),
+		"state=%d frame=%d invuln=%s" % [p1.state, p1.state_frame,
+			str(p1.is_invulnerable_to(light_move))])
+	lingering_move.invuln_kind = saved_lingering_kind
+	lingering_move.invuln_start = saved_lingering_start
+	lingering_move.invuln_end = saved_lingering_end
+	p1.input_enabled = saving_input
 
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

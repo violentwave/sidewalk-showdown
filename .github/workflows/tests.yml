@@ -3,6 +3,8 @@ name: tests
 on:
   push:
   pull_request:
+  # Allow re-running the suites on demand, e.g. from the Actions tab.
+  workflow_dispatch:
 
 jobs:
   godot-tests:
@@ -20,3 +22,21 @@ jobs:
         run: godot --headless --path game --script res://tests/combat_test.gd
       - name: Round flow tests
         run: godot --headless --path game --script res://tests/round_flow_test.gd
+
+  air-probe:
+    # Metrics only (docs/PROPOSALS.md section 3): the probe asserts nothing and
+    # always exits 0, so this job can only fail if the probe stops running.
+    # Kept as its own job so its runtime never gates the test suites.
+    name: air probe (metrics)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.7.2
+          use-dotnet: false
+          include-templates: false
+      - name: Import project
+        run: godot --headless --path game --import
+      - name: Air balance probe
+        run: godot --headless --path game --script res://tests/air_probe.gd

@@ -9,6 +9,7 @@ const BAR_Y := 10.0
 const BAR_H := 8.0
 const METER_Y := 168.0
 const METER_H := 5.0
+const PAUSE_OPTIONS := ["RESUME", "RESTART MATCH", "QUIT TO DESKTOP"]
 
 var p1_fill: ColorRect
 var p2_fill: ColorRect
@@ -21,6 +22,7 @@ var p1_combo: Label
 var p2_combo: Label
 var message: Label
 var pause_root: Control
+var pause_options: Array[Label] = []
 var pips_p1: Array[ColorRect] = []
 var pips_p2: Array[ColorRect] = []
 
@@ -62,7 +64,13 @@ func _build() -> void:
 	pause_root.visible = false
 	root.add_child(pause_root)
 	_rect(pause_root, Vector2.ZERO, Vector2(320, 180), Color(0, 0, 0, 0.65))
-	_label(pause_root, "PAUSED\nESC / NUM0 TO RESUME", Vector2(60, 70), Vector2(200, 40), HORIZONTAL_ALIGNMENT_CENTER, 12, Color(1, 1, 1))
+	_label(pause_root, "PAUSED", Vector2(60, 38), Vector2(200, 18), HORIZONTAL_ALIGNMENT_CENTER, 16, Color(1, 1, 1))
+	for i in PAUSE_OPTIONS.size():
+		pause_options.append(_label(pause_root, PAUSE_OPTIONS[i], Vector2(60, 74 + i * 16),
+			Vector2(200, 14), HORIZONTAL_ALIGNMENT_CENTER, 12, Color(0.75, 0.72, 0.68)))
+	_label(pause_root, "W / S OR ARROWS TO MOVE   -   J / ENTER TO SELECT",
+		Vector2(10, 146), Vector2(300, 12), HORIZONTAL_ALIGNMENT_CENTER, 8, Color(0.7, 0.7, 0.7))
+	set_pause_selection(0)
 
 func bind(p1: FighterBase, p2: FighterBase) -> void:
 	p1_name.text = p1.data.display_name.to_upper()
@@ -145,3 +153,14 @@ func clear_message() -> void:
 
 func set_paused(paused: bool) -> void:
 	pause_root.visible = paused
+	if paused:
+		set_pause_selection(0)
+
+func pause_option_count() -> int:
+	return PAUSE_OPTIONS.size()
+
+func set_pause_selection(index: int) -> void:
+	for i in pause_options.size():
+		var selected := i == index
+		pause_options[i].text = "> %s <" % PAUSE_OPTIONS[i] if selected else PAUSE_OPTIONS[i]
+		pause_options[i].label_settings.font_color = Color(1, 0.9, 0.45) if selected else Color(0.75, 0.72, 0.68)

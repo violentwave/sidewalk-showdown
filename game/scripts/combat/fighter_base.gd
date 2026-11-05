@@ -220,7 +220,8 @@ func _stun_logic(duration: int) -> void:
 func _knockdown_logic() -> void:
 	velocity.x = move_toward(velocity.x, 0.0, 250.0 * delta_fixed())
 	if state_frame >= knockdown_frames:
-		wakeup_frames = 12
+		# Length is authored per fighter; invulnerability is a shorter, separate timer.
+		wakeup_frames = data.wakeup_frames if data else 12
 		_force_state(State.WAKE_UP)
 
 func _apply_gravity(delta: float) -> void:
@@ -342,6 +343,36 @@ func get_hitbox_rect() -> Rect2:
 func on_attack_connected(was_hit: bool) -> void:
 	move_already_hit = true
 	move_hit_confirmed = was_hit
+
+# True when `move` must not connect with this fighter right now. Three sources:
+# the universal wake-up window (strike+throw, then a separately authored throw
+# tail), and a reversal move's own invuln frames. Deliberately a query, not a
+# branch inside receive_hit(): _poll_hit() skips an invulnerable defender before
+# the move is returned, so the hitbox stays live and the first vulnerable frame
+# is the one that connects.
+func is_invulnerable_to(move: MoveData) -> bool:
+	if move == null:
+		return false
+	if state == State.WAKE_UP:
+		if state_frame < (data.wakeup_invuln_frames if data else 6):
+			return true
+		if move.level == MoveData.Level.THROW \
+				and state_frame < (data.wakeup_throw_invuln_frames if data else 8):
+			return true
+	# current_move survives the move's final frame (attack logic returns to IDLE
+	# without clearing it), so gate on ATTACK: otherwise the invuln window would
+	# be re-read against the fresh IDLE state_frame and lingers after the move.
+	if state == State.ATTACK and current_move != null \
+			and current_move.invuln_kind != MoveData.Invuln.NONE:
+		if state_frame >= current_move.invuln_start and state_frame < current_move.invuln_end:
+			match current_move.invuln_kind:
+				MoveData.Invuln.FULL:
+					return true
+				MoveData.Invuln.THROW:
+					return move.level == MoveData.Level.THROW
+				MoveData.Invuln.STRIKE:
+					return move.level != MoveData.Level.THROW
+	return false
 
 func finish_move_whiff() -> void:
 	if current_move:

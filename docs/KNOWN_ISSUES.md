@@ -1,13 +1,50 @@
-# Known Issues — Phase 1.5d (Greybox Combat)
+# Known Issues — Phase 1.5f (Greybox Combat)
 
 Exit criteria from GDD §13 Phase 1: two boxes can fight, hits feel responsive,
 blocking works, round flow works, match can end/restart. **All met.**
 
-Phase 1.5d audit fixes now in: KO landing, shared hitstop, blockstun blocking,
-jump arc states, P1/P2 input separation, P2 pause, frame-locked gravity, and the
-1.5d pass — device-agnostic keyboard bindings covered by a real-key test, a pause
-that freezes the fighters and the round timer, silhouettes that scale with
-fighter height, and a chip-damage floor so blocked hits can never KO.
+## What 1.5f contains
+
+Engine and feel:
+
+- KO landing, shared hitstop, blockstun blocking, jump rise/fall states,
+  frame-locked gravity, P1/P2 input separation.
+- Device-agnostic keyboard bindings (`device = -1`) covered by a real-key test.
+  A concrete device id (`16`) never matches a real keyboard and silently kills
+  every control, which is exactly what happened before the fix.
+- Silhouettes scale with fighter height, so the art matches its own hurtbox.
+- Chip damage floors at 1 HP — a blocked hit can never KO.
+- A same-frame trade lands both hits, and two KOs in the same frame resolve as a
+  **draw round**: no pip, `DOUBLE K.O. / DRAW`, round advances inside the same
+  best-of-3.
+- The round clock holds while either fighter is in hitstop, and hits resolve
+  before the timeout, so a hit on the clock's final frame counts and a KO there
+  beats the timeout.
+- A real pause menu (RESUME / RESTART MATCH / QUIT TO DESKTOP) driven by either
+  player's up/down plus light attack or Enter. Pausing alters no simulation
+  state: hitstun frames, health and the clock resume exactly where they stopped.
+- A grounded throw cannot grab an airborne defender. The brush does not consume
+  the throw's active window, so the grab still lands if the defender touches down
+  inside it.
+- Wake-up invulnerability, data-driven: `FighterData.wakeup_invuln_frames` (6)
+  rejects strikes and throws from the first wake-up frame,
+  `wakeup_throw_invuln_frames` (8) holds throws off past that, and
+  `wakeup_frames` (12) moved out of the hard-code into data. Reversal moves can
+  author their own `MoveData.invuln_kind` / `invuln_start` / `invuln_end`. The
+  gate lives in `_poll_hit()` ahead of the throw guard, so an invulnerable brush
+  never consumes the active window: the first vulnerable frame is the frame that
+  connects, which is what makes a meaty expressible.
+
+Debug overlay:
+
+- F1 boxes, F2 frame state + frame advantage + the invulnerability countdown
+  (`INV 4f` while the wake-up window covers strikes, `THROWINV 2f` for its
+  throw-only tail, and a reversal's own authored frames in the same slot),
+  F3 input history, F4 slow motion,
+  F5 frame-step (one simulation frame per press, only while slow-mo is on and
+  the pause menu is closed), F6 refill both fighters.
+- The overlay mutes itself in headless runs, so it never draws or reads input
+  during the suites.
 
 ## Input map
 
@@ -41,23 +78,22 @@ that section by hand afterward — the simulation step comes from
 - **Hype meter has no spender.** It fills on hit/block/whiff but no move costs
   meter yet.
 - **No character/stage select.** Fixed matchup + Bus Stop (Night).
-- **No pause menu.** Esc (P1) / Numpad 0 (P2) freeze the simulation and show a
-  label; there is no menu, options, or resume/quit choice yet.
-- **Debug overlay is basic.** Boxes/frame-state/input-history/slow-mo only; no
-  frame-step, frame advantage, AI state, or reset/refill hotkeys.
-- **No throw tech or wake-up invulnerability.**
+- **Debug overlay is dev-only.** Boxes, frame state, frame advantage, input
+  history, slow motion, frame-step and refill exist; there is no AI state view
+  (there is no AI yet) and no hitbox-invariant assertions.
+- **No throw tech.** The design, effort estimate and the breakage it implies are
+  written up in `docs/PROPOSALS.md` §2.
 
 ## Known edge cases
 
-- **Double KO** awards the round to the first fighter whose `ko` signal fires;
-  there is no draw/replay handling for simultaneous KOs.
-- **Round timer** ticks during hitstop, and a hit that lands on the same frame
-  the timer expires is discarded.
 - **Timeout tie** (equal health) resolves as a draw round with no win awarded.
+- **Air specials are unbalanced.** Landing cancels a move, so air moves have no
+  landing recovery, and every jump attack is an `OVERHEAD` that a crouching
+  block cannot stop. Measurement methodology and targets are in
+  `docs/PROPOSALS.md`; do not tune `resources/fighters/*.tres` without sign-off.
 - Frame data is provisional, derived from GDD §5.6–§5.10. It lives in
   `game/resources/fighters/*.tres` and can be regenerated with
   `game/tools/gen_fighter_data.gd`.
-- Air specials exist in data but have had no balance pass.
 - Damage scaling is per-defender combo count: 100/100/85/70/55% for hits
   1–2/3/4/5+, floor **55%**. Chip damage never kills — a blocked hit floors the
   defender at 1 HP.
@@ -68,10 +104,30 @@ that section by hand afterward — the simulation step comes from
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — hits, chip damage (including the chip-cannot-KO
-  floor), low vs stand-block, throw unblockability, jump arc, P2 bindings,
-  blockstring blocking, shared hitstop, KO landing, real-key input-map
-  resolution, pause freezing fighters.
-- `game/tests/round_flow_test.gd` — intro→fight, KO, round wins, timeout
-  resolution, best-of-3 match end.
-- `.github/workflows/tests.yml` runs both suites on push/PR.
+- `game/tests/combat_test.gd` — **65 checks**: clean hits and damage-vs-data,
+  block chip, low vs stand block, throw unblockability, jump arc, P2 bindings,
+  blockstun blocking, shared hitstop, KO landing, real-key input-map resolution,
+  the chip-cannot-KO floor, pause freezing fighters and opening the menu, menu
+  navigation by both players, resume preserving mid-hitstun state, restart from
+  the menu, debug frame-step (one frame per press, gated while the menu is
+  open), the frame-advantage readout, the F6 refill, grounded throws whiffing on
+  an airborne defender while the active throw window survives the brush, and
+  wake-up invulnerability: a frame-1 meaty whiffs, the invulnerable brush
+  survives to a frame-6 hit, strike and throw windows expire separately,
+  `wakeup_frames` is read from data, the wake-up gate leaving the airborne-throw
+  guard intact, the F2 invulnerability countdown (strike window, throw tail,
+  reversal frames, empty when idle), and hitstop freezing that countdown before
+  it resumes.
+- `game/tests/round_flow_test.gd` — **18 checks**: intro→fight, KO phase, round
+  wins, timeout resolution, a simultaneous KO resolving as a draw with no pip
+  and the round advancing, a match still ending after a draw round, the clock
+  frozen during hitstop, and a hit on the timer's final frame counting.
+- `game/tests/air_probe.gd` — metrics only, no assertions: air reach envelope,
+  damage per arc, first-to-hit trade matrix, blocked advantage and the
+  whiff-punish window. Prints a report and always exits 0, so it can never fail a
+  suite; `docs/PROPOSALS.md` §3 holds the methodology and targets.
+- `.github/workflows/tests.yml` runs both suites plus the air probe on push, pull
+  request and manual dispatch.
+- `.github/workflows/export.yml` builds Linux/Windows artifacts on `main` and
+  `v*` tags, can be dispatched by hand, and caches the export templates per
+  Godot version.

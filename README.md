@@ -43,8 +43,37 @@ blockstun — and hold down-away to crouch-block lows. Chip damage cannot KO: a
 blocked hit always leaves the defender at 1 HP. `Enter` restarts after a match
 ends.
 
+Pause (Esc or Numpad 0) opens a menu either player can drive: W/S or the arrow
+keys (Numpad 8/2) move the selection, and J, Numpad 1, or Enter picks
+**RESUME**, **RESTART MATCH**, or **QUIT TO DESKTOP**. Pausing freezes the fight
+mid-frame, so hitstun, health, and the round clock resume exactly where they
+stopped.
+
 Debug: **F1** boxes (on by default), **F2** frame state, **F3** input history,
 **F4** slow motion.
+
+Debug: **F1** boxes (on by default), **F2** frame state + frame advantage,
+**F3** input history, **F4** slow motion, **F5** frame-step (advances one sim
+frame per press while slow-mo is on and the pause menu is closed), **F6** refill
+both fighters (full health and meter at round positions, without restarting the
+round).
+
+## Builds
+
+`.github/workflows/export.yml` exports both desktop targets on every push to
+`main` and on `v*` tags: a Linux x86_64 binary and a Windows x64 `.exe`, with the
+PCK embedded so each artifact is a single runnable file. Grab them from the
+**Artifacts** section of a run in the Actions tab — they are named
+`sidewalk-showdown-linux-<short sha>` and `sidewalk-showdown-windows-<short sha>`.
+
+Presets live in `game/export_presets.cfg` (`linux`, `windows`). Locally, with the
+4.7.2 export templates installed:
+
+```bash
+godot --headless --path game --import
+godot --headless --path game --export-release linux build/linux/sidewalk_showdown.x86_64
+godot --headless --path game --export-release windows build/windows/sidewalk_showdown.exe
+```
 
 ## Source of truth
 
@@ -55,6 +84,7 @@ Debug: **F1** boxes (on by default), **F2** frame state, **F3** input history,
 | `CHARACTERS.md` | Roster bible (archetypes, rivals, data direction) |
 | `docs/SIDEWALK_SHOWDOWN_NON_DEFINING_ASSET_PROMPTS.md` | 315 art-generation prompts |
 | `docs/KNOWN_ISSUES.md` | Current prototype gaps |
+| `docs/PROPOSALS.md` | Designs for the open combat gaps (wake-up invuln, throw tech, air balance) |
 
 **Canon locks:** Tripp Vlogs is the only boss and is NOT playable. Roster = 15
 fighters. Every fighter has one unique METHtality. No real towns, brands, or

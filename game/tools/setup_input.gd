@@ -36,9 +36,10 @@ func _init() -> void:
 			for code: int in actions[action]:
 				var ev := InputEventKey.new()
 				ev.physical_keycode = code
-				# -1 = accept the event from any device. Leaving this unset lets the
-				# serializer stamp a concrete device id (e.g. 16) into project.godot,
-				# and then no real keyboard event (device 0) ever matches the action.
+				# -1 = accept the event from any input device. Godot's new events
+				# default to a concrete device id (16 for the local keyboard) and the
+				# serializer writes whatever it is; pinning the wildcard keeps the
+				# generated map independent of the machine that ran this tool.
 				ev.device = -1
 				events.append(ev)
 			ProjectSettings.set_setting("input/" + action, {"deadzone": 0.2, "events": events})

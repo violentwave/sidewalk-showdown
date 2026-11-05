@@ -5,6 +5,7 @@ extends Resource
 enum InputType { LIGHT, HEAVY, SPECIAL_NEUTRAL, SPECIAL_FWD, SPECIAL_DOWN, SPECIAL_BACK, SPECIAL_AIR, GRAB }
 enum Stance { STAND, CROUCH, AIR }
 enum Level { MID, LOW, OVERHEAD, THROW }
+enum Invuln { NONE, STRIKE, THROW, FULL }
 
 @export var id: String = "move"
 @export var input: InputType = InputType.LIGHT
@@ -36,6 +37,11 @@ enum Level { MID, LOW, OVERHEAD, THROW }
 
 @export_group("Feel")
 @export var hitstop: int = 4
+
+@export_group("Invulnerability")
+@export var invuln_kind: Invuln = Invuln.NONE
+@export var invuln_start: int = 0 # inclusive, frames from move start
+@export var invuln_end: int = 0 # exclusive
 
 func total_frames() -> int:
 	return startup + active + recovery

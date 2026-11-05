@@ -1,0 +1,116 @@
+name: main-guard
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: read
+
+# Serialize guard runs. This does not stop ordinary PR merges; it avoids two
+# concurrent repair jobs racing each other after separate direct pushes.
+concurrency:
+  group: main-guard-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Classify pushed commit
+        id: classify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.after }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          # Authorize only the exact squash-merge commit of an already-merged
+          # PR targeting main. Commit message trailers and committer names are
+          # forgeable, so they are not sufficient authorization signals.
+          if ! gh api "repos/$REPOSITORY/commits/$SHA/pulls" \
+            > "$RUNNER_TEMP/associated-pulls.json"; then
+            echo "authorized=unknown" >> "$GITHUB_OUTPUT"
+            echo "Classification API call failed; no revert will be attempted." >&2
+            exit 1
+          fi
+          if jq -e "any(.[]; .base.ref == \"main\" and .merged_at != null and .merge_commit_sha == \"$SHA\")" \
+            "$RUNNER_TEMP/associated-pulls.json" >/dev/null; then
+            echo "authorized=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "authorized=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout current main
+        if: steps.classify.outputs.authorized == 'false'
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Revert unauthorized direct push
+        id: revert
+        if: steps.classify.outputs.authorized == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.after }}
+        run: |
+          git config user.name "main-guard[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Revert the offending commit on the latest main, not a detached
+          # event checkout. Retry a fast-forward push if main moved meanwhile.
+          git fetch origin main
+          git checkout -B main origin/main
+          PARENTS=$(git rev-list --parents -n 1 "$SHA" | awk '{print NF - 1}')
+          if [ "$PARENTS" -gt 1 ]; then
+            git revert --no-edit -m 1 "$SHA"
+          else
+            git revert --no-edit "$SHA"
+          fi
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              echo "reverted=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            git fetch origin main
+            git rebase origin/main || exit 1
+          done
+          echo "Could not push the revert after 3 attempts" >&2
+          exit 1
+
+      - name: Open alert issue
+        if: always() && (steps.classify.outputs.authorized == 'false' || steps.classify.outputs.authorized == 'unknown')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.after }}
+          REPOSITORY: ${{ github.repository }}
+          REVERTED: ${{ steps.revert.outputs.reverted }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "${{ steps.classify.outputs.authorized }}" = "unknown" ]; then
+            TITLE="main-guard: could not classify main push"
+            SUMMARY="The authorization lookup failed."
+            RESULT="The authorization lookup failed, so no revert was attempted. Check the guard run and repair manually if needed."
+          elif [ "$REVERTED" = "true" ]; then
+            TITLE="main-guard: unauthorized direct push reverted"
+            SUMMARY="The commit was pushed without an associated merged squash PR."
+            RESULT="The commit was auto-reverted."
+          else
+            TITLE="main-guard: unauthorized direct push detected"
+            SUMMARY="The commit was pushed without an associated merged squash PR."
+            RESULT="The automatic revert did not complete; manual repair is required."
+          fi
+          gh issue create \
+            --title "$TITLE" \
+            --body "$(cat <<EOF
+          Commit [$SHA]($GITHUB_SERVER_URL/$REPOSITORY/commit/$SHA) was pushed to main. $SUMMARY
+
+          $RESULT
+
+          Guard run: $RUN_URL
+
+          All changes to main must go through a green-CI pull request and squash merge.
+          EOF
+          )"

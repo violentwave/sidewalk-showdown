@@ -1,17 +1,19 @@
-# Known Issues — Phase 2 (throw tech landed)
+# Known Issues — Phase 2
 
 Exit criteria from GDD §13 Phase 1: two boxes can fight, hits feel responsive,
-blocking works, round flow works, match can end/restart. **All met.**
+blocking works, round flow works, match can end/restart. **All met.** Phase 2 adds
+throw tech, draw resolution, EX specials and the METHtality engine core.
 
-## What 1.5f contains
+## What the current build contains
 
 Engine and feel:
 
 - KO landing, shared hitstop, blockstun blocking, jump rise/fall states,
   frame-locked gravity, P1/P2 input separation.
-- Device-agnostic keyboard bindings (`device = -1`) covered by a real-key test.
-  A concrete device id (`16`) never matches a real keyboard and silently kills
-  every control, which is exactly what happened before the fix.
+- Device-agnostic keyboard bindings (`device = -1`, which matches any device),
+  covered by a real-key test that replays a physical keyboard event (device
+  `16`). A concrete device stamp ties the map to the machine that generated it
+  and silently kills controls on a keyboard that reports a different id.
 - Silhouettes scale with fighter height, so the art matches its own hurtbox.
 - Chip damage floors at 1 HP — a blocked hit can never KO.
 - A same-frame trade lands both hits, and two KOs in the same frame resolve as a
@@ -84,11 +86,13 @@ the generator and regenerate:
 godot --headless --path game --script res://tools/setup_input.gd
 ```
 
-Every event is written with `device = -1` (matches any device). A concrete device
-id — `16` is what Godot's text serializer stamps in if nobody sets it — never
-matches a real keyboard, which reports device `0`, so the bindings look correct
-in the editor and are dead in play. `game/tests/combat_test.gd` replays each
-mapped key as a device-0 event and fails if any of them stops resolving.
+Every event is written with `device = -1` (matches any device). In Godot 4.7 a
+new `InputEventKey` reports the local keyboard's concrete device id (`16` on the
+dev machine), and the serializer writes whatever it holds; a concrete stamp
+therefore makes the map depend on the machine that generated it. Physical
+keyboard events observed through XTest carry device `16`, so
+`game/tests/combat_test.gd` replays each mapped key with device `16` and fails if
+any of them stops resolving.
 
 Regeneration caveat: `ProjectSettings.save()` omits settings whose value equals
 the engine default, and `physics/common/physics_ticks_per_second = 60` *is* the
@@ -139,14 +143,17 @@ that section by hand afterward — the simulation step comes from
   `docs/PROPOSALS.md`; do not tune `resources/fighters/*.tres` without sign-off.
 - Frame data is provisional, derived from GDD §5.6–§5.10. It lives in
   `game/resources/fighters/*.tres` and can be regenerated with
-  `game/tools/gen_fighter_data.gd`.
+  `game/tools/gen_fighter_data.gd` (which now also authors the EX rows and
+  METHtality finishers).
 - Damage scaling is per-defender combo count: 100/100/85/70/55% for hits
   1–2/3/4/5+, floor **55%**. Chip damage never kills — a blocked hit floors the
   defender at 1 HP.
 - HUD uses the default Godot font at pixel-safe sizes; the final pixel font
   arrives with UI art direction (GDD Phase 4).
 - **Licensing is undecided.** Treat the repo as all-rights-reserved until a
-  LICENSE is added.
+  LICENSE is added. The three realistic options (all-rights-reserved + NOTICE,
+  CC BY-NC 4.0 for content with separate code licensing, proprietary
+  source-available) are compared in `docs/LICENSE_OPTIONS.md`; the owner chooses.
 
 ## Test coverage
 

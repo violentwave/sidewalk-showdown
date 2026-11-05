@@ -25,7 +25,8 @@ Engine and feel:
   before the timeout, so a hit on the clock's final frame counts and a KO there
   beats the timeout.
 - A real pause menu (RESUME / RESTART MATCH / QUIT TO DESKTOP) driven by either
-  player's up/down plus light attack or Enter. Pausing alters no simulation
+  player's up/down plus light attack or Enter. Toggling is keyed on menu open state
+  so pause opens cleanly when paused under debug frame-step. Pausing alters no simulation
   state: hitstun frames, health and the clock resume exactly where they stopped.
 - A grounded throw cannot grab an airborne defender. The brush does not consume
   the throw's active window, so the grab still lands if the defender touches down
@@ -157,7 +158,7 @@ that section by hand afterward — the simulation step comes from
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **97 checks**: clean hits and damage-vs-data,
+- `game/tests/combat_test.gd` — **98 checks**: clean hits and damage-vs-data,
   block chip, low vs stand block, throw unblockability, jump arc, P2 bindings,
   blockstun blocking, shared hitstop, KO landing, real-key input-map resolution,
   the chip-cannot-KO floor, pause freezing fighters and opening the menu, menu

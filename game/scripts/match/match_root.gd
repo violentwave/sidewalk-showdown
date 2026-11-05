@@ -303,7 +303,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # ---------------- Pause menu ----------------
 func _toggle_pause() -> void:
-	var paused := not get_tree().paused
+	var paused := not pause_menu_open
 	get_tree().paused = paused
 	pause_menu_open = paused
 	if paused:

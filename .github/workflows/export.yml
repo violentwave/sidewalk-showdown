@@ -62,9 +62,12 @@ jobs:
         run: godot --headless --path game --import
 
       - name: Export (${{ matrix.preset }})
+        # Godot resolves a relative export path against the project directory
+        # (--path game), so pass an absolute destination.
         run: |
-          mkdir -p "${{ matrix.dir }}"
-          godot --headless --path game --export-release "${{ matrix.preset }}" "${{ matrix.out }}"
+          mkdir -p "$GITHUB_WORKSPACE/${{ matrix.dir }}"
+          godot --headless --path game --export-release "${{ matrix.preset }}" \
+            "$GITHUB_WORKSPACE/${{ matrix.out }}"
 
       - name: Upload build
         uses: actions/upload-artifact@v4

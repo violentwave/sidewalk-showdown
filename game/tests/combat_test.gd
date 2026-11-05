@@ -331,8 +331,10 @@ func _run() -> void:
 
 	# --- 18. frame-step is gated while the pause menu is open ---
 	overlay.slow_motion = true
+	overlay.step_frame()
+	_check("frame-step leaves tree paused", paused and not scene.pause_menu_open)
 	_press("p1_pause")
-	_check("pause menu open for the gating test", paused and scene.pause_menu_open,
+	_check("pause menu opens while frame-step paused", paused and scene.pause_menu_open,
 		"paused=%s menu=%s" % [str(paused), str(scene.pause_menu_open)])
 	var gated_frame := p1.state_frame
 	overlay.step_frame()

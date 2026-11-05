@@ -41,6 +41,12 @@ the table above.
 meter on the strengthened version (PROPOSALS §5). Without enough meter the base
 special comes out and nothing is spent.
 
+**METHtality:** with a full meter, an opponent at or below 25% health, and that
+opponent in hitstun or knockdown, press METHtality (I / `'`) to spend the whole
+bar on the finisher (PROPOSALS §4). Wake-up invulnerability and a neutral
+opponent reject it. Phase-1 presentation is a freeze plus a banner; the normal
+KO flow ends the round.
+
 Specials are directional (GDD §4.4): neutral, forward (toward opponent), back,
 down, and air. Block by holding away from the opponent — including during
 blockstun — and hold down-away to crouch-block lows. Chip damage cannot KO: a

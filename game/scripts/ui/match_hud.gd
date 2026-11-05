@@ -24,6 +24,8 @@ var p2_combo: Label
 var message: Label
 var tech_flash: Label
 var tech_flash_frames: int = 0
+var meth_banner: Label
+var meth_banner_frames: int = 0
 var hud_root: Control
 var pause_root: Control
 var pause_options: Array[Label] = []
@@ -38,6 +40,10 @@ func _process(_delta: float) -> void:
 		tech_flash_frames -= 1
 		if tech_flash_frames == 0:
 			tech_flash.visible = false
+	if meth_banner_frames > 0:
+		meth_banner_frames -= 1
+		if meth_banner_frames == 0:
+			meth_banner.visible = false
 
 func _build() -> void:
 	var root := Control.new()
@@ -74,6 +80,12 @@ func _build() -> void:
 	tech_flash = _label(root, "TECH", Vector2(110, 60), Vector2(100, 14),
 		HORIZONTAL_ALIGNMENT_CENTER, 12, Color(0.45, 0.95, 1.0))
 	tech_flash.visible = false
+
+	# METHtality banner (PROPOSALS §4): phase-1 presentation while the finisher's
+	# long hitstop freezes the exchange.
+	meth_banner = _label(root, "", Vector2(20, 84), Vector2(280, 30),
+		HORIZONTAL_ALIGNMENT_CENTER, 16, Color(1.0, 0.82, 0.25))
+	meth_banner.visible = false
 
 	pause_root = Control.new()
 	pause_root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -159,6 +171,11 @@ func _on_p2_combo(count: int) -> void:
 func _on_teched() -> void:
 	tech_flash.visible = true
 	tech_flash_frames = 20
+
+func show_meth_message(text: String) -> void:
+	meth_banner.text = text
+	meth_banner.visible = true
+	meth_banner_frames = 120
 
 func set_timer(seconds: float) -> void:
 	timer_label.text = "%d" % int(ceilf(seconds))

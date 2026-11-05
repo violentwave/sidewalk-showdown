@@ -61,6 +61,8 @@ func _ready() -> void:
 
 	p1.ko.connect(_on_fighter_ko.bind(p1))
 	p2.ko.connect(_on_fighter_ko.bind(p2))
+	p1.meth_started.connect(_on_meth_started)
+	p2.meth_started.connect(_on_meth_started)
 
 	debug_overlay = DEBUG_SCRIPT.new()
 	add_child(debug_overlay)
@@ -107,6 +109,9 @@ func _start_fight() -> void:
 	p1.input_enabled = true
 	p2.input_enabled = true
 	hud.clear_message()
+
+func _on_meth_started(meth_name: String) -> void:
+	hud.show_meth_message("METHtality\n%s" % meth_name.to_upper())
 
 func _on_fighter_ko(loser: FighterBase) -> void:
 	if phase == Phase.KO:

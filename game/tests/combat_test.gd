@@ -763,5 +763,99 @@ func _run() -> void:
 	_check("an empty bar rejects spending", not p1.spend_meter(1.0) and p1.meter == 0.0,
 		"meter=%.1f" % p1.meter)
 
+	# --- 38. METHtality: gate, spend, banner, KO win ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 130)
+	p1.meter = 100.0
+	p2.health = 800.0
+	p2.hitstun_frames = 60
+	p2._force_state(FighterBase.State.HITSTUN)
+	Input.action_press("p1_meth")
+	await _step(2)
+	Input.action_release("p1_meth")
+	_check("METHtality is blocked above the health threshold",
+		not (p1.current_move != null and p1.current_move.meth)
+			and is_equal_approx(p1.meter, 100.0),
+		"move=%s meter=%.1f" % [p1.current_move.id if p1.current_move else "null", p1.meter])
+
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 130)
+	p1.meter = 100.0
+	p2.health = 100.0
+	p2.reset_state()
+	Input.action_press("p1_meth")
+	await _step(2)
+	Input.action_release("p1_meth")
+	_check("METHtality needs a stunned or knocked-down opponent",
+		not (p1.current_move != null and p1.current_move.meth)
+			and is_equal_approx(p1.meter, 100.0),
+		"state=%d meter=%.1f" % [p2.state, p1.meter])
+
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 130)
+	p1.meter = 90.0
+	p2.health = 100.0
+	p2.hitstun_frames = 60
+	p2._force_state(FighterBase.State.HITSTUN)
+	Input.action_press("p1_meth")
+	await _step(2)
+	Input.action_release("p1_meth")
+	_check("METHtality needs a full hype bar",
+		not (p1.current_move != null and p1.current_move.meth)
+			and is_equal_approx(p1.meter, 90.0),
+		"meter=%.1f" % p1.meter)
+
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 130)
+	p1.meter = 100.0
+	p2.health = 200.0
+	p2.hitstun_frames = 60
+	p2._force_state(FighterBase.State.HITSTUN)
+	var wins_before_meth: int = scene.wins[0]
+	Input.action_press("p1_meth")
+	await _step(2)
+	Input.action_release("p1_meth")
+	_check("METHtality triggers in a kill-confirm window",
+		p1.state == FighterBase.State.ATTACK and p1.current_move != null
+			and p1.current_move.meth,
+		"state=%d move=%s" % [p1.state, p1.current_move.id if p1.current_move else "null"])
+	_check("METHtality drains the meter fully", is_equal_approx(p1.meter, 0.0),
+		"meter=%.1f" % p1.meter)
+	_check("HUD announces the METHtality",
+		scene.hud.meth_banner.visible and scene.hud.meth_banner.text.contains("WALK THE PLANK"),
+		"banner='%s'" % scene.hud.meth_banner.text)
+	await _step(10)
+	_check("METHtality ends the opponent",
+		p2.health <= 0.0 and p2.state == FighterBase.State.KO,
+		"hp=%.1f state=%d" % [p2.health, p2.state])
+	await _step(110)
+	_check("METHtality round ends as a KO win",
+		scene.wins[0] == wins_before_meth + 1,
+		"wins=%s before=%d" % [str(scene.wins), wins_before_meth])
+
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 130)
+	p1.meter = 100.0
+	p2.health = 200.0
+	_force_wakeup(p2)
+	Input.action_press("p1_meth")
+	await _step(2)
+	Input.action_release("p1_meth")
+	_check("wake-up invulnerability blocks the finisher",
+		not (p1.current_move != null and p1.current_move.meth)
+			and is_equal_approx(p1.meter, 100.0),
+		"state=%d meter=%.1f" % [p2.state, p1.meter])
+
+	_check("vertical-slice fighters have distinct METHtalities",
+		p1.data.meth_move != null and p2.data.meth_move != null
+			and p1.data.meth_move.id != p2.data.meth_move.id
+			and p1.data.meth_name != p2.data.meth_name
+			and p1.data.meth_move.meth and p2.data.meth_move.meth)
+
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

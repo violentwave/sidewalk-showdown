@@ -16,6 +16,7 @@ signal meter_changed(value: float, max_value: float)
 signal combo_changed(count: int)
 signal ko
 signal teched
+signal meth_started(move_name: String)
 
 # --- Identity (FighterData overrides these) ---
 @export var player_index: int = 1
@@ -65,6 +66,7 @@ var frames_since_hit := 0
 const BUFFER_NORMAL := 5
 const BUFFER_SPECIAL := 7
 const BUFFER_GRAB := 5
+const BUFFER_METH := 7
 const BUFFER_MAX_AGE := 20
 var input_buffer: Dictionary = {}
 var input_history: Array[String] = []
@@ -265,6 +267,9 @@ func _try_start_attack() -> bool:
 		return false
 	var stance := _current_stance()
 
+	if _try_start_meth():
+		return true
+
 	if grounded and _consume("grab", BUFFER_GRAB):
 		var grab := data.find_move(MoveData.InputType.GRAB, MoveData.Stance.STAND)
 		if grab:
@@ -292,6 +297,10 @@ func _try_start_attack() -> bool:
 func _try_cancel() -> bool:
 	if current_move == null:
 		return false
+	# A landed hit is the canonical kill-confirm moment: buffered METHtality
+	# fires from the hit-confirm cancel path as well as from neutral.
+	if _try_start_meth():
+		return true
 	var allowed_special := current_move.input in [MoveData.InputType.LIGHT, MoveData.InputType.HEAVY]
 	var allowed_normal := current_move.input == MoveData.InputType.LIGHT
 
@@ -309,6 +318,39 @@ func _try_cancel() -> bool:
 			_start_move(heavy)
 			return true
 	return false
+
+# METHtality gate (PROPOSALS §4): full meter, opponent under the health
+# threshold and in a real hitstun/knockdown window, and not invulnerable to the
+# finisher (wake-up/reversal invuln rejects it).
+func can_meth() -> bool:
+	if data == null or data.meth_move == null:
+		return false
+	if meter + 0.001 < max_meter:
+		return false
+	if opponent == null or opponent.state == State.KO:
+		return false
+	if opponent.health > data.meth_health_threshold:
+		return false
+	if opponent.state not in [State.HITSTUN, State.KNOCKDOWN]:
+		return false
+	if opponent.is_invulnerable_to(data.meth_move):
+		return false
+	return true
+
+# Consume a buffered meth input only on a legal trigger; a failed check leaves
+# it to age out so it cannot fire later from a stale press.
+func _try_start_meth() -> bool:
+	if data == null or not input_enabled:
+		return false
+	if not input_buffer.has("meth") or input_buffer["meth"] > BUFFER_METH:
+		return false
+	if not can_meth():
+		return false
+	input_buffer.erase("meth")
+	spend_meter(meter) # finisher drains the bar fully
+	_start_move(data.meth_move)
+	meth_started.emit(data.meth_name)
+	return true
 
 # Special starter shared by neutral startup and cancel windows. Holding heavy
 # asks for the EX row: meter is spent only if the EX exists and can be paid for.

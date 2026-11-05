@@ -1,0 +1,43 @@
+name: main-guard
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Classify pushed commit
+        id: classify
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SHA="${{ github.event.after }}"
+          COMMITTER="$(gh api "repos/${{ github.repository }}/commits/$SHA" --jq '.committer.login')"
+          if [ "$COMMITTER" = "web-flow" ] || \
+             gh api "repos/${{ github.repository }}/commits/$SHA" --jq '.commit.message' | grep -qE '\(#[0-9]+\)$'; then
+            echo "authorized=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "authorized=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Revert unauthorized direct push
+        if: steps.classify.outputs.authorized == 'false'
+        run: |
+          git config user.name "main-guard[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git revert --no-edit "$GITHUB_SHA"
+          git push
+      - name: Open alert issue
+        if: steps.classify.outputs.authorized == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create \
+            --title "main-guard: unauthorized direct push reverted" \
+            --body "Commit $GITHUB_SHA was pushed directly to main and has been auto-reverted. All changes to main must go through a pull request."

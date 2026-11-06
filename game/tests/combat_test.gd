@@ -125,6 +125,17 @@ func _run_hitstop_throw_exchange(with_lockout: bool) -> void:
 			"p1=%d p2=%d hp=%.1f/%.1f" % [p1.state, p2.state, p1.health, p2.health])
 
 
+# Put a fighter mid-move with the cancel question posed directly: the move, the
+# frame, and whether the strike hit (and whether it was a counter hit).
+func _prime_cancel(f: FighterBase, move: MoveData, frame: int, hit: bool, counter := false) -> void:
+	f.input_enabled = false
+	f.reset_state()
+	f._start_move(move)
+	f.state_frame = frame
+	f.move_hit_confirmed = hit
+	f.move_counter_hit = counter
+
+
 # Put P1 in an aerial move just above the floor, with the requested move frame
 # selected. One physics step then touches down during startup/active/recovery.
 func _force_air_landing(move: MoveData, move_frame: int, defender_x := 300.0) -> void:
@@ -1347,6 +1358,129 @@ func _run() -> void:
 		"p1=%d p2=%d" % [p1.hitstop_frames, p2.hitstop_frames])
 	p1.input_enabled = true
 	p2.input_enabled = true
+
+	# --- 41. authored cancel rules (PROPOSALS 6): data matrix and legacy parity ---
+	var matrix_ok := true
+	var matrix_detail := ""
+	var rule_rows := 0
+	for fighter_data in [p1.data, p2.data]:
+		for m in fighter_data.moves:
+			var expected: Array = []
+			if m.input == MoveData.InputType.LIGHT:
+				expected = [
+					[CancelRule.Target.SPECIAL, CancelRule.Kind.CANCEL],
+					[CancelRule.Target.LIGHT, CancelRule.Kind.CHAIN],
+					[CancelRule.Target.HEAVY, CancelRule.Kind.CHAIN]]
+			elif m.input == MoveData.InputType.HEAVY:
+				expected = [[CancelRule.Target.SPECIAL, CancelRule.Kind.CANCEL]]
+			var actual: Array = []
+			for r in m.cancels:
+				actual.append([r.target, r.kind])
+				rule_rows += 1
+				if r.condition != CancelRule.Condition.HIT or r.from_frame != m.startup + 1 \
+						or r.to_frame != m.total_frames() or r.validate() != "":
+					matrix_ok = false
+					matrix_detail = "%s rule %s" % [m.id, r.validate()]
+			if str(actual) != str(expected):
+				matrix_ok = false
+				matrix_detail = "%s actual=%s expected=%s" % [m.id, str(actual), str(expected)]
+	_check("every light/heavy row carries its legacy cancel routes, valid and hit-only",
+		matrix_ok and rule_rows == 24, "rules=%d %s" % [rule_rows, matrix_detail])
+	_check("specials and grabs author no cancel routes",
+		p1.data.find_move(MoveData.InputType.SPECIAL_NEUTRAL, MoveData.Stance.STAND).cancels.is_empty()
+			and p1.data.find_move(MoveData.InputType.GRAB, MoveData.Stance.STAND).cancels.is_empty(),
+		"")
+
+	var legacy_light: MoveData = p1.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+	var legacy_heavy: MoveData = p1.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.STAND)
+	var legacy_special: MoveData = p1.data.find_move(MoveData.InputType.SPECIAL_NEUTRAL, MoveData.Stance.STAND)
+	var cancel_window := legacy_light.startup + 1
+	var heavy_window := legacy_heavy.startup + 1
+
+	_prime_cancel(p1, legacy_light, cancel_window, true)
+	p1.input_buffer["heavy"] = 0
+	_check("legal chain: light hit confirms into heavy",
+		p1._try_cancel() and p1.current_move == legacy_heavy,
+		"move=%s" % (p1.current_move.id if p1.current_move else "null"))
+
+	_prime_cancel(p1, legacy_light, cancel_window, true)
+	p1.input_buffer["special"] = 0
+	_check("legal cancel: light hit confirms into special",
+		p1._try_cancel() and p1.current_move == legacy_special,
+		"move=%s" % (p1.current_move.id if p1.current_move else "null"))
+
+	_prime_cancel(p1, legacy_heavy, heavy_window, true)
+	p1.input_buffer["light"] = 0
+	_check("illegal chain: heavy hit cannot chain into a normal, buffer kept",
+		not p1._try_cancel() and p1.current_move == legacy_heavy and p1.input_buffer.has("light"),
+		"move=%s buffer=%s" % [p1.current_move.id if p1.current_move else "null", str(p1.input_buffer)])
+
+	_prime_cancel(p1, legacy_heavy, heavy_window, true)
+	p1.input_buffer["special"] = 0
+	_check("legal cancel: heavy hit confirms into special",
+		p1._try_cancel() and p1.current_move == legacy_special,
+		"move=%s" % (p1.current_move.id if p1.current_move else "null"))
+
+	_prime_cancel(p1, legacy_light, legacy_light.startup, true)
+	p1.input_buffer["heavy"] = 0
+	_check("cancel window does not open on the last startup frame",
+		not p1._try_cancel() and p1.input_buffer.has("heavy"),
+		"frame=%d" % p1.state_frame)
+
+	_prime_cancel(p1, legacy_light, legacy_light.total_frames(), true)
+	p1.input_buffer["heavy"] = 0
+	_check("cancel window stays open through the move's final frame",
+		p1._try_cancel() and p1.current_move == legacy_heavy,
+		"frame=%d" % p1.state_frame)
+
+	_prime_cancel(p1, legacy_light, cancel_window, false)
+	p1.input_buffer["heavy"] = 0
+	_check("no hit-confirm means no cancel",
+		not p1._try_cancel() and p1.input_buffer.has("heavy"), "")
+
+	# Counter-specific rules outrank ordinary HIT rules: inject one on a copy of
+	# the row and restore the authored data afterwards (assign(), because an
+	# untyped Array cannot replace the typed cancels property).
+	var saved_cancels: Array[CancelRule] = legacy_light.cancels.duplicate()
+	var counter_rule := CancelRule.new()
+	counter_rule.target = CancelRule.Target.HEAVY
+	counter_rule.kind = CancelRule.Kind.CHAIN
+	counter_rule.condition = CancelRule.Condition.COUNTER_HIT
+	counter_rule.from_frame = cancel_window
+	counter_rule.to_frame = legacy_light.total_frames()
+	var injected: Array[CancelRule] = [counter_rule]
+	injected.append_array(saved_cancels)
+	legacy_light.cancels = injected
+	_prime_cancel(p1, legacy_light, cancel_window, true, true)
+	p1.input_buffer["light"] = 0
+	p1.input_buffer["heavy"] = 0
+	var counter_first := p1._try_cancel() and p1.current_move == legacy_heavy \
+		and p1.input_buffer.has("light")
+	_prime_cancel(p1, legacy_light, cancel_window, true, false)
+	p1.input_buffer["light"] = 0
+	p1.input_buffer["heavy"] = 0
+	var ordinary_first := p1._try_cancel() and p1.current_move == legacy_light
+	legacy_light.cancels.assign(saved_cancels)
+	_check("counter-specific cancel precedes the ordinary HIT chain",
+		counter_first and ordinary_first,
+		"counter=%s ordinary=%s" % [str(counter_first), str(ordinary_first)])
+
+	var reserved := CancelRule.new()
+	reserved.condition = CancelRule.Condition.BLOCK
+	reserved.from_frame = 1
+	reserved.to_frame = 2
+	var backwards := CancelRule.new()
+	backwards.from_frame = 5
+	backwards.to_frame = 2
+	var wrong_target := CancelRule.new()
+	wrong_target.kind = CancelRule.Kind.CHAIN
+	wrong_target.target = CancelRule.Target.SPECIAL
+	wrong_target.from_frame = 1
+	wrong_target.to_frame = 2
+	_check("cancel validation rejects reserved conditions, empty windows, and kind/target mismatch",
+		reserved.validate() != "" and backwards.validate() != ""
+			and wrong_target.validate() != "" and counter_rule.validate() == "",
+		"%s | %s | %s" % [reserved.validate(), backwards.validate(), wrong_target.validate()])
 
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

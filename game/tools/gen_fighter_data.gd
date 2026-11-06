@@ -77,7 +77,35 @@ func _meth(m: MoveData) -> MoveData:
 	return m
 
 
+# PROPOSALS §6 migration: the legacy hit-confirm routes, authored as data. Every
+# light/heavy-input row gets the window the hard-coded _try_cancel() used
+# (first frame after startup through the move's total), and the target order
+# matches the old code: special, then light, then heavy. Light rows chain into
+# normals; heavy rows only cancel into specials.
 func _normals(light: Array, heavy: Array, clight: Array, cheavy: Array,
+		jlight: float, jheavy: float) -> Array[MoveData]:
+	var rows := _normal_rows(light, heavy, clight, cheavy, jlight, jheavy)
+	for m in rows:
+		if m.input == LIGHT:
+			_cancel(m, CancelRule.Target.SPECIAL, CancelRule.Kind.CANCEL)
+			_cancel(m, CancelRule.Target.LIGHT, CancelRule.Kind.CHAIN)
+			_cancel(m, CancelRule.Target.HEAVY, CancelRule.Kind.CHAIN)
+		elif m.input == HEAVY:
+			_cancel(m, CancelRule.Target.SPECIAL, CancelRule.Kind.CANCEL)
+	return rows
+
+
+func _cancel(m: MoveData, target: CancelRule.Target, kind: CancelRule.Kind) -> void:
+	var rule := CancelRule.new()
+	rule.target = target
+	rule.kind = kind
+	rule.condition = CancelRule.Condition.HIT
+	rule.from_frame = m.startup + 1
+	rule.to_frame = m.total_frames()
+	m.cancels.append(rule)
+
+
+func _normal_rows(light: Array, heavy: Array, clight: Array, cheavy: Array,
 		jlight: float, jheavy: float) -> Array[MoveData]:
 	# Whiffed aerial normals use an authored 8f LAND lockout; hit/block landings
 	# keep the legacy 2f delay in FighterBase.

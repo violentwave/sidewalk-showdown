@@ -411,10 +411,13 @@ Each attack requires:
 | Cancel Rules | Whether move can cancel into special/super |
 | Meter Gain | Hype gained on hit, block, whiff, or receive |
 
-> **Implementation-status note (2026-11-05):** `MoveData` currently implements
-> startup/active/recovery, damage, block damage, hit/blockstun, knockback,
-> knockdown, hit level, hitbox data, and meter gain. It has no per-move
-> `Cancel Rules` field; cancels are engine-coded rules (see §5.10).
+> **Implementation-status note (2026-11-06, updated for PR 2):** `MoveData`
+> implements startup/active/recovery, damage, block damage, hit/blockstun,
+> knockback, knockdown, hit level, hitbox data, meter gain, and now a per-move
+> `cancels` array of `CancelRule` resources (target/kind/condition/window), with
+> counter-specific rules taking precedence over ordinary `HIT` rules (PROPOSALS
+> §6). The legacy engine-coded routes were migrated to this data with
+> behavior exactly preserved (hit-only confirms, legacy windows).
 
 ### 5.4 Hitboxes, Hurtboxes, and Pushboxes
 
@@ -578,8 +581,8 @@ Suggested damage scaling:
 >
 > **Implementation-status note (2026-11-05):** the current `_damage_scale()`
 > implements 100/100/85/70/55% for hits 1–2/3/4/5+, with a **55% floor**, which
-> now matches the owner decision above. Cancel routes are currently engine-coded,
-> with no per-move cancel window or juggle limit. Counter-hit detection exists (see §5.6).
+> now matches the owner decision above. Cancel routes are authored in `MoveData`
+> as of PR 2; there is still no juggle limit. Counter-hit detection exists (see §5.6).
 > Blocked strikes currently receive a fixed 45 px/s pushback in the real
 > simulation, independent of authored hit knockback; there is no per-move block
 > pushback or block-condition cancel data. The behavior-preserving authored-

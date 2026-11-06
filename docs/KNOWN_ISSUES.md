@@ -41,7 +41,8 @@ finding is not considered fixed merely because an older suite passes.
   the eventual winner from `WIN` to `HITSTUN` during the KO phase; the round
   result still goes to the correct winner. This is a cosmetic/state-order issue.
 
-B5 (air momentum), B8 (implicit cancels/scaling), and B9 (hurt/push alias) remain
+B5 (air momentum), B8 (implicit-scaling, partially addressed by authored
+cancel routes in PR 2), and B9 (hurt/push alias) remain
 source-confirmed audit observations; B5 was not re-probed at this baseline.
 B6 is partially addressed by the landing-recovery work: mid-move touchdown still
 skips the whiff-meter gain that a move finishing in air receives. See the
@@ -194,9 +195,11 @@ that section by hand afterward — the simulation step comes from
 - **No dash/backdash.** GDD §5.2/§5.11 list them; neutral movement is walk-only.
 - **No gamepad support or input-remap UI.** Current inputs are a generated
   keyboard table; GDD §4.1/§4.6/§14 require both.
-- **No per-move cancel windows or juggle limit.** Cancel routes are engine-coded;
-  GDD §5.3/§5.10 remain future work. Counter-hit detection and +2f hitstop are
-  implemented (PROPOSALS §6, PR 1); counter-specific cancel rules are not.
+- **No per-move cancel windows or juggle limit.** Cancel windows are now authored
+  data (`CancelRule` resources, PR 2); a juggle limit remains future work
+  (GDD §5.10). Counter-hit detection and +2f hitstop are implemented
+  (PROPOSALS §6, PR 1); counter-specific cancel routes exist in the engine and
+  take precedence but no authored route sets a `COUNTER_HIT` condition yet.
 - **No command grabs.** The two existing fighters have only the ordinary
   grounded throw row. Proposed special-direction command grabs and their
   techability policy are documented in `docs/PROPOSALS.md` §7; Phase 3 owner

@@ -1999,5 +1999,22 @@ func _run() -> void:
 		p1.state == FighterBase.State.TECH and p2.health == hp_tech,
 		"state=%d hp=%.1f" % [p1.state, p2.health])
 
+	# Owner rule (PROPOSALS §7): tech accepts ANY grab press, direction-blind.
+	# The defender holds forward (toward the thrower's side) and presses grab
+	# inside the window; the incoming normal throw must still be teched.
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100.0, 128.0)
+	Input.action_press("p2_left") # p2 faces left: forward held
+	p1._start_move(normal_throw)
+	p1.state_frame = normal_throw.startup
+	p2.input_buffer["grab"] = 0
+	var hp_fwd: float = p2.health
+	scene._resolve_hits()
+	_check("forward-held grab press still techs an incoming normal throw",
+		p1.state == FighterBase.State.TECH and p2.health == hp_fwd,
+		"state=%d hp=%.1f" % [p1.state, p2.health])
+	Input.action_release("p2_left")
+
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

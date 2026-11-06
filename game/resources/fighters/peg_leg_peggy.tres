@@ -356,6 +356,26 @@ hitstop = 10
 meter_cost = 50.0
 ex = true
 
+[sub_resource type="Resource" id="Resource_wcdfq"]
+script = ExtResource("2_y6umg")
+id = "peggy_command_grab"
+input = 8
+level = 3
+startup = 14
+active = 3
+recovery = 24
+whiff_recovery = 24
+damage = 120.0
+block_damage = 0.0
+hitstun = 0
+blockstun = 0
+knockback = Vector2(100, 0)
+knockdown = true
+block_pushback = 0.0
+hitbox_offset = Vector2(20, -36)
+hitbox_size = Vector2(30, 40)
+hitstop = 8
+
 [resource]
 script = ExtResource("3_uih6c")
 id = "peg_leg_peggy"
@@ -367,4 +387,4 @@ body_width = 26.0
 body_height = 54.0
 meth_name = "Walk the Plank"
 meth_move = SubResource("Resource_6j227")
-moves = Array[ExtResource("2_y6umg")]([SubResource("Resource_r5ltk"), SubResource("Resource_ntf5t"), SubResource("Resource_08v1d"), SubResource("Resource_5olep"), SubResource("Resource_6f1g6"), SubResource("Resource_2fi8q"), SubResource("Resource_msgkc"), SubResource("Resource_wgyqa"), SubResource("Resource_curls"), SubResource("Resource_tvf1o"), SubResource("Resource_1ijmj"), SubResource("Resource_qa18f"), SubResource("Resource_fo7wj"), SubResource("Resource_3ydin")])
+moves = Array[ExtResource("2_y6umg")]([SubResource("Resource_r5ltk"), SubResource("Resource_ntf5t"), SubResource("Resource_08v1d"), SubResource("Resource_5olep"), SubResource("Resource_6f1g6"), SubResource("Resource_2fi8q"), SubResource("Resource_msgkc"), SubResource("Resource_wgyqa"), SubResource("Resource_curls"), SubResource("Resource_tvf1o"), SubResource("Resource_1ijmj"), SubResource("Resource_qa18f"), SubResource("Resource_fo7wj"), SubResource("Resource_3ydin"), SubResource("Resource_wcdfq")])

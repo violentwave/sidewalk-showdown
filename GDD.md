@@ -615,9 +615,10 @@ Do not add parry, burst, guard crush, roman-cancel-like mechanics, or assists in
 > avoidance, throw tech, and a universal data-driven wake-up invulnerability
 > exist. Backdash/dash are missing, and the vulnerable wake-up tail currently
 > cannot block. Current throws are ordinary grounded, techable throws; no
-> command-grab special is implemented. Peggy/Richard command grabs are proposed
-> in `docs/PROPOSALS.md` §7 for GDD Phase 3 and await approval. These are status
-> notes; the design direction above remains unchanged.
+> command-grab special was implemented in PR 6 (2026-11-06): forward+grab starts
+> an UNTECHABLE THROW-level command grab per fighter (`docs/PROPOSALS.md` §7),
+> while the normal grab stays techable. These are status notes; the design
+> direction above remains unchanged.
 
 ### 5.12 AI Opponents
 
@@ -848,9 +849,9 @@ audio_voice_set:
 
 > **Implementation-status and canon note (2026-11-05):** the current data
 > generator authors the two playable fighters, their move rows, EX variants,
-> ordinary throws, and METHtality rows. Authored cancel rules and command-grab
-> rows are not implemented; see `docs/PROPOSALS.md` §§6–7 (Phase 3 proposals
-> awaiting approval). Owner canon: “Combos are control-uniform across all
+> ordinary throws, and METHtality rows, plus authored cancel rules, juggle
+> limits, block pushback, and command-grab rows (PRs 2–6). See
+> `docs/PROPOSALS.md` §§6–7 for the implementation status of each. Owner canon: “Combos are control-uniform across all
 > fighters: every fighter shares the same input taxonomy (light/heavy x
 > stand/crouch/air, five special directions, grab, EX, METH). Character identity
 > comes from authored data and later animation, never from different control

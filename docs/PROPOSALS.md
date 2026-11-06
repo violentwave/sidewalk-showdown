@@ -990,11 +990,12 @@ landing, not animation-timed assumptions.
 ### Scaling decision and measurement
 
 The current code implements hit scaling `100/100/85/70/55%` for hits 1–2/3/4/5+
-with a **55% floor**. GDD §5.10 proposes a **35% minimum**. Keep both values
-unchanged in this proposal; owner decision required. Recommendation: retain 55%
-for the initial data-authored parity state, measure full routes, then choose one
-authoritative floor with the owner. Do not silently adopt 35% while migrating
-cancels.
+with a **55% floor**.
+
+> **Owner decision (2026-11-06, documentation only):** keep the implemented
+> **55% floor**. GDD §5.10's 35% minimum is amended to 55% so the GDD matches the
+> engine. The 35% value may be revisited only after a juggle limit exists. No
+> code, resource, or test change is part of this decision.
 
 Extend the air-probe plan after the route simulator exists. In addition to
 single-hit direct damage, simulate sampled jump arcs with authored follow-ups,
@@ -1081,7 +1082,12 @@ Each command-grab row should author:
 | Knockdown | Explicit knockdown flag and resulting state/duration policy; must respect R1 against an already-knocked-down defender |
 | Meter gain | Explicit hit/whiff/receive values using the existing meter economy; no implicit bonus |
 
-The design choice is **techable vs. untechable**:
+> **Owner decision (2026-11-06, documentation only):** command grabs are
+> **UNTECHABLE**, balanced by slow, punishable startup. The normal throw remains
+> the techable mind-game layer. The existing throw-tech system is not extended to
+> command grabs.
+
+The design choice is **techable vs. untechable** (decided above: untechable):
 
 - **Recommended: untechable command grabs with slower startup.** This is the
   traditional trade: sacrifice speed and give the defender time to interrupt,

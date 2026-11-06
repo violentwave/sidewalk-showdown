@@ -30,11 +30,11 @@ finding is not considered fixed merely because an older suite passes.
 - **Buffer aging through freeze/stun (B3).** Input polling is gated by
   `input_enabled`, while stored buffers age during hitstop and stun even when
   the fighter state machine is frozen. Near-actionable 3f hitstop survived but
-  6f did not; a beginning-of-stun press aged out. Current behavior is measured;
-  the desired budget is an owner/design decision.
-- **Corner pushbox overlap (B4).** With 10px initial overlap, separation left
-  5px after stage clamping at both walls for either player. This changes corner
-  throw/normal ranges.
+  6f did not; a beginning-of-stun press aged out. D3/PR 4a is approved and queued;
+  blockstun policy 4b remains deferred to playtest.
+- **Corner pushbox overlap (B4) — fixed.** The baseline left 5px overlap after
+  clamping at either wall. Separation now transfers the pinned fighter's
+  unapplied correction to the unpinned fighter; tests cover P1/P2 at left/right.
 - **Un-blockable wake-up tail (B7).** Holding away cannot block during any
   `WAKE_UP` frame; a frame-6 meaty dealt 35 damage. This may be a deliberate
   style, so it is a playtest/owner decision rather than a proven bug.
@@ -48,10 +48,12 @@ B6 is partially addressed by the landing-recovery work: mid-move touchdown still
 skips the whiff-meter gain that a move finishing in air receives. See the
 reconciliation for the finding-by-finding dispositions.
 
-## Unresolved decisions
+## Decisions and open choices
 
-- D2/R1 resolves knockdown throws: throws cannot connect during `KNOCKDOWN`;
-  implemented and regression-tested in PR 2.
+- D2/R1 decision: throws cannot connect during `KNOCKDOWN`; implemented and
+  regression-tested in PR 2.
+- D3 selects hitstop-only buffer aging freeze capped at one normal buffer
+  window, with all buffered actions frozen together; PR 4a remains queued.
 - Whether air attacks should preserve horizontal momentum or intentionally stop
   on attack (B5; needs a live probe and playtest).
 - Whether wake-up should allow blocking in its vulnerable tail (B7; playtest).

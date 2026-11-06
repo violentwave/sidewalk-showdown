@@ -57,6 +57,32 @@ func _force_wakeup(f: FighterBase) -> void:
 	f._force_state(FighterBase.State.WAKE_UP)
 
 
+func _check_corner_separation_case(label: String, p1_x: float, p2_x: float,
+		pinned_player: int, pinned_x: float, expected_unpinned_shift: float) -> void:
+	_reset_fighters(p1_x, p2_x)
+	var p1_input_enabled := p1.input_enabled
+	var p2_input_enabled := p2.input_enabled
+	p1.input_enabled = false
+	p2.input_enabled = false
+	var pinned: FighterBase = p1 if pinned_player == 1 else p2
+	var unpinned: FighterBase = p2 if pinned_player == 1 else p1
+	var unpinned_x_before := unpinned.position.x
+	scene._separate_pushboxes()
+	var r1 := p1.pushbox_rect()
+	var r2 := p2.pushbox_rect()
+	var overlap := minf(r1.end.x, r2.end.x) - maxf(r1.position.x, r2.position.x)
+	var in_bounds: bool = p1.position.x >= scene.stage.left_bound \
+		and p1.position.x <= scene.stage.right_bound \
+		and p2.position.x >= scene.stage.left_bound \
+		and p2.position.x <= scene.stage.right_bound
+	_check(label, is_equal_approx(pinned.position.x, pinned_x)
+		and is_equal_approx(unpinned.position.x - unpinned_x_before, expected_unpinned_shift)
+		and overlap <= 0.001 and in_bounds,
+		"p1=%.2f p2=%.2f overlap=%.3f" % [p1.position.x, p2.position.x, overlap])
+	p1.input_enabled = p1_input_enabled
+	p2.input_enabled = p2_input_enabled
+
+
 # Put P1 in an aerial move just above the floor, with the requested move frame
 # selected. One physics step then touches down during startup/active/recovery.
 func _force_air_landing(move: MoveData, move_frame: int, defender_x := 300.0) -> void:
@@ -1158,6 +1184,18 @@ func _run() -> void:
 			and p2.current_move == null and p2.get_hitbox_rect().size == Vector2.ZERO,
 		"state=%d recovery=%d data=%d" % [p2.state, p2.landing_recovery_frames,
 			richard_air_special.landing_recovery])
+
+	# --- B4. clamp a pinned fighter and transfer all remaining separation ---
+	var left_wall: float = scene.stage.left_bound
+	var right_wall: float = scene.stage.right_bound
+	_check_corner_separation_case("corner separation: P1 pinned at left wall",
+		left_wall, left_wall + 19.0, 1, left_wall, 10.0)
+	_check_corner_separation_case("corner separation: P2 pinned at left wall",
+		left_wall + 19.0, left_wall, 2, left_wall, 10.0)
+	_check_corner_separation_case("corner separation: P1 pinned at right wall",
+		right_wall, right_wall - 19.0, 1, right_wall, -10.0)
+	_check_corner_separation_case("corner separation: P2 pinned at right wall",
+		right_wall - 19.0, right_wall, 2, right_wall, -10.0)
 
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

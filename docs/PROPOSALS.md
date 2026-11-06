@@ -1,12 +1,24 @@
 # Implementation Proposals — Wake-up Invuln, Throw Tech, Air Special Balance
 
-Status: **§1–§5 implemented or measured as a first pass.** §3 now includes
-data-driven whiff landing recovery, air-special tuning, and before/after probe
-results. Its thresholds are project hypotheses, not externally validated balance
-rules. Each section documents the design, implementation, and what remains open.
+Implementation status on `main` at `e6d40d9`:
 
-Engine facts these proposals assume (verified against `main` at the time of
-writing, `aff988e`):
+| Section | Implemented now | Future / still open |
+|---|---|---|
+| §1 Wake-up invulnerability | Data-driven wake-up strike/throw windows, per-move reversal invuln fields, overlay countdown, tests | No current move authors reversal invulnerability; no character-specific wake-up defense |
+| §2 Throw tech | 7f tech window, lockout, both-fighter `TECH`, 22f whiff recovery, tuned 95/105 damage | Punish Counter throws, delayed-throw pressure, shimmy baiting |
+| §3 Air special balance | Whiff-only landing recovery (8f normals / 12f specials), first-pass air-special data, two-direction probe | Reach/blocked-advantage targets still missed; probe is coarse and informational; no full-arc/combo simulation or competitive validation |
+| §4 METHtality | Meter/full-health-state kill-confirm gate, meter drain, finisher data, freeze/banner, KO flow | GDD §5.9 final-round finish prompt, cinematic/camera/choreography, fuller presentation |
+| §5 Hype meter | EX specials at 50 meter, data-driven variants, fallback/floor tests | Combo extensions, defensive burst, super, other future spenders |
+
+Only the “Implemented now” cells are current behavior. The remainder are design
+proposals or known gaps, not shipped claims. See
+[`PHASE_STATUS.md`](PHASE_STATUS.md) for phase gates and the
+[current-baseline reconciliation](audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md)
+for reproduced issues. Air-probe output is informational measurement, not a
+passing balance assertion.
+
+Engine facts these proposals assumed at original writing (verified against
+`main` at `aff988e`):
 
 - Simulation is fixed 60 Hz; `FighterBase.delta_fixed()` returns
   `1.0 / Engine.physics_ticks_per_second`, and every timing in `MoveData` is in
@@ -330,7 +342,7 @@ window, throw vs airborne.
 
 ---
 
-## 3. Air special balance
+## 3. Air special balance — first pass implemented; targets open
 
 ### Baseline before this pass (measured from the data)
 
@@ -558,7 +570,7 @@ not establish a universal matchup result.
 
 ---
 
-## 4. METHtality — engine core + vertical-slice finishers (implemented)
+## 4. METHtality — engine core implemented; finish presentation future
 
 ### Canon locks (do not bend)
 

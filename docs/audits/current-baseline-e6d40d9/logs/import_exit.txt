@@ -1,0 +1,1 @@
+godot --headless --path game --import exit=0

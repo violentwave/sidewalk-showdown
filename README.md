@@ -6,8 +6,21 @@ legends eventually turn on him.
 
 **Engine:** Godot 4.x (in `game/`)
 **Target:** PC first (Windows / Linux / macOS)
-**Status:** Phase 1.5d — greybox combat prototype, audit-hardened
+**Status:** GDD Phase 2 — Vertical Slice, in progress. See `docs/PHASE_STATUS.md`.
 **License:** TBD — treat as all-rights-reserved until a LICENSE file is added.
+
+**Current scope:** Peggy vs Richard on Bus Stop Night, greybox silhouettes,
+local keyboard play, HUD/timer/round flow, directional specials, EX spenders, and
+a minimal METHtality core. Missing or partial: gamepad support, character/stage
+select, animation, audio/VFX, CPU AI, campaign, and final art. Online play is
+deferred beyond v0.1 per GDD §2.4/§16.
+
+**Readiness and audits:** [`docs/PHASE_STATUS.md`](docs/PHASE_STATUS.md) records
+GDD phase requirements versus evidence and owner decisions. The
+[`current-baseline reconciliation`](docs/audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md)
+records reproduced audit findings at `e6d40d9`; the
+[`original audit`](docs/audits/2026-11-05_combat-feel-production-readiness-audit_d523ed0.md)
+is preserved at its historical `d523ed0` baseline.
 
 ## Quick start
 
@@ -17,7 +30,7 @@ godot --headless --path game --script res://tests/combat_test.gd      # combat t
 godot --headless --path game --script res://tests/round_flow_test.gd  # round flow tests
 ```
 
-## Controls (Phase 1)
+## Controls (current build)
 
 | Action | P1 (Peg Leg Peggy) | P2 (Whiskey Richard) |
 |---|---|---|
@@ -35,7 +48,8 @@ Both players share one keyboard: P1 is **WASD only**, and the arrow keys are
 reserved for P2. P2 can move with either the arrows or Numpad 2/4/6/8. Regenerate
 the input map with
 `godot --headless --path game --script res://tools/setup_input.gd` if you change
-the table above.
+the table above. Gamepad bindings and the in-game remap UI are not implemented
+yet; GDD §4.1/§4.6 and §14 list them as requirements for later gates.
 
 **EX specials:** hold Heavy (K / `.`) while pressing Special to spend 50 hype
 meter on the strengthened version (PROPOSALS §5). Without enough meter the base
@@ -44,8 +58,9 @@ special comes out and nothing is spent.
 **METHtality:** with a full meter, an opponent at or below 25% health, and that
 opponent in hitstun or knockdown, press METHtality (I / `'`) to spend the whole
 bar on the finisher (PROPOSALS §4). Wake-up invulnerability and a neutral
-opponent reject it. Phase-1 presentation is a freeze plus a banner; the normal
-KO flow ends the round.
+opponent reject it. Current presentation is a freeze plus a banner; the normal
+KO flow ends the round. The GDD's final-round finish prompt/cinematic is future
+work.
 
 Specials are directional (GDD §4.4): neutral, forward (toward opponent), back,
 down, and air. Block by holding away from the opponent — including during
@@ -59,14 +74,11 @@ keys (Numpad 8/2) move the selection, and J, Numpad 1, or Enter picks
 mid-frame, so hitstun, health, and the round clock resume exactly where they
 stopped.
 
-Debug: **F1** boxes (on by default), **F2** frame state, **F3** input history,
-**F4** slow motion.
-
-Debug: **F1** boxes (on by default), **F2** frame state + frame advantage,
-**F3** input history, **F4** slow motion, **F5** frame-step (advances one sim
-frame per press while slow-mo is on and the pause menu is closed), **F6** refill
-both fighters (full health and meter at round positions, without restarting the
-round).
+Debug: **F1** boxes (on by default), **F2** frame state + frame advantage +
+invulnerability countdown, **F3** input history, **F4** slow motion, **F5**
+frame-step (advances one sim frame per press while slow-mo is on and the pause
+menu is closed), **F6** refill both fighters (full health and meter at round
+positions, without restarting the round).
 
 ## Builds
 
@@ -94,7 +106,9 @@ godot --headless --path game --export-release windows build/windows/sidewalk_sho
 | `CHARACTERS.md` | Roster bible (archetypes, rivals, data direction) |
 | `docs/SIDEWALK_SHOWDOWN_NON_DEFINING_ASSET_PROMPTS.md` | 315 art-generation prompts |
 | `docs/KNOWN_ISSUES.md` | Current prototype gaps |
+| `docs/PHASE_STATUS.md` | GDD phase/readiness status, evidence, and blockers |
 | `docs/PROPOSALS.md` | Combat designs and measured air-special / landing-recovery first pass |
+| `docs/audits/` | Preserved historical audits and current-main reconciliations |
 | `docs/LICENSE_OPTIONS.md` | License decision report: all-rights-reserved vs CC BY-NC vs source-available |
 | `docs/MAIN_BRANCH_GUARD.md` | Main-branch tripwire behavior, landing procedure and limitations |
 
@@ -122,9 +136,12 @@ docs/            Supporting docs and archives
 - **Simulation runs at fixed 60 Hz.** All frame data (startup/active/recovery,
   hitstun, blockstun, hitstop, buffer windows) is in simulation frames.
 - **Fighters are data.** `resources/fighters/*.tres` define stats and moves;
-  the engine never hard-codes a character. Regenerate via
+  the engine does not hard-code per-fighter balance. The current match still
+  preloads the two slice fighters. Regenerate via
   `godot --headless --path game --script res://tools/gen_fighter_data.gd`.
-- **Separate combat boxes** (push/hurt/hit) computed from `MoveData`.
+- **Combat boxes:** hitboxes and pushboxes are computed from `MoveData`; the
+  hurtbox currently aliases the pushbox. Separate hurt/throw/proximity boxes
+  remain planned (GDD §5.4; audit B9).
 - Asset naming in `art/exports/`: lowercase snake_case
   (`spr_whiskey_richard_idle.png`, `stage_bus_stop_night_bg_far.png`).
 - AI art pipeline: generate → save raw in `art/source/` → clean/pixel-fix →

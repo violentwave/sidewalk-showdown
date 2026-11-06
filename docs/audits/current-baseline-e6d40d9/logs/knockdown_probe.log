@@ -1,0 +1,45 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+AUDIT_SHA=e6d40d9607a0f0e3fc4a3be23ed592dbd9d43eda GODOT=4.7.2-stable (official)
+B1_SETUP corner=right p1x=250.0 p2x=296.0 move=crouch_heavy startup/active/recovery=8/3/18 knockdown=true p2_input_enabled=false
+B1_HIT n=1 frame=2 p2hp=925.0 p2state=13 p1state=8
+B1_RESTART frame=30 p2state=13 p2hp=925.0
+B1_HIT n=2 frame=37 p2hp=850.0 p2state=13 p1state=8
+B1_RESTART frame=65 p2state=13 p2hp=850.0
+B1_HIT n=3 frame=72 p2hp=786.25 p2state=13 p1state=8
+B1_RESTART frame=100 p2state=13 p2hp=786.25
+B1_HIT n=4 frame=107 p2hp=733.75 p2state=13 p1state=8
+B1_RESTART frame=135 p2state=13 p2hp=733.75
+B1_HIT n=5 frame=142 p2hp=692.5 p2state=13 p1state=8
+B1_RESTART frame=170 p2state=13 p2hp=692.5
+B1_HIT n=6 frame=177 p2hp=651.25 p2state=13 p1state=8
+B1_RESTART frame=205 p2state=13 p2hp=651.25
+B1_HIT n=7 frame=212 p2hp=610.0 p2state=13 p1state=8
+B1_RESTART frame=240 p2state=13 p2hp=610.0
+B1_HIT n=8 frame=247 p2hp=568.75 p2state=13 p1state=8
+B1_RESTART frame=275 p2state=13 p2hp=568.75
+B1_HIT n=9 frame=282 p2hp=527.5 p2state=13 p1state=8
+B1_RESTART frame=310 p2state=13 p2hp=527.5
+B1_HIT n=10 frame=317 p2hp=486.25 p2state=13 p1state=8
+B1_RESULT hits=10 attacks_started=10 p2hp=486.25 p2state=13 agency=false
+B1_HOLD_BACK_SETUP holding_back=true blocking=true state=0
+B1_HOLD_BACK_HIT n=1 frame=7 p2hp=925.0 p2state=13 p2_blocking=false
+B1_HOLD_BACK_RESTART frame=35 p2state=13 p2hp=925.0 holding_back=true blocking=false
+B1_HOLD_BACK_HIT n=2 frame=42 p2hp=850.0 p2state=13 p2_blocking=false
+B1_HOLD_BACK_RESTART frame=70 p2state=13 p2hp=850.0 holding_back=true blocking=false
+B1_HOLD_BACK_HIT n=3 frame=77 p2hp=786.25 p2state=13 p2_blocking=false
+B1_HOLD_BACK_RESTART frame=105 p2state=13 p2hp=786.25 holding_back=true blocking=false
+B1_HOLD_BACK_HIT n=4 frame=112 p2hp=733.75 p2state=13 p2_blocking=false
+B1_HOLD_BACK_RESTART frame=140 p2state=13 p2hp=733.75 holding_back=true blocking=false
+B1_HOLD_BACK_HIT n=5 frame=147 p2hp=692.5 p2state=13 p2_blocking=false
+B1_HOLD_BACK_RESULT hits=5 attacks_started=5 p2hp=692.5 p2state=13 holding_back=true p2_blocking=false
+B2_NO_TECH frame=4 damage=95.0 p2state=13
+B2_NO_TECH_RESULT damage=95.0 p2state=13
+B2_LOOP_HIT n=1 frame=4 p2hp=905.0 p2state=13
+B2_LOOP_RESTART frame=29 p2state=13 p2hp=905.0
+B2_LOOP_HIT n=2 frame=33 p2hp=810.0 p2state=13
+B2_LOOP_RESTART frame=58 p2state=13 p2hp=810.0
+B2_LOOP_RESULT throws=2 started=3 p2hp=810.0 p2state=0
+B2_TECH_BUFFER age=2 window=7 state=13
+B2_WITH_TECH frame=4 p1state=15 p2state=15 damage=0.0
+B2_WITH_TECH_RESULT damage=0.0 p1state=15 p2state=15

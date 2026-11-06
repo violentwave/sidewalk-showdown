@@ -1,0 +1,34 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: intro -> fight
+PASS: KO phase entered
+PASS: p1 awarded round win
+PASS: round end phase
+PASS: round 2 starts
+PASS: round 2 fighting
+PASS: timeout awards higher health
+PASS: round 3 starts
+PASS: double KO detected
+PASS: double KO awards a pip to both
+PASS: draw round ends
+PASS: round advances after double KO
+PASS: 2-2 shows the decisive-round message
+PASS: 2-2 continues into a decisive round and ends on an outright win
+PASS: fresh match fighting
+PASS: timer frozen during hitstop
+PASS: timer resumes after hitstop
+PASS: attack connects
+PASS: hit on the timer's final frame counts
+PASS: reset clears draw-resolution state
+PASS: first timeout tie awards no pip
+PASS: second timeout tie still awards no pip
+PASS: third timeout tie reaches sudden death
+PASS: sudden death uses a 30-second clock
+PASS: a sudden-death timeout tie resolves by damage dealt
+PASS: the tiebreak is announced
+PASS: fully equal tiebreak fields fall back to P1 deterministically
+PASS: sudden death round starts fighting
+PASS: KO inside sudden death enters the KO phase
+PASS: first clean win in sudden death ends the match
+
+0 failure(s)

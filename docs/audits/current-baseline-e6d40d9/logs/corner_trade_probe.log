@@ -1,0 +1,11 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+AUDIT_SHA=e6d40d9607a0f0e3fc4a3be23ed592dbd9d43eda GODOT=4.7.2-stable (official)
+B4 P1 pinned LEFT bounds=24.0..296.0 before=10.0 after=5.0 p1x=24.0 p2x=48.0
+B4 P2 pinned LEFT bounds=24.0..296.0 before=10.0 after=5.0 p1x=48.0 p2x=24.0
+B4 P1 pinned RIGHT bounds=24.0..296.0 before=10.0 after=5.0 p1x=296.0 p2x=272.0
+B4 P2 pinned RIGHT bounds=24.0..296.0 before=10.0 after=5.0 p1x=272.0 p2x=296.0
+B10_BEFORE p1state=8 p2state=8 hp=1000.0/1.0
+B10_AFTER_RESOLVE phase=2 ko_loser_p2=true p1state=11 p2state=17 hp=955.0/0.0
+B10_AFTER_ONE_FRAME phase=2 p1state=11 p2state=17
+B10_AFTER_KO_FLOW phase=3 wins=[1, 0] p1state=0 p2state=17

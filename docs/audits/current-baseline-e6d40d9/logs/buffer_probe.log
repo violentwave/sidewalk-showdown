@@ -1,0 +1,18 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+AUDIT_SHA=e6d40d9607a0f0e3fc4a3be23ed592dbd9d43eda GODOT=4.7.2-stable (official)
+B3_POLL_DISABLED RESULT registered=false buffer={  }
+B3_POLL_ENABLED_KNOCKDOWN registered frame=0 age=1 state=13 input_enabled=true
+B3_POLL_ENABLED_KNOCKDOWN RESULT registered=true buffer={ "light": 1 }
+B3_PREBUFFERED_HITSTOP stop=3 buffered_age=0->3 attack_state_frame=11->11 hitstop_left=0
+B3_PREBUFFERED_HITSTOP_RESTART stop=3 frame=1 state_frame=0
+B3_PREBUFFERED_HITSTOP_RESULT stop=3 light_restarted=true remaining_age=-1
+B3_PREBUFFERED_HITSTOP stop=6 buffered_age=0->6 attack_state_frame=11->11 hitstop_left=0
+B3_PREBUFFERED_HITSTOP_RESULT stop=6 light_restarted=false remaining_age=-1
+B3_BLOCKSTUN_NEAR_END light_started_frame=0 state_frame=0
+B3_BLOCKSTUN_NEAR_END duration=12 initial_state_frame=11 hitstop=0 age=0->1 buffer_after=-1 started=true
+B3_BLOCKSTUN_EARLY_WITH_HITSTOP duration=12 initial_state_frame=0 hitstop=6 age=0->18 buffer_after=-1 started=false
+B3_BLOCKSTUN_EARLY_LONG duration=18 initial_state_frame=0 hitstop=0 age=0->18 buffer_after=-1 started=false
+B3_RECOVERY_EARLY move=heavy start_state_frame=10 total=25 age_at_idle=15 after=-1 started=false
+B3_SUMMARY poll_disabled=false/enabled=true; hitstop3_survives=yes hitstop6_expires=yes
+B3_SUMMARY near_end_blockstun=true early_blockstun_with_hitstop=false early_long_blockstun=false early_heavy_recovery=false

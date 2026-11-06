@@ -574,9 +574,12 @@ Suggested damage scaling:
 > GDD's proposed **35% minimum** remains unresolved; neither value is changed by
 > this documentation reconciliation. Cancel routes are currently engine-coded,
 > with no per-move cancel window, juggle limit, or counter-hit implementation.
-> The behavior-preserving authored-cancel migration and future combo rules are
-> proposed in `docs/PROPOSALS.md` §6 for GDD Phase 3; they are not implemented
-> and await approval. See `docs/PHASE_STATUS.md` and audit finding B8.
+> Blocked strikes currently receive a fixed 45 px/s pushback in the real
+> simulation, independent of authored hit knockback; there is no per-move block
+> pushback or block-condition cancel data. The behavior-preserving authored-
+> cancel migration and future combo rules are proposed in
+> `docs/PROPOSALS.md` §6 for GDD Phase 3; they are not implemented and await
+> approval. See `docs/PHASE_STATUS.md` and audit finding B8.
 
 ### 5.11 Defensive Systems
 

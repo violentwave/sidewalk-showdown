@@ -838,6 +838,87 @@ whether a counter-hit also satisfies an ordinary HIT rule (recommend yes, with a
 counter-hit-specific rule taking precedence) to avoid overlapping-rule ambiguity.
 No HUD animation or art is a prerequisite; a text indicator works on silhouettes.
 
+### Blocking interactions and blockstring safety
+
+#### Current behavior measured in the real simulation
+
+The authored `MoveData.knockback` is **not** used when a strike is blocked. I
+verified this in a headless Godot 4.7.2 run of the actual `MatchRoot` scene,
+testing Peggy and Richard as the attacker in turn at mid-stage, with blocked and
+unblocked light, heavy, neutral-special, and forward-special rows. The defender
+held back for the block case. I measured absolute horizontal displacement from
+resolved contact through 20 subsequent physics frames, including hitstop and
+the actual stun-state deceleration:
+
+| Move | Authored hit `knockback.x` (px/s) | Block displacement / 20 frames | Hit displacement / 20 frames |
+|---|---:|---:|---:|
+| `light` | 55 | 2.53 px | 3.88 px |
+| `heavy` | 90 | 2.53 px | 10.79 px |
+| `peggy_neutral` | 110 | 2.53 px | 14.42 px |
+| `peggy_forward` | 130 | 2.53 px | 20.58 px |
+
+These are controlled mid-stage samples, not universal spacing or corner results.
+Both attacker orientations produced the same displacement magnitudes. The real
+resolver applies the move's authored horizontal knockback on hit; on block it
+instead assigns a fixed `attacker.facing * 45 px/s` horizontal velocity to the
+defender, then blockstun decelerates it. Thus blocked moves currently share the
+same small push regardless of authored hit knockback. There is no per-move
+block-pushback field. This finding is from simulation; the source path is
+`FighterBase.receive_hit()`.
+
+#### Proposed rules
+
+- Add an authored block-pushback value in simulation units/second, separate from
+  hit `knockback`. For the parity migration, author **45 px/s** on every current
+  strike row to preserve the measured fixed impulse. Recommend **45 px/s as the
+  initial minimum** for non-throw blocked strikes; later rows may use more after
+  route testing, but a row may not silently fall below the floor. The floor is
+  the assigned velocity, not a promise of a fixed pixel displacement: hitstop,
+  blockstun duration, deceleration, and walls affect realized movement.
+- At a corner, never push the defender through the stage bound. Clamp the
+  defender at the wall and transfer the remaining separation displacement to
+  the attacker, away from the defender, subject to the attacker's own stage
+  bound. Then run pushbox separation; no wall crossing or residual overlap is
+  accepted as a “safe” blockstring. Test both left/right corners and both player
+  orientations. The existing B4 corner-separation defect must be resolved or
+  explicitly accounted for before claiming this exit.
+- The behavior-preserving cancel migration remains **hit-only**. A blocked move
+  does not continue its route unless a separate `condition: BLOCK` rule is
+  explicitly authored and approved. For each such rule, author the next move,
+  blockstun and pushback, and whether a gap exists; the defender must be able to
+  block the next hit or use an available challenge/escape if its timing permits.
+- Evaluate blocked advantage for the **whole blockstring**, not by labeling an
+  early normal safe in isolation. Measure from the final block in the authored
+  route to each fighter's first actionable frame, including shared hitstop,
+  each move's blockstun, pushback, landing, and the actual cancel timing. Keep
+  the existing sign convention from §3: `defender actionable - attacker
+  actionable` (positive means the attacker recovers first). Apply a chosen
+  blocked-advantage target to the route endpoint; an intermediate `BLOCK`
+  cancel does not erase the defender's chance to act during a gap. No general
+  grounded-blockstring target is currently specified. The exploratory ≤−2
+  target remains specifically a blocked jump-in hypothesis, not a universal
+  requirement; obtain owner approval before setting broader numeric targets.
+
+#### Blocked variants for the candidate routes
+
+The initial data-authored parity state adds no block cancels, so the following
+are the explicit blocked variants for the §6 examples. At every listed block,
+the route stops in the parity state. The defender exits blockstun on the
+resolver-determined first actionable frame and can guard, jump, throw, or
+challenge with a normal if legal; measure whether the attacker is still
+recovering and punishable rather than assuming the answer from hit knockback.
+If a future `BLOCK` rule continues the route, add that continuation and its
+endpoint advantage to the authored route data and tests.
+
+| Fighter / route | Blocked variant and defender response |
+|---|---|
+| Peggy — jump-in starter | `jump_heavy` blocked: no `light` link/cancel in parity; block the landing interaction, then take the first actionable guard/jump/challenge option. Measure landing recovery and punishability. |
+| Peggy — grounded chain | `light` blocked: no `heavy` follow-up in parity; blockstun ends, then the defender can guard or challenge/escape at its first actionable frame. |
+| Peggy — punish | `heavy` blocked: no `peggy_forward_ex` in parity; the defender gets the measured blockstun/pushback response. Any future block-cancel into EX must specify its own endpoint safety and gap. |
+| Richard — jump-in starter | `jump_heavy` blocked: no `light` link/cancel in parity; block the landing interaction, then take the first actionable guard/jump/challenge option. Measure landing recovery and punishability. |
+| Richard — grounded chain | `light` blocked: no `heavy` follow-up in parity; blockstun ends, then the defender can guard or challenge/escape at its first actionable frame. |
+| Richard — punish | `heavy` blocked: no `richard_forward_ex` in parity; the defender gets the measured blockstun/pushback response. Any future block-cancel into EX must specify its own endpoint safety and gap. |
+
 ### Juggle, OTG, and knockdown protection
 
 Proposed bounded rule set, with numeric tuning to be confirmed by the owner:
@@ -871,14 +952,14 @@ These are candidate authored routes for data/arc validation, not claims that all
 links currently connect at every spacing. Existing move IDs are shown where
 known; routes must remain playable with the current silhouette fighters.
 
-| Fighter | Route | Illustrative route data |
-|---|---|---|
-| Peggy | Jump-in starter | `jump_heavy` (landed starter) → `light` (`HIT`, `CHAIN`) → `peggy_neutral` (`HIT`, `CANCEL`) |
-| Peggy | Grounded chain | `light` → `heavy` (`HIT`, `CHAIN`) → `peggy_neutral` (`HIT`, `CANCEL`) |
-| Peggy | Punish | `heavy` (punish hit) → `peggy_forward_ex` (`HIT`, `CANCEL`, pay 50 meter); base-special fallback follows existing EX rules |
-| Richard | Jump-in starter | `jump_heavy` (landed starter) → `light` (`HIT`, `CHAIN`) → `richard_neutral` (`HIT`, `CANCEL`) |
-| Richard | Grounded chain | `light` → `heavy` (`HIT`, `CHAIN`) → `richard_forward` (`HIT`, `CANCEL`) |
-| Richard | Punish | `heavy` (punish hit) → `richard_forward_ex` (`HIT`, `CANCEL`, pay 50 meter); base-special fallback follows existing EX rules |
+| Fighter | Route | Illustrative route data | Explicit blocked variant |
+|---|---|---|---|
+| Peggy | Jump-in starter | `jump_heavy` (landed starter) → `light` (`HIT`, `CHAIN`) → `peggy_neutral` (`HIT`, `CANCEL`) | `jump_heavy` blocked: no follow-up in parity; defender's first actionable guard/jump/challenge and attacker landing recovery must be measured. |
+| Peggy | Grounded chain | `light` → `heavy` (`HIT`, `CHAIN`) → `peggy_neutral` (`HIT`, `CANCEL`) | `light` blocked: chain stops in parity; defender can act at its first actionable frame. |
+| Peggy | Punish | `heavy` (punish hit) → `peggy_forward_ex` (`HIT`, `CANCEL`, pay 50 meter); base-special fallback follows existing EX rules | `heavy` blocked: no EX follow-up in parity; any future block-cancel must declare its gap and endpoint safety. |
+| Richard | Jump-in starter | `jump_heavy` (landed starter) → `light` (`HIT`, `CHAIN`) → `richard_neutral` (`HIT`, `CANCEL`) | `jump_heavy` blocked: no follow-up in parity; defender's first actionable guard/jump/challenge and attacker landing recovery must be measured. |
+| Richard | Grounded chain | `light` → `heavy` (`HIT`, `CHAIN`) → `richard_forward` (`HIT`, `CANCEL`) | `light` blocked: chain stops in parity; defender can act at its first actionable frame. |
+| Richard | Punish | `heavy` (punish hit) → `richard_forward_ex` (`HIT`, `CANCEL`, pay 50 meter); base-special fallback follows existing EX rules | `heavy` blocked: no EX follow-up in parity; any future block-cancel must declare its gap and endpoint safety. |
 
 For each rule the eventual resource data supplies the chosen frame window. The
 first migration rules must reproduce legacy windows exactly; any additional
@@ -916,6 +997,17 @@ the new output as measured samples, not balance assertions.
 - Counter-hit startup interruption gets exactly +2 hitstop and HUD feedback;
   recovery hits and trades do not. Counter-hit and ordinary-hit cancel
   precedence is deterministic.
+- Block-pushback parity is 45 px/s on blocked strikes and is independent of hit
+  `knockback`; hit tests still use the authored hit value. Verify the authored
+  minimum on every blocked strike, including low/high/special routes.
+- Corner block tests on both walls transfer blocked defender displacement to
+  the attacker without crossing stage bounds or leaving residual pushbox
+  overlap. Include the B4 separation fix/behavior in the acceptance evidence.
+- Every route's blocked variant matches its data: no continuation without an
+  authored `BLOCK` rule; when one is authored, test gaps, blockstun, pushback,
+  defender challenge/escape, and whole-route blocked advantage against the
+  approved target. Do not infer safety from hit knockback or the first move's
+  advantage alone.
 - Juggle count reaches, then rejects, the selected cap; combo reset, gravity /
   pushback scaling, K1 knockdown protection, R1 throw rejection, and the global
   METH gate each have positive/negative regression cases. No route can loop

@@ -51,9 +51,9 @@ correctness work that precedes authored combos and grappling implementation:
 >   buffer window, all buffered actions (including grab and its lockout)
 >   frozen together. Blockstun policy (4b) is deferred to playtest.
 
-Implementation status is tracked in `docs/PHASE_STATUS.md`; D1 is implemented
-by the knockdown-strike guard, and D2 is implemented by the knockdown-throw
-guard and regression tests in this PR. D3 remains queued for its separate PR.
+Implementation status is tracked in `docs/PHASE_STATUS.md`; D1/K1 and D2/R1
+are implemented. PR 3 implements corner-separation remainder transfer with
+four wall-arrangement regressions. D3 remains queued for its separate PR.
 
 Engine facts these proposals assumed at original writing (verified against
 `main` at `aff988e`):

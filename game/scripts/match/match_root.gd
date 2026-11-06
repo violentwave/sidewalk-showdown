@@ -392,9 +392,25 @@ func _separate_pushboxes() -> void:
 	var overlap := minf(r1.end.x, r2.end.x) - maxf(r1.position.x, r2.position.x)
 	if overlap <= 0.0:
 		return
-	var half := overlap * 0.5
-	var dir := 1.0 if p1.position.x <= p2.position.x else -1.0
-	p1.position.x -= half * dir
-	p2.position.x += half * dir
+	# Separate by center order, initially sharing the correction evenly. If one
+	# fighter is pinned at a stage bound, transfer that fighter's unapplied share
+	# to the other fighter rather than leaving residual pushbox overlap.
+	var left_fighter: FighterBase = p1 if p1.position.x <= p2.position.x else p2
+	var right_fighter: FighterBase = p2 if left_fighter == p1 else p1
+	var left_room := maxf(0.0, left_fighter.position.x - left_fighter.stage.left_bound)
+	var right_room := maxf(0.0, right_fighter.stage.right_bound - right_fighter.position.x)
+	var left_move := minf(overlap * 0.5, left_room)
+	var right_move := minf(overlap * 0.5, right_room)
+	var remaining := overlap - left_move - right_move
+	if remaining > 0.0:
+		var extra_left := minf(remaining, maxf(0.0, left_room - left_move))
+		left_move += extra_left
+		remaining -= extra_left
+	if remaining > 0.0:
+		var extra_right := minf(remaining, maxf(0.0, right_room - right_move))
+		right_move += extra_right
+		remaining -= extra_right
+	left_fighter.position.x -= left_move
+	right_fighter.position.x += right_move
 	p1.clamp_to_stage()
 	p2.clamp_to_stage()

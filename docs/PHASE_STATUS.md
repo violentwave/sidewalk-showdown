@@ -24,9 +24,9 @@ criteria are not met. `README.md` now uses the same GDD phase label.
   frozen together. Blockstun policy (4b) is deferred to playtest.
 
 Implementation order: PR 1 K1 strike guard; PR 2 R1 throw rejection; PR 3
-corner-separation remainder; PR 4a bounded hitstop-only buffer freeze. D1 is
-implemented by PR 1 and D2 by the current PR; both have regression tests. D3
-and corner separation remain queued for their separate PRs.
+corner-separation remainder; PR 4a bounded hitstop-only buffer freeze. D1/K1,
+D2/R1, and corner separation are implemented with regression tests. D3 remains
+queued for PR 4a.
 
 Status labels distinguish the existence of features from validation of the
 phase exit criteria:
@@ -63,12 +63,14 @@ phase exit criteria:
 - **Status:** **Features implemented; exit partially verified / at risk.** The
   vertical-slice pair, stage, combat, HUD, round manager, debug overlay and pause
   path exist. The audited baseline had 124 combat and 30 round-flow checks; the
-  current PR adds eight combat checks (132 combat, 30 round-flow). D1/K1 is now
-  implemented and regression-tested: non-METH strikes are rejected in
-  knockdown while the full-meter METH path remains available and can connect.
-  The remaining current-main findings B3, B4, B7 and B10 remain open; see the
-  companion report. “Hits feel responsive” remains a human feel judgment.
-- **Blockers:** D3/PR 4a, B4 and B10 remain queued; B5 and B7 require
+  current suite has 140 combat and 30 round-flow checks. D1/K1, D2/R1 and B4
+  corner separation are implemented and regression-tested. Non-METH strikes
+  whiff during knockdown while the full-meter METH path can connect; knockdown
+  throws reject in both orientations; corner overlap is fully separated in all
+  four wall arrangements. The remaining current-main findings B3, B7 and B10
+  remain open; see the companion report. “Hits feel responsive” remains a human
+  feel judgment.
+- **Blockers:** D3/PR 4a and B10 remain queued; B5 and B7 require
   explicit feel/playtest decisions. Passing existing suites does not resolve
   uncovered runtime findings.
 
@@ -108,8 +110,8 @@ phase exit criteria:
   are not authored, and the 55% implemented scaling floor remains unresolved
   against the GDD's proposed 35% (B8). `docs/PROPOSALS.md` §§6–7 have approved
   design direction but are not implemented features; the correctness queue is
-  sequenced first. D1/K1 is implemented; D2/R1 and D3/PR 4a are queued. The owner
-  has set shared controls across fighters, silhouette playability with animation
+  sequenced first. D1/K1, D2/R1 and corner separation are implemented; D3/PR 4a
+  is queued. The owner has set shared controls across fighters, silhouette playability with animation
   deferred, and Peggy/Richard-only scope; command-grab techability and occupied
   direction-slot selection remain open design decisions.
 - **Exit verification:** not met; adding the current roster/stage still depends

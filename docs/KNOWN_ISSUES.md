@@ -9,6 +9,58 @@ issues; “hits feel responsive” also requires human playtesting. See
 current-main reconciliation. Phase 2 adds throw tech, draw resolution, EX
 specials and the METHtality engine core.
 
+## Current-baseline reproduced defects
+
+The external probes in the
+[current-baseline report](audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md)
+reproduced these on `e6d40d9`; they are not resolved merely because the suites
+pass.
+
+- **Knockdown strike loop (B1).** A repeated crouch-heavy can hit a defender who
+  remains in `KNOCKDOWN` with no agency. Ten hits reduced 1000 → 486.25 HP; a
+  held-back-input run also landed five hits without a block. GDD §5.10 says no
+  infinite combos; this conflicts with that requirement.
+- **Knockdown throws (B2).** Unteched grabs hit a knocked-down defender for 95
+  damage and re-enter knockdown. A buffered grab was teched correctly, but the
+  policy question remains: reject knockdown throws or keep the techable loop.
+- **Buffer aging through freeze/stun (B3).** Input polling is gated by
+  `input_enabled`, while stored buffers age during hitstop and stun even when
+  the fighter state machine is frozen. Near-actionable 3f hitstop survived but
+  6f did not; a beginning-of-stun press aged out. Current behavior is measured;
+  the desired budget is an owner/design decision.
+- **Corner pushbox overlap (B4).** With 10px initial overlap, separation left
+  5px after stage clamping at both walls for either player. This changes corner
+  throw/normal ranges.
+- **Un-blockable wake-up tail (B7).** Holding away cannot block during any
+  `WAKE_UP` frame; a frame-6 meaty dealt 35 damage. This may be a deliberate
+  style, so it is a playtest/owner decision rather than a proven bug.
+- **Post-KO winner state (B10).** A nonlethal, already-polled trade reply moves
+  the eventual winner from `WIN` to `HITSTUN` during the KO phase; the round
+  result still goes to the correct winner. This is a cosmetic/state-order issue.
+
+B5 (air momentum), B8 (implicit cancels/scaling), and B9 (hurt/push alias) remain
+source-confirmed audit observations; B5 was not re-probed at this baseline.
+B6 is partially addressed by the landing-recovery work: mid-move touchdown still
+skips the whiff-meter gain that a move finishing in air receives. See the
+reconciliation for the finding-by-finding dispositions.
+
+## Unresolved decisions
+
+- Whether knockdown throws should be rejected or remain techable (B2).
+- Whether air attacks should preserve horizontal momentum or intentionally stop
+  on attack (B5; needs a live probe and playtest).
+- Whether wake-up should allow blocking in its vulnerable tail (B7; playtest).
+- Whether the damage-scaling floor should move toward the GDD's 35% (the code
+  currently implements 55%; both values remain unchanged).
+- Gamepad support and in-game input remapping are GDD §4.1/§4.6/§14
+  requirements but are not implemented; the current input map is generated from
+  a fixed keyboard table.
+- METHtality currently uses a kill-confirm gate. GDD §5.9's final-round finish
+  prompt and cinematic remain future design/implementation, not current behavior.
+- The Phase 2 recommended cast differs from the implemented Peggy/Richard pair;
+  confirm scope rather than treating the recommendation as silently changed.
+  See `docs/PHASE_STATUS.md` for the phase evidence and gate status.
+
 ## What the current build contains
 
 Engine and feel:
@@ -122,6 +174,11 @@ that section by hand afterward — the simulation step comes from
   banner — no cinematic, camera, or choreography yet. The 25% threshold and 30f
   freeze are first-pass balance numbers, and a whiffed finisher still spends the
   full bar.
+- **No dash/backdash.** GDD §5.2/§5.11 list them; neutral movement is walk-only.
+- **No gamepad support or input-remap UI.** Current inputs are a generated
+  keyboard table; GDD §4.1/§4.6/§14 require both.
+- **No counter-hit, per-move cancel windows, or juggle limit.** Cancel routes
+  are engine-coded; GDD §5.3/§5.6/§5.10 remain future work.
 - **No character/stage select.** Fixed matchup + Bus Stop (Night).
 - **Debug overlay is dev-only.** Boxes, frame state, frame advantage, input
   history, slow motion, frame-step and refill exist; there is no AI state view
@@ -130,7 +187,9 @@ that section by hand afterward — the simulation step comes from
 - **No throw-tech follow-ups yet.** Punish Counter throws, delayed-throw
   pressure and shimmy baiting are design space, not implemented.
 
-## Known edge cases
+## Known edge cases and first-pass balance limits
+
+These are measured or first-pass limits, not phase-exit validation.
 
 - **Timeout ties**: equal health at time-out is a draw round with no pip. The
   first two ties just advance the round; the **third** tie starts a final
@@ -164,8 +223,9 @@ that section by hand afterward — the simulation step comes from
   `game/tools/gen_fighter_data.gd` (which now also authors the EX rows and
   METHtality finishers).
 - Damage scaling is per-defender combo count: 100/100/85/70/55% for hits
-  1–2/3/4/5+, floor **55%**. Chip damage never kills — a blocked hit floors the
-  defender at 1 HP.
+  1–2/3/4/5+, floor **55%**. GDD §5.10 proposes a **35% minimum**; that
+  difference is unresolved and neither value is changed here. Chip damage never
+  kills — a blocked hit floors the defender at 1 HP.
 - HUD uses the default Godot font at pixel-safe sizes; the final pixel font
   arrives with UI art direction (GDD Phase 4).
 - **Licensing is undecided.** Treat the repo as all-rights-reserved until a
@@ -215,10 +275,14 @@ that section by hand afterward — the simulation step comes from
 - `game/tests/air_probe.gd` — metrics only, no assertions: both fighter
   directions; sampled geometry candidates vs resolver-confirmed reach/trade,
   direct damage ratios, hitstop, actual block advantage, and post-whiff
-  actionability. Prints a report and exits 0; `docs/PROPOSALS.md` §3 documents
-  the coarse grid, before/after metrics, and target limitations.
+  actionability. Prints a report and exits 0 on success; `docs/PROPOSALS.md` §3
+  documents the coarse grid, before/after metrics, and target limitations. Its
+  numbers are informational measurements, not passing balance assertions.
 - `.github/workflows/tests.yml` runs both suites plus the air probe on push, pull
-  request and manual dispatch.
+  request and manual dispatch. They are separate jobs in one workflow; parallel
+  execution does not make a job non-gating. A non-zero command or job failure in
+  the air-probe job can still fail the workflow even though the script contains
+  no assertions.
 - `.github/workflows/export.yml` builds Linux/Windows artifacts on `main` and
   `v*` tags, can be dispatched by hand, and caches the export templates per
   Godot version.

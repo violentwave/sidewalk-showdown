@@ -10,8 +10,7 @@ This is a phase placement, not an exit sign-off. The Phase 1 greybox feature set
 exists, and many ordinary paths are covered by tests, but the combat audit's
 knockdown loops and other uncovered edge behavior leave the overall Phase 1
 feel/correctness claim at risk. Phase 2's presentation and private-show exit
-criteria are not met. `README.md`'s “Phase 1.5d” label is historical/stale, not a
-GDD phase name.
+criteria are not met. `README.md` now uses the same GDD phase label.
 
 Status labels distinguish the existence of features from validation of the
 phase exit criteria:
@@ -65,9 +64,10 @@ phase exit criteria:
   suitable for a private showing.
 - **Status:** **In progress; exit not met.** Peggy and Richard are playable on
   the Bus Stop stage; the HUD and METHtality engine prototype exist. METHtality
-  presentation remains a freeze/banner rather than choreography. There is no
-  character-select mockup, Tripp commentary sample, music, or core SFX, and the
-  runtime fighters remain silhouettes.
+  currently uses the kill-confirm gate and a freeze/banner; GDD §5.9's
+  final-round finish prompt, cinematic, camera, and choreography remain future
+  work. There is no character-select mockup, Tripp commentary sample, music, or
+  core SFX, and the runtime fighters remain silhouettes.
 - **Blockers / decisions:** owner confirmation is needed if the recommended
   Phase 2 cast is intended to be strict: GDD §13 suggests Burnout Bubba plus
   Peggy or Randy, while the current pair is Peggy/Richard. Those names are under
@@ -86,8 +86,10 @@ phase exit criteria:
   preloads the two fighters and one stage, so generic selection/loading is not
   demonstrated. Input is generated from a keyboard table but has no remapping
   UI; training is limited to debug controls; AI, audio manager, save/unlock, and
-  an authored hitbox editor workflow are missing. Cancel rules remain implicit
-  in engine code (B8).
+  an authored hitbox editor workflow are missing. Dash/backdash states are
+  absent. Cancel rules remain implicit in engine code, juggle/counter-hit rules
+  are not authored, and the 55% implemented scaling floor remains unresolved
+  against the GDD's proposed 35% (B8).
 - **Exit verification:** not met; adding the current roster/stage still depends
   on hard-coded match setup, and several listed systems do not exist.
 
@@ -151,9 +153,11 @@ phase exit criteria:
   content/accessibility review. Exit: no progression blockers/crashes, stable
   match flow, usable modes, and builds on target PC specs.
 - **Status:** **In progress; exit not met.** CI runs the combat/round suites and
-  air probe; Linux/Windows export builds pass. The current audit reproduced B1,
-  B2, B3, B4, B7 and B10; controller support, latency/performance profiling,
-  AI and progression coverage remain missing/unverified.
+  air probe; Linux/Windows export builds pass. The air probe is informational and
+  has no balance assertions, but its separate CI job is still part of the
+  workflow and can fail it. The current audit reproduced B1, B2, B3, B4, B7 and
+  B10; controller support, latency/performance profiling, AI and progression
+  coverage remain missing/unverified.
 - **Blockers:** correctness and owner decisions from B1–B8, plus gamepad and
   target-machine validation. A passing old suite is not a blanket exit sign-off.
 

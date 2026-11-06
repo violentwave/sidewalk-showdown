@@ -468,9 +468,11 @@ Recommended initial values:
 | Counter hit | +2 frames |
 | METHtality trigger | Cinematic freeze |
 
-> **Implementation-status note (2026-11-05):** per-move hitstop is implemented
-> and shared between attacker/defender. There is no counter-hit detection or +2f
-> bonus yet; the counter-hit row remains a future requirement. See the
+> **Implementation-status note (2026-11-05, updated for PR 1):** per-move hitstop
+> is implemented and shared between attacker/defender. Counter hits are now
+> detected: a strike that lands on a defender still in its own startup, and is
+> not a same-frame trade, adds +2f of shared hitstop and shows a `COUNTER HIT`
+> text indicator (GDD §10.3). Counter-hit cancel rules are not yet authored. See the
 > [current-baseline audit](docs/audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md)
 > finding B8.
 
@@ -577,7 +579,7 @@ Suggested damage scaling:
 > **Implementation-status note (2026-11-05):** the current `_damage_scale()`
 > implements 100/100/85/70/55% for hits 1–2/3/4/5+, with a **55% floor**, which
 > now matches the owner decision above. Cancel routes are currently engine-coded,
-> with no per-move cancel window, juggle limit, or counter-hit implementation.
+> with no per-move cancel window or juggle limit. Counter-hit detection exists (see §5.6).
 > Blocked strikes currently receive a fixed 45 px/s pushback in the real
 > simulation, independent of authored hit knockback; there is no per-move block
 > pushback or block-condition cancel data. The behavior-preserving authored-

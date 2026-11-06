@@ -26,6 +26,8 @@ var tech_flash: Label
 var tech_flash_frames: int = 0
 var meth_banner: Label
 var meth_banner_frames: int = 0
+var counter_flash: Label
+var counter_flash_frames: int = 0
 var hud_root: Control
 var pause_root: Control
 var pause_options: Array[Label] = []
@@ -44,6 +46,10 @@ func _process(_delta: float) -> void:
 		meth_banner_frames -= 1
 		if meth_banner_frames == 0:
 			meth_banner.visible = false
+	if counter_flash_frames > 0:
+		counter_flash_frames -= 1
+		if counter_flash_frames == 0:
+			counter_flash.visible = false
 
 func _build() -> void:
 	var root := Control.new()
@@ -81,6 +87,12 @@ func _build() -> void:
 		HORIZONTAL_ALIGNMENT_CENTER, 12, Color(0.45, 0.95, 1.0))
 	tech_flash.visible = false
 
+	# Counter-hit text indicator (GDD §5.6 / §10.3). Plain text, so it reads the
+	# same on the current silhouettes.
+	counter_flash = _label(root, "COUNTER HIT", Vector2(90, 46), Vector2(140, 14),
+		HORIZONTAL_ALIGNMENT_CENTER, 12, Color(1.0, 0.5, 0.2))
+	counter_flash.visible = false
+
 	# METHtality banner (PROPOSALS §4): phase-1 presentation while the finisher's
 	# long hitstop freezes the exchange.
 	meth_banner = _label(root, "", Vector2(20, 84), Vector2(280, 30),
@@ -111,6 +123,8 @@ func bind(p1: FighterBase, p2: FighterBase) -> void:
 	p2.combo_changed.connect(_on_p2_combo)
 	p1.teched.connect(_on_teched)
 	p2.teched.connect(_on_teched)
+	p1.counter_hit_landed.connect(_on_counter_hit)
+	p2.counter_hit_landed.connect(_on_counter_hit)
 	_on_p1_health(p1.health, p1.max_health)
 	_on_p2_health(p2.health, p2.max_health)
 	_on_p1_meter(p1.meter, p1.max_meter)
@@ -171,6 +185,10 @@ func _on_p2_combo(count: int) -> void:
 func _on_teched() -> void:
 	tech_flash.visible = true
 	tech_flash_frames = 20
+
+func _on_counter_hit() -> void:
+	counter_flash.visible = true
+	counter_flash_frames = 30
 
 func show_meth_message(text: String) -> void:
 	meth_banner.text = text

@@ -1,0 +1,17 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+AUDIT_SHA=e6d40d9607a0f0e3fc4a3be23ed592dbd9d43eda GODOT=4.7.2-stable (official)
+B7_FRAME n=0 strike_invul=true throw_invul=true holding_back=true is_blocking=false state=14
+B7_FRAME n=1 strike_invul=true throw_invul=true holding_back=true is_blocking=false state=14
+B7_FRAME n=2 strike_invul=true throw_invul=true holding_back=true is_blocking=false state=14
+B7_FRAME n=3 strike_invul=true throw_invul=true holding_back=true is_blocking=false state=14
+B7_FRAME n=4 strike_invul=true throw_invul=true holding_back=true is_blocking=false state=14
+B7_FRAME n=5 strike_invul=true throw_invul=true holding_back=true is_blocking=false state=14
+B7_FRAME n=6 strike_invul=false throw_invul=true holding_back=true is_blocking=false state=14
+B7_FRAME n=7 strike_invul=false throw_invul=true holding_back=true is_blocking=false state=14
+B7_FRAME n=8 strike_invul=false throw_invul=false holding_back=true is_blocking=false state=14
+B7_FRAME n=9 strike_invul=false throw_invul=false holding_back=true is_blocking=false state=14
+B7_FRAME n=10 strike_invul=false throw_invul=false holding_back=true is_blocking=false state=14
+B7_FRAME n=11 strike_invul=false throw_invul=false holding_back=true is_blocking=false state=14
+B7_MEATY frame=6 strike_invul=false holding_back=true blocking=false hp_delta=35.0 state_after=11
+B7_ACTION frame=9 state=14 current_move=<null> buffered_light_age=1

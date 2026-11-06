@@ -1,0 +1,128 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+PASS: fighters spawned
+PASS: match reaches FIGHT phase
+PASS: light hit deals damage
+PASS: light damage matches data
+PASS: attacker gains meter
+PASS: blocked hit only chips
+PASS: low attack beats stand block
+PASS: throw ignores block
+PASS: jump leaves the ground
+PASS: P2 moves with own keys
+PASS: P2 attacks with own keys
+PASS: blockstun keeps blocking
+PASS: attacker freezes on hit
+PASS: jump transitions rise -> fall
+PASS: KO loser lands on stage
+PASS: KO state persists after landing
+PASS: keyboard events match input map
+PASS: chip damage cannot KO
+PASS: p2 is in hitstun
+PASS: pause freezes fighters
+PASS: pause keeps match controller running
+PASS: pause opens the menu
+PASS: P2 moves the menu selection
+PASS: P1 moves the menu selection
+PASS: menu wraps to the last option
+PASS: menu wraps to the first option
+PASS: menu input does not advance sim
+PASS: light attack resumes
+PASS: sim resumes mid-hitstun
+PASS: restart option selected
+PASS: restart match from the menu
+PASS: overlay bound to fighters
+PASS: frame-step advances exactly one frame
+PASS: frame-step is one frame per press
+PASS: frame-step keeps the tree paused
+PASS: frame-step is inert without slow-mo
+PASS: frame advantage reads out during hitstun
+PASS: reset restores full health
+PASS: reset fills meter
+PASS: reset restores round positions
+PASS: reset returns fighters to idle
+PASS: reset keeps the match phase
+PASS: frame-step leaves tree paused
+PASS: pause menu opens while frame-step paused
+PASS: frame-step is gated while the pause menu is open
+PASS: frame-step works again once the menu closes
+PASS: grab data present
+PASS: grounded throw connects
+PASS: airborne defender is not grabbed
+PASS: brushed throw keeps its active window
+PASS: throw lands once the defender is grounded in the window
+PASS: wake-up invulnerability blocks a frame-1 meaty
+PASS: invulnerable brush is not counted as a hit
+PASS: meaty lands on the first vulnerable frame
+PASS: wake-up strike invuln ends before throw invuln
+PASS: wake-up throw is rejected inside the throw-invuln window
+PASS: wake-up throw lands once the throw-invuln window ends
+PASS: wakeup_frames is read from FighterData
+PASS: wake-up invuln does not shadow the airborne throw guard
+PASS: invuln readout is empty while idle
+PASS: readout shows the wake-up strike window
+PASS: readout switches to THROWINV for the throw tail
+PASS: frame-state text carries the countdown
+PASS: readout shows a reversal's own invuln frames
+PASS: hitstop freezes the wake-up invuln countdown
+PASS: the countdown resumes, and expires, after hitstop
+PASS: authored invuln ends with the move
+PASS: tech neutralizes both fighters with no damage
+PASS: tech lasts throw_tech_recovery frames on both
+PASS: overlay reports the TECH state
+PASS: tech pushes both fighters apart
+PASS: both fighters leave TECH for neutral
+PASS: tech after the window is a normal throw
+PASS: lockout prevents option-select mashing
+PASS: throw whiff recovery is authored at 22 frames
+PASS: whiffed throw measures the extended recovery
+PASS: no tech while the defender is airborne
+PASS: the live tech buffer breaks the throw on landing
+PASS: wake-up throw invuln rejects a teched throw
+PASS: tech works once the throw-invuln tail ends
+PASS: EX special starts from special+heavy
+PASS: EX spends its meter cost
+PASS: insufficient meter falls back to the base special
+PASS: EX variants differ from base in damage and startup
+PASS: find_move never returns an EX row
+PASS: both fighters have neutral and forward EX rows
+PASS: meter floors at 0 when the exact cost is paid
+PASS: an empty bar rejects spending
+PASS: METHtality is blocked above the health threshold
+PASS: METHtality needs a stunned or knocked-down opponent
+PASS: METHtality needs a full hype bar
+PASS: METHtality triggers in a kill-confirm window
+PASS: METHtality drains the meter fully
+PASS: HUD announces the METHtality
+PASS: METHtality ends the opponent
+PASS: METHtality round ends as a KO win
+PASS: wake-up invulnerability blocks the finisher
+PASS: vertical-slice fighters have distinct METHtalities
+PASS: air-balance data regeneration preserves throw damage
+PASS: landing recovery is authored on aerial rows, not grounded attacks
+PASS: startup landing begins before any active hitbox
+PASS: startup whiff lands into authored recovery with no stale move/hitbox
+PASS: active-frame landing fixture starts with a live hitbox
+PASS: active landing clears hitbox and move without replaying startup
+PASS: pause freezes landing recovery
+PASS: hitstop freezes the landing-recovery countdown
+PASS: landing remains locked for all but its final authored frame
+PASS: fighter becomes actionable on the authored landing-recovery frame
+PASS: recovery-phase landing fixture has no live hitbox
+PASS: recovery-phase whiff receives authored landing lockout
+PASS: a whiff that finishes in the air falls with its move data intact
+PASS: falling touchdown applies the finished aerial move's recovery
+PASS: airborne special connects through the real resolver before landing
+PASS: hitstop holds the airborne attacker above the landing transition
+PASS: a resolved hit lands with legacy recovery, not whiff recovery
+PASS: air-special block resolves and counts as contact
+PASS: a blocked aerial move also uses legacy 2-frame landing recovery
+PASS: legacy 2-frame LAND keeps its existing block behavior
+PASS: an anti-air hit interrupts aerial startup
+PASS: landing during knockdown does not add aerial recovery
+PASS: whiff landing recovery cannot block and is interrupted by a hit
+PASS: restart clears landing recovery and the aerial move
+PASS: grounded attacks remain in their authored attack state and total
+PASS: Whiskey Richard uses his authored aerial landing recovery
+
+0 failure(s)

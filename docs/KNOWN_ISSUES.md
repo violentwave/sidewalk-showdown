@@ -1,8 +1,13 @@
 # Known Issues — Phase 2
 
-Exit criteria from GDD §13 Phase 1: two boxes can fight, hits feel responsive,
-blocking works, round flow works, match can end/restart. **All met.** Phase 2 adds
-throw tech, draw resolution, EX specials and the METHtality engine core.
+GDD §13 Phase 1 greybox features and basic flow paths are implemented and tested,
+but this is **not a blanket phase-exit sign-off**. The current-baseline audit
+reproduced open knockdown loops, buffer-aging, corner separation, and KO-order
+issues; “hits feel responsive” also requires human playtesting. See
+`docs/PHASE_STATUS.md` for the requirement/evidence distinction and
+`docs/audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md` for the
+current-main reconciliation. Phase 2 adds throw tech, draw resolution, EX
+specials and the METHtality engine core.
 
 ## What the current build contains
 

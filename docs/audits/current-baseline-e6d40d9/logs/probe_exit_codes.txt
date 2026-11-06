@@ -1,0 +1,5 @@
+knockdown=0
+buffer=0
+corner_trade=0
+wakeup=0
+b6_meter=0

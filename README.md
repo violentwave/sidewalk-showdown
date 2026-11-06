@@ -6,7 +6,7 @@ legends eventually turn on him.
 
 **Engine:** Godot 4.x (in `game/`)
 **Target:** PC first (Windows / Linux / macOS)
-**Status:** Phase 1.5d — greybox combat prototype, audit-hardened
+**Status:** GDD Phase 2 — Vertical Slice, in progress. See `docs/PHASE_STATUS.md`.
 **License:** TBD — treat as all-rights-reserved until a LICENSE file is added.
 
 ## Quick start
@@ -94,7 +94,9 @@ godot --headless --path game --export-release windows build/windows/sidewalk_sho
 | `CHARACTERS.md` | Roster bible (archetypes, rivals, data direction) |
 | `docs/SIDEWALK_SHOWDOWN_NON_DEFINING_ASSET_PROMPTS.md` | 315 art-generation prompts |
 | `docs/KNOWN_ISSUES.md` | Current prototype gaps |
+| `docs/PHASE_STATUS.md` | GDD phase/readiness status, evidence, and blockers |
 | `docs/PROPOSALS.md` | Combat designs and measured air-special / landing-recovery first pass |
+| `docs/audits/` | Preserved historical audits and current-main reconciliations |
 | `docs/LICENSE_OPTIONS.md` | License decision report: all-rights-reserved vs CC BY-NC vs source-available |
 | `docs/MAIN_BRANCH_GUARD.md` | Main-branch tripwire behavior, landing procedure and limitations |
 

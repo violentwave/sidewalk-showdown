@@ -1,0 +1,5 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+AUDIT_SHA=e6d40d9607a0f0e3fc4a3be23ed592dbd9d43eda GODOT=4.7.2-stable (official)
+B6_LAND_MID_MOVE state=7 meter=0.0 move_cleared=true authored_whiff_gain=1.5 recovery=12
+B6_NATURAL_AIR_WHiff state=6 grounded=false meter=1.5 expected_gain=1.5 current_move_present=true

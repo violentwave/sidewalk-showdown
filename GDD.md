@@ -567,12 +567,16 @@ Suggested damage scaling:
 | 3rd hit | 85% |
 | 4th hit | 70% |
 | 5th+ hit | 55% |
-| Minimum scaling | 35% |
+| Minimum scaling | 55% |
 
+> **Owner decision (2026-11-06, documentation only):** the damage-scaling floor is
+> **55%**, matching the implemented `_damage_scale()`. The 35% minimum originally
+> proposed in this table is amended to 55%. The 35% value may be revisited only
+> after a juggle limit exists.
+>
 > **Implementation-status note (2026-11-05):** the current `_damage_scale()`
-> implements 100/100/85/70/55% for hits 1–2/3/4/5+, with a **55% floor**. The
-> GDD's proposed **35% minimum** remains unresolved; neither value is changed by
-> this documentation reconciliation. Cancel routes are currently engine-coded,
+> implements 100/100/85/70/55% for hits 1–2/3/4/5+, with a **55% floor**, which
+> now matches the owner decision above. Cancel routes are currently engine-coded,
 > with no per-move cancel window, juggle limit, or counter-hit implementation.
 > Blocked strikes currently receive a fixed 45 px/s pushback in the real
 > simulation, independent of authored hit knockback; there is no per-move block

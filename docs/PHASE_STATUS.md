@@ -110,7 +110,11 @@ phase exit criteria:
   an authored hitbox editor workflow are missing. Dash/backdash states are
   absent. Cancel rules remain implicit in engine code, juggle/counter-hit rules
   are not authored, and the 55% implemented scaling floor remains unresolved
-  against the GDD's proposed 35% (B8). `docs/PROPOSALS.md` §§6–7 have approved
+  against the GDD's proposed 35% (B8). Owner decision (2026-11-06): the floor
+  is **55%**, and GDD §5.10's 35% entry is amended to 55%; 35% may be revisited
+  only after a juggle limit exists. Command grabs are **untechable** with slow,
+  punishable startup; the normal throw remains the techable layer, and the
+  throw-tech system is not extended to command grabs. `docs/PROPOSALS.md` §§6–7 have approved
   design direction but are not implemented features; the correctness queue is
   sequenced first. D1/K1, D2/R1, corner separation and D3/PR 4a are implemented;
   blockstun policy 4b remains deferred. The owner has set shared controls across

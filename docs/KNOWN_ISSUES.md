@@ -57,8 +57,12 @@ reconciliation for the finding-by-finding dispositions.
 - Whether air attacks should preserve horizontal momentum or intentionally stop
   on attack (B5; needs a live probe and playtest).
 - Whether wake-up should allow blocking in its vulnerable tail (B7; playtest).
-- Whether the damage-scaling floor should move toward the GDD's 35% (the code
-  currently implements 55%; both values remain unchanged).
+- Damage-scaling floor: **decided (2026-11-06) as 55%**, matching the code; GDD
+  §5.10's 35% entry is amended to 55%. 35% may be revisited only after a juggle
+  limit exists.
+- Command-grab techability: **decided (2026-11-06) as untechable**, with slow,
+  punishable startup. The normal throw remains techable; throw-tech is not
+  extended to command grabs.
 - Authored combos and command grabs are not implemented. `docs/PROPOSALS.md`
   §§6–7 have approved direction; the correctness queue comes first. Command-grab
   techability and the already-occupied Peggy back-special / Richard
@@ -240,8 +244,8 @@ These are measured or first-pass limits, not phase-exit validation.
   `game/tools/gen_fighter_data.gd` (which now also authors the EX rows and
   METHtality finishers).
 - Damage scaling is per-defender combo count: 100/100/85/70/55% for hits
-  1–2/3/4/5+, floor **55%**. GDD §5.10 proposes a **35% minimum**; that
-  difference is unresolved and neither value is changed here. Chip damage never
+  1–2/3/4/5+, floor **55%**. This is the owner-decided floor (2026-11-06); GDD
+  §5.10's 35% entry is amended to 55%. Chip damage never
   kills — a blocked hit floors the defender at 1 HP.
 - HUD uses the default Godot font at pixel-safe sizes; the final pixel font
   arrives with UI art direction (GDD Phase 4).

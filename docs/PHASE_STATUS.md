@@ -25,8 +25,8 @@ criteria are not met. `README.md` now uses the same GDD phase label.
 
 Implementation order: PR 1 K1 strike guard; PR 2 R1 throw rejection; PR 3
 corner-separation remainder; PR 4a bounded hitstop-only buffer freeze. D1 is
-implemented and tested by the current PR; D2–D3 and corner separation remain
-queued for their separate PRs.
+implemented by PR 1 and D2 by the current PR; both have regression tests. D3
+and corner separation remain queued for their separate PRs.
 
 Status labels distinguish the existence of features from validation of the
 phase exit criteria:
@@ -66,9 +66,9 @@ phase exit criteria:
   current PR adds eight combat checks (132 combat, 30 round-flow). D1/K1 is now
   implemented and regression-tested: non-METH strikes are rejected in
   knockdown while the full-meter METH path remains available and can connect.
-  The remaining current-main findings B2, B3, B4, B7 and B10 remain open; see the
+  The remaining current-main findings B3, B4, B7 and B10 remain open; see the
   companion report. “Hits feel responsive” remains a human feel judgment.
-- **Blockers:** D2/R1, D3/PR 4a, B4 and B10 remain queued; B5 and B7 require
+- **Blockers:** D3/PR 4a, B4 and B10 remain queued; B5 and B7 require
   explicit feel/playtest decisions. Passing existing suites does not resolve
   uncovered runtime findings.
 

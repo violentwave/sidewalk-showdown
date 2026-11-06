@@ -14,8 +14,8 @@ specials and the METHtality engine core.
 
 The external probes in the
 [current-baseline report](audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md)
-reproduced these on `e6d40d9`; they are not resolved merely because the suites
-pass.
+reproduced these on `e6d40d9`; the status of each is marked below. A baseline
+finding is not considered fixed merely because an older suite passes.
 
 - **Knockdown strike loop (B1) — fixed by K1.** The baseline probe showed a
   repeated crouch-heavy hitting a defender who
@@ -23,9 +23,10 @@ pass.
   held-back-input run also landed five hits without a block. Current code now
   rejects non-METH strikes during knockdown and preserves the explicit METH-row
   exception; tests cover both outcomes. See PROPOSALS §6 and `PHASE_STATUS.md`.
-- **Knockdown throws (B2).** Unteched grabs hit a knocked-down defender for 95
-  damage and re-enter knockdown. A buffered grab was teched correctly, but the
-  policy question remains: reject knockdown throws or keep the techable loop.
+- **Knockdown throws (B2) — fixed by D2/R1.** The baseline probe showed unteched
+  grabs hitting a knocked-down defender for 95 damage and re-entering knockdown.
+  Throws are now rejected during `KNOCKDOWN` before tech/damage resolution;
+  normal throw damage remains 95/105. Regression tests cover both orientations.
 - **Buffer aging through freeze/stun (B3).** Input polling is gated by
   `input_enabled`, while stored buffers age during hitstop and stun even when
   the fighter state machine is frozen. Near-actionable 3f hitstop survived but
@@ -50,7 +51,7 @@ reconciliation for the finding-by-finding dispositions.
 ## Unresolved decisions
 
 - D2/R1 resolves knockdown throws: throws cannot connect during `KNOCKDOWN`;
-  implementation is queued for PR 2.
+  implemented and regression-tested in PR 2.
 - Whether air attacks should preserve horizontal momentum or intentionally stop
   on attack (B5; needs a live probe and playtest).
 - Whether wake-up should allow blocking in its vulnerable tail (B7; playtest).

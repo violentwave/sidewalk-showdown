@@ -40,6 +40,15 @@ extends Resource
 
 @export var moves: Array[MoveData] = []
 
+# PROPOSALS §7: the per-fighter command grab row (input COMMAND_GRAB). Distinct
+# lookup from find_move(), so grab resolution never collides with the five
+# normal specials or the techable normal throw.
+func find_command_grab() -> MoveData:
+	for move in moves:
+		if move.input == MoveData.InputType.COMMAND_GRAB:
+			return move
+	return null
+
 func find_move(input: MoveData.InputType, stance: MoveData.Stance) -> MoveData:
 	for move in moves:
 		if not move.ex and move.input == input and move.stance == stance:

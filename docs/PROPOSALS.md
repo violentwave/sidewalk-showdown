@@ -1234,6 +1234,24 @@ or resource changes. Roll back the two authored rows independently if they
 regress ordinary throw behavior; never remove or alter the shared normal-throw
 rules as a shortcut.
 
+**Implementation status (PR 6, implemented):** owner-approved selection is
+**forward + grab**, not the replaced back/forward special slots. Each fighter
+keeps all five normal specials and the normal throw. Pressing grab with the
+forward direction held (`_axis * facing > 0`) starts the authored
+`COMMAND_GRAB` row (`MoveData.InputType.COMMAND_GRAB`, `THROW` level); a neutral
+or back-held grab press starts the techable normal throw as before. Tech stays
+direction-blind: any grab buffer still techs an incoming throw, and the command
+grab is skipped by the tech check (`receive_hit()`), making it UNTECHABLE.
+Values (owner first pass): Peggy 120 damage, 14f startup, 3f active, 24f whiff
+recovery (`MoveData.whiff_recovery`, row-only override); Richard 140 damage,
+16f startup, 3f active, 26f whiff recovery. Both: meter 6/8 on hit, 1.5 on
+whiff, 4 received; 30f knockdown (intentional: bigger damage and shorter
+okizeme than the 42f normal-throw knockdown); THROW level, unblockable, no EX
+variant. R1, wake-up throw invulnerability, and airborne rejection are shared
+guards and still apply. Informational metric (not asserted): reward versus
+the defender's best single-hit punish is 0.80 for Peggy (120/150) and 0.97 for
+Richard (140/145).
+
 ## Suggested order
 
 1. **Air probe first** — it is additive, touches no gameplay, and produces the

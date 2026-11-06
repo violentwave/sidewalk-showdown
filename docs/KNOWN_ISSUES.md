@@ -201,10 +201,10 @@ that section by hand afterward — the simulation step comes from
   detection and +2f hitstop are implemented (PROPOSALS §6, PR 1); counter-
   specific cancel routes exist in the engine and take precedence but no authored
   route sets a `COUNTER_HIT` condition yet.
-- **No command grabs.** The two existing fighters have only the ordinary
-  grounded throw row. Proposed special-direction command grabs and their
-  techability policy are documented in `docs/PROPOSALS.md` §7; Phase 3 owner
-  approval is required before implementation.
+- **Command grabs are authored (PROPOSALS §7, PR 6).** Forward+grab starts an
+  UNTECHABLE THROW-level command grab for each fighter; the normal throw remains
+  techable. Owner values are first-pass and informational: reward/whiff-punish
+  ratios are 0.80 (Peggy) and 0.97 (Richard), and balance is not yet playtested.
 - **No character/stage select.** Fixed matchup + Bus Stop (Night).
 - **Debug overlay is dev-only.** Boxes, frame state, frame advantage, input
   history, slow motion, frame-step and refill exist; there is no AI state view

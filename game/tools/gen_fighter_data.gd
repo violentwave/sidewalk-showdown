@@ -159,6 +159,19 @@ func _fighter(id: String, display_name: String, speed_f: float, speed_b: float,
 	return f
 
 
+# PROPOSALS §7 command grab rows: THROW level, UNTECHABLE (slow punishable
+# startup per owner decision), forward+grab selection, knockdown, no EX variant.
+func _cg(id: String, startup: int, recovery: int, damage: float, whiff_recovery: int,
+		meter_hit: float, meter_whiff: float, meter_recv: float) -> MoveData:
+	var m := _m(id, MoveData.InputType.COMMAND_GRAB, STAND, THROW, startup, 3, recovery,
+		damage, 0.0, 0, 0, 100, true, Vector2(20, -36), Vector2(30, 40), 8)
+	m.whiff_recovery = whiff_recovery
+	m.meter_gain_hit = meter_hit
+	m.meter_gain_whiff = meter_whiff
+	m.meter_gain_receive = meter_recv
+	return m
+
+
 func _peggy() -> FighterData:
 	var f := _fighter("peg_leg_peggy", "Peg Leg Peggy", 95.0, 72.0, 285.0, 26.0, 54.0,
 		Color(0.95, 0.55, 0.15, 1.0))
@@ -168,6 +181,8 @@ func _peggy() -> FighterData:
 		22, 14, 120, false, Vector2(28, -40), Vector2(44, 20), 10)))
 	moves.append(_ex(_m("peggy_forward_ex", SP_FWD, STAND, MID, 9, 4, 20, 145, 9.0,
 		24, 15, 150, true, Vector2(32, -40), Vector2(48, 24), 10)))
+	# §7 command grab (owner values, first pass): untechable, slow startup.
+	moves.append(_cg("peggy_command_grab", 14, 24, 120.0, 24, 6.0, 1.5, 4.0))
 	f.moves = moves
 	f.meth_name = "Walk the Plank"
 	f.meth_health_threshold = 250.0
@@ -190,6 +205,8 @@ func _richard() -> FighterData:
 		24, 14, 120, false, Vector2(28, -40), Vector2(44, 20), 10)))
 	moves.append(_ex(_m("richard_forward_ex", SP_FWD, STAND, MID, 9, 4, 20, 150, 9.0,
 		26, 15, 160, true, Vector2(32, -40), Vector2(48, 24), 10)))
+	# §7 command grab (owner values, first pass): untechable, slow startup.
+	moves.append(_cg("richard_command_grab", 16, 26, 140.0, 26, 8.0, 1.5, 4.0))
 	f.moves = moves
 	f.meth_name = "Flaming Belch"
 	f.meth_health_threshold = 250.0

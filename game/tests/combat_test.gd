@@ -1795,5 +1795,209 @@ func _run() -> void:
 			"measured penetration=%.1f" % penetration)
 		Input.action_release("p2_left" if dfd_facing == 1 else "p2_right")
 
+	# --- 45. command grabs (PROPOSALS 7): resolution, untechable, guards ---
+	# Data matrix: exactly one COMMAND_GRAB row per fighter with owner values.
+	var cg_ok := true
+	var cg_detail := ""
+	for fighter_data in [p1.data, p2.data]:
+		var cg: MoveData = null
+		for m in fighter_data.moves:
+			if m.input == MoveData.InputType.COMMAND_GRAB:
+				if cg != null:
+					cg_ok = false
+					cg_detail = "duplicate command grab row in " + fighter_data.id
+				cg = m
+		if cg == null:
+			cg_ok = false
+			cg_detail = "no command grab row in " + fighter_data.id
+			continue
+		var want_damage := 120.0 if fighter_data.id == "peg_leg_peggy" else 140.0
+		var want_startup := 14 if fighter_data.id == "peg_leg_peggy" else 16
+		var want_whiff := 24 if fighter_data.id == "peg_leg_peggy" else 26
+		var want_meter := 6.0 if fighter_data.id == "peg_leg_peggy" else 8.0
+		var ok := cg.level == MoveData.Level.THROW \
+			and is_equal_approx(cg.damage, want_damage) \
+			and cg.startup == want_startup and cg.active == 3 \
+			and cg.whiff_recovery == want_whiff and cg.meth == false \
+			and is_equal_approx(cg.meter_gain_hit, want_meter) \
+			and is_equal_approx(cg.meter_gain_whiff, 1.5) \
+			and is_equal_approx(cg.meter_gain_receive, 4.0) \
+			and cg.knockdown and is_equal_approx(cg.block_pushback, 0.0) \
+			and cg.ex == false and cg.block_damage == 0.0
+		if not ok:
+			cg_ok = false
+			cg_detail = "%s values off" % cg.id
+	_check("each fighter authors exactly one THROW-level command grab with owner values",
+		cg_ok, cg_detail)
+	_check("normal find_move lookup never collides with the command grab row",
+		p1.data.find_move(MoveData.InputType.GRAB, MoveData.Stance.STAND).input
+			== MoveData.InputType.GRAB
+			and p2.data.find_command_grab().input == MoveData.InputType.COMMAND_GRAB,
+		"")
+
+	# Resolution: forward+grab starts the command grab; neutral or back-held
+	# grab starts the techable normal throw. Direction is read live, so hold
+	# the axis with Input while buffering the grab press.
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	Input.action_press("p1_right") # p1 faces right: forward held
+	p1.input_buffer["grab"] = 0
+	p1._try_start_attack()
+	_check("forward+grab resolves to the command grab row",
+		p1.current_move != null and p1.current_move.input == MoveData.InputType.COMMAND_GRAB,
+		"move=%s" % (p1.current_move.id if p1.current_move else "null"))
+	p1.reset_state()
+	Input.action_release("p1_right")
+	p1.input_buffer["grab"] = 0
+	p1._try_start_attack()
+	_check("neutral grab resolves to the techable normal throw",
+		p1.current_move != null and p1.current_move.input == MoveData.InputType.GRAB,
+		"move=%s" % (p1.current_move.id if p1.current_move else "null"))
+	p1.reset_state()
+	Input.action_press("p1_left") # p1 faces right: back-held
+	p1.input_buffer["grab"] = 0
+	p1._try_start_attack()
+	_check("back-held grab resolves to the normal throw, not the command grab",
+		p1.current_move != null and p1.current_move.input == MoveData.InputType.GRAB,
+		"move=%s" % (p1.current_move.id if p1.current_move else "null"))
+	Input.action_release("p1_left")
+
+	# p2 direction selection, same rule (both fighters; p2 faces left).
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	Input.action_press("p2_left") # p2 faces left: forward held
+	p2.input_buffer["grab"] = 0
+	p2._try_start_attack()
+	_check("richard forward+grab fires his command grab",
+		p2.current_move != null and p2.current_move.id == "richard_command_grab",
+		"move=%s" % (p2.current_move.id if p2.current_move else "null"))
+	p2.reset_state()
+	Input.action_release("p2_left")
+	p2.input_buffer["grab"] = 0
+	p2._try_start_attack()
+	_check("richard neutral grab fires the normal throw",
+		p2.current_move != null and p2.current_move.input == MoveData.InputType.GRAB,
+		"move=%s" % (p2.current_move.id if p2.current_move else "null"))
+
+	# Connects as a THROW against an idle grounded defender, earns its damage
+	# and knockdown; stands and crouches cannot block it.
+	for cmd_pair in [p1, p2]:
+		var atk: FighterBase = cmd_pair
+		var dfd: FighterBase = p2 if atk == p1 else p1
+		var tagc: String = "cmdgrab " + atk.data.id
+		var cmd: MoveData = atk.data.find_command_grab()
+		scene._begin_round()
+		scene._start_fight()
+		_reset_fighters(100.0, 128.0)
+		var hp_cg: float = dfd.health
+		atk._start_move(cmd)
+		atk.state_frame = cmd.startup
+		Input.action_press("p2_right" if dfd == p2 else "p1_left") # held block attempt
+		scene._resolve_hits()
+		_check(tagc + ": connects as damage even when the defender holds block",
+			is_equal_approx(hp_cg - dfd.health, cmd.damage)
+			and dfd.state == FighterBase.State.KNOCKDOWN
+			and dfd.combo_hits == 1,
+			"hp_loss=%.1f state=%d" % [hp_cg - dfd.health, dfd.state])
+		_check(tagc + ": defender wakes with the authored 30-frame knockdown",
+			dfd.knockdown_frames == 30,
+			"frames=%d" % dfd.knockdown_frames)
+
+		# UNTECHABLE: a grab buffered inside throw_tech_window does NOT break
+		# the command grab, no TECH state, damage lands.
+		Input.action_release("p2_right" if dfd == p2 else "p1_left")
+		scene._begin_round()
+		scene._start_fight()
+		_reset_fighters(100.0, 128.0)
+		var hp_teched: float = dfd.health
+		atk._start_move(cmd)
+		atk.state_frame = cmd.startup
+		dfd.input_buffer["grab"] = 0
+		scene._resolve_hits()
+		_check(tagc + ": buffered grab does not tech the command grab",
+			dfd.state != FighterBase.State.TECH
+				and is_equal_approx(hp_teched - dfd.health, cmd.damage),
+			"state=%d hp_loss=%.1f" % [dfd.state, hp_teched - dfd.health])
+
+		# R1: rejected against a knocked-down defender, no opt-out.
+		scene._begin_round()
+		scene._start_fight()
+		_reset_fighters(100.0, 128.0)
+		dfd._force_state(FighterBase.State.KNOCKDOWN)
+		dfd.knockdown_frames = 30
+		atk._start_move(cmd)
+		atk.state_frame = cmd.startup
+		var r1_health: float = dfd.health
+		scene._resolve_hits()
+		_check(tagc + ": rejected against knockdown (R1)",
+			is_equal_approx(dfd.health, r1_health)
+				and dfd.state == FighterBase.State.KNOCKDOWN,
+			"health=%.1f" % dfd.health)
+
+		# Wake-up throw invulnerability still rejects it.
+		scene._begin_round()
+		scene._start_fight()
+		_reset_fighters(100.0, 128.0)
+		dfd._force_state(FighterBase.State.WAKE_UP)
+		dfd.state_frame = 0
+		r1_health = dfd.health
+		atk._start_move(cmd)
+		atk.state_frame = cmd.startup
+		scene._resolve_hits()
+		_check(tagc + ": wake-up throw-invulnerable defender rejects the command grab",
+			is_equal_approx(dfd.health, r1_health),
+			"health=%.1f" % dfd.health)
+
+		# Airborne rejection: _poll_hit returns null without spending the
+		# attacker's active window (shared resolver rule).
+		scene._begin_round()
+		scene._start_fight()
+		_reset_fighters(100.0, 128.0)
+		dfd.grounded = false
+		dfd._force_state(FighterBase.State.JUMP_FALL)
+		atk._start_move(cmd)
+		atk.state_frame = cmd.startup
+		_check(tagc + ": airborne defender rejects the grab without spending the window",
+			scene._poll_hit(atk, dfd) == null and not atk.move_already_hit,
+			"polled=null expected")
+
+		# Whiff recovery is row-authored and punishable in kind: the move
+		# total reads the overridden whiff value, not data.throw_whiff_recovery.
+		scene._begin_round()
+		scene._start_fight()
+		_reset_fighters(400.0, 128.0) # out of range on purpose
+		atk._start_move(cmd)
+		var whiff_total: int = atk._move_total(cmd)
+		_check(tagc + ": whiff recovery uses the row override",
+			whiff_total == cmd.startup + cmd.active + cmd.whiff_recovery,
+			"total=%d authored=%d+%d+%d" % [whiff_total, cmd.startup, cmd.active,
+				cmd.whiff_recovery])
+		# Informational metric (no assertion): reward vs the defender's best
+		# single-hit punish during the whiff window.
+		var punish: float = 0.0
+		for m_probe in dfd.data.moves:
+			if m_probe.level != MoveData.Level.THROW and m_probe.damage > punish:
+				punish = m_probe.damage
+		print("metric: %s reward/whiff-punish = %.2f (%.0f / %.0f best hit)"
+			% [atk.data.id, cmd.damage / punish, cmd.damage, punish])
+		atk.reset_state()
+
+	# Normal throw still techs exactly as before (regression of the recorded
+	# owner decision boundary).
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100.0, 128.0)
+	var normal_throw: MoveData = p1.data.find_move(MoveData.InputType.GRAB, MoveData.Stance.STAND)
+	p1._start_move(normal_throw)
+	p1.state_frame = normal_throw.startup
+	p2.input_buffer["grab"] = 0
+	var hp_tech: float = p2.health
+	scene._resolve_hits()
+	_check("normal throw still techs: grab buffered in the window breaks it",
+		p1.state == FighterBase.State.TECH and p2.health == hp_tech,
+		"state=%d hp=%.1f" % [p1.state, p2.health])
+
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

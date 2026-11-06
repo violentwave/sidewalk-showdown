@@ -108,7 +108,7 @@ phase exit criteria:
   demonstrated. Input is generated from a keyboard table but has no remapping
   UI; training is limited to debug controls; AI, audio manager, save/unlock, and
   an authored hitbox editor workflow are missing. Dash/backdash states are
-  absent. Blocked pushback is authored data (45 px/s on every strike row, with
+  absent. Command grabs are authored (PR 6: forward+grab, untechable, 30f knockdown). Blocked pushback is authored data (45 px/s on every strike row, with
   corner transfer; PR 5). Cancel rules are authored data (PR 2); the six §§6 route shapes for
   both fighters (jump-in starter, grounded chain, punish EX with fallback) are
   authored with resolver-verified routes and measured blocked endpoints (PR 4);

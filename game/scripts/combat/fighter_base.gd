@@ -314,10 +314,20 @@ func _try_start_attack() -> bool:
 		return true
 
 	if grounded and _consume("grab", BUFFER_GRAB):
-		var grab := data.find_move(MoveData.InputType.GRAB, MoveData.Stance.STAND)
-		if grab:
-			_start_move(grab)
-			return true
+		# PROPOSALS §7: the grab button selects by held direction. Forward
+		# (axis in the facing direction) + grab starts the authored command
+		# grab (UNTECHABLE); a neutral or back-held grab press starts the
+		# techable normal throw. Tech itself stays direction-blind: any grab
+		# buffer entry still techs an incoming throw, which one is selected is
+		# decided only here, on the attacker's side.
+		var command := data.find_command_grab()
+		if command and _axis("left", "right") * float(facing) > 0.0:
+			_start_move(command)
+		else:
+			var grab := data.find_move(MoveData.InputType.GRAB, MoveData.Stance.STAND)
+			if grab:
+				_start_move(grab)
+		return true
 
 	if _consume("special", BUFFER_SPECIAL):
 		if _try_start_special(stance):
@@ -558,7 +568,11 @@ func _move_total(move: MoveData) -> int:
 	if move == null:
 		return 0
 	if move.level == MoveData.Level.THROW and not move_already_hit and data:
-		return move.startup + move.active + data.throw_whiff_recovery
+		# PROPOSALS §7: a row-level whiff override (the command grabs) replaces
+		# FighterData's throw_whiff_recovery for that row only.
+		var whiff := move.whiff_recovery if move.whiff_recovery > 0 \
+			else data.throw_whiff_recovery
+		return move.startup + move.active + whiff
 	return move.total_frames()
 
 # ---------------- Damage ----------------
@@ -607,8 +621,10 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 			return false
 		# PROPOSALS §2: the tech check runs before damage and consumes both grab
 		# buffers, so a defender who pressed grab in the window resolves the
-		# exchange as a tech rather than as damage.
-		if _can_tech():
+		# exchange as a tech rather than as damage. PROPOSALS §7: command grabs
+		# are UNTECHABLE by owner decision — the tech check is skipped for them
+		# entirely; the normal throw remains the techable layer.
+		if move.input != MoveData.InputType.COMMAND_GRAB and _can_tech():
 			_start_tech(attacker)
 			return false
 

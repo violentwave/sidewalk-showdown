@@ -2,7 +2,7 @@
 class_name MoveData
 extends Resource
 
-enum InputType { LIGHT, HEAVY, SPECIAL_NEUTRAL, SPECIAL_FWD, SPECIAL_DOWN, SPECIAL_BACK, SPECIAL_AIR, GRAB }
+enum InputType { LIGHT, HEAVY, SPECIAL_NEUTRAL, SPECIAL_FWD, SPECIAL_DOWN, SPECIAL_BACK, SPECIAL_AIR, GRAB, COMMAND_GRAB }
 enum Stance { STAND, CROUCH, AIR }
 enum Level { MID, LOW, OVERHEAD, THROW }
 enum Invuln { NONE, STRIKE, THROW, FULL }
@@ -16,6 +16,12 @@ enum Invuln { NONE, STRIKE, THROW, FULL }
 @export var startup: int = 4
 @export var active: int = 2
 @export var recovery: int = 8
+
+@export_group("Throw")
+# Per-row whiff-recovery override (PROPOSALS §7): 0 keeps FighterData's
+# throw_whiff_recovery; a positive value overrides it for this row only (the
+# command grabs author 24/26 so their whiffs are punishable on their own terms).
+@export var whiff_recovery: int = 0
 
 @export_group("On hit")
 @export var damage: float = 35.0

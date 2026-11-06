@@ -52,6 +52,12 @@ reconciliation for the finding-by-finding dispositions.
 - Whether wake-up should allow blocking in its vulnerable tail (B7; playtest).
 - Whether the damage-scaling floor should move toward the GDD's 35% (the code
   currently implements 55%; both values remain unchanged).
+- Authored combos and command grabs are not implemented. `docs/PROPOSALS.md`
+  §§6–7 are Phase 3 proposals awaiting owner approval; the combo proposal first
+  requires behavior-parity migration, while command-grab techability and the
+  already-occupied Peggy back-special / Richard forward-special slots need
+  explicit choices. Owner canon is shared controls, silhouette playability with
+  animation deferred, and Peggy/Richard-only scope.
 - Gamepad support and in-game input remapping are GDD §4.1/§4.6/§14
   requirements but are not implemented; the current input map is generated from
   a fixed keyboard table.
@@ -179,6 +185,10 @@ that section by hand afterward — the simulation step comes from
   keyboard table; GDD §4.1/§4.6/§14 require both.
 - **No counter-hit, per-move cancel windows, or juggle limit.** Cancel routes
   are engine-coded; GDD §5.3/§5.6/§5.10 remain future work.
+- **No command grabs.** The two existing fighters have only the ordinary
+  grounded throw row. Proposed special-direction command grabs and their
+  techability policy are documented in `docs/PROPOSALS.md` §7; Phase 3 owner
+  approval is required before implementation.
 - **No character/stage select.** Fixed matchup + Bus Stop (Night).
 - **Debug overlay is dev-only.** Boxes, frame state, frame advantage, input
   history, slow motion, frame-step and refill exist; there is no AI state view

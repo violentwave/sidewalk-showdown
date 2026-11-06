@@ -83,6 +83,48 @@ func _check_corner_separation_case(label: String, p1_x: float, p2_x: float,
 	p2.input_enabled = p2_input_enabled
 
 
+func _run_hitstop_throw_exchange(with_lockout: bool) -> void:
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	var hitstop_throw: MoveData = p1.data.find_move(
+		MoveData.InputType.GRAB, MoveData.Stance.STAND)
+	p2.blockstun_frames = 100
+	p2._force_state(FighterBase.State.BLOCKSTUN)
+	p1._start_move(hitstop_throw)
+	p1.state_frame = hitstop_throw.startup - 1
+	p1.hitstop_frames = 10
+	p2.hitstop_frames = 10
+	Input.action_press("p2_grab")
+	if with_lockout:
+		Input.action_press("p2_light")
+	await _step(1)
+	Input.action_release("p2_grab")
+	if with_lockout:
+		Input.action_release("p2_light")
+	await _step(9)
+	var grab_age_before_resume: int = p2.input_buffer.get("grab", -1)
+	var light_age_before_resume: int = p2.input_buffer.get("light", -1)
+	_check("hitstop freezes grab and lockout buffers together for the capped window",
+		p1.hitstop_frames == 0 and p2.hitstop_frames == 0
+			and grab_age_before_resume == FighterBase.BUFFER_NORMAL
+			and (light_age_before_resume == FighterBase.BUFFER_NORMAL if with_lockout
+				else light_age_before_resume == -1),
+		"grab_age=%d light_age=%d lockout=%s" % [grab_age_before_resume,
+			light_age_before_resume, str(with_lockout)])
+	await _step(1)
+	if with_lockout:
+		_check("hitstop-frozen light lockout still prevents the throw tech",
+			p1.state != FighterBase.State.TECH and p2.state == FighterBase.State.KNOCKDOWN
+				and is_equal_approx(p2.health, 1000.0 - hitstop_throw.damage),
+			"p1=%d p2=%d hp=%.1f" % [p1.state, p2.state, p2.health])
+	else:
+		_check("grab pressed during hitstop still techs the incoming throw",
+			p1.state == FighterBase.State.TECH and p2.state == FighterBase.State.TECH
+				and is_equal_approx(p1.health, 1000.0) and is_equal_approx(p2.health, 1000.0),
+			"p1=%d p2=%d hp=%.1f/%.1f" % [p1.state, p2.state, p1.health, p2.health])
+
+
 # Put P1 in an aerial move just above the floor, with the requested move frame
 # selected. One physics step then touches down during startup/active/recovery.
 func _force_air_landing(move: MoveData, move_frame: int, defender_x := 300.0) -> void:
@@ -756,6 +798,58 @@ func _run() -> void:
 		p2.state != FighterBase.State.TECH and p2.state == FighterBase.State.KNOCKDOWN
 			and is_equal_approx(p2.health, 1000.0 - throw_move.damage),
 		"state=%d hp=%.1f" % [p2.state, p2.health])
+
+	# --- D3/PR 4a. bounded hitstop-only input-buffer age freeze ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	p2.input_buffer["light"] = 0
+	p2.input_buffer["grab"] = 0
+	p2.input_buffer["meth"] = 0
+	p2.hitstop_frames = 3
+	await _step(3)
+	_check("all buffered actions stay the same age during short hitstop",
+		p2.input_buffer["light"] == 0 and p2.input_buffer["grab"] == 0
+			and p2.input_buffer["meth"] == 0,
+		"buffer=%s" % str(p2.input_buffer))
+
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	p2.input_buffer["light"] = 0
+	p2.input_buffer["grab"] = 0
+	p2.hitstop_frames = 6
+	await _step(6)
+	_check("hitstop buffer freeze is capped after one normal buffer window",
+		p2.hitstop_buffer_freeze_frames == FighterBase.BUFFER_NORMAL
+			and p2.input_buffer["light"] == 1 and p2.input_buffer["grab"] == 1,
+		"freeze=%d buffers=%s" % [p2.hitstop_buffer_freeze_frames, str(p2.input_buffer)])
+
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	p2.input_buffer["heavy"] = 0
+	p2.hitstop_frames = 8
+	await _step(8)
+	_check("longer hitstop ages inputs after the five-frame freeze cap",
+		p2.hitstop_buffer_freeze_frames == FighterBase.BUFFER_NORMAL
+			and p2.input_buffer["heavy"] == 3,
+		"freeze=%d heavy_age=%d" % [p2.hitstop_buffer_freeze_frames,
+			p2.input_buffer.get("heavy", -1)])
+
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	p2.input_buffer["meth"] = 0
+	p2.hitstop_frames = 30
+	await _step(30)
+	_check("one capped extension does not preserve inputs through a long METH freeze",
+		p2.hitstop_buffer_freeze_frames == FighterBase.BUFFER_NORMAL
+			and not p2.input_buffer.has("meth"),
+		"freeze=%d buffer=%s" % [p2.hitstop_buffer_freeze_frames, str(p2.input_buffer)])
+
+	await _run_hitstop_throw_exchange(false)
+	await _run_hitstop_throw_exchange(true)
 
 	# --- 34. a whiffed throw recovers in throw_whiff_recovery frames ---
 	scene._begin_round()

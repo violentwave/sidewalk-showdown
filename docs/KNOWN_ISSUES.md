@@ -27,11 +27,10 @@ finding is not considered fixed merely because an older suite passes.
   grabs hitting a knocked-down defender for 95 damage and re-entering knockdown.
   Throws are now rejected during `KNOCKDOWN` before tech/damage resolution;
   normal throw damage remains 95/105. Regression tests cover both orientations.
-- **Buffer aging through freeze/stun (B3).** Input polling is gated by
-  `input_enabled`, while stored buffers age during hitstop and stun even when
-  the fighter state machine is frozen. Near-actionable 3f hitstop survived but
-  6f did not; a beginning-of-stun press aged out. D3/PR 4a is approved and queued;
-  blockstun policy 4b remains deferred to playtest.
+- **Buffer aging through freeze/stun (B3) — hitstop portion fixed by D3/PR 4a.**
+  All buffered action ages now freeze together during hitstop for at most one
+  normal buffer window (5 frames); later hitstop frames age them normally.
+  Blockstun aging was not changed, and policy 4b remains deferred to playtest.
 - **Corner pushbox overlap (B4) — fixed.** The baseline left 5px overlap after
   clamping at either wall. Separation now transfers the pinned fighter's
   unapplied correction to the unpinned fighter; tests cover P1/P2 at left/right.
@@ -53,7 +52,8 @@ reconciliation for the finding-by-finding dispositions.
 - D2/R1 decision: throws cannot connect during `KNOCKDOWN`; implemented and
   regression-tested in PR 2.
 - D3 selects hitstop-only buffer aging freeze capped at one normal buffer
-  window, with all buffered actions frozen together; PR 4a remains queued.
+  window, with all buffered actions frozen together; implemented and tested in
+  PR 4a. Blockstun policy 4b remains deferred to playtest.
 - Whether air attacks should preserve horizontal momentum or intentionally stop
   on attack (B5; needs a live probe and playtest).
 - Whether wake-up should allow blocking in its vulnerable tail (B7; playtest).

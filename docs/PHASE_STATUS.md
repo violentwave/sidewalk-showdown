@@ -1,6 +1,6 @@
 # GDD Phase Status
 
-**Baseline:** `origin/main` at `a3ffc0744f44e6d841c0be13cbdc5ede08dad916` (documentation-only merge after the `e6d40d9` audited gameplay baseline).
+**Baseline:** `origin/main` at `0d3cdfdf84cf6ad8735ed5e93e4015c5de88e0ee` (after PRs 14–16; before PR 4a).
 The companion audit reconciliation is [`docs/audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md`](audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md).
 
 ## Current phase
@@ -25,8 +25,8 @@ criteria are not met. `README.md` now uses the same GDD phase label.
 
 Implementation order: PR 1 K1 strike guard; PR 2 R1 throw rejection; PR 3
 corner-separation remainder; PR 4a bounded hitstop-only buffer freeze. D1/K1,
-D2/R1, and corner separation are implemented with regression tests. D3 remains
-queued for PR 4a.
+D2/R1, corner separation, and D3/PR 4a are implemented with regression tests.
+Blockstun buffer policy 4b remains deferred to playtest.
 
 Status labels distinguish the existence of features from validation of the
 phase exit criteria:
@@ -63,14 +63,16 @@ phase exit criteria:
 - **Status:** **Features implemented; exit partially verified / at risk.** The
   vertical-slice pair, stage, combat, HUD, round manager, debug overlay and pause
   path exist. The audited baseline had 124 combat and 30 round-flow checks; the
-  current suite has 140 combat and 30 round-flow checks. D1/K1, D2/R1 and B4
-  corner separation are implemented and regression-tested. Non-METH strikes
+  current suite has 148 combat and 30 round-flow checks. D1/K1, D2/R1, B4
+  corner separation, and B3 hitstop-only buffer freeze are implemented and
+  regression-tested. Non-METH strikes
   whiff during knockdown while the full-meter METH path can connect; knockdown
   throws reject in both orientations; corner overlap is fully separated in all
-  four wall arrangements. The remaining current-main findings B3, B7 and B10
+  four wall arrangements; hitstop buffer freeze is capped at five frames across
+  all action buffers. The remaining current-main findings B7 and B10
   remain open; see the companion report. “Hits feel responsive” remains a human
   feel judgment.
-- **Blockers:** D3/PR 4a and B10 remain queued; B5 and B7 require
+- **Blockers:** B10 remains queued; B5 and B7 require
   explicit feel/playtest decisions. Passing existing suites does not resolve
   uncovered runtime findings.
 
@@ -110,9 +112,10 @@ phase exit criteria:
   are not authored, and the 55% implemented scaling floor remains unresolved
   against the GDD's proposed 35% (B8). `docs/PROPOSALS.md` §§6–7 have approved
   design direction but are not implemented features; the correctness queue is
-  sequenced first. D1/K1, D2/R1 and corner separation are implemented; D3/PR 4a
-  is queued. The owner has set shared controls across fighters, silhouette playability with animation
-  deferred, and Peggy/Richard-only scope; command-grab techability and occupied
+  sequenced first. D1/K1, D2/R1, corner separation and D3/PR 4a are implemented;
+  blockstun policy 4b remains deferred. The owner has set shared controls across
+  fighters, silhouette playability with animation deferred, and Peggy/Richard-only
+  scope; command-grab techability and occupied
   direction-slot selection remain open design decisions.
 - **Exit verification:** not met; adding the current roster/stage still depends
   on hard-coded match setup, and several listed systems do not exist.

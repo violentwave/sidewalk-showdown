@@ -1,6 +1,6 @@
 # Implementation Proposals — Combat Systems and Balance
 
-Implementation status on `main` at `a3ffc07` (gameplay baseline: `e6d40d9`):
+Implementation status on `main` at `0d3cdfd` (after the first three correctness PRs):
 
 | Section | Implemented now | Future / still open |
 |---|---|---|
@@ -53,7 +53,9 @@ correctness work that precedes authored combos and grappling implementation:
 
 Implementation status is tracked in `docs/PHASE_STATUS.md`; D1/K1 and D2/R1
 are implemented. PR 3 implements corner-separation remainder transfer with
-four wall-arrangement regressions. D3 remains queued for its separate PR.
+four wall-arrangement regressions. D3/PR 4a is implemented as hitstop-only
+buffer-age freeze capped at one normal window; blockstun policy 4b remains
+deferred to playtest.
 
 Engine facts these proposals assumed at original writing (verified against
 `main` at `aff988e`):

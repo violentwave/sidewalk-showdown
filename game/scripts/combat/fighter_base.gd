@@ -402,6 +402,12 @@ func _cancel_into_normal(input: MoveData.InputType, action: String) -> bool:
 	return true
 
 func _cancel_into_forward_ex() -> bool:
+	# The punish route is a grounded, forward-held command (PROPOSALS §6). Any
+	# other direction, or an airborne fighter, leaves the buffers untouched so
+	# the legacy SPECIAL route resolves the input by its own direction rules.
+	var stance := _current_stance()
+	if stance == MoveData.Stance.AIR or _special_input(stance) != MoveData.InputType.SPECIAL_FWD:
+		return false
 	# The EX command shape is checked WITHOUT spending either buffer until the
 	# full command is present: a lone special buffer must still reach the legacy
 	# SPECIAL route below, and a lone heavy buffer must stay usable.
@@ -410,11 +416,11 @@ func _cancel_into_forward_ex() -> bool:
 	_consume("heavy", BUFFER_NORMAL)
 	if not _consume("special", BUFFER_SPECIAL):
 		return false
-	var ex := data.find_ex_move(MoveData.InputType.SPECIAL_FWD, _current_stance())
+	var ex := data.find_ex_move(MoveData.InputType.SPECIAL_FWD, stance)
 	if ex and spend_meter(ex.meter_cost):
 		_start_move(ex)
 		return true
-	var base := data.find_move(MoveData.InputType.SPECIAL_FWD, _current_stance())
+	var base := data.find_move(MoveData.InputType.SPECIAL_FWD, stance)
 	if base:
 		_start_move(base)
 		return true

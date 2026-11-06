@@ -1668,7 +1668,12 @@ func _run() -> void:
 		var prev_meter: float = atk.meter
 		atk.input_buffer["special"] = 0
 		atk.input_buffer["heavy"] = 0
+		var fwd_key: String = "p%d_%s" % [atk.player_index, "right" if atk.facing == 1 else "left"]
+		atk.input_enabled = true
+		Input.action_press(fwd_key)
 		var pp_chain: bool = atk._try_cancel() and atk.current_move == _ex_fwd
+		Input.action_release(fwd_key)
+		atk.input_enabled = false
 		_check(tag + ": punish heavy confirms into forward EX special (special+heavy buffers)",
 			pp_connected and pp_chain and atk.meter == prev_meter - _ex_fwd.meter_cost,
 			"hit=%s chain=%s meter=%.1f" % [str(pp_connected), str(pp_chain), atk.meter])
@@ -1688,10 +1693,36 @@ func _run() -> void:
 		atk.meter = 0.0
 		atk.input_buffer["special"] = 0
 		atk.input_buffer["heavy"] = 0
+		atk.input_enabled = true
+		Input.action_press(fwd_key)
 		var fb_chain: bool = atk._try_cancel() and atk.current_move == _base_fwd
+		Input.action_release(fwd_key)
+		atk.input_enabled = false
 		_check(tag + ": punish route falls back to the base forward special at zero meter",
 			fb_chain and atk.meter == 0.0,
 			"chain=%s meter=%.1f" % [str(fb_chain), atk.meter])
+
+		# Direction gate: with NO forward held, the same buffered special+heavy
+		# does not start the forward EX, and does not fall back to the forward
+		# special either. The legacy SPECIAL route resolves it by direction (neutral).
+		scene._begin_round()
+		scene._start_fight()
+		_reset_fighters(100.0, 132.0)
+		atk._start_move(_gr_heavy)
+		atk.state_frame = _gr_heavy.startup
+		scene._resolve_hits()
+		atk.state_frame += 1
+		atk.meter = atk.max_meter
+		atk.input_buffer["special"] = 0
+		atk.input_buffer["heavy"] = 0
+		atk.input_enabled = true
+		var neutral_chain: bool = atk._try_cancel()
+		atk.input_enabled = false
+		_check(tag + ": neutral special+heavy never starts the forward EX or forward fallback",
+			neutral_chain and atk.current_move != _ex_fwd and atk.current_move != _base_fwd
+				and atk.current_move == atk.data.find_move(MoveData.InputType.SPECIAL_NEUTRAL, MoveData.Stance.STAND)
+				and atk.meter == atk.max_meter,
+			"move=%s meter=%.1f" % [atk.current_move.id if atk.current_move else "null", atk.meter])
 
 		# Blocked punish: no continuation; partially-buffered EX inputs are
 		# measured surviving the block.

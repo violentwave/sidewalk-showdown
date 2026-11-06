@@ -929,6 +929,21 @@ block-pushback field. This finding is from simulation; the source path is
   accepted as a “safe” blockstring. Test both left/right corners and both player
   orientations. The existing B4 corner-separation defect must be resolved or
   explicitly accounted for before claiming this exit.
+
+**Implementation status (PR 5, implemented):** `MoveData` gained an authored
+`block_pushback` (px/s) in the `On hit` group: the generator writes a flat
+**45.0** on every strike row (normals, specials, EX rows, and each
+`meth_move`), throws author **0.0** because they are never blocked.
+`FighterBase.receive_hit()`'s blocked path now assigns
+`attacker.facing * move.block_pushback` — the engine no longer carries the
+constant. Corner rule: when the blocked defender stands at a stage bound and
+the authored pushback would shove it through the wall, the unapplied
+displacement transfers to the attacker (equal magnitude, away from the
+defender), and the defender's velocity is pinned to 0; pushbox separation runs
+afterwards as before (no wall crossing, no residual penetration). Verified with
+20 new combat checks: the 45-px/s parity matrix (both fighters, throws = 0),
+data-driven displacement (a 60-px/s authored row measures 60, not 45), and both
+corner walls showing pinning plus the measured attacker displacement.
 - The behavior-preserving cancel migration remains **hit-only**. A blocked move
   does not continue its route unless a separate `condition: BLOCK` rule is
   explicitly authored and approved. For each such rule, author the next move,

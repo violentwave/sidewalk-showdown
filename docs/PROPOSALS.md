@@ -858,6 +858,16 @@ whether a counter-hit also satisfies an ordinary HIT rule (recommend yes, with a
 counter-hit-specific rule taking precedence) to avoid overlapping-rule ambiguity.
 No HUD animation or art is a prerequisite; a text indicator works on silhouettes.
 
+**Implementation status (PR 1, implemented):** `MatchRoot._resolve_hits()` polls
+both hits before applying either. A counter is granted only when the defender
+`is_in_attack_startup()` and the opposing poll is null (no trade). `receive_hit()`
+receives `counter`, adds `FighterBase.COUNTER_HIT_HITSTOP` (+2) to the shared
+hitstop once, sets `attacker.move_counter_hit`, and emits `counter_hit_landed`,
+which the HUD shows as `COUNTER HIT`. Precedence, to be applied by the cancel
+rules in PR 2: a counter hit also satisfies an ordinary `HIT` rule; a
+`COUNTER_HIT`-specific rule takes precedence over `HIT` when both match. Blocked
+strikes are never counters, because a fighter in startup cannot block.
+
 ### Blocking interactions and blockstring safety
 
 #### Current behavior measured in the real simulation

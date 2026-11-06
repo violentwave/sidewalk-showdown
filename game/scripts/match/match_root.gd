@@ -345,13 +345,17 @@ func _confirm_pause_selection() -> void:
 func _resolve_hits() -> void:
 	var move_a := _poll_hit(p1, p2)
 	var move_b := _poll_hit(p2, p1)
+	# GDD §5.6 counter hit: the defender is still in its own startup, and the
+	# exchange is not a trade (a same-frame reply from the defender cancels it).
 	if move_a != null:
 		var p2_before := p2.health
-		p1.on_attack_connected(p2.receive_hit(p1, move_a))
+		var counter_a := move_b == null and p2.is_in_attack_startup()
+		p1.on_attack_connected(p2.receive_hit(p1, move_a, counter_a))
 		round_damage[0] += maxf(0.0, p2_before - p2.health)
 	if move_b != null:
 		var p1_before := p1.health
-		p2.on_attack_connected(p1.receive_hit(p2, move_b))
+		var counter_b := move_a == null and p1.is_in_attack_startup()
+		p2.on_attack_connected(p1.receive_hit(p2, move_b, counter_b))
 		round_damage[1] += maxf(0.0, p1_before - p1.health)
 
 func _poll_hit(attacker: FighterBase, defender: FighterBase) -> MoveData:

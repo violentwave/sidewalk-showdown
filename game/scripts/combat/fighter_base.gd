@@ -17,6 +17,7 @@ signal combo_changed(count: int)
 signal ko
 signal teched
 signal meth_started(move_name: String)
+signal counter_hit_landed
 
 # --- Identity (FighterData overrides these) ---
 @export var player_index: int = 1
@@ -33,6 +34,8 @@ signal meth_started(move_name: String)
 # this constant, not body_height, so each fighter's art matches its own hurtbox.
 const SILHOUETTE_HEIGHT := 56.0
 const DEFAULT_LANDING_FRAMES := 2
+# GDD §5.6: a counter hit adds +2 frames of hitstop, shared like ordinary hitstop.
+const COUNTER_HIT_HITSTOP := 2
 
 # --- Match context ---
 var opponent: FighterBase
@@ -55,6 +58,8 @@ var hitstop_buffer_freeze_frames := 0
 var current_move: MoveData
 var move_hit_confirmed := false
 var move_already_hit := false
+# Set on the attacker when its current move's hit was a counter hit (GDD §5.6).
+var move_counter_hit := false
 var hitstun_frames := 0
 var blockstun_frames := 0
 var knockdown_frames := 0
@@ -394,6 +399,7 @@ func _start_move(move: MoveData) -> void:
 	current_move = move
 	move_hit_confirmed = false
 	move_already_hit = false
+	move_counter_hit = false
 	velocity.x = 0.0
 	_force_state(State.ATTACK)
 
@@ -422,6 +428,10 @@ func get_hitbox_rect() -> Rect2:
 	if not current_move.is_active_frame(state_frame):
 		return Rect2()
 	return current_move.hitbox_rect(position, facing)
+
+func is_in_attack_startup() -> bool:
+	return state == State.ATTACK and current_move != null \
+		and state_frame < current_move.startup
 
 func on_attack_connected(was_hit: bool) -> void:
 	move_already_hit = true
@@ -508,7 +518,9 @@ func can_block(move: MoveData) -> bool:
 		return move.level in [MoveData.Level.LOW, MoveData.Level.MID]
 	return move.level in [MoveData.Level.OVERHEAD, MoveData.Level.MID]
 
-func receive_hit(attacker: FighterBase, move: MoveData) -> bool:
+# `counter` is decided by MatchRoot._resolve_hits(): the defender was in its own
+# startup and the exchange was not a trade. Only an actual hit can be a counter.
+func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> bool:
 	if state == State.KO:
 		return false
 	# Keep K1/R1 true for direct resolver/test callers too; MatchRoot normally
@@ -550,8 +562,12 @@ func receive_hit(attacker: FighterBase, move: MoveData) -> bool:
 	combo_changed.emit(combo_hits)
 	add_meter(move.meter_gain_receive)
 	attacker.add_meter(move.meter_gain_hit)
-	hitstop_frames = maxi(hitstop_frames, move.hitstop)
-	attacker.hitstop_frames = maxi(attacker.hitstop_frames, move.hitstop)
+	var stop := move.hitstop + (COUNTER_HIT_HITSTOP if counter else 0)
+	hitstop_frames = maxi(hitstop_frames, stop)
+	attacker.hitstop_frames = maxi(attacker.hitstop_frames, stop)
+	attacker.move_counter_hit = counter
+	if counter:
+		attacker.counter_hit_landed.emit()
 
 	var dir := 1.0 if position.x >= attacker.position.x else -1.0
 	velocity = Vector2(dir * move.knockback.x, -move.knockback.y)

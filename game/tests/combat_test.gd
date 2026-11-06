@@ -1291,5 +1291,62 @@ func _run() -> void:
 	_check_corner_separation_case("corner separation: P2 pinned at right wall",
 		right_wall - 19.0, right_wall, 2, right_wall, -10.0)
 
+	# --- 40. counter hit (GDD 5.6): startup interruption, +2 shared hitstop ---
+	# Driven through the real resolver with explicit frames, so tick order cannot
+	# blur the startup / active / recovery distinction under test.
+	var counter_strike: MoveData = p1.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+	var counter_reply: MoveData = p2.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	p1.input_enabled = false
+	p2.input_enabled = false
+	p1._start_move(counter_strike)
+	p1.state_frame = counter_strike.startup
+	p2._start_move(counter_reply)
+	p2.state_frame = 0
+	scene._resolve_hits()
+	_check("counter hit: a strike into the defender's startup lands",
+		is_equal_approx(p2.health, 1000.0 - counter_strike.damage),
+		"hp=%.1f" % p2.health)
+	_check("counter hit adds +2 hitstop shared by both fighters",
+		p1.hitstop_frames == counter_strike.hitstop + FighterBase.COUNTER_HIT_HITSTOP
+			and p2.hitstop_frames == counter_strike.hitstop + FighterBase.COUNTER_HIT_HITSTOP,
+		"p1=%d p2=%d base=%d" % [p1.hitstop_frames, p2.hitstop_frames, counter_strike.hitstop])
+	_check("counter hit is recorded on the attacker and interrupts the defender",
+		p1.move_counter_hit and p2.state == FighterBase.State.HITSTUN,
+		"counter=%s state=%d" % [str(p1.move_counter_hit), p2.state])
+	_check("counter hit shows the HUD text indicator",
+		scene.hud.counter_flash.visible and scene.hud.counter_flash.text == "COUNTER HIT",
+		"visible=%s" % str(scene.hud.counter_flash.visible))
+
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	p1._start_move(counter_strike)
+	p1.state_frame = counter_strike.startup
+	p2._start_move(counter_reply)
+	p2.state_frame = counter_reply.startup + counter_reply.active
+	scene._resolve_hits()
+	_check("a hit during the defender's recovery is an ordinary hit",
+		not p1.move_counter_hit and p2.hitstop_frames == counter_strike.hitstop,
+		"counter=%s hitstop=%d" % [str(p1.move_counter_hit), p2.hitstop_frames])
+
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	p1._start_move(counter_strike)
+	p1.state_frame = counter_strike.startup
+	p2._start_move(counter_reply)
+	p2.state_frame = counter_reply.startup
+	scene._resolve_hits()
+	_check("a same-frame trade is not a counter hit",
+		not p1.move_counter_hit and not p2.move_counter_hit
+			and p1.hitstop_frames == counter_strike.hitstop
+			and p2.hitstop_frames == counter_reply.hitstop,
+		"p1=%d p2=%d" % [p1.hitstop_frames, p2.hitstop_frames])
+	p1.input_enabled = true
+	p2.input_enabled = true
+
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

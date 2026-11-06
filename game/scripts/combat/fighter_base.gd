@@ -50,6 +50,7 @@ var max_health := 1000.0
 var meter := 0.0
 var max_meter := 100.0
 var hitstop_frames := 0
+var hitstop_buffer_freeze_frames := 0
 
 var current_move: MoveData
 var move_hit_confirmed := false
@@ -101,6 +102,7 @@ func begin_round(spawn_pos: Vector2, opponent_x: float) -> void:
 	health = max_health
 	meter = 0.0
 	hitstop_frames = 0
+	hitstop_buffer_freeze_frames = 0
 	combo_hits = 0
 	frames_since_hit = 0
 	knockdown_frames = 0
@@ -643,6 +645,7 @@ func reset_state() -> void:
 	move_hit_confirmed = false
 	move_already_hit = false
 	hitstop_frames = 0
+	hitstop_buffer_freeze_frames = 0
 	hitstun_frames = 0
 	blockstun_frames = 0
 	knockdown_frames = 0
@@ -674,6 +677,16 @@ func _emit_health() -> void:
 
 # ---------------- Input ----------------
 func _poll_input() -> void:
+	# D3/PR 4a: freeze all stored action ages together during hitstop, but only
+	# for one normal buffer window. Long freezes therefore cannot preserve stale
+	# inputs indefinitely. Blockstun aging remains unchanged (4b is deferred).
+	var freeze_buffer_ages := false
+	if hitstop_frames > 0:
+		if hitstop_buffer_freeze_frames < BUFFER_NORMAL:
+			hitstop_buffer_freeze_frames += 1
+			freeze_buffer_ages = true
+	else:
+		hitstop_buffer_freeze_frames = 0
 	if not input_enabled:
 		return
 	for action in ["light", "heavy", "special", "grab", "meth", "up"]:
@@ -682,6 +695,8 @@ func _poll_input() -> void:
 			input_history.append(action)
 			if input_history.size() > 60:
 				input_history.pop_front()
+	if freeze_buffer_ages:
+		return
 	for key in input_buffer.keys():
 		input_buffer[key] += 1
 		if input_buffer[key] > BUFFER_MAX_AGE:

@@ -543,6 +543,39 @@ func _run() -> void:
 		p2.health <= 0.0 and p2.state == FighterBase.State.KO,
 		"hp=%.1f state=%d" % [p2.health, p2.state])
 
+	# --- R1. no throw connects during knockdown ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	var richard_knockdown_throw: MoveData = p2.data.find_move(
+		MoveData.InputType.GRAB, MoveData.Stance.STAND)
+	p2.knockdown_frames = 300
+	p2._force_state(FighterBase.State.KNOCKDOWN)
+	p1._start_move(throw_move)
+	await _step(throw_move.startup + 1)
+	_check("R1 rejects Peggy's throw on a knocked-down Richard without consuming its active window",
+		p2.state == FighterBase.State.KNOCKDOWN and p2.health == 1000.0
+			and not p1.move_already_hit and p2.is_invulnerable_to(throw_move),
+		"state=%d hp=%.1f consumed=%s" % [p2.state, p2.health, str(p1.move_already_hit)])
+	_check("R1 is enforced for direct throw resolution too",
+		not p2.receive_hit(p1, throw_move) and p2.health == 1000.0,
+		"hp=%.1f" % p2.health)
+
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	p1.knockdown_frames = 300
+	p1._force_state(FighterBase.State.KNOCKDOWN)
+	p2._start_move(richard_knockdown_throw)
+	await _step(richard_knockdown_throw.startup + 1)
+	_check("R1 rejects Richard's throw on a knocked-down Peggy",
+		p1.state == FighterBase.State.KNOCKDOWN and p1.health == 1000.0
+			and not p2.move_already_hit,
+		"state=%d hp=%.1f consumed=%s" % [p1.state, p1.health, str(p2.move_already_hit)])
+	_check("R1 does not change normal throw damage",
+		throw_move.damage == 95.0 and richard_knockdown_throw.damage == 105.0,
+		"damage=%.1f/%.1f" % [throw_move.damage, richard_knockdown_throw.damage])
+
 	# --- 27. F2 readout shows the wake-up invulnerability countdown ---
 	scene._begin_round()
 	scene._start_fight()

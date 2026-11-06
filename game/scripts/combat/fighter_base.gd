@@ -425,21 +425,23 @@ func on_attack_connected(was_hit: bool) -> void:
 	move_already_hit = true
 	move_hit_confirmed = was_hit
 
-# True when `move` must not connect with this fighter right now. Three sources:
-# the universal wake-up window (strike+throw, then a separately authored throw
-# tail), and a reversal move's own invuln frames. Deliberately a query, not a
-# branch inside receive_hit(): _poll_hit() skips an invulnerable defender before
-# the move is returned, so the hitbox stays live and the first vulnerable frame
-# is the one that connects.
+# True when `move` must not connect with this fighter right now: K1/R1 knockdown
+# protection, the universal wake-up window (strike+throw, then a separately
+# authored throw tail), or a reversal move's own invuln frames. Deliberately a
+# query, not only a branch inside receive_hit(): _poll_hit() skips a protected
+# defender before the move is returned, so the hitbox stays live and the first
+# vulnerable frame is the one that connects.
 func is_invulnerable_to(move: MoveData) -> bool:
 	if move == null:
 		return false
-	# K1: grounded knockdown rejects every strike except an authored METH row.
-	# Throws are handled by the separate R1 policy and are deliberately not
-	# covered here. This query is also used before hit confirmation in MatchRoot,
-	# so a rejected strike keeps its active window live.
-	if state == State.KNOCKDOWN and move.level != MoveData.Level.THROW and not move.meth:
-		return true
+	if state == State.KNOCKDOWN:
+		# R1: no throw, including a techable normal throw, connects during knockdown.
+		if move.level == MoveData.Level.THROW:
+			return true
+		# K1: every strike except an authored METH row is rejected. This query is
+		# checked before hit confirmation in MatchRoot, so rejected moves stay live.
+		if not move.meth:
+			return true
 	if state == State.WAKE_UP:
 		if state_frame < (data.wakeup_invuln_frames if data else 6):
 			return true
@@ -507,10 +509,11 @@ func can_block(move: MoveData) -> bool:
 func receive_hit(attacker: FighterBase, move: MoveData) -> bool:
 	if state == State.KO:
 		return false
-	# Keep K1 true for direct resolver/test callers too; MatchRoot normally skips
-	# these contacts in _poll_hit() via is_invulnerable_to().
-	if state == State.KNOCKDOWN and move.level != MoveData.Level.THROW and not move.meth:
-		return false
+	# Keep K1/R1 true for direct resolver/test callers too; MatchRoot normally
+	# skips these contacts in _poll_hit() via is_invulnerable_to().
+	if state == State.KNOCKDOWN:
+		if move.level == MoveData.Level.THROW or not move.meth:
+			return false
 
 	if move.level == MoveData.Level.THROW:
 		# Airborne defenders can't be thrown: the grab whiffs (bug-fix guard).

@@ -52,8 +52,8 @@ correctness work that precedes authored combos and grappling implementation:
 >   frozen together. Blockstun policy (4b) is deferred to playtest.
 
 Implementation status is tracked in `docs/PHASE_STATUS.md`; D1 is implemented
-by the knockdown-strike guard and regression tests in the current PR. D2 and D3
-remain queued for their separate PRs.
+by the knockdown-strike guard, and D2 is implemented by the knockdown-throw
+guard and regression tests in this PR. D3 remains queued for its separate PR.
 
 Engine facts these proposals assumed at original writing (verified against
 `main` at `aff988e`):

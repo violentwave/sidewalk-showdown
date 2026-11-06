@@ -24,6 +24,9 @@ enum Invuln { NONE, STRIKE, THROW, FULL }
 @export var blockstun: int = 8
 @export var knockback: Vector2 = Vector2(60, 0)
 @export var knockdown: bool = false
+# PROPOSALS §6: authored blocked pushback in px/s, independent of hit
+# knockback. Every strike row carries the parity value 45.0.
+@export var block_pushback: float = 45.0
 
 @export_group("Meter")
 @export var meter_gain_hit: float = 6.0

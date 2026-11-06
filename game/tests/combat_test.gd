@@ -1717,5 +1717,83 @@ func _run() -> void:
 		atk.input_enabled = true
 		dfd.input_enabled = true
 
+	# --- 44. block-pushback data (PROPOSALS 6): authored 45 px/s parity, data
+	# driven displacement, and corner transfer ----
+	var push_matrix_ok := true
+	var push_detail := "ok"
+	for fighter_data in [p1.data, p2.data]:
+		for m in fighter_data.moves:
+			var expect_push := 0.0 if m.level == MoveData.Level.THROW else 45.0
+			if not is_equal_approx(m.block_pushback, expect_push):
+				push_matrix_ok = false
+				push_detail = "%s authored %.1f expected %.1f" % [m.id, m.block_pushback, expect_push]
+	_check("every strike row authors the 45 px/s block-pushback parity value, throws author 0",
+		push_matrix_ok, push_detail)
+
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 128)
+	Input.action_press("p2_right") # p2 faces left; right = away = block
+	var block_light: MoveData = p1.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+	p1._start_move(block_light)
+	p1.state_frame = block_light.startup
+	scene._resolve_hits()
+	_check("blocked light resolves as blockstun",
+		p2.state == FighterBase.State.BLOCKSTUN and p2.combo_hits == 0, "")
+	_check("blocked pushback now comes from authored data (45 px/s), not the constant",
+		is_equal_approx(p2.velocity.x, 45.0) and p1.velocity.x == 0.0,
+		"p2_vx=%.1f p1_vx=%.1f" % [p2.velocity.x, p1.velocity.x])
+	Input.action_release("p2_right")
+
+	# Data-driven proof: an off-parity authored value wins over the old constant.
+	var push_move: MoveData = p1.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND).duplicate()
+	push_move.block_pushback = 60.0
+	_reset_fighters(100, 128)
+	Input.action_press("p2_right")
+	p1._start_move(push_move)
+	p1.state_frame = push_move.startup
+	scene._resolve_hits()
+	_check("blocked displacement matches data rather than the hard-coded constant",
+		is_equal_approx(p2.velocity.x, 60.0), "p2_vx=%.1f" % p2.velocity.x)
+	Input.action_release("p2_right")
+
+	# Corner transfer (§6): a pinned defender keeps 0 pushback; the attacker is
+	# displaced away from the defender by the same magnitude. Tested at both
+	# walls, with the attacker positioned so the blocked strike drives the
+	# defender into the wall.
+	for corner in [["left", 1, -1], ["right", -1, 1]]:
+		var wall_name: String = corner[0]
+		var dfd_facing: int = corner[1]
+		var atk_facing: int = corner[2]
+		scene._begin_round()
+		scene._start_fight()
+		_reset_fighters(64.0, 128.0)
+		var wall_x: float = p1.stage.left_bound if wall_name == "left" else p1.stage.right_bound
+		p2.position.x = wall_x
+		p1.position.x = wall_x - atk_facing * 30.0
+		p2.facing = dfd_facing
+		p1.facing = atk_facing
+		# Defender holds away from its facing, blocking the strike.
+		Input.action_press("p2_left" if dfd_facing == 1 else "p2_right")
+		var corner_heavy: MoveData = p1.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.STAND)
+		p1._start_move(corner_heavy)
+		p1.state_frame = corner_heavy.startup
+		scene._resolve_hits()
+		_check("corner block (" + wall_name + " wall): defender pinned, attacker displaced away",
+			p2.state == FighterBase.State.BLOCKSTUN
+				and is_equal_approx(p2.velocity.x, 0.0)
+				and is_equal_approx(p1.velocity.x, float(atk_facing) * -45.0),
+			"p2_vx=%.1f p1_vx=%.1f" % [p2.velocity.x, p1.velocity.x])
+		_check("corner block (" + wall_name + " wall): no wall crossing and no residual overlap",
+			p2.position.x == clampf(p2.position.x, p1.stage.left_bound, p1.stage.right_bound),
+			"p2_x=%.1f" % p2.position.x)
+		var p1r := p1.pushbox_rect()
+		var p2r := p2.pushbox_rect()
+		var penetration: float = minf(p1r.end.x, p2r.end.x) - maxf(p1r.position.x, p2r.position.x)
+		_check("corner block (" + wall_name + " wall): no residual pushbox penetration",
+			penetration <= 0.0,
+			"measured penetration=%.1f" % penetration)
+		Input.action_release("p2_left" if dfd_facing == 1 else "p2_right")
+
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

@@ -173,6 +173,11 @@ func _peggy() -> FighterData:
 	f.meth_health_threshold = 250.0
 	f.meth_move = _meth(_m("peggy_meth", SP_NEUTRAL, STAND, MID, 3, 2, 24, 1000, 0.0,
 		0, 8, 150, true, Vector2(30, -40), Vector2(60, 44), 30))
+	# PROPOSALS §6 block-pushback parity: 45 px/s authored on every strike row;
+	# throws (never blocked) author 0.
+	for m in f.moves:
+		if m.level == MoveData.Level.THROW:
+			m.block_pushback = 0.0
 	return f
 
 
@@ -190,4 +195,9 @@ func _richard() -> FighterData:
 	f.meth_health_threshold = 250.0
 	f.meth_move = _meth(_m("richard_meth", SP_NEUTRAL, STAND, MID, 3, 2, 24, 1000, 0.0,
 		0, 8, 160, true, Vector2(32, -40), Vector2(64, 44), 30))
+	# PROPOSALS §6 block-pushback parity: 45 px/s authored on every strike row;
+	# throws (never blocked) author 0.
+	for m in f.moves:
+		if m.level == MoveData.Level.THROW:
+			m.block_pushback = 0.0
 	return f

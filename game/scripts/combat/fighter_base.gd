@@ -625,7 +625,13 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 		blockstun_frames = move.blockstun
 		hitstop_frames = maxi(hitstop_frames, move.hitstop)
 		attacker.hitstop_frames = maxi(attacker.hitstop_frames, move.hitstop)
-		velocity.x = float(attacker.facing) * 45.0
+		velocity.x = float(attacker.facing) * move.block_pushback
+		# §6 corner rule: a defender pinned against a stage bound cannot take
+		# the blocked pushback; the displacement transfers to the attacker,
+		# away from the defender, subject to the attacker's own bound.
+		if _pinned_at_stage_wall(velocity.x):
+			attacker.velocity.x = -float(attacker.facing) * move.block_pushback
+			velocity.x = 0.0
 		combo_hits = 0
 		combo_changed.emit(0)
 		_force_state(State.BLOCKSTUN)
@@ -835,9 +841,18 @@ func _update_facing() -> void:
 	if opponent:
 		facing = 1 if opponent.position.x >= position.x else -1
 
+# True when this fighter stands at a stage bound and `v` pushes into it.
+func _pinned_at_stage_wall(v: float) -> bool:
+	if stage == null:
+		return false
+	if v < 0.0 and position.x <= stage.left_bound:
+		return true
+	return v > 0.0 and position.x >= stage.right_bound
+
 func clamp_to_stage() -> void:
-	if stage:
-		position.x = clampf(position.x, stage.left_bound, stage.right_bound)
+	if stage == null:
+		return
+	position.x = clampf(position.x, stage.left_bound, stage.right_bound)
 
 func _pushbox_height() -> float:
 	return body_height * (0.65 if (crouching or state == State.CROUCH) else 1.0)

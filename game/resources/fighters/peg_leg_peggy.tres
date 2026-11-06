@@ -314,6 +314,7 @@ hitstun = 0
 blockstun = 0
 knockback = Vector2(100, 0)
 knockdown = true
+block_pushback = 0.0
 hitbox_offset = Vector2(20, -36)
 hitbox_size = Vector2(30, 40)
 hitstop = 6

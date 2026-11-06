@@ -1482,5 +1482,92 @@ func _run() -> void:
 			and wrong_target.validate() != "" and counter_rule.validate() == "",
 		"%s | %s | %s" % [reserved.validate(), backwards.validate(), wrong_target.validate()])
 
+	# --- 42. juggle/OTG rules (PROPOSALS 6): cap, reset, repeat-hit scaling ---
+	# Airborne juggle sequence driven through the real receive_hit path: three
+	# allowed airborne hits, the fourth rejected. Between hits the attacker
+	# starts fresh moves, so the counter is demonstrably not reset by a move
+	# change, only by combo end.
+	var jg_strike: MoveData = p1.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	p1.input_enabled = false
+	p2.input_enabled = false
+	# Launch the defender: all four attempts target an airborne fighter.
+	p2.grounded = false
+	p2._force_state(FighterBase.State.JUMP_FALL)
+	var jg_velocities: Array[float] = []
+	var jg_expectations: Array[float] = []
+	var jg_health: Array[float] = []
+	for i in range(4):
+		var jg_move: MoveData = jg_strike if i != 2 \
+			else p1.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.STAND)
+		p1._start_move(jg_move)
+		jg_health.append(p2.health)
+		# Expected pushback: authored knockback, scaled down per prior airborne
+		# hit in the combo (first airborne hit unscaled).
+		var jg_prior := p2.juggle_hits
+		jg_expectations.append(float(jg_move.knockback.x) *
+			pow(FighterBase.JUGGLE_KNOCKBACK_SCALE, float(jg_prior)))
+		if p2.receive_hit(p1, p1.current_move):
+			jg_velocities.append(absf(p2.velocity.x))
+	var cap := FighterBase.JUGGLE_HIT_CAP
+	_check("juggle: the first three airborne hits connect, none after the cap",
+		jg_velocities.size() == cap and p2.health == jg_health[cap],
+		"hits=%d hp_after=%s" % [jg_velocities.size(), str(p2.health)])
+	_check("juggle: the first airborne hit keeps the authored pushback exactly",
+		jg_velocities[0] == jg_expectations[0], "v=%.3f" % jg_velocities[0])
+	_check("juggle: each repeat airborne hit scales horizontal pushback down",
+		is_equal_approx(jg_velocities[1], jg_expectations[1])
+			and is_equal_approx(jg_velocities[2], jg_expectations[2]),		"v=%s" % str(jg_velocities))
+	_check("juggle: the counter survives an attacker move change inside the combo",
+		p2.juggle_hits == cap, "juggle=%d" % p2.juggle_hits)
+	var jg_gravity_ok := false
+	var vy_before := p2.velocity.y
+	p2._apply_gravity(1.0 / 60.0)
+	jg_gravity_ok = is_equal_approx(vy_before + p2.gravity * FighterBase.JUGGLE_GRAVITY_MULT / 60.0,
+		p2.velocity.y)
+	_check("juggle: gravity multiplies once a repeat hit carries the arc",
+		jg_gravity_ok, "vy=%.3f" % p2.velocity.y)
+
+	# Combo end resets both counters; mid-juggle stun ticks do not.
+	p1._start_move(jg_strike)
+	p2._force_state(FighterBase.State.KNOCKDOWN)
+	p2.frames_since_hit = 41
+	p2._tick_combo()
+	var early := p2.juggle_hits
+	p2._force_state(FighterBase.State.IDLE)
+	p2.grounded = true
+	p2._tick_combo()
+	_check("juggle: the counter survives non-ending airborne stun ticks",
+		early == cap, "juggle=%d" % early)
+	_check("juggle: combo end resets the airborne-hit counter together with combo",
+		p2.juggle_hits == 0 and p2.combo_hits == 0
+			and p2.receive_hit(p1, p1.current_move),
+		"juggle=%d" % p2.juggle_hits)
+	# After the reset a fresh airborne attempt re-enters the count from 1.
+	p2.grounded = false
+	p2._force_state(FighterBase.State.JUMP_FALL)
+	var re_entered := p2.receive_hit(p1, p1.current_move)
+	_check("juggle: after reset a fresh airborne hit re-enters the count",
+		re_entered and p2.juggle_hits == 1, "juggle=%d" % p2.juggle_hits)
+
+	# Grounded knockdown protection stays K1/R1 and keeps the attacker's window
+	# live: MatchRoot._poll_hit returns null and the move is not spent.
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	p1._start_move(jg_strike)
+	p1.state_frame = jg_strike.startup
+	p2._force_state(FighterBase.State.KNOCKDOWN)
+	p2.knockdown_frames = 30
+	_check("OTG: a strike against grounded knockdown is skipped by _poll_hit",
+		scene._poll_hit(p1, p2) == null and not p1.move_already_hit,
+		"polled=%s spent=%s" % ["hit" if scene._poll_hit(p1, p2) != null else "null",
+			str(p1.move_already_hit)])
+
+	p1.input_enabled = true
+	p2.input_enabled = true
+
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

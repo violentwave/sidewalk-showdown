@@ -582,7 +582,15 @@ Suggested damage scaling:
 > **Implementation-status note (2026-11-05):** the current `_damage_scale()`
 > implements 100/100/85/70/55% for hits 1–2/3/4/5+, with a **55% floor**, which
 > now matches the owner decision above. Cancel routes are authored in `MoveData`
-> as of PR 2; there is still no juggle limit. Counter-hit detection exists (see §5.6).
+> as of PR 2. The §6 juggle rules are now implemented (PR 3): at most
+> **3 airborne hits per combo** (`FighterBase.JUGGLE_HIT_CAP`); the first
+> airborne hit keeps the authored launch arc exactly, each repeat airborne hit
+> scales horizontal pushback by `JUGGLE_KNOCKBACK_SCALE` (x0.7 per prior air
+> hit), and airborne gravity is multiplied by `JUGGLE_GRAVITY_MULT` (x1.25)
+> while a repeat hit carries the arc back to the floor. The counter resets only
+> with the combo. The floor grid above is unchanged: the juggle limit now
+> exists, but the owner has not approved revisiting the 55% floor. Counter-hit
+> detection exists (see §5.6).
 > Blocked strikes currently receive a fixed 45 px/s pushback in the real
 > simulation, independent of authored hit knockback; there is no per-move block
 > pushback or block-condition cancel data. The behavior-preserving authored-

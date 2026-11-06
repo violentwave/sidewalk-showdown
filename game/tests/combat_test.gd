@@ -495,6 +495,54 @@ func _run() -> void:
 			and p2.state == FighterBase.State.KNOCKDOWN,
 		"hp=%.1f state=%d" % [p2.health, p2.state])
 
+	# --- K1. knockdown rejects strikes, while the existing METH gate remains open ---
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 120)
+	p2.knockdown_frames = 300
+	p2._force_state(FighterBase.State.KNOCKDOWN)
+	p1.input_enabled = false
+	var knockdown_crouch_heavy: MoveData = p1.data.find_move(
+		MoveData.InputType.HEAVY, MoveData.Stance.CROUCH)
+	for attempt in range(3):
+		p1._start_move(knockdown_crouch_heavy)
+		await _step(knockdown_crouch_heavy.startup + 1)
+		_check("K1 crouch-heavy does not connect during knockdown (attempt %d)" % (attempt + 1),
+			p2.state == FighterBase.State.KNOCKDOWN and p2.health == 1000.0
+				and not p1.move_already_hit,
+			"state=%d hp=%.1f consumed=%s" % [p2.state, p2.health, str(p1.move_already_hit)])
+		await _step(knockdown_crouch_heavy.active + knockdown_crouch_heavy.recovery + 1)
+	_check("repeated crouch-heavy cannot loop on a knocked-down defender",
+		p2.state == FighterBase.State.KNOCKDOWN and p2.health == 1000.0,
+		"state=%d hp=%.1f" % [p2.state, p2.health])
+	_check("K1 also rejects direct non-METH strike resolution",
+		not p2.receive_hit(p1, knockdown_crouch_heavy) and p2.health == 1000.0,
+		"hp=%.1f" % p2.health)
+	p1.input_enabled = true
+
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 130)
+	p1.meter = 100.0
+	p2.health = 200.0
+	p2.knockdown_frames = 300
+	p2._force_state(FighterBase.State.KNOCKDOWN)
+	var meth_on_knockdown: MoveData = p1.data.meth_move
+	p1.input_buffer["meth"] = 0
+	var meth_gate_accepts_knockdown := p1.can_meth()
+	var meth_started_on_knockdown := p1._try_start_meth()
+	_check("K1 preserves can_meth knockdown eligibility and activation",
+		meth_gate_accepts_knockdown and meth_started_on_knockdown
+			and p1.current_move == meth_on_knockdown,
+		"can_meth=%s started=%s move=%s" % [str(meth_gate_accepts_knockdown),
+			str(meth_started_on_knockdown), p1.current_move.id if p1.current_move else "null"])
+	_check("METH activation on knockdown spends the full meter bar",
+		is_equal_approx(p1.meter, 0.0), "meter=%.1f" % p1.meter)
+	await _step(meth_on_knockdown.startup + 1)
+	_check("K1 permits the METH row to hit a knocked-down target",
+		p2.health <= 0.0 and p2.state == FighterBase.State.KO,
+		"hp=%.1f state=%d" % [p2.health, p2.state])
+
 	# --- 27. F2 readout shows the wake-up invulnerability countdown ---
 	scene._begin_round()
 	scene._start_fight()

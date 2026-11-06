@@ -2,8 +2,9 @@
 
 GDD §13 Phase 1 greybox features and basic flow paths are implemented and tested,
 but this is **not a blanket phase-exit sign-off**. The current-baseline audit
-reproduced open knockdown loops, buffer-aging, corner separation, and KO-order
-issues; “hits feel responsive” also requires human playtesting. See
+reproduced knockdown loops, buffer-aging, corner separation, and KO-order issues;
+K1 now guards the knockdown strike loop, while the remaining findings are open.
+“Hits feel responsive” also requires human playtesting. See
 `docs/PHASE_STATUS.md` for the requirement/evidence distinction and
 `docs/audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md` for the
 current-main reconciliation. Phase 2 adds throw tech, draw resolution, EX
@@ -16,10 +17,12 @@ The external probes in the
 reproduced these on `e6d40d9`; they are not resolved merely because the suites
 pass.
 
-- **Knockdown strike loop (B1).** A repeated crouch-heavy can hit a defender who
+- **Knockdown strike loop (B1) — fixed by K1.** The baseline probe showed a
+  repeated crouch-heavy hitting a defender who
   remains in `KNOCKDOWN` with no agency. Ten hits reduced 1000 → 486.25 HP; a
-  held-back-input run also landed five hits without a block. GDD §5.10 says no
-  infinite combos; this conflicts with that requirement.
+  held-back-input run also landed five hits without a block. Current code now
+  rejects non-METH strikes during knockdown and preserves the explicit METH-row
+  exception; tests cover both outcomes. See PROPOSALS §6 and `PHASE_STATUS.md`.
 - **Knockdown throws (B2).** Unteched grabs hit a knocked-down defender for 95
   damage and re-enter knockdown. A buffered grab was teched correctly, but the
   policy question remains: reject knockdown throws or keep the techable loop.
@@ -46,18 +49,19 @@ reconciliation for the finding-by-finding dispositions.
 
 ## Unresolved decisions
 
-- Whether knockdown throws should be rejected or remain techable (B2).
+- D2/R1 resolves knockdown throws: throws cannot connect during `KNOCKDOWN`;
+  implementation is queued for PR 2.
 - Whether air attacks should preserve horizontal momentum or intentionally stop
   on attack (B5; needs a live probe and playtest).
 - Whether wake-up should allow blocking in its vulnerable tail (B7; playtest).
 - Whether the damage-scaling floor should move toward the GDD's 35% (the code
   currently implements 55%; both values remain unchanged).
 - Authored combos and command grabs are not implemented. `docs/PROPOSALS.md`
-  §§6–7 are Phase 3 proposals awaiting owner approval; the combo proposal first
-  requires behavior-parity migration, while command-grab techability and the
-  already-occupied Peggy back-special / Richard forward-special slots need
-  explicit choices. Owner canon is shared controls, silhouette playability with
-  animation deferred, and Peggy/Richard-only scope.
+  §§6–7 have approved direction; the correctness queue comes first. Command-grab
+  techability and the already-occupied Peggy back-special / Richard
+  forward-special slots still need explicit choices. Owner canon is shared
+  controls, silhouette playability with animation deferred, and Peggy/Richard-
+  only scope.
 - Gamepad support and in-game input remapping are GDD §4.1/§4.6/§14
   requirements but are not implemented; the current input map is generated from
   a fixed keyboard table.

@@ -9,8 +9,8 @@ Implementation status on `main` at `a3ffc07` (gameplay baseline: `e6d40d9`):
 | §3 Air special balance | Whiff-only landing recovery (8f normals / 12f specials), first-pass air-special data, two-direction probe | Reach/blocked-advantage targets still missed; probe is coarse and informational; no full-arc/combo simulation or competitive validation |
 | §4 METHtality | Meter/full-health-state kill-confirm gate, meter drain, finisher data, freeze/banner, KO flow | GDD §5.9 final-round finish prompt, cinematic/camera/choreography, fuller presentation |
 | §5 Hype meter | EX specials at 50 meter, data-driven variants, fallback/floor tests | Combo extensions, defensive burst, super, other future spenders |
-| §6 Authored combos | Existing hit-confirm routes and 55% scaling floor | Data-authored cancel windows, counter-hit, juggle/OTG policy, route data and combo-arc measurement; awaiting owner approval |
-| §7 Grappling expansion | Grounded, techable normal throws and existing throw rules | Peggy/Richard command-grab special rows and their tech policy; awaiting owner approval |
+| §6 Authored combos | Existing hit-confirm routes and 55% scaling floor | Direction approved; data-authored cancel windows, counter-hit, juggle/OTG policy, route data and combo-arc measurement are not implemented |
+| §7 Grappling expansion | Grounded, techable normal throws and existing throw rules | Direction approved; Peggy/Richard command-grab special rows and their tech policy are not implemented; detailed choices remain open |
 
 Only the “Implemented now” cells are current behavior. The remainder are design
 proposals or known gaps, not shipped claims. See
@@ -32,10 +32,28 @@ passing balance assertion.
 >
 > Scope is Peggy and Richard only.
 
-These are owner decisions. §§6–7 are proposals awaiting approval, not an
+These are approved owner decisions. §§6–7 are approved design directions, not an
 implementation authorization. Current controls and silhouette presentation stay
 the baseline; no animation, art, new roster, or control-scheme work is a
 dependency.
+
+### Owner decisions — correctness queue
+
+The following owner decisions are recorded verbatim. They determine the
+correctness work that precedes authored combos and grappling implementation:
+
+> - D1: K1 — knockdown rejects all strikes except MoveData.meth rows;
+>   can_meth() keeps the knockdown path. The exception must be documented
+>   and tested both ways (METH triggers on knockdown and spends meter;
+>   non-METH strikes whiff).
+> - D2: R1 — throws cannot connect during KNOCKDOWN.
+> - D3: PR 4a only — bounded hitstop buffer freeze capped at one normal
+>   buffer window, all buffered actions (including grab and its lockout)
+>   frozen together. Blockstun policy (4b) is deferred to playtest.
+
+Implementation status is tracked in `docs/PHASE_STATUS.md`; D1 is implemented
+by the knockdown-strike guard and regression tests in the current PR. D2 and D3
+remain queued for their separate PRs.
 
 Engine facts these proposals assumed at original writing (verified against
 `main` at `aff988e`):
@@ -749,7 +767,7 @@ envelope tracked by PROPOSALS §3.
 
 ---
 
-## 6. Authored Combo System — proposal (Phase 3; owner approval required)
+## 6. Authored Combo System — proposal (Phase 3; direction approved, implementation pending)
 
 ### Goal and data shape
 
@@ -1026,7 +1044,7 @@ authored rules while leaving unrelated move data intact.
 
 ---
 
-## 7. Grappling Expansion — proposal (Phase 3; owner approval required)
+## 7. Grappling Expansion — proposal (Phase 3; direction approved, implementation pending)
 
 ### Scope and command-grab direction
 

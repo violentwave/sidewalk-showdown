@@ -195,11 +195,12 @@ that section by hand afterward — the simulation step comes from
 - **No dash/backdash.** GDD §5.2/§5.11 list them; neutral movement is walk-only.
 - **No gamepad support or input-remap UI.** Current inputs are a generated
   keyboard table; GDD §4.1/§4.6/§14 require both.
-- **No per-move cancel windows or juggle limit.** Cancel windows are now authored
-  data (`CancelRule` resources, PR 2); a juggle limit remains future work
-  (GDD §5.10). Counter-hit detection and +2f hitstop are implemented
-  (PROPOSALS §6, PR 1); counter-specific cancel routes exist in the engine and
-  take precedence but no authored route sets a `COUNTER_HIT` condition yet.
+- **No per-move cancel windows or juggle limit.** Cancel windows are authored
+  data (`CancelRule` resources, PR 2). The §6 juggle rules are implemented
+  (PR 3: 3-airborne-hit cap, repeat-hit pushback/gravity scaling). Counter-hit
+  detection and +2f hitstop are implemented (PROPOSALS §6, PR 1); counter-
+  specific cancel routes exist in the engine and take precedence but no authored
+  route sets a `COUNTER_HIT` condition yet.
 - **No command grabs.** The two existing fighters have only the ordinary
   grounded throw row. Proposed special-direction command grabs and their
   techability policy are documented in `docs/PROPOSALS.md` §7; Phase 3 owner

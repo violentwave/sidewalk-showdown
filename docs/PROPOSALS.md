@@ -969,7 +969,6 @@ endpoint advantage to the authored route data and tests.
 ### Juggle, OTG, and knockdown protection
 
 Proposed bounded rule set, with numeric tuning to be confirmed by the owner:
-
 - Track whether a combo has put the defender into an airborne juggle and count
   successful hits against that airborne defender per combo. Start with a
   proposed cap of **3 airborne hits**; once reached, later strikes do not extend
@@ -992,6 +991,20 @@ Proposed bounded rule set, with numeric tuning to be confirmed by the owner:
 The suggested three-hit cap, gravity/pushback policy, and exact combo-reset rule
 are proposal parameters, not implemented limits. Validate them through full
 simulation and playtest before tuning damage around them.
+
+**Implementation status (PR 3, implemented):** `FighterBase` now tracks
+`juggle_hits` per defender — successful hits against a not-grounded defender in
+the current combo. Cap `JUGGLE_HIT_CAP = 3`: an airborne defender at the cap is
+rejected in `is_invulnerable_to()` (before hit confirmation, so the rejected
+strike keeps its active window live) and mirrored in `receive_hit()` for direct
+callers. The first airborne hit of a combo keeps the authored launch arc
+exactly; each repeat airborne hit scales horizontal knockback by
+`JUGGLE_KNOCKBACK_SCALE = 0.7` per prior airborne hit, and airborne hitstun
+gravity is multiplied by `JUGGLE_GRAVITY_MULT = 1.25` once `juggle_hits >= 2`.
+The counter is documented engine policy (not hidden multipliers) and resets
+only with the combo (`_tick_combo()`, KO, and `reset_state()`), never on move
+change; grounded K1/R1 knockdown protection is unchanged and remains a distinct
+case. These constants are playtest-tunable as described above.
 
 ### Peggy and Richard route examples
 

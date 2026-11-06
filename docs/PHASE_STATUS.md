@@ -108,9 +108,11 @@ phase exit criteria:
   demonstrated. Input is generated from a keyboard table but has no remapping
   UI; training is limited to debug controls; AI, audio manager, save/unlock, and
   an authored hitbox editor workflow are missing. Dash/backdash states are
-  absent. Cancel rules are now authored data (PR 2); counter-hit detection exists
-  (PR 1), while juggle limits and counter-specific routes are not authored, and the 55% implemented scaling floor remains unresolved
-  against the GDD's proposed 35% (B8). Owner decision (2026-11-06): the floor
+  absent. Cancel rules are authored data (PR 2); counter-hit detection exists
+  (PR 1); the §6 juggle rules (3-airborne-hit cap, repeat-hit pushback/gravity
+  (PR 3), while counter-specific routes are not authored. The 55% implemented
+  decision is conditioned on now exists, so any 35% revisit is owner-approval-only.
+  Owner decision (2026-11-06): the floor
   is **55%**, and GDD §5.10's 35% entry is amended to 55%; 35% may be revisited
   only after a juggle limit exists. Command grabs are **untechable** with slow,
   punishable startup; the normal throw remains the techable layer, and the

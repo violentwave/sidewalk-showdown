@@ -37,6 +37,17 @@ const DEFAULT_LANDING_FRAMES := 2
 # GDD §5.6: a counter hit adds +2 frames of hitstop, shared like ordinary hitstop.
 const COUNTER_HIT_HITSTOP := 2
 
+# PROPOSALS §6 juggle policy. An airborne defender takes at most
+# JUGGLE_HIT_CAP hits per combo; later strikes are rejected and stay live.
+# The FIRST juggle hit keeps the authored launch arc exactly; every REPEAT
+# juggle hit is scaled: horizontal pushback falls by JUGGLE_KNOCKBACK_SCALE per
+# prior airborne hit, and gravity while carrying the airborne arc is multiplied
+# by JUGGLE_GRAVITY_MULT once the juggle continues past the cap boundary (i.e.
+# juggle_hits >= 2). These are documented engine policy, not hidden multipliers.
+const JUGGLE_HIT_CAP := 3
+const JUGGLE_GRAVITY_MULT := 1.25
+const JUGGLE_KNOCKBACK_SCALE := 0.7
+
 # --- Match context ---
 var opponent: FighterBase
 var stage: Node2D
@@ -68,6 +79,8 @@ var tech_frames := 0
 var landing_recovery_frames := DEFAULT_LANDING_FRAMES
 
 var combo_hits := 0
+# Airborne hits this fighter has received in the current combo (PROPOSALS §6).
+var juggle_hits := 0
 var frames_since_hit := 0
 
 # --- Input buffer ---
@@ -247,7 +260,11 @@ func _knockdown_logic() -> void:
 
 func _apply_gravity(delta: float) -> void:
 	if not grounded:
-		velocity.y += gravity * delta
+		# PROPOSALS §6: while an airborne defender carries the juggle arc past a
+		# repeat air hit, gravity is multiplied so the arc returns to the floor.
+		var mult := gravity * JUGGLE_GRAVITY_MULT \
+			if juggle_hits >= 2 and state in [State.HITSTUN,	State.KNOCKDOWN] else gravity
+		velocity.y += mult * delta
 
 func _integrate() -> void:
 	position += velocity * delta_fixed()
@@ -461,8 +478,9 @@ func on_attack_connected(was_hit: bool) -> void:
 	move_hit_confirmed = was_hit
 
 # True when `move` must not connect with this fighter right now: K1/R1 knockdown
-# protection, the universal wake-up window (strike+throw, then a separately
-# authored throw tail), or a reversal move's own invuln frames. Deliberately a
+# protection, the §6 airborne juggle cap, the universal wake-up window (strike+
+# throw, then a separately authored throw tail), or a reversal move's own invuln
+# frames. Deliberately a
 # query, not only a branch inside receive_hit(): _poll_hit() skips a protected
 # defender before the move is returned, so the hitbox stays live and the first
 # vulnerable frame is the one that connects.
@@ -477,6 +495,11 @@ func is_invulnerable_to(move: MoveData) -> bool:
 		# checked before hit confirmation in MatchRoot, so rejected moves stay live.
 		if not move.meth:
 			return true
+	# PROPOSALS §6 juggle cap: an airborne defender who has already taken
+	# JUGGLE_HIT_CAP hits in this combo cannot be hit again. This query is checked
+	# before hit confirmation in MatchRoot, so a rejected strike stays live.
+	if not grounded and juggle_hits >= JUGGLE_HIT_CAP:
+		return true
 	if state == State.WAKE_UP:
 		if state_frame < (data.wakeup_invuln_frames if data else 6):
 			return true
@@ -545,6 +568,7 @@ func can_block(move: MoveData) -> bool:
 # startup and the exchange was not a trade. Only an actual hit can be a counter.
 func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> bool:
 	if state == State.KO:
+		juggle_hits = 0
 		return false
 	# Keep K1/R1 true for direct resolver/test callers too; MatchRoot normally
 	# skips these contacts in _poll_hit() via is_invulnerable_to().
@@ -562,6 +586,11 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 		if _can_tech():
 			_start_tech(attacker)
 			return false
+
+	# PROPOSALS §6 juggle cap, mirrored for direct resolver/test callers; the
+	# airborne-arc scaling below applies to hits 2..cap only.
+	if not grounded and juggle_hits >= JUGGLE_HIT_CAP:
+		return false
 
 	if is_blocking() and can_block(move):
 		# Chip damage is a pressure tool, never a kill: blocked hits floor at 1 HP.
@@ -593,16 +622,25 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 		attacker.counter_hit_landed.emit()
 
 	var dir := 1.0 if position.x >= attacker.position.x else -1.0
-	velocity = Vector2(dir * move.knockback.x, -move.knockback.y)
+	# PROPOSALS §6: repeated air hits return the arc to the floor. The first
+	# airborne hit of a combo keeps the authored knockback; each repeat scales
+	# horizontal pushback by JUGGLE_KNOCKBACK_SCALE per prior airborne hit.
+	var air_knockback_x := move.knockback.x
+	if not grounded and juggle_hits > 0:
+		air_knockback_x *= pow(JUGGLE_KNOCKBACK_SCALE, float(juggle_hits))
+	velocity = Vector2(dir * air_knockback_x, -move.knockback.y)
 	_emit_health()
 
 	if health <= 0.0:
 		velocity = Vector2(dir * 130.0, -170.0)
 		grounded = false # let gravity arc the loser back down to the stage
 		_force_state(State.KO)
+		juggle_hits = 0
 		ko.emit()
 		return true
 
+	if not grounded:
+		juggle_hits += 1
 	if move.knockdown:
 		knockdown_frames = 30
 		_force_state(State.KNOCKDOWN)
@@ -691,6 +729,7 @@ func reset_state() -> void:
 	tech_frames = 0
 	landing_recovery_frames = DEFAULT_LANDING_FRAMES
 	combo_hits = 0
+	juggle_hits = 0
 	frames_since_hit = 0
 	input_buffer.clear()
 	grounded = true
@@ -761,7 +800,9 @@ func _down() -> bool:
 func _tick_combo() -> void:
 	frames_since_hit += 1
 	if combo_hits > 0 and frames_since_hit > 40 and state not in [State.HITSTUN, State.KNOCKDOWN]:
+		# Combo end: the §6 juggle counter only resets with the combo.
 		combo_hits = 0
+		juggle_hits = 0
 		combo_changed.emit(0)
 
 # ---------------- Misc ----------------

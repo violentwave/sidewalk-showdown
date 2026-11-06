@@ -868,6 +868,23 @@ rules in PR 2: a counter hit also satisfies an ordinary `HIT` rule; a
 `COUNTER_HIT`-specific rule takes precedence over `HIT` when both match. Blocked
 strikes are never counters, because a fighter in startup cannot block.
 
+**Implementation status (PR 2, implemented):** `MoveData` gained a typed
+`cancels: Array[CancelRule]` array and `CancelRule` (target LIGHT/HEAVY/SPECIAL,
+kind CHAIN/CANCEL, condition HIT/COUNTER_HIT, inclusive `from_frame..to_frame`
+window measured from move start). `FighterBase._try_cancel()` METHtality gate is
+unchanged but now explicit (`move_hit_confirmed and state_frame > startup`);
+rules are evaluated in array order in two passes — first `COUNTER_HIT` rules
+(matching when `move_counter_hit` is set), then ordinary `HIT` rules (which a
+counter hit also satisfies, per precedence above). `BLOCK` and `WHIFF`
+conditions are reserved and rejected by `CancelRule.validate()` until the
+resolver reports those outcomes. The legacy engine-coded routes were migrated to
+authored data on all 12 light rows and 2 heavy rows per fighter: window
+`startup+1 .. total_frames` (unchanged), light targets special-then-light-then-
+heavy, heavy targets special-only — behavior exactly preserved, with a
+generator-parity diff confirming every frame/damage/id line identical before
+and after regeneration. Buffered inputs are still consumed (and lost) when no
+matching move exists.
+
 ### Blocking interactions and blockstring safety
 
 #### Current behavior measured in the real simulation

@@ -54,6 +54,10 @@ enum Invuln { NONE, STRIKE, THROW, FULL }
 @export var meter_cost: float = 0.0
 @export var ex: bool = false
 
+@export_group("Cancels")
+# Authored hit-confirm cancel routes (PROPOSALS §6); evaluated by FighterBase.
+@export var cancels: Array[CancelRule] = []
+
 @export_group("METHtality")
 # Marks a finisher row. Finishers are referenced by FighterData.meth_move and
 # are never returned by find_move()/find_ex_move().

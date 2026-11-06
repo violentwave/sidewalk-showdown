@@ -219,7 +219,7 @@ func _attack_logic() -> void:
 		return
 	velocity.x = move_toward(velocity.x, 0.0, 400.0 * delta_fixed())
 
-	if move_hit_confirmed and state_frame > current_move.startup:
+	if move_hit_confirmed:
 		if _try_cancel():
 			return
 	if state_frame >= _move_total(current_move):
@@ -320,30 +320,53 @@ func _try_start_attack() -> bool:
 
 	return false
 
+# Authored cancel routes (PROPOSALS §6): the rules on current_move are evaluated
+# in array order, counter-specific rules first, and the first one that starts a
+# move wins. The METHtality gate stays global and runs before any rule.
 func _try_cancel() -> bool:
 	if current_move == null:
 		return false
 	# A landed hit is the canonical kill-confirm moment: buffered METHtality
 	# fires from the hit-confirm cancel path as well as from neutral.
-	if _try_start_meth():
+	if move_hit_confirmed and state_frame > current_move.startup and _try_start_meth():
 		return true
-	var allowed_special := current_move.input in [MoveData.InputType.LIGHT, MoveData.InputType.HEAVY]
-	var allowed_normal := current_move.input == MoveData.InputType.LIGHT
-
-	if allowed_special and _consume("special", BUFFER_SPECIAL):
-		if _try_start_special(_current_stance()):
-			return true
-	if allowed_normal and _consume("light", BUFFER_NORMAL):
-		var light := data.find_move(MoveData.InputType.LIGHT, _current_stance())
-		if light:
-			_start_move(light)
-			return true
-	if allowed_normal and _consume("heavy", BUFFER_NORMAL):
-		var heavy := data.find_move(MoveData.InputType.HEAVY, _current_stance())
-		if heavy:
-			_start_move(heavy)
-			return true
+	for counter_pass in [true, false]:
+		for rule: CancelRule in current_move.cancels:
+			if not _cancel_rule_matches(rule, counter_pass):
+				continue
+			if _run_cancel(rule):
+				return true
 	return false
+
+func _cancel_rule_matches(rule: CancelRule, counter_pass: bool) -> bool:
+	if not rule.window_open(state_frame):
+		return false
+	if rule.condition == CancelRule.Condition.COUNTER_HIT:
+		return counter_pass and move_hit_confirmed and move_counter_hit
+	if rule.condition == CancelRule.Condition.HIT:
+		return not counter_pass and move_hit_confirmed
+	return false
+
+# Consumes the buffer exactly as the legacy routes did: a buffered input is spent
+# even when no matching move exists, and the evaluation falls through to the next rule.
+func _run_cancel(rule: CancelRule) -> bool:
+	match rule.target:
+		CancelRule.Target.SPECIAL:
+			return _consume("special", BUFFER_SPECIAL) and _try_start_special(_current_stance())
+		CancelRule.Target.LIGHT:
+			return _cancel_into_normal(MoveData.InputType.LIGHT, "light")
+		CancelRule.Target.HEAVY:
+			return _cancel_into_normal(MoveData.InputType.HEAVY, "heavy")
+	return false
+
+func _cancel_into_normal(input: MoveData.InputType, action: String) -> bool:
+	if not _consume(action, BUFFER_NORMAL):
+		return false
+	var move := data.find_move(input, _current_stance())
+	if move == null:
+		return false
+	_start_move(move)
+	return true
 
 # METHtality gate (PROPOSALS §4): full meter, opponent under the health
 # threshold and in a real hitstun/knockdown window, and not invulnerable to the

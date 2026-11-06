@@ -574,7 +574,9 @@ Suggested damage scaling:
 > GDD's proposed **35% minimum** remains unresolved; neither value is changed by
 > this documentation reconciliation. Cancel routes are currently engine-coded,
 > with no per-move cancel window, juggle limit, or counter-hit implementation.
-> See `docs/PHASE_STATUS.md` and audit finding B8.
+> The behavior-preserving authored-cancel migration and future combo rules are
+> proposed in `docs/PROPOSALS.md` §6 for GDD Phase 3; they are not implemented
+> and await approval. See `docs/PHASE_STATUS.md` and audit finding B8.
 
 ### 5.11 Defensive Systems
 
@@ -592,8 +594,10 @@ Do not add parry, burst, guard crush, roman-cancel-like mechanics, or assists in
 > **Implementation-status note (2026-11-05):** stand/crouch block, jump
 > avoidance, throw tech, and a universal data-driven wake-up invulnerability
 > exist. Backdash/dash are missing, and the vulnerable wake-up tail currently
-> cannot block. These are status notes; the design direction above remains
-> unchanged.
+> cannot block. Current throws are ordinary grounded, techable throws; no
+> command-grab special is implemented. Peggy/Richard command grabs are proposed
+> in `docs/PROPOSALS.md` §7 for GDD Phase 3 and await approval. These are status
+> notes; the design direction above remains unchanged.
 
 ### 5.12 AI Opponents
 
@@ -821,6 +825,18 @@ moves:
 palettes:
 audio_voice_set:
 ```
+
+> **Implementation-status and canon note (2026-11-05):** the current data
+> generator authors the two playable fighters, their move rows, EX variants,
+> ordinary throws, and METHtality rows. Authored cancel rules and command-grab
+> rows are not implemented; see `docs/PROPOSALS.md` §§6–7 (Phase 3 proposals
+> awaiting approval). Owner canon: “Combos are control-uniform across all
+> fighters: every fighter shares the same input taxonomy (light/heavy x
+> stand/crouch/air, five special directions, grab, EX, METH). Character identity
+> comes from authored data and later animation, never from different control
+> schemes.” The authored combo/grab systems must run on current silhouettes;
+> animation wiring is a later art phase and not a dependency. Proposal scope is
+> Peggy and Richard only.
 
 ### 7.4 Character Sheet Requirements
 

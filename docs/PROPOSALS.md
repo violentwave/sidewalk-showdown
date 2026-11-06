@@ -1,6 +1,6 @@
-# Implementation Proposals — Wake-up Invuln, Throw Tech, Air Special Balance
+# Implementation Proposals — Combat Systems and Balance
 
-Implementation status on `main` at `e6d40d9`:
+Implementation status on `main` at `a3ffc07` (gameplay baseline: `e6d40d9`):
 
 | Section | Implemented now | Future / still open |
 |---|---|---|
@@ -9,6 +9,8 @@ Implementation status on `main` at `e6d40d9`:
 | §3 Air special balance | Whiff-only landing recovery (8f normals / 12f specials), first-pass air-special data, two-direction probe | Reach/blocked-advantage targets still missed; probe is coarse and informational; no full-arc/combo simulation or competitive validation |
 | §4 METHtality | Meter/full-health-state kill-confirm gate, meter drain, finisher data, freeze/banner, KO flow | GDD §5.9 final-round finish prompt, cinematic/camera/choreography, fuller presentation |
 | §5 Hype meter | EX specials at 50 meter, data-driven variants, fallback/floor tests | Combo extensions, defensive burst, super, other future spenders |
+| §6 Authored combos | Existing hit-confirm routes and 55% scaling floor | Data-authored cancel windows, counter-hit, juggle/OTG policy, route data and combo-arc measurement; awaiting owner approval |
+| §7 Grappling expansion | Grounded, techable normal throws and existing throw rules | Peggy/Richard command-grab special rows and their tech policy; awaiting owner approval |
 
 Only the “Implemented now” cells are current behavior. The remainder are design
 proposals or known gaps, not shipped claims. See
@@ -16,6 +18,24 @@ proposals or known gaps, not shipped claims. See
 [current-baseline reconciliation](audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md)
 for reproduced issues. Air-probe output is informational measurement, not a
 passing balance assertion.
+
+### Shared canon and scope for §§6–7
+
+> Combos are control-uniform across all fighters: every fighter shares the same
+> input taxonomy (light/heavy x stand/crouch/air, five special directions, grab,
+> EX, METH). Character identity comes from authored data and later animation,
+> never from different control schemes.
+>
+> Animations are out of scope: the combo and grab systems must be fully playable
+> on the current silhouette fighters. Animation wiring is a later art phase and
+> must not be a dependency.
+>
+> Scope is Peggy and Richard only.
+
+These are owner decisions. §§6–7 are proposals awaiting approval, not an
+implementation authorization. Current controls and silhouette presentation stay
+the baseline; no animation, art, new roster, or control-scheme work is a
+dependency.
 
 Engine facts these proposals assumed at original writing (verified against
 `main` at `aff988e`):
@@ -728,6 +748,302 @@ envelope tracked by PROPOSALS §3.
 - `find_move()` ignores EX rows (no accidental base-move regression).
 
 ---
+
+## 6. Authored Combo System — proposal (Phase 3; owner approval required)
+
+### Goal and data shape
+
+Replace the hard-coded routes in `FighterBase._try_cancel()` with per-move
+authored rules. A rule should identify:
+
+| Field | Meaning |
+|---|---|
+| `target_move_id` or `target_category` | One move, or a category such as normal, special, EX, or METHtality |
+| `target_input` / `target_stance` (when needed) | Resolve a category using the same buffered input and stance lookup as today; for example, distinguish light-normal from heavy-normal without changing controls |
+| `from_frame`, `to_frame` | Inclusive start and exclusive end of the source move's legal cancel window, in simulation frames from move start |
+| `condition` | `HIT`, `BLOCK`, `COUNTER_HIT`, or `WHIFF`; only a result actually observed for the current move can qualify |
+| `kind` | `CHAIN` for normal-to-normal routes; `CANCEL` for routes into special, EX, or METHtality |
+
+An illustrative resource shape (not a code change or final schema):
+
+```text
+cancel_rules:
+  - target_category: NORMAL
+    from_frame: 3
+    to_frame: 10
+    condition: HIT
+    kind: CHAIN
+  - target_category: SPECIAL
+    from_frame: 3
+    to_frame: 10
+    condition: HIT
+    kind: CANCEL
+```
+
+Frame endpoints and target resolution need one documented convention. Validate
+that target IDs exist, categories resolve unambiguously, and overlapping rules
+cannot select different moves nondeterministically. `BLOCK`, `COUNTER_HIT`, and
+`WHIFF` become available conditions only when the resolver reports those outcomes;
+they must not be inferred from a generic contact flag. In particular, a blocked
+move is not a hit-confirm under current behavior. A broad normal category must
+still resolve the player's buffered light/heavy and current stance using the
+existing lookup policy; it must not pick an arbitrary row.
+
+### Behavior-preserving migration
+
+The first data-authored state is a migration, not a balance pass. For both
+Peggy and Richard, capture the current behavior exactly before considering new
+routes:
+
+- After a confirmed hit, a light-input move can chain to the current-stance light
+  or heavy, or cancel to the current-stance special.
+- After a confirmed hit, a heavy-input move can cancel to the current-stance
+  special; it cannot chain to another normal.
+- These windows are currently implicit: `_attack_logic()` checks after
+  `state_frame > current_move.startup` until the move ends. The migration must
+  encode the same effective frames, buffering, stance lookup, and EX selection.
+- Current route outcomes are hit-only. Do not add block, counter-hit, or whiff
+  cancels in the parity migration. Preserve all other current move behavior.
+- Preserve the global METHtality kill-confirm gate: buffered METH is checked
+  separately after a hit-confirm from any move and from the neutral starter; it
+  still requires full meter, the health threshold, a hitstun/knockdown target,
+  and a target not invulnerable to the finisher. A METH category/rule must not
+  bypass these checks or narrow the existing global gate accidentally.
+- Compare before/after route reachability for every generated Peggy/Richard move
+  and input buffer timing. Only after this parity state passes may additional
+  authored routes be proposed and tuned.
+
+`CHAIN` versus `CANCEL` is descriptive and testable: a chain changes from one
+normal to another normal; a cancel interrupts the source move into a special,
+EX, or the separately gated METHtality. EX remains selected by the existing
+special-plus-heavy input and costs its authored meter amount. Do not make a
+special/EX route free or let an invalid target consume the input.
+
+### Counter-hit definition and feedback
+
+GDD §5.6 specifies **+2 frames of hitstop** for a counter-hit but does not yet
+define its detection window. Recommended operational definition for owner
+approval: a strike that resolves while the defender is in the startup portion of
+an attack, and interrupts that attack, is a counter-hit. A hit on recovery, a
+trade where both attacks resolve, or a hit on a non-attacking state is not one.
+Record the result at hit resolution before changing the defender's state; apply
+the move's authored hitstop plus 2 simulation frames once, shared by both
+fighters as ordinary hitstop is today.
+
+Expose an explicit counter-hit result/signal to the HUD and show the GDD §10.3
+counter-hit indicator alongside the existing combo feedback. Keep the result
+available to cancel evaluation: a `COUNTER_HIT` rule is legal only on that
+resolved result; an ordinary `HIT` rule must not require counter-hit. Define
+whether a counter-hit also satisfies an ordinary HIT rule (recommend yes, with a
+counter-hit-specific rule taking precedence) to avoid overlapping-rule ambiguity.
+No HUD animation or art is a prerequisite; a text indicator works on silhouettes.
+
+### Juggle, OTG, and knockdown protection
+
+Proposed bounded rule set, with numeric tuning to be confirmed by the owner:
+
+- Track whether a combo has put the defender into an airborne juggle and count
+  successful hits against that airborne defender per combo. Start with a
+  proposed cap of **3 airborne hits**; once reached, later strikes do not extend
+  the juggle. The counter resets only when the combo ends, not on a move change.
+- Scale repeated air hits with increased gravity and/or reduced horizontal
+  pushback so the arc returns to the floor and corner carry cannot grow without
+  bound. Record the chosen per-hit scaling in move/combo data or one clearly
+  documented policy; do not stack hidden engine multipliers.
+- OTG means a hit against a grounded `KNOCKDOWN` target. The owner’s K1/R1
+  decisions are boundaries: **K1: knockdown rejects strikes except METH rows**;
+  **R1: throws are rejected during knockdown**. Therefore no ordinary OTG strike
+  or command grab may be added by this proposal. A METH row remains subject to
+  the existing global METHtality gate and invulnerability check; it is not a
+  general OTG exception for other move rows.
+- Knockdown protection must be resolved before ordinary hit confirmation so a
+  rejected strike does not consume its active window. Airborne juggle hits and
+  grounded knockdown protection are distinct cases. Throws remain grounded-only
+  and rejected against a knocked-down target under R1.
+
+The suggested three-hit cap, gravity/pushback policy, and exact combo-reset rule
+are proposal parameters, not implemented limits. Validate them through full
+simulation and playtest before tuning damage around them.
+
+### Peggy and Richard route examples
+
+These are candidate authored routes for data/arc validation, not claims that all
+links currently connect at every spacing. Existing move IDs are shown where
+known; routes must remain playable with the current silhouette fighters.
+
+| Fighter | Route | Illustrative route data |
+|---|---|---|
+| Peggy | Jump-in starter | `jump_heavy` (landed starter) → `light` (`HIT`, `CHAIN`) → `peggy_neutral` (`HIT`, `CANCEL`) |
+| Peggy | Grounded chain | `light` → `heavy` (`HIT`, `CHAIN`) → `peggy_neutral` (`HIT`, `CANCEL`) |
+| Peggy | Punish | `heavy` (punish hit) → `peggy_forward_ex` (`HIT`, `CANCEL`, pay 50 meter); base-special fallback follows existing EX rules |
+| Richard | Jump-in starter | `jump_heavy` (landed starter) → `light` (`HIT`, `CHAIN`) → `richard_neutral` (`HIT`, `CANCEL`) |
+| Richard | Grounded chain | `light` → `heavy` (`HIT`, `CHAIN`) → `richard_forward` (`HIT`, `CANCEL`) |
+| Richard | Punish | `heavy` (punish hit) → `richard_forward_ex` (`HIT`, `CANCEL`, pay 50 meter); base-special fallback follows existing EX rules |
+
+For each rule the eventual resource data supplies the chosen frame window. The
+first migration rules must reproduce legacy windows exactly; any additional
+windows/routes in these examples are a separate owner-approved expansion. Test
+reachability at practical spacing and ensure the jump-in routes are links after
+landing, not animation-timed assumptions.
+
+### Scaling decision and measurement
+
+The current code implements hit scaling `100/100/85/70/55%` for hits 1–2/3/4/5+
+with a **55% floor**. GDD §5.10 proposes a **35% minimum**. Keep both values
+unchanged in this proposal; owner decision required. Recommendation: retain 55%
+for the initial data-authored parity state, measure full routes, then choose one
+authoritative floor with the owner. Do not silently adopt 35% while migrating
+cancels.
+
+Extend the air-probe plan after the route simulator exists. In addition to
+single-hit direct damage, simulate sampled jump arcs with authored follow-ups,
+cancel windows, hitstop, knockback/gravity, landing, juggle cap, and per-hit
+scaling. Report route reachability, total and scaled damage, hit count, combo
+duration, air/ground transitions, and ending state, separating geometry
+candidates from resolver-confirmed hits. Use deterministic start frames and
+spacing in both fighter directions; retain current single-hit metrics and label
+the new output as measured samples, not balance assertions.
+
+### Tests and exit criteria
+
+- Legal and illegal target IDs/categories; boundary tests for inclusive start /
+  exclusive end frames; buffered input still starts only in legal windows.
+- Legacy Peggy/Richard routes match the pre-migration route matrix exactly:
+  light→light/heavy/special and heavy→special on hit only; no new block/whiff
+  cancels. Test EX affordability/fallback and METH gate parity separately.
+- `CHAIN` only permits normal-to-normal and `CANCEL` only permits its authored
+  special/EX/METH target class. Illegal routes do not consume meter or inputs.
+- Counter-hit startup interruption gets exactly +2 hitstop and HUD feedback;
+  recovery hits and trades do not. Counter-hit and ordinary-hit cancel
+  precedence is deterministic.
+- Juggle count reaches, then rejects, the selected cap; combo reset, gravity /
+  pushback scaling, K1 knockdown protection, R1 throw rejection, and the global
+  METH gate each have positive/negative regression cases. No route can loop
+  indefinitely or create an infinite grounded/airborne reset.
+- Per-fighter route-data integrity: all referenced IDs/categories resolve in
+  Peggy and Richard generator output; regeneration is deterministic and preserves
+  the authored rules.
+- Existing combat and round-flow suites pass, with new integration tests for
+  each route; air-probe output includes simulated combo arcs without converting
+  informational metrics into assertions.
+
+**Dependencies:** owner approval of rule schema, counter-hit definition, juggle
+cap/scaling, and the scaling floor. Migration/parity should precede added routes;
+animation work is explicitly not a dependency. Rollback can revert the data
+authored rules while leaving unrelated move data intact.
+
+---
+
+## 7. Grappling Expansion — proposal (Phase 3; owner approval required)
+
+### Scope and command-grab direction
+
+Add one command grab for each current playable fighter, authored as a
+`MoveData` throw-level special on an existing special direction. Recommended
+mapping: **Richard forward + special** and **Peggy back + special**. This keeps
+the shared input taxonomy; fighter identity is in data, not a fighter-specific
+control scheme. Both grabs must work with the current silhouettes and no
+animation dependency.
+
+There is an important data-selection decision before authoring: Richard's
+forward-special (`richard_forward`) and Peggy's back-special (`peggy_back`) rows
+already exist. `FighterData.find_move()` returns the first matching input/stance,
+so adding a duplicate row would be ambiguous and might make the command grab
+unreachable. Owner approval must choose whether each existing move is replaced/
+reclassified as the command grab, or another currently available special
+direction is selected and its existing role resolved. Do not silently add a
+duplicate input/stance row or change the controls. The generator must remain the
+source of truth for whichever approved choice is made.
+
+### Authored properties and counterplay
+
+Each command-grab row should author:
+
+| Property | Rule to record |
+|---|---|
+| Damage | Per-fighter damage; do not inherit normal-throw damage without a balance decision |
+| Startup | Deliberately slower than the normal throw if untechable is selected, leaving a readable interruption/avoidance window |
+| Active window | Explicit active simulation frames |
+| Whiff recovery | Explicit and punishable; define whether the existing ordinary throw-whiff override applies or a command-grab-specific value is added |
+| Hit level | `THROW`; unblockable by stand/crouch block as existing throws are |
+| Knockdown | Explicit knockdown flag and resulting state/duration policy; must respect R1 against an already-knocked-down defender |
+| Meter gain | Explicit hit/whiff/receive values using the existing meter economy; no implicit bonus |
+
+The design choice is **techable vs. untechable**:
+
+- **Recommended: untechable command grabs with slower startup.** This is the
+  traditional trade: sacrifice speed and give the defender time to interrupt,
+  jump, or leave range in exchange for no throw-tech escape on contact.
+- **Alternative: techable.** Use the existing normal-throw tech window
+  (`throw_tech_window`, currently 7 frames) and lockout behavior unless the owner
+  explicitly approves a distinct window. A buffered grab within the window
+  breaks the command grab; a lockout button input prevents that tech, just as for
+  normal throws.
+
+Under the recommended untechable option, a buffered grab does not enter `TECH`
+against the command grab and lockout does not convert its hit into a tech. This
+does not make the move unavoidable: startup, spacing, jumping/airborne state,
+and recovery remain counterplay. Existing normal throws remain techable and
+their window/lockout must not change. Owner approval is required before either
+techability policy is implemented.
+
+### Existing-rule interactions
+
+- **R1 — knockdown:** reject all throws, including command grabs, against a
+  defender in `KNOCKDOWN`; command-grab data cannot opt out.
+- **Wake-up throw invulnerability:** respect the current data-driven throw
+  invulnerability window. A command grab must not bypass `is_invulnerable_to()`.
+- **K1 — knockdown strikes:** this policy concerns strikes, not a command-grab
+  loophole. A throw-level command grab remains rejected by R1 during knockdown;
+  METH rows keep their separate explicit exception and global gate.
+- **Airborne defenders:** retain the existing grounded-only throw rejection;
+  command grabs whiff on airborne defenders and a brush must not consume the
+  active window if that is the shared ordinary-throw rule.
+- **EX meter:** no EX command grab is assumed in this proposal. If separately
+  approved, it must be a normal EX data variant, use the existing EX input and
+  authored meter cost (currently 50), and never become a free command-grab
+  shortcut. Base command grabs must not spend EX meter.
+- **METHtality gate:** command-grab damage/knockdown must not trigger or bypass
+  the finisher. METH remains governed by full meter, health threshold,
+  hitstun/knockdown state, and invulnerability; the current global kill-confirm
+  path is preserved. Do not make command-grab contact an alternate METH gate.
+- Throws remain unblockable because they are `THROW`, not because command grabs
+  get a special block exception.
+
+### Explicitly deferred
+
+- Air grabs.
+- Multi-throw variants, follow-up trees, and command-grab EX variants.
+- Grappler-archetype kits for the wider roster; that is Phase 5 design/content
+  work, not this Peggy/Richard Phase 3 proposal.
+- Animation and art wiring; silhouette playability is the acceptance baseline.
+
+### Tests and exit criteria
+
+- Each approved row resolves as a throw-level `MoveData` and connects against a
+  grounded, vulnerable defender; holding stand or crouch block does not block it.
+- It whiffs against an airborne defender under the existing rule, without
+  consuming the active window where the common throw resolver preserves that
+  behavior; wake-up throw invulnerability still rejects it.
+- R1 rejects the command grab against `KNOCKDOWN`; K1 does not accidentally
+  reinterpret a throw as a strike, and the METH exception/gate remain unchanged.
+- Techable option: tech inside/outside the selected window, lockout, both-fighter
+  `TECH`, and no damage. Untechable option: grab input does not tech it, no
+  `TECH` state is entered, and normal throws still tech exactly as before.
+- Whiff recovery is punishable and authored; damage, knockdown, and meter gains
+  match the selected rows. EX meter is unchanged unless a separate variant is
+  approved.
+- Peggy and Richard each have one unambiguous command-grab row in
+  `gen_fighter_data.gd`; regenerate resources and verify rows and approved
+  properties persist. No duplicate input/stance lookup ambiguity.
+- Existing throw tech, airborne rejection, wake-up invulnerability, combo,
+  METHtality, combat, and round-flow tests remain green.
+
+**Dependencies:** owner decision on direction-slot replacement/alternative and
+techability, plus approved per-grab values. This proposal does not authorize code
+or resource changes. Roll back the two authored rows independently if they
+regress ordinary throw behavior; never remove or alter the shared normal-throw
+rules as a shortcut.
 
 ## Suggested order
 

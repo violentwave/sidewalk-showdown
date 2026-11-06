@@ -203,6 +203,27 @@ Peggy should feel like an improvised-weapon trick fighter who fights dirty but i
 | **Hardware Shuffle** | Back + Special | Short evasive hop with counter-hit property. |
 | **Receipt Collector** | Throw | Grabs opponent and slams them with a bag of pawn-shop junk. |
 
+### Authored Combo Route Placeholder — Design Only
+
+For the Phase 3 proposal, candidate data routes are `jump_heavy` (landed
+starter) → `light` → `peggy_neutral`; `light` → `heavy` → `peggy_neutral`; and
+`heavy` punish → `peggy_forward_ex` (with the existing EX meter cost). These
+routes need frame-window and spacing validation; they do not claim every link is
+currently authored or guaranteed. The shared control taxonomy applies, and
+these routes must be playable on Peggy's current silhouette without animation.
+
+### Command Grab Placeholder — Design Only
+
+Recommended mapping: a throw-level special on **Back + Special**. This direction
+currently contains **Hardware Shuffle**, so owner approval must decide whether
+to replace/reclassify that row or choose another existing direction; duplicate
+input/stance rows are not an acceptable implicit solution. Damage, startup,
+active frames, whiff recovery, knockdown and meter gain remain to be authored.
+The recommended tech policy is untechable with slower startup, pending owner
+approval. Respect airborne rejection, wake-up throw invulnerability, R1
+knockdown throw rejection, and the existing METHtality gate. No art or animation
+is part of this placeholder.
+
 ### METHtality
 
 **Name:** Walk the Plank  
@@ -723,6 +744,28 @@ Richard is a heavy-handed brawler with volatile fire/liquor gimmicks.
 | **Last Call Flame** | Neutral + Special | Short fire burst. |
 | **Bar Mat Slide** | Down + Special | Low sliding shove. |
 | **Karaoke Regret** | Throw | Slams opponent like a failed performance. |
+
+### Authored Combo Route Placeholder — Design Only
+
+For the Phase 3 proposal, candidate data routes are `jump_heavy` (landed
+starter) → `light` → `richard_neutral`; `light` → `heavy` → `richard_forward`;
+and `heavy` punish → `richard_forward_ex` (with the existing EX meter cost).
+These routes need frame-window and spacing validation; they do not claim every
+link is currently authored or guaranteed. The shared control taxonomy applies,
+and these routes must be playable on Richard's current silhouette without
+animation.
+
+### Command Grab Placeholder — Design Only
+
+Recommended mapping: a throw-level special on **Forward + Special**. This
+direction currently contains **Stool Sample**, so owner approval must decide
+whether to replace/reclassify that row or choose another existing direction;
+duplicate input/stance rows are not an acceptable implicit solution. Damage,
+startup, active frames, whiff recovery, knockdown and meter gain remain to be
+authored. The recommended tech policy is untechable with slower startup, pending
+owner approval. Respect airborne rejection, wake-up throw invulnerability, R1
+knockdown throw rejection, and the existing METHtality gate. No art or animation
+is part of this placeholder.
 
 ### METHtality
 

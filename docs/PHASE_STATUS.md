@@ -1,6 +1,6 @@
 # GDD Phase Status
 
-**Baseline:** `origin/main` at `e6d40d9607a0f0e3fc4a3be23ed592dbd9d43eda` (2026-11-05).
+**Baseline:** `origin/main` at `a3ffc0744f44e6d841c0be13cbdc5ede08dad916` (documentation-only merge after the `e6d40d9` audited gameplay baseline).
 The companion audit reconciliation is [`docs/audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md`](audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md).
 
 ## Current phase
@@ -89,7 +89,12 @@ phase exit criteria:
   an authored hitbox editor workflow are missing. Dash/backdash states are
   absent. Cancel rules remain implicit in engine code, juggle/counter-hit rules
   are not authored, and the 55% implemented scaling floor remains unresolved
-  against the GDD's proposed 35% (B8).
+  against the GDD's proposed 35% (B8). `docs/PROPOSALS.md` §§6–7 propose an
+  authored combo system and Peggy/Richard command grabs; both are Phase 3 design
+  proposals awaiting owner approval, not implemented features. The owner has
+  set shared controls across fighters, silhouette playability with animation
+  deferred, and Peggy/Richard-only scope; command-grab techability and occupied
+  direction-slot selection remain open design decisions.
 - **Exit verification:** not met; adding the current roster/stage still depends
   on hard-coded match setup, and several listed systems do not exist.
 

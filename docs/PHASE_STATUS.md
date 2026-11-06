@@ -12,6 +12,22 @@ knockdown loops and other uncovered edge behavior leave the overall Phase 1
 feel/correctness claim at risk. Phase 2's presentation and private-show exit
 criteria are not met. `README.md` now uses the same GDD phase label.
 
+## Owner decisions — correctness queue (verbatim)
+
+- D1: K1 — knockdown rejects all strikes except MoveData.meth rows;
+  can_meth() keeps the knockdown path. The exception must be documented
+  and tested both ways (METH triggers on knockdown and spends meter;
+  non-METH strikes whiff).
+- D2: R1 — throws cannot connect during KNOCKDOWN.
+- D3: PR 4a only — bounded hitstop buffer freeze capped at one normal
+  buffer window, all buffered actions (including grab and its lockout)
+  frozen together. Blockstun policy (4b) is deferred to playtest.
+
+Implementation order: PR 1 K1 strike guard; PR 2 R1 throw rejection; PR 3
+corner-separation remainder; PR 4a bounded hitstop-only buffer freeze. D1 is
+implemented and tested by the current PR; D2–D3 and corner separation remain
+queued for their separate PRs.
+
 Status labels distinguish the existence of features from validation of the
 phase exit criteria:
 
@@ -46,14 +62,15 @@ phase exit criteria:
   blocking and round flow work, and the match can end/restart.
 - **Status:** **Features implemented; exit partially verified / at risk.** The
   vertical-slice pair, stage, combat, HUD, round manager, debug overlay and pause
-  path exist. Current suites exercise the listed basic paths (124 combat and 30
-  round-flow checks). Current-main probes also reproduce B1, B2, B3, B4, B7 and
-  B10; see the companion report. “Hits feel responsive” remains a human feel
-  judgment, and the open knockdown loop/input issues prevent a blanket claim that
-  combat correctness is closed.
-- **Blockers:** disposition B1/B2/B3/B4/B10 before treating the foundation as
-  fully verified. B5 and B7 require explicit feel/playtest decisions. Passing
-  existing suites does not resolve uncovered runtime findings.
+  path exist. The audited baseline had 124 combat and 30 round-flow checks; the
+  current PR adds eight combat checks (132 combat, 30 round-flow). D1/K1 is now
+  implemented and regression-tested: non-METH strikes are rejected in
+  knockdown while the full-meter METH path remains available and can connect.
+  The remaining current-main findings B2, B3, B4, B7 and B10 remain open; see the
+  companion report. “Hits feel responsive” remains a human feel judgment.
+- **Blockers:** D2/R1, D3/PR 4a, B4 and B10 remain queued; B5 and B7 require
+  explicit feel/playtest decisions. Passing existing suites does not resolve
+  uncovered runtime findings.
 
 ### Phase 2 — Vertical Slice
 
@@ -89,10 +106,10 @@ phase exit criteria:
   an authored hitbox editor workflow are missing. Dash/backdash states are
   absent. Cancel rules remain implicit in engine code, juggle/counter-hit rules
   are not authored, and the 55% implemented scaling floor remains unresolved
-  against the GDD's proposed 35% (B8). `docs/PROPOSALS.md` §§6–7 propose an
-  authored combo system and Peggy/Richard command grabs; both are Phase 3 design
-  proposals awaiting owner approval, not implemented features. The owner has
-  set shared controls across fighters, silhouette playability with animation
+  against the GDD's proposed 35% (B8). `docs/PROPOSALS.md` §§6–7 have approved
+  design direction but are not implemented features; the correctness queue is
+  sequenced first. D1/K1 is implemented; D2/R1 and D3/PR 4a are queued. The owner
+  has set shared controls across fighters, silhouette playability with animation
   deferred, and Peggy/Richard-only scope; command-grab techability and occupied
   direction-slot selection remain open design decisions.
 - **Exit verification:** not met; adding the current roster/stage still depends

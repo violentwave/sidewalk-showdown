@@ -434,6 +434,12 @@ func on_attack_connected(was_hit: bool) -> void:
 func is_invulnerable_to(move: MoveData) -> bool:
 	if move == null:
 		return false
+	# K1: grounded knockdown rejects every strike except an authored METH row.
+	# Throws are handled by the separate R1 policy and are deliberately not
+	# covered here. This query is also used before hit confirmation in MatchRoot,
+	# so a rejected strike keeps its active window live.
+	if state == State.KNOCKDOWN and move.level != MoveData.Level.THROW and not move.meth:
+		return true
 	if state == State.WAKE_UP:
 		if state_frame < (data.wakeup_invuln_frames if data else 6):
 			return true
@@ -500,6 +506,10 @@ func can_block(move: MoveData) -> bool:
 
 func receive_hit(attacker: FighterBase, move: MoveData) -> bool:
 	if state == State.KO:
+		return false
+	# Keep K1 true for direct resolver/test callers too; MatchRoot normally skips
+	# these contacts in _poll_hit() via is_invulnerable_to().
+	if state == State.KNOCKDOWN and move.level != MoveData.Level.THROW and not move.meth:
 		return false
 
 	if move.level == MoveData.Level.THROW:

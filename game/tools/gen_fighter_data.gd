@@ -82,6 +82,11 @@ func _meth(m: MoveData) -> MoveData:
 # (first frame after startup through the move's total), and the target order
 # matches the old code: special, then light, then heavy. Light rows chain into
 # normals; heavy rows only cancel into specials.
+#
+# Authored route data on top (§6 "route examples"):
+#   - jump_heavy chains into LIGHT on hit (jump-in starter route).
+#   - heavy (punish starter) routes into the fighter's forward EX special, with
+#     the base forward special as the documented fallback when meter cannot pay.
 func _normals(light: Array, heavy: Array, clight: Array, cheavy: Array,
 		jlight: float, jheavy: float) -> Array[MoveData]:
 	var rows := _normal_rows(light, heavy, clight, cheavy, jlight, jheavy)
@@ -91,7 +96,12 @@ func _normals(light: Array, heavy: Array, clight: Array, cheavy: Array,
 			_cancel(m, CancelRule.Target.LIGHT, CancelRule.Kind.CHAIN)
 			_cancel(m, CancelRule.Target.HEAVY, CancelRule.Kind.CHAIN)
 		elif m.input == HEAVY:
+			_cancel(m, CancelRule.Target.EX, CancelRule.Kind.CANCEL)
 			_cancel(m, CancelRule.Target.SPECIAL, CancelRule.Kind.CANCEL)
+	# jump_heavy carries the §6 jump-in starter route: a HIT chain into light.
+	for m in rows:
+		if m.id == "jump_heavy":
+			_cancel(m, CancelRule.Target.LIGHT, CancelRule.Kind.CHAIN)
 	return rows
 
 

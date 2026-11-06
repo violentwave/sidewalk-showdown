@@ -370,6 +370,12 @@ func _run_cancel(rule: CancelRule) -> bool:
 	match rule.target:
 		CancelRule.Target.SPECIAL:
 			return _consume("special", BUFFER_SPECIAL) and _try_start_special(_current_stance())
+		CancelRule.Target.EX:
+			# Authored punish rule (PROPOSALS §6): the EX command shape on the
+			# fighter's forward special — a special buffer AND a heavy buffer —
+			# EX-is the forward special, paying meter_cost; when meter cannot
+			# pay, the base forward special is the documented fallback.
+			return _cancel_into_forward_ex()
 		CancelRule.Target.LIGHT:
 			return _cancel_into_normal(MoveData.InputType.LIGHT, "light")
 		CancelRule.Target.HEAVY:
@@ -384,6 +390,25 @@ func _cancel_into_normal(input: MoveData.InputType, action: String) -> bool:
 		return false
 	_start_move(move)
 	return true
+
+func _cancel_into_forward_ex() -> bool:
+	# The EX command shape is checked WITHOUT spending either buffer until the
+	# full command is present: a lone special buffer must still reach the legacy
+	# SPECIAL route below, and a lone heavy buffer must stay usable.
+	if not (input_buffer.has("special") and input_buffer.has("heavy")):
+		return false
+	_consume("heavy", BUFFER_NORMAL)
+	if not _consume("special", BUFFER_SPECIAL):
+		return false
+	var ex := data.find_ex_move(MoveData.InputType.SPECIAL_FWD, _current_stance())
+	if ex and spend_meter(ex.meter_cost):
+		_start_move(ex)
+		return true
+	var base := data.find_move(MoveData.InputType.SPECIAL_FWD, _current_stance())
+	if base:
+		_start_move(base)
+		return true
+	return false
 
 # METHtality gate (PROPOSALS §4): full meter, opponent under the health
 # threshold and in a real hitstun/knockdown window, and not invulnerable to the

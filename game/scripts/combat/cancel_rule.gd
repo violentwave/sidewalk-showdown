@@ -4,7 +4,7 @@
 class_name CancelRule
 extends Resource
 
-enum Target { LIGHT, HEAVY, SPECIAL }
+enum Target { LIGHT, HEAVY, SPECIAL, EX }
 enum Kind { CHAIN, CANCEL }
 enum Condition { HIT, COUNTER_HIT, BLOCK, WHIFF }
 
@@ -24,8 +24,8 @@ func validate() -> String:
 		return "condition %s is reserved until the resolver reports it" % Condition.keys()[condition]
 	if from_frame > to_frame:
 		return "empty cancel window %d..%d" % [from_frame, to_frame]
-	if kind == Kind.CHAIN and target == Target.SPECIAL:
+	if kind == Kind.CHAIN and target != Target.LIGHT and target != Target.HEAVY:
 		return "CHAIN must target a normal, not a special"
-	if kind == Kind.CANCEL and target != Target.SPECIAL:
-		return "CANCEL must target a special"
+	if kind == Kind.CANCEL and target == Target.LIGHT:
+		return "CANCEL must target a special or an EX special"
 	return ""

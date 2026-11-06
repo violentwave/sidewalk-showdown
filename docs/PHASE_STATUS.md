@@ -108,7 +108,10 @@ phase exit criteria:
   demonstrated. Input is generated from a keyboard table but has no remapping
   UI; training is limited to debug controls; AI, audio manager, save/unlock, and
   an authored hitbox editor workflow are missing. Dash/backdash states are
-  absent. Cancel rules are authored data (PR 2); counter-hit detection exists
+  absent. Cancel rules are authored data (PR 2); the six §§6 route shapes for
+  both fighters (jump-in starter, grounded chain, punish EX with fallback) are
+  authored with resolver-verified routes and measured blocked endpoints (PR 4);
+  counter-hit detection exists
   (PR 1); the §6 juggle rules (3-airborne-hit cap, repeat-hit pushback/gravity
   (PR 3), while counter-specific routes are not authored. The 55% implemented
   decision is conditioned on now exists, so any 35% revisit is owner-approval-only.

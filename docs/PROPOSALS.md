@@ -1012,6 +1012,22 @@ These are candidate authored routes for data/arc validation, not claims that all
 links currently connect at every spacing. Existing move IDs are shown where
 known; routes must remain playable with the current silhouette fighters.
 
+**Implementation status (PR 4, implemented):** both fighters' six route shapes
+are authored data (generator `game/tools/gen_fighter_data.gd`, applied to the
+`.tres`): the heavy input rows carry a `Target.EX` cancel ordered before the
+legacy `SPECIAL` cancel, and `jump_heavy` carries an extra `Target.LIGHT`
+`CHAIN` rule for the jump-in starter. EX semantics follow the existing EX
+command shape: both a special buffer AND a heavy buffer are required and are
+checked WITHOUT spending either buffer until the full command is present, so a
+lone special buffer still reaches the legacy `SPECIAL` route and a lone heavy
+buffer stays usable; when meter cannot pay, the base forward special is the
+documented fallback with meter unchanged. The orange counter-hit precedence
+from PR 1 is unchanged. Route outcomes are verified end to end through the real
+resolver for both fighters (jump-in starter chains into `jump_light`, grounded
+light chains into heavy, punish EX confirms in at the meter cost, blocked
+variants keep parity), with blocked-route endpoints measured from the defended
+blockstun rather than assumed.
+
 | Fighter | Route | Illustrative route data | Explicit blocked variant |
 |---|---|---|---|
 | Peggy | Jump-in starter | `jump_heavy` (landed starter) → `light` (`HIT`, `CHAIN`) → `peggy_neutral` (`HIT`, `CANCEL`) | `jump_heavy` blocked: no follow-up in parity; defender's first actionable guard/jump/challenge and attacker landing recovery must be measured. |

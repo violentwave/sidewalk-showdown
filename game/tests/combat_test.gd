@@ -1366,13 +1366,20 @@ func _run() -> void:
 	for fighter_data in [p1.data, p2.data]:
 		for m in fighter_data.moves:
 			var expected: Array = []
-			if m.input == MoveData.InputType.LIGHT:
+			if m.input == MoveData.InputType.HEAVY and m.id == "jump_heavy":
+				expected = [
+					[CancelRule.Target.EX, CancelRule.Kind.CANCEL],
+					[CancelRule.Target.SPECIAL, CancelRule.Kind.CANCEL],
+					[CancelRule.Target.LIGHT, CancelRule.Kind.CHAIN]]
+			elif m.input == MoveData.InputType.HEAVY:
+				expected = [
+					[CancelRule.Target.EX, CancelRule.Kind.CANCEL],
+					[CancelRule.Target.SPECIAL, CancelRule.Kind.CANCEL]]
+			elif m.input == MoveData.InputType.LIGHT:
 				expected = [
 					[CancelRule.Target.SPECIAL, CancelRule.Kind.CANCEL],
 					[CancelRule.Target.LIGHT, CancelRule.Kind.CHAIN],
 					[CancelRule.Target.HEAVY, CancelRule.Kind.CHAIN]]
-			elif m.input == MoveData.InputType.HEAVY:
-				expected = [[CancelRule.Target.SPECIAL, CancelRule.Kind.CANCEL]]
 			var actual: Array = []
 			for r in m.cancels:
 				actual.append([r.target, r.kind])
@@ -1385,7 +1392,7 @@ func _run() -> void:
 				matrix_ok = false
 				matrix_detail = "%s actual=%s expected=%s" % [m.id, str(actual), str(expected)]
 	_check("every light/heavy row carries its legacy cancel routes, valid and hit-only",
-		matrix_ok and rule_rows == 24, "rules=%d %s" % [rule_rows, matrix_detail])
+		matrix_ok and rule_rows == 32, "rules=%d %s" % [rule_rows, matrix_detail])
 	_check("specials and grabs author no cancel routes",
 		p1.data.find_move(MoveData.InputType.SPECIAL_NEUTRAL, MoveData.Stance.STAND).cancels.is_empty()
 			and p1.data.find_move(MoveData.InputType.GRAB, MoveData.Stance.STAND).cancels.is_empty(),
@@ -1568,6 +1575,147 @@ func _run() -> void:
 
 	p1.input_enabled = true
 	p2.input_enabled = true
+
+	# --- 43. authored combo routes (PROPOSALS 6): jump-in, grounded chain,
+	# punish EX command (special+heavy buffers), and the blocked endpoints,
+	# measured through the real resolver for both fighters.
+	for route_pair in [[p1, p2], [p2, p1]]:
+		var atk: FighterBase = route_pair[0]
+		var dfd: FighterBase = route_pair[1]
+		var tag: String = "route " + atk.data.id
+		var j_heavy: MoveData = atk.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.AIR)
+		var _gr_light: MoveData = atk.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+		var _gr_heavy: MoveData = atk.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.STAND)
+		var _ex_fwd: MoveData = atk.data.find_ex_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+		var _base_fwd: MoveData = atk.data.find_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+		# dfd blocks by holding away from atk: P1 faces right, P2 faces left.
+		var blk: String = "p%d_left" % dfd.player_index if dfd == p1 			else "p%d_right" % dfd.player_index
+
+		# Jump-in starter: airborne jump_heavy lands on an idle defender, the
+		# buffered light chains through the authored jump_heavy rule.
+		scene._begin_round()
+		scene._start_fight()
+		scene.set("phase", 4)
+		_reset_fighters(100.0, 128.0)
+		atk.input_enabled = false
+		dfd.input_enabled = false
+		atk.position.y = scene.stage.floor_y - 1.0
+		atk.velocity = Vector2(0.0, 60.0)
+		atk.grounded = false
+		atk._start_move(j_heavy)
+		atk.state_frame = j_heavy.startup
+		atk.input_buffer["light"] = 0
+		scene._resolve_hits()
+		atk.state_frame += 1
+		var j_connected: bool = dfd.combo_hits == 1
+		var j_chain: bool = atk._try_cancel() and atk.current_move != null \
+			and atk.current_move.id == "jump_light"
+		_check(tag + ": jump-in starter lands and chains into jump_light",
+			j_connected and j_chain,
+			"hit=%s chain=%s" % [str(j_connected), str(j_chain)])
+
+		# Blocked variant: no continuation in the parity state. Endpoints
+		# measured, not assumed: remaining blockstun and the surviving buffer.
+		scene._begin_round()
+		scene._start_fight()
+		_reset_fighters(100.0, 128.0)
+		Input.action_press(blk)
+		atk.position.y = scene.stage.floor_y - 1.0
+		atk.velocity = Vector2(0.0, 60.0)
+		atk.grounded = false
+		atk._start_move(j_heavy)
+		atk.state_frame = j_heavy.startup
+		atk.input_buffer["light"] = 0
+		scene._resolve_hits()
+		var b_blocked: bool = dfd.state == FighterBase.State.BLOCKSTUN and dfd.combo_hits == 0
+		var b_no_chain: bool = not atk._try_cancel() and atk.input_buffer.has("light")
+		_check(tag + ": blocked jump-in keeps parity (no chain, buffer held)",
+			b_blocked and b_no_chain,
+			"blocked=%s chain=%s" % [str(b_blocked), str(b_no_chain)])
+		_check(tag + ": blocked jump-in endpoint measured (defending blockstun)",
+			dfd.blockstun_frames == j_heavy.blockstun,
+			"measured blockstun_remaining=%d authored=%d" % [dfd.blockstun_frames, j_heavy.blockstun])
+		Input.action_release(blk)
+
+		# Grounded chain: light confirms, buffered heavy chains via the light
+		# rule, as an end-to-end route through the resolver.
+		scene._begin_round()
+		scene._start_fight()
+		_reset_fighters(100.0, 128.0)
+		atk._start_move(_gr_light)
+		atk.state_frame = _gr_light.startup
+		scene._resolve_hits()
+		atk.state_frame += 1
+		var g_connected: bool = dfd.combo_hits == 1
+		atk.input_buffer["heavy"] = 0
+		var g_chain: bool = atk._try_cancel() and atk.current_move == _gr_heavy
+		_check(tag + ": grounded light chain connects into heavy",
+			g_connected and g_chain and dfd.combo_hits == 1,
+			"hit=%s chain=%s" % [str(g_connected), str(g_chain)])
+
+		# Punish route: the EX command (special buffer + heavy buffer) confirms
+		# into the forward EX special, paying its meter cost. Blocked heavy
+		# follows up with nothing (parity).
+		scene._begin_round()
+		scene._start_fight()
+		_reset_fighters(100.0, 132.0)
+		atk._start_move(_gr_heavy)
+		atk.state_frame = _gr_heavy.startup
+		scene._resolve_hits()
+		atk.state_frame += 1
+		var pp_connected: bool = dfd.combo_hits == 1
+		atk.meter = atk.max_meter
+		var prev_meter: float = atk.meter
+		atk.input_buffer["special"] = 0
+		atk.input_buffer["heavy"] = 0
+		var pp_chain: bool = atk._try_cancel() and atk.current_move == _ex_fwd
+		_check(tag + ": punish heavy confirms into forward EX special (special+heavy buffers)",
+			pp_connected and pp_chain and atk.meter == prev_meter - _ex_fwd.meter_cost,
+			"hit=%s chain=%s meter=%.1f" % [str(pp_connected), str(pp_chain), atk.meter])
+		_check(tag + ": EX punish pays the authored 50 meter cost",
+			_ex_fwd.meter_cost == 50.0 and pp_chain,
+			"cost=%.1f" % _ex_fwd.meter_cost)
+
+		# Fallback: EX command present but meter cannot pay transforms into the
+		# base forward special, unchanged meter.
+		scene._begin_round()
+		scene._start_fight()
+		_reset_fighters(100.0, 132.0)
+		atk._start_move(_gr_heavy)
+		atk.state_frame = _gr_heavy.startup
+		scene._resolve_hits()
+		atk.state_frame += 1
+		atk.meter = 0.0
+		atk.input_buffer["special"] = 0
+		atk.input_buffer["heavy"] = 0
+		var fb_chain: bool = atk._try_cancel() and atk.current_move == _base_fwd
+		_check(tag + ": punish route falls back to the base forward special at zero meter",
+			fb_chain and atk.meter == 0.0,
+			"chain=%s meter=%.1f" % [str(fb_chain), atk.meter])
+
+		# Blocked punish: no continuation; partially-buffered EX inputs are
+		# measured surviving the block.
+		scene._begin_round()
+		scene._start_fight()
+		_reset_fighters(100.0, 132.0)
+		Input.action_press(blk)
+		atk._start_move(_gr_heavy)
+		atk.state_frame = _gr_heavy.startup
+		scene._resolve_hits()
+		var pp_blocked: bool = dfd.state == FighterBase.State.BLOCKSTUN and dfd.combo_hits == 0
+		atk.input_buffer["special"] = 0
+		atk.input_buffer["heavy"] = 0
+		var pp_no_chain: bool = not atk._try_cancel() and atk.input_buffer.has("special") \
+			and atk.input_buffer.has("heavy")
+		_check(tag + ": blocked punish keeps parity (no follow-up, buffers held)",
+			pp_blocked and pp_no_chain,
+			"blocked=%s chain=%s" % [str(pp_blocked), str(pp_no_chain)])
+		_check(tag + ": blocked punish endpoint measured (defending blockstun)",
+			dfd.blockstun_frames == _gr_heavy.blockstun,
+			"measured blockstun_remaining=%d authored=%d" % [dfd.blockstun_frames, _gr_heavy.blockstun])
+		Input.action_release(blk)
+		atk.input_enabled = true
+		dfd.input_enabled = true
 
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

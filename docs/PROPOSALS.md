@@ -1036,7 +1036,12 @@ command shape: both a special buffer AND a heavy buffer are required and are
 checked WITHOUT spending either buffer until the full command is present, so a
 lone special buffer still reaches the legacy `SPECIAL` route and a lone heavy
 buffer stays usable; when meter cannot pay, the base forward special is the
-documented fallback with meter unchanged. The orange counter-hit precedence
+documented fallback with meter unchanged. **Fix (PR 4a):** the punish EX
+rule fires only on a grounded, forward-held command (`_special_input()` is
+`SPECIAL_FWD`); any other direction, or an airborne fighter, leaves the buffers
+untouched so the legacy `SPECIAL` route resolves the input by its own direction
+rules. The base-forward fallback therefore never replaces a neutral or back
+special. The orange counter-hit precedence
 from PR 1 is unchanged. Route outcomes are verified end to end through the real
 resolver for both fighters (jump-in starter chains into `jump_light`, grounded
 light chains into heavy, punish EX confirms in at the meter cost, blocked

@@ -195,6 +195,15 @@ that section by hand afterward — the simulation step comes from
 - **No dash/backdash.** GDD §5.2/§5.11 list them; neutral movement is walk-only.
 - **No gamepad support or input-remap UI.** Current inputs are a generated
   keyboard table; GDD §4.1/§4.6/§14 require both.
+- **No authored launcher, so the juggle rules are unreachable.** All 30 authored
+  knockbacks have a vertical component of 0 (`gen_fighter_data.gd` `_m()`), so no
+  route leaves the defender airborne (PROPOSALS §6, PR 7 measurements). The PR 3
+  juggle cap and repeat-hit scaling are implemented but not exercised by any
+  authored route. Owner decision needed: which move(s) launch, and with what
+  vertical knockback.
+- **The jump-in starter's follow-up does not connect at 28 px.** `jump_heavy` links to
+  `jump_light` on hit, but the air follow-up does not land in the probe (1/3
+  hits in both builds). Spacing sweep needed before any tuning.
 - **No per-move cancel windows or juggle limit.** Cancel windows are authored
   data (`CancelRule` resources, PR 2). The §6 juggle rules are implemented
   (PR 3: 3-airborne-hit cap, repeat-hit pushback/gravity scaling). Counter-hit

@@ -266,6 +266,7 @@ func _run() -> void:
 		attacker = pair[0] as FighterBase
 		defender = pair[1] as FighterBase
 		await _report_pair()
+		await _report_combo_arcs()
 	print("\nProbe complete: coarse samples; overlap candidates and resolver-confirmed results are separate.")
 	print("(values are finite samples from current code/data; targets in §3 are project hypotheses, not validated rules)")
 
@@ -391,3 +392,119 @@ func _report_pair() -> void:
 				values.append(r.whiff_window)
 		print("%-12s %-16s %d/%d" % [names[i], _stat(values), values.size(),
 			move_start_frames.size()])
+
+# ---------------- combo arcs (PROPOSALS 6 / 7, informational) ----------------
+# Each authored route is driven through the real MatchRoot resolver. The
+# attacker buffers its next input every frame until a cancel starts it; the
+# defender is idle and does not block or DI, so the numbers are the route's
+# own arc, not a playtest result. Nothing here is asserted.
+const ROUTE_MAX_FRAMES := 240
+const ROUTE_RECOVERY_FRAMES := 120
+
+# `hold` lists direction/heavy tokens ("fwd", "heavy") pressed only around each
+# cancel attempt, with input enabled for that call: direction is read through
+# input only while enabled, and the same press works for both builds.
+func _route_arc(starter: MoveData, air: bool, dist: float, follow: Array, meter: float, hold: Array) -> Dictionary:
+	_reset_pair(dist)
+	attacker.meter = meter
+	if air:
+		_launch()
+	attacker._start_move(starter)
+	var hp0: float = defender.health
+	var last_hp: float = hp0
+	var pending := 0
+	var per_hit: Array[int] = []
+	var ratios: Array[float] = []
+	var reached: Array[String] = []
+	var last_move: MoveData = attacker.current_move
+	var max_juggle := 0
+	var defender_air := 0
+	for f in ROUTE_MAX_FRAMES:
+		# Gate exactly as FighterBase's own caller does: only a confirmed hit past
+		# startup. Buffers are written only inside this gate, with the hold keys
+		# pressed for the call, and cleared on failure so the fighter's own tick
+		# cannot spend them with input disabled (a neutral read).
+		if pending < follow.size() and attacker.move_hit_confirmed and attacker.current_move \
+				and attacker.state_frame > attacker.current_move.startup:
+			var step: Variant = follow[pending]
+			var actions: Array = step if step is Array else [step]
+			var keys := _hold_keys(hold)
+			attacker.input_enabled = not keys.is_empty()
+			for key in keys:
+				Input.action_press(key)
+			for action in actions:
+				attacker.input_buffer[action] = 0
+			if not attacker._try_cancel():
+				attacker.input_buffer.clear()
+			for key in keys:
+				Input.action_release(key)
+			attacker.input_enabled = false
+		await _step()
+		scene._resolve_hits()
+		if attacker.current_move != last_move and attacker.current_move != null:
+			last_move = attacker.current_move
+			reached.append(last_move.id)
+			pending += 1
+		if defender.health < last_hp:
+			var dealt := last_hp - defender.health
+			per_hit.append(int(round(dealt)))
+			var raw := attacker.current_move.damage if attacker.current_move else 0.0
+			ratios.append(dealt / raw if raw > 0.0 else 0.0)
+			last_hp = defender.health
+		var jh: Variant = defender.get("juggle_hits")
+		if jh != null:
+			max_juggle = maxi(max_juggle, int(jh))
+		if not defender.grounded:
+			defender_air += 1
+		if attacker.state != FighterBase.State.ATTACK and f > 0:
+			break
+	var t := 0
+	while t < ROUTE_RECOVERY_FRAMES and not _actionable(defender):
+		await _step()
+		scene._resolve_hits()
+		t += 1
+		if not defender.grounded:
+			defender_air += 1
+	return {
+		"hits": per_hit.size(),
+		"damage": hp0 - defender.health,
+		"per_hit": per_hit,
+		"ratios": ratios,
+		"reached": reached,
+		"juggle": max_juggle,
+		"air": defender_air,
+		"followed": pending,
+		"steps": follow.size(),
+	}
+
+func _hold_keys(hold: Array) -> Array[String]:
+	var keys: Array[String] = []
+	for token in hold:
+		if token == "fwd":
+			keys.append("p%d_right" % attacker.player_index) # attacker faces right in the probe
+		elif token == "heavy":
+			keys.append("p%d_heavy" % attacker.player_index)
+	return keys
+
+func _report_combo_arcs() -> void:
+	var jump_heavy: MoveData = attacker.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.AIR)
+	var light: MoveData = attacker.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+	var heavy: MoveData = attacker.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.STAND)
+	var routes := [
+		["jump-in > light > heavy", jump_heavy, true, ["light", "heavy"], 0.0, []],
+		["grounded light > heavy > special", light, false, ["heavy", "special"], 0.0, []],
+		["grounded heavy > fwd EX (100 meter)", heavy, false, [["special", "heavy"]], 100.0, ["fwd", "heavy"]],
+		["grounded heavy > fwd, 0 meter", heavy, false, [["special", "heavy"]], 0.0, ["fwd", "heavy"]],
+		["grounded heavy > neutral (100 meter)", heavy, false, [["special", "heavy"]], 100.0, []],
+		["air juggle: light chain x4", jump_heavy, true, ["light", "light", "light", "light"], 0.0, []],
+	]
+	print("-- COMBO ARCS: %s (informational, no block/DI; per-hit scale = dealt / authored damage) --"
+		% attacker.data.display_name)
+	print("route                                hits  damage  per-hit          scale              follow-ups reached     juggle  def-air")
+	for r in routes:
+		var result: Dictionary = await _route_arc(r[1], r[2], 28.0, r[3], r[4], r[5])
+		var per_hit_text := ",".join(result.per_hit.map(func(v): return str(v)))
+		var scale_text := ",".join(result.ratios.map(func(v): return "%.2f" % v))
+		print("%-36s %d/%d   %6.1f  [%s]  [%s]  %-22s %6d  %7d" % [
+			r[0], result.hits, result.steps + 1, result.damage, per_hit_text, scale_text,
+			",".join(result.reached), result.juggle, result.air])

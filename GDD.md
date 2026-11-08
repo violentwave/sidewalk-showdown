@@ -1198,6 +1198,13 @@ Required HUD elements:
 - optional fake livestream viewer count during campaign
 - optional Tripp commentary popups
 
+Combo-counter status (PR 2): the combo counter exists (per-defender consecutive
+hits driven by the §6 combo state and its reset timer) and hit feedback is
+silhouette-only: a 3-frame strong flash on hit and a 2-frame subtle lightening
+on block, both frozen for the duration of hitstop and restored to the body
+color afterwards. Visual only - no sprites, animation, audio, or simulation
+changes.
+
 ### 10.4 Character Select Requirements
 
 Character select should show:

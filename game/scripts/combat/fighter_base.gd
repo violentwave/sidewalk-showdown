@@ -92,6 +92,14 @@ const BUFFER_MAX_AGE := 20
 var input_buffer: Dictionary = {}
 var input_history: Array[String] = []
 
+# Combo readability (GDD 10.3): silhouette-only feedback frames. Visual only -
+# no simulation state changes. The countdown runs in _physics_process AFTER the
+# hitstop early-return, so the flash is frozen for hitstop's duration.
+const HIT_FLASH_FRAMES := 3
+const BLOCK_FLASH_FRAMES := 2
+var hit_flash_frames: int = 0
+var block_flash_frames: int = 0
+
 func _ready() -> void:
 	$Silhouette.modulate = body_color
 	$FacingMarker.modulate = body_color.lightened(0.35)
@@ -144,6 +152,12 @@ func _physics_process(_delta: float) -> void:
 	if hitstop_frames > 0:
 		hitstop_frames -= 1
 		return
+
+	# Flash countdown freezes during hitstop: it only runs past the early-return.
+	if hit_flash_frames > 0 or block_flash_frames > 0:
+		hit_flash_frames = maxi(hit_flash_frames - 1, 0)
+		block_flash_frames = maxi(block_flash_frames - 1, 0)
+		_update_silhouette_flash()
 
 	state_frame += 1
 	var axis := _axis("left", "right")
@@ -641,6 +655,8 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 
 	if is_blocking() and can_block(move):
 		# Chip damage is a pressure tool, never a kill: blocked hits floor at 1 HP.
+		block_flash_frames = BLOCK_FLASH_FRAMES
+		_update_silhouette_flash()
 		health = maxf(1.0, health - move.block_damage)
 		add_meter(move.meter_gain_receive)
 		attacker.add_meter(move.meter_gain_block)
@@ -674,6 +690,8 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 	if counter:
 		attacker.counter_hit_landed.emit()
 
+	hit_flash_frames = HIT_FLASH_FRAMES
+	_update_silhouette_flash()
 	var dir := 1.0 if position.x >= attacker.position.x else -1.0
 	# PROPOSALS §6: repeated air hits return the arc to the floor. The first
 	# airborne hit of a combo keeps the authored knockback; each repeat scales
@@ -795,6 +813,9 @@ func reset_state() -> void:
 	frames_since_hit = 0
 	input_buffer.clear()
 	grounded = true
+	hit_flash_frames = 0
+	block_flash_frames = 0
+	_update_silhouette_flash()
 	_sync_visuals()
 
 func add_meter(amount: float) -> void:
@@ -905,6 +926,15 @@ func _force_state(new_state: State) -> void:
 	state = new_state
 	state_frame = 0
 	state_changed.emit(new_state)
+
+func _update_silhouette_flash() -> void:
+	# Hit flash is the strong white; block flash is a subtle lightening only.
+	if hit_flash_frames > 0:
+		$Silhouette.modulate = Color(1.0, 1.0, 1.0)
+	elif block_flash_frames > 0:
+		$Silhouette.modulate = body_color.lightened(0.35)
+	else:
+		$Silhouette.modulate = body_color
 
 func _sync_visuals() -> void:
 	var h := _pushbox_height()

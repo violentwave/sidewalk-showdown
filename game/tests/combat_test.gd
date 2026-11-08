@@ -1591,28 +1591,47 @@ func _run() -> void:
 		# dfd blocks by holding away from atk: P1 faces right, P2 faces left.
 		var blk: String = "p%d_left" % dfd.player_index if dfd == p1 			else "p%d_right" % dfd.player_index
 
-		# Jump-in starter: airborne jump_heavy lands on an idle defender, the
-		# buffered light chains through the authored jump_heavy rule.
-		scene._begin_round()
-		scene._start_fight()
-		scene.set("phase", 4)
-		_reset_fighters(100.0, 128.0)
-		atk.input_enabled = false
-		dfd.input_enabled = false
-		atk.position.y = scene.stage.floor_y - 1.0
-		atk.velocity = Vector2(0.0, 60.0)
-		atk.grounded = false
-		atk._start_move(j_heavy)
-		atk.state_frame = j_heavy.startup
-		atk.input_buffer["light"] = 0
-		scene._resolve_hits()
-		atk.state_frame += 1
-		var j_connected: bool = dfd.combo_hits == 1
-		var j_chain: bool = atk._try_cancel() and atk.current_move != null \
-			and atk.current_move.id == "jump_light"
-		_check(tag + ": jump-in starter lands and chains into jump_light",
-			j_connected and j_chain,
-			"hit=%s chain=%s" % [str(j_connected), str(j_chain)])
+		# Jump-in starter + light follow-up: the follow-up must CONNECT, not
+		# merely start. Measured connect window (spacing sweep, PR B): launch
+		# height 10-30 px, horizontal gap 20-44 px. Test at 20 px / 28 px for
+		# both starters (jump_heavy and jump_light).
+		for jump_starter in [j_heavy, atk.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.AIR)]:
+			scene._begin_round()
+			scene._start_fight()
+			scene.set("phase", 4)
+			_reset_fighters(100.0, 128.0)
+			atk.input_enabled = false
+			dfd.input_enabled = false
+			atk.position.y = scene.stage.floor_y - 1.0 - 20.0
+			atk.velocity = Vector2(0.0, 60.0)
+			atk.grounded = false
+			atk._start_move(jump_starter)
+			atk.state_frame = jump_starter.startup
+			scene._resolve_hits()
+			var j_starter_hit: bool = dfd.combo_hits == 1
+			var j_follow_hit := false
+			var j_follow_id := ""
+			var j_follow_grounded := false
+			for j_f in 60:
+				if atk.move_hit_confirmed and atk.current_move \
+						and atk.state_frame > atk.current_move.startup:
+					atk.input_enabled = true
+					atk.input_buffer["light"] = 0
+					if not atk._try_cancel():
+						atk.input_buffer.clear()
+					atk.input_enabled = false
+				var j_before: float = dfd.health
+				await _step()
+				scene._resolve_hits()
+				if j_starter_hit and dfd.health < j_before:
+					j_follow_hit = true
+					j_follow_id = atk.current_move.id if atk.current_move else "?"
+					j_follow_grounded = atk.grounded
+					break
+			_check(tag + ": " + jump_starter.id + " jump-in follow-up CONNECTS at the verified spacing",
+				j_starter_hit and j_follow_hit and j_follow_id == "jump_light",
+				"starter=%s follow=%s move=%s grounded=%s" % [str(j_starter_hit), str(j_follow_hit),
+					j_follow_id, str(j_follow_grounded)])
 
 		# Blocked variant: no continuation in the parity state. Endpoints
 		# measured, not assumed: remaining blockstun and the surviving buffer.

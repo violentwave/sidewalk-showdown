@@ -204,9 +204,14 @@ that section by hand afterward — the simulation step comes from
   a follow-up** (his recovery/walk consume the ~34-frame arc - a taller launch
   is needed: about 260 for one hit, 340 for the full route). His EX reaches two
   airborne hits. Owner decision needed if the base launcher must also juggle.
-- **The jump-in starter's follow-up does not connect at 28 px.** `jump_heavy` links to
-  `jump_light` on hit, but the air follow-up does not land in the probe (1/3
-  hits in both builds). Spacing sweep needed before any tuning.
+- **Jump-in follow-up has a measured spacing window.** PR B's sweep shows the
+  chained `jump_light` connects at horizontal gaps 20-44 px with a 10-30 px
+  launch height; at 0 px height the buffered grounded light connects at 20-44 px
+  (Peggy) / 20-36 px (Richard `jump_heavy`). Outside that window the follow-up
+  drops. The former #22 test only asserted the cancel started; it now asserts
+  the follow-up hit CONNECTS at 20 px / 28 px for both starters and fighters.
+  Widening the window (hitbox depth, active frames, landing recovery) is an
+  owner decision.
 - **No per-move cancel windows or juggle limit.** Cancel windows are authored
   data (`CancelRule` resources, PR 2). The §6 juggle rules are implemented
   (PR 3: 3-airborne-hit cap, repeat-hit pushback/gravity scaling). Counter-hit

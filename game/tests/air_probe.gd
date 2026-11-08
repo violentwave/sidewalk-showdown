@@ -268,6 +268,7 @@ func _run() -> void:
 		await _report_pair()
 		await _report_combo_arcs()
 		await _report_launchers()
+		await _report_jump_sweep()
 	print("\nProbe complete: coarse samples; overlap candidates and resolver-confirmed results are separate.")
 	print("(values are finite samples from current code/data; targets in §3 are project hypotheses, not validated rules)")
 
@@ -405,11 +406,19 @@ const ROUTE_RECOVERY_FRAMES := 120
 # `hold` lists direction/heavy tokens ("fwd", "heavy") pressed only around each
 # cancel attempt, with input enabled for that call: direction is read through
 # input only while enabled, and the same press works for both builds.
-func _route_arc(starter: MoveData, air: bool, dist: float, follow: Array, meter: float, hold: Array) -> Dictionary:
+func _route_arc(starter: MoveData, air: bool, dist: float, follow: Array, meter: float, hold: Array, height := 0.0) -> Dictionary:
 	_reset_pair(dist)
 	attacker.meter = meter
 	if air:
-		_launch()
+		# Start the jump-in at a measured height instead of the floor when a
+		# height is supplied (PR B jump-in spacing window).
+		if height > 0.0:
+			attacker.position.y = floor_y - 1.0 - height
+			attacker.velocity = Vector2(0.0, 60.0)
+			attacker.grounded = false
+			attacker._force_state(FighterBase.State.JUMP_FALL)
+		else:
+			_launch()
 	attacker._start_move(starter)
 	var hp0: float = defender.health
 	var last_hp: float = hp0
@@ -492,7 +501,8 @@ func _report_combo_arcs() -> void:
 	var light: MoveData = attacker.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
 	var heavy: MoveData = attacker.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.STAND)
 	var routes := [
-		["jump-in > light > heavy", jump_heavy, true, ["light", "heavy"], 0.0, []],
+		# The jump-in starter/follow-up is measured by the dedicated spacing sweep
+		# below (it reports the connect window, not a fixed-spacing sample).
 		["grounded light > heavy > special", light, false, ["heavy", "special"], 0.0, []],
 		["grounded heavy > fwd EX (100 meter)", heavy, false, [["special", "heavy"]], 100.0, ["fwd", "heavy"]],
 		["grounded heavy > fwd, 0 meter", heavy, false, [["special", "heavy"]], 0.0, ["fwd", "heavy"]],
@@ -503,7 +513,7 @@ func _report_combo_arcs() -> void:
 		% attacker.data.display_name)
 	print("route                                hits  damage  per-hit          scale              follow-ups reached     juggle  def-air")
 	for r in routes:
-		var result: Dictionary = await _route_arc(r[1], r[2], 28.0, r[3], r[4], r[5])
+		var result: Dictionary = await _route_arc(r[1], r[2], 28.0, r[3], r[4], r[5], r[6] if r.size() > 6 else 0.0)
 		var per_hit_text := ",".join(result.per_hit.map(func(v): return str(v)))
 		var scale_text := ",".join(result.ratios.map(func(v): return "%.2f" % v))
 		print("%-36s %d/%d   %6.1f  [%s]  [%s]  %-22s %6d  %7d" % [
@@ -645,3 +655,72 @@ func _report_launchers() -> void:
 			str(arc.launched), arc.airtime, arc.peak, arc.hits,
 			",".join(arc.scales.map(func(v): return "%.2f" % v)),
 			arc.max_juggle, str(arc.cap_rejected), block.advantage])
+
+# ---------------- jump-in spacing sweep (PR B, informational) ----------------
+# Sweeps the authored jump-in starter (jump_light / jump_heavy) into the light
+# follow-up across horizontal spacing and launch height, for both fighters and
+# both build directions. "chain" is the mid-air cancel into jump_light; "buffer"
+# presses light around the landing, so the follow-up can be the buffered ground
+# light. Reports which samples connect; no assertions.
+const JUMP_SWEEP_DISTS := [20.0, 28.0, 36.0, 44.0, 52.0, 60.0, 68.0, 76.0, 84.0, 92.0, 100.0]
+const JUMP_SWEEP_HEIGHTS := [0.0, 10.0, 20.0, 30.0]
+
+func _jump_case(atk: FighterBase, dfd: FighterBase, starter: MoveData,
+		dist: float, height: float, mode: String) -> Dictionary:
+	_reset_pair(dist)
+	atk.facing = 1
+	dfd.facing = -1
+	atk.position.y = floor_y - 1.0 - height
+	atk.velocity = Vector2(0.0, 60.0)
+	atk.grounded = false
+	atk._start_move(starter)
+	atk.state_frame = starter.startup
+	atk.input_buffer["light"] = 0
+	scene._resolve_hits()
+	var starter_hit := dfd.health < dfd.max_health
+	var follow_hit := false
+	var follow_move := ""
+	var follow_grounded := false
+	if mode == "chain" and starter_hit:
+		atk.state_frame += 1
+		atk.input_buffer["light"] = 0
+		atk._try_cancel()
+	for f in 90:
+		if mode == "buffer" and starter_hit:
+			atk.input_enabled = true
+			atk.input_buffer["light"] = 0
+		await _step()
+		var before := dfd.health
+		scene._resolve_hits()
+		if dfd.health < before and starter_hit:
+			follow_hit = true
+			follow_move = atk.current_move.id if atk.current_move else "?"
+			follow_grounded = atk.grounded
+		if follow_hit:
+			break
+		if not starter_hit and dfd.health < before:
+			starter_hit = true
+	atk.input_enabled = false
+	return {"starter": starter_hit, "follow": follow_hit, "move": follow_move,
+		"grounded": follow_grounded}
+
+func _report_jump_sweep() -> void:
+	print("-- JUMP-IN SPACING SWEEP: %s (informational; follow-up must CONNECT) --"
+		% attacker.data.display_name)
+	print("starter   mode    height  starter-hits  follow-connects (distances)")
+	for starter in [attacker.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.AIR),
+			attacker.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.AIR)]:
+		for mode in ["chain", "buffer"]:
+			for h in JUMP_SWEEP_HEIGHTS:
+				var connects: Array[float] = []
+				var starter_hits := 0
+				var kind := ""
+				for d in JUMP_SWEEP_DISTS:
+					var r: Dictionary = await _jump_case(attacker, defender, starter, d, h, mode)
+					if r.starter:
+						starter_hits += 1
+					if r.follow:
+						connects.append(d)
+						kind = "%s/%s" % [r.move, "ground" if r.grounded else "air"]
+				print("%-9s %-7s %5.0f  %2d/%d          %s [%s]" % [starter.id, mode, h,
+					starter_hits, JUMP_SWEEP_DISTS.size(), str(connects), kind])

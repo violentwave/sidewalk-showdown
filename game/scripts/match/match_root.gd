@@ -357,6 +357,17 @@ func _resolve_hits() -> void:
 		var counter_b := move_a == null and p1.is_in_attack_startup()
 		p2.on_attack_connected(p1.receive_hit(p2, move_b, counter_b))
 		round_damage[1] += maxf(0.0, p1_before - p1.health)
+	# B10 repair: when the first hit of a trade KOs and _on_fighter_ko() moves
+	# the match into Phase.KO, the second hit was already polled, so the
+	# not-yet-KO fighter can take a nonlethal reply that would otherwise leave
+	# the round winner stuck in HITSTUN for the KO phase. Force the winner back
+	# to WIN, keeping its nonlethal reply damage, unless the exchange is a true
+	# double KO (the second hit killed: _on_fighter_ko() set ko_draw and forced
+	# both fighters to KO).
+	if phase == Phase.KO and not ko_draw:
+		var ko_winner: FighterBase = p2 if ko_loser == p1 else p1
+		if ko_winner.state != FighterBase.State.WIN:
+			ko_winner._force_state(FighterBase.State.WIN)
 
 func _poll_hit(attacker: FighterBase, defender: FighterBase) -> MoveData:
 	if attacker.state != FighterBase.State.ATTACK:

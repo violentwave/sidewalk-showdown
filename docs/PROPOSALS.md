@@ -995,6 +995,20 @@ endpoint advantage to the authored route data and tests.
 >   punish metric (0.80/0.97) is informational. Revisit in the Phase 9 balance
 >   pass after playtest.
 
+> **Owner decisions (2026-11-07, playtest outcomes, verbatim):**
+>
+> - B5 air momentum: KEEP current stop-on-attack behavior (M2). Airborne
+>   grab rejection confirmed correct.
+> - B7 wake-up blocking: KEEP current no-block wake-up tail (W2); the
+>   meaty-or-invuln game stands.
+> - 4b blockstun buffering: DEFERRED (S4 documented). Punishes feel
+>   responsive to the owner.
+> - Jump-in connect window (20-44 px): KEEP; no widening.
+> - Command-grab values: confirmed provisional; revisit in Phase 9.
+> - Richard base launcher vertical knockback: 260 (one juggle follow-up).
+>   This is intentional asymmetry: Peggy runs the full 3-hit route,
+>   Richard gets shorter/heavier juggles with EX unlocking depth.
+
 Proposed bounded rule set, with numeric tuning to be confirmed by the owner:
 - Track whether a combo has put the defender into an airborne juggle and count
   successful hits against that airborne defender per combo. Start with a
@@ -1157,7 +1171,7 @@ implemented, the same probe reports (`LAUNCHERS` section):
 |---|---|---|---|---|---|---|---|---|---|---|
 | Peggy | fwd special | (130, 228) | yes | 46 | 27.0 | 1 | [1.00] | 1 | n/a | -11 |
 | Peggy | fwd EX | (150, 360) | yes | 112 | 69.0 | 3 | [1.00, 1.00, 0.85] | 3 | yes | -8 |
-| Richard | fwd special | (130, 200) | yes | 34 | 20.6 | 0 | [] | 0 | n/a | -11 |
+| Richard | fwd special | (130, 260) | yes | 52 | 35.4 | 1 | [1.00] | 1 | n/a | -11 |
 | Richard | fwd EX | (160, 340) | yes | 76 | 61.4 | 2 | [1.00, 1.00] | 2 | no | -8 |
 
 **Jump-in spacing sweep (PR B, informational; `air_probe.gd` "JUMP-IN SPACING
@@ -1198,14 +1212,11 @@ What these measurements show:
   airborne hits, the third at the 85% step, and a further strike through the real
   hit path is rejected at the cap. Peggy's base launcher connects one airborne
   follow-up before landing.
-- **Richard's base launcher does not connect a follow-up at 80%.** His 30-frame
-  recovery plus walk speed consumes the ~34-frame base arc; the measured
-  threshold for a Richard base follow-up is a taller launch (about 260 for one
-  hit, 340 for the full three-hit route), which is outside the owner's "near
-  80%" value. His EX launcher reaches two airborne hits. Making the cap
-  reachable for Richard on his base launcher needs an owner decision (raise his
-  base vertical, or change his recovery/air drift), not an unauthorised value
-  change here.
+- **Richard's base launcher is 260 by owner decision (intentional asymmetry).**
+  It connects one juggle follow-up (52-frame arc); Peggy keeps the full 3-hit
+  route on her EX. Richard gets shorter/heavier juggles, with EX (340) unlocking
+  depth (two airborne hits). This closes the open question from the launcher PR;
+  no further value change is implied.
 - **Both launchers are punishable on block** (defender actionable 8-11 frames
   before the attacker; the block advantage is negative).
 - **Scaling is measured, and the 85% third-hit step fires** in both the grounded

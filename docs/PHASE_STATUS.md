@@ -72,9 +72,13 @@ phase exit criteria:
   all action buffers. The remaining current-main findings B7 and B10
   remain open; see the companion report. “Hits feel responsive” remains a human
   feel judgment.
-- **Blockers:** B10 remains queued; B5 and B7 require
-  explicit feel/playtest decisions. Passing existing suites does not resolve
-  uncovered runtime findings.
+- **Owner playtest decisions (2026-11-07):** B5 keeps stop-on-attack (M2);
+  B7 keeps the no-block wake-up tail (W2); blockstun buffering 4b stays
+  deferred (S4); the 20-44 px jump-in window is kept; command-grab values stay
+  provisional for Phase 9. Richard's base launcher is 260 (one follow-up), an
+  intentional asymmetry with Peggy's full 3-hit route.
+- **Blockers:** B10 repair is queued in this task; no other runtime findings are
+  blockers. Passing existing suites does not resolve uncovered runtime findings.
 
 ### Phase 2 — Vertical Slice
 

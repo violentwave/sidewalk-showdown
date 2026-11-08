@@ -2066,18 +2066,24 @@ func _run() -> void:
 		"state=%d hp=%.1f" % [p1.state, p2.health])
 	Input.action_release("p2_left")
 
-	# --- 46. launchers (PROPOSALS 6, owner decision 2026-11-07): authored
+	# --- 46. launchers (PROPOSALS 6, owner decisions 2026-11-07): authored
 	# vertical knockback on the forward specials + EX, launch state, juggle
 	# scaling/cap on the real hit path, and block punishability.
+	# Owner values: Peggy base 228 (80% of jump), Richard base 260 (intentional
+	# asymmetry: one follow-up); EX higher for both.
 	var launch_matrix_ok := true
 	var launch_detail := "ok"
 	for fighter_data in [p1.data, p2.data]:
 		var base_fwd: MoveData = fighter_data.find_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
 		var ex_fwd: MoveData = fighter_data.find_ex_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
-		var jump: float = fighter_data.jump_speed
-		if not is_equal_approx(base_fwd.knockback.y, jump * 0.8):
+		var want_base := 228.0 if fighter_data.id == "peg_leg_peggy" else 260.0
+		var want_ex := 360.0 if fighter_data.id == "peg_leg_peggy" else 340.0
+		if not is_equal_approx(base_fwd.knockback.y, want_base):
 			launch_matrix_ok = false
-			launch_detail = "%s base y=%.1f expected %.1f" % [fighter_data.id, base_fwd.knockback.y, jump * 0.8]
+			launch_detail = "%s base y=%.1f expected %.1f" % [fighter_data.id, base_fwd.knockback.y, want_base]
+		if not is_equal_approx(ex_fwd.knockback.y, want_ex):
+			launch_matrix_ok = false
+			launch_detail = "%s EX y=%.1f expected %.1f" % [fighter_data.id, ex_fwd.knockback.y, want_ex]
 		if ex_fwd.knockback.y <= base_fwd.knockback.y or ex_fwd.knockback.y <= 0.0:
 			launch_matrix_ok = false
 			launch_detail = "%s EX y=%.1f not above base %.1f" % [fighter_data.id, ex_fwd.knockback.y, base_fwd.knockback.y]
@@ -2088,7 +2094,7 @@ func _run() -> void:
 		if crouch_heavy.knockback.y != 0.0 or not crouch_heavy.knockdown:
 			launch_matrix_ok = false
 			launch_detail = "%s crouch heavy changed" % fighter_data.id
-	_check("launchers are authored vertical knockback data (base ~80%% of jump, EX higher)",
+	_check("launchers are authored data with the owner values (Peggy 228/360, Richard 260/340)",
 		launch_matrix_ok, launch_detail)
 	_check("crouch heavies remain hard knockdowns with no vertical knockback",
 		p1.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.CROUCH).knockdown
@@ -2124,6 +2130,53 @@ func _run() -> void:
 		_check(tagl + ": at least one airborne juggle hit connects before landing",
 			ldfd.juggle_hits == 1 and ldfd.health < hp_before_launch,
 			"juggle=%d hp=%.1f" % [ldfd.juggle_hits, ldfd.health])
+
+	# Owner asymmetry (2026-11-07): Richard's base launcher is 260 and a walk-in
+	# light follow-up connects once on the real route (Peggy keeps the full
+	# 3-hit EX route; Richard's EX unlocks depth).
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 128)
+	var rich_atk: FighterBase = p2
+	var rich_dfd: FighterBase = p1
+	rich_atk.input_enabled = false
+	rich_dfd.input_enabled = false
+	rich_atk.position = Vector2(100.0, 150.0)
+	rich_dfd.position = Vector2(128.0, 150.0)
+	rich_atk.facing = 1
+	rich_dfd.facing = -1
+	var rich_base: MoveData = rich_atk.data.find_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+	rich_atk._start_move(rich_base)
+	rich_atk.state_frame = rich_base.startup
+	scene._resolve_hits()
+	var rich_started := false
+	var rich_follow_hit := false
+	var rich_forward := "p%d_right" % rich_atk.player_index
+	var rich_light: MoveData = rich_atk.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+	for r_f in 120:
+		if not rich_started and rich_atk.state in [FighterBase.State.IDLE, FighterBase.State.WALK_F,
+				FighterBase.State.WALK_B]:
+			rich_atk.input_enabled = true
+			if rich_light.hitbox_rect(rich_atk.position, rich_atk.facing).intersects(
+					rich_dfd.hurtbox_rect()):
+				rich_atk._start_move(rich_light)
+				rich_started = true
+			else:
+				Input.action_press(rich_forward)
+		var r_before: float = rich_dfd.health
+		await _step()
+		scene._resolve_hits()
+		if rich_started and rich_dfd.health < r_before and not rich_dfd.grounded:
+			rich_follow_hit = true
+			break
+		if rich_dfd.grounded and r_f > 5:
+			break
+	Input.action_release(rich_forward)
+	rich_atk.input_enabled = false
+	_check("Richard's 260 base launcher connects one juggle follow-up on the real route",
+		rich_base.knockback.y == 260.0 and rich_follow_hit and rich_dfd.juggle_hits >= 1,
+		"kb_y=%.1f follow=%s juggle=%d" % [rich_base.knockback.y, str(rich_follow_hit),
+			rich_dfd.juggle_hits])
 
 	# Cap + 85% step through the real receive path on one airborne defender.
 	var cap_atk: FighterBase = p1

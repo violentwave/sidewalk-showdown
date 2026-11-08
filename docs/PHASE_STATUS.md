@@ -77,8 +77,8 @@ phase exit criteria:
   deferred (S4); the 20-44 px jump-in window is kept; command-grab values stay
   provisional for Phase 9. Richard's base launcher is 260 (one follow-up), an
   intentional asymmetry with Peggy's full 3-hit route.
-- **Blockers:** B10 repair is queued in this task; no other runtime findings are
-  blockers. Passing existing suites does not resolve uncovered runtime findings.
+- **Blockers:** B10 is repaired (KO-phase winner forced back to `WIN` after hit
+  resolution unless a true double KO); no runtime findings are blockers. Passing existing suites does not resolve uncovered runtime findings.
 
 ### Phase 2 — Vertical Slice
 

@@ -39,6 +39,19 @@ func _place_for_ko() -> void:
 	p1.reset_state()
 
 
+func _place_for_ko_with_reply() -> void:
+	p1.position = Vector2(120, 150)
+	p2.position = Vector2(146, 150)
+	p1.velocity = Vector2.ZERO
+	p2.velocity = Vector2.ZERO
+	p1.facing = 1
+	p2.facing = -1
+	p1.health = 1000.0
+	p2.health = 1.0
+	p1.reset_state()
+	p2.reset_state()
+
+
 func _place_for_double_ko() -> void:
 	p1.position = Vector2(120, 150)
 	p2.position = Vector2(146, 150)
@@ -97,6 +110,36 @@ func _run() -> void:
 	await _step(65)
 	_check("round 3 starts", scene.round_number == 3 and scene.phase == 1,
 		"round=%d phase=%d" % [scene.round_number, scene.phase])
+
+	# --- Round 3 pre-check: KO trade with a nonlethal reply (B10 regression) ---
+	# Both fighters throw the same move on the same frame: p1's hit kills p2
+	# (KO phase, p1 is the round winner), and p2's already-polled reply lands
+	# nonlethal damage on p1. The winner must return to WIN with the reply
+	# damage retained, never stuck in HITSTUN during the KO phase. This round's
+	# win is absorbed by the draw below, so the scorebook stays intact.
+	_place_for_ko_with_reply()
+	p1._start_move(light)
+	p2._start_move(light)
+	await _step(20)
+	_check("KO trade with a nonlethal reply (B10): KO phase entered and not a draw",
+		scene.phase == 2 and not scene.ko_draw,
+		"phase=%d ko_draw=%s" % [scene.phase, str(scene.ko_draw)])
+	_check("KO trade with a nonlethal reply (B10): nonlethal reply damage is retained on the winner",
+		p1.health < 1000.0, "hp=%s" % str(p1.health))
+	_check("KO trade with a nonlethal reply (B10): the winner is in WIN, not HITSTUN",
+		p1.state == FighterBase.State.WIN and p2.state == FighterBase.State.KO, "p1_state=%d p2_state=%d" % [p1.state, p2.state])
+	# Roll the round bookkeeping back so the scripted score progression below
+	# (double-KO draw, 2-2 decisive round) is unaffected: this pre-check only
+	# needed the KO-phase winner states, not a second round win.
+	scene.phase = 1
+	scene.phase_frame = 0
+	scene.ko_loser = null
+	scene.ko_draw = false
+	p2.health = 1000.0
+	p2.reset_state()
+	p1.reset_state()
+
+	# --- Round 3: simultaneous KO resolves as a draw ---
 	_place_for_double_ko()
 	# Both fighters throw the same move on the same frame, so both sets of active
 	# frames line up and the exchange is a true same-frame trade.

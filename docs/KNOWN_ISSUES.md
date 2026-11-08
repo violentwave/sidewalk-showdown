@@ -38,9 +38,13 @@ finding is not considered fixed merely because an older suite passes.
 - **Un-blockable wake-up tail (B7) - owner decision (2026-11-07): KEEP.** The
   no-block wake-up tail (W2) is intentional; the meaty-or-invuln game stands,
   and holding away cannot block during `WAKE_UP`.
-- **Post-KO winner state (B10).** A nonlethal, already-polled trade reply moves
-  the eventual winner from `WIN` to `HITSTUN` during the KO phase; the round
-  result still goes to the correct winner. This is a cosmetic/state-order issue.
+- **Post-KO winner state (B10) - repaired.** A nonlethal, already-polled trade
+  reply used to move the eventual winner from `WIN` to `HITSTUN` during the KO
+  phase. `MatchRoot._resolve_hits()` now forces the winner back to `WIN` after
+  hit resolution in the KO phase, unless the exchange is a true double KO
+  (`ko_draw`); the winner's nonlethal reply damage is retained. The regression
+  drives a scripted trade in `round_flow_test.gd` and fails against the
+  un-repaired resolver (verified).
 
 B5 (air momentum), B8 (implicit-scaling, partially addressed by authored
 cancel routes in PR 2), and B9 (hurt/push alias) remain

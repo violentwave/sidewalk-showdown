@@ -995,6 +995,20 @@ endpoint advantage to the authored route data and tests.
 >   punish metric (0.80/0.97) is informational. Revisit in the Phase 9 balance
 >   pass after playtest.
 
+> **Owner decisions (2026-11-07, playtest outcomes, verbatim):**
+>
+> - B5 air momentum: KEEP current stop-on-attack behavior (M2). Airborne
+>   grab rejection confirmed correct.
+> - B7 wake-up blocking: KEEP current no-block wake-up tail (W2); the
+>   meaty-or-invuln game stands.
+> - 4b blockstun buffering: DEFERRED (S4 documented). Punishes feel
+>   responsive to the owner.
+> - Jump-in connect window (20-44 px): KEEP; no widening.
+> - Command-grab values: confirmed provisional; revisit in Phase 9.
+> - Richard base launcher vertical knockback: 260 (one juggle follow-up).
+>   This is intentional asymmetry: Peggy runs the full 3-hit route,
+>   Richard gets shorter/heavier juggles with EX unlocking depth.
+
 Proposed bounded rule set, with numeric tuning to be confirmed by the owner:
 - Track whether a combo has put the defender into an airborne juggle and count
   successful hits against that airborne defender per combo. Start with a

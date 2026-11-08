@@ -30,13 +30,14 @@ finding is not considered fixed merely because an older suite passes.
 - **Buffer aging through freeze/stun (B3) — hitstop portion fixed by D3/PR 4a.**
   All buffered action ages now freeze together during hitstop for at most one
   normal buffer window (5 frames); later hitstop frames age them normally.
-  Blockstun aging was not changed, and policy 4b remains deferred to playtest.
+  Blockstun aging was not changed. Owner decision (2026-11-07): blockstun
+  buffering 4b remains DEFERRED (S4 documented); punishes feel responsive.
 - **Corner pushbox overlap (B4) — fixed.** The baseline left 5px overlap after
   clamping at either wall. Separation now transfers the pinned fighter's
   unapplied correction to the unpinned fighter; tests cover P1/P2 at left/right.
-- **Un-blockable wake-up tail (B7).** Holding away cannot block during any
-  `WAKE_UP` frame; a frame-6 meaty dealt 35 damage. This may be a deliberate
-  style, so it is a playtest/owner decision rather than a proven bug.
+- **Un-blockable wake-up tail (B7) - owner decision (2026-11-07): KEEP.** The
+  no-block wake-up tail (W2) is intentional; the meaty-or-invuln game stands,
+  and holding away cannot block during `WAKE_UP`.
 - **Post-KO winner state (B10).** A nonlethal, already-polled trade reply moves
   the eventual winner from `WIN` to `HITSTUN` during the KO phase; the round
   result still goes to the correct winner. This is a cosmetic/state-order issue.
@@ -55,9 +56,10 @@ reconciliation for the finding-by-finding dispositions.
 - D3 selects hitstop-only buffer aging freeze capped at one normal buffer
   window, with all buffered actions frozen together; implemented and tested in
   PR 4a. Blockstun policy 4b remains deferred to playtest.
-- Whether air attacks should preserve horizontal momentum or intentionally stop
-  on attack (B5; needs a live probe and playtest).
-- Whether wake-up should allow blocking in its vulnerable tail (B7; playtest).
+- Air attacks intentionally stop on attack (B5, M2): **KEEP** per owner
+  decision (2026-11-07); airborne grab rejection confirmed correct.
+- Wake-up does not allow blocking in its vulnerable tail (B7, W2): **KEEP**
+  per owner decision (2026-11-07); the meaty-or-invuln game stands.
 - Damage-scaling floor: **decided (2026-11-06) as 55%**, matching the code; GDD
   §5.10's 35% entry is amended to 55%. 35% may be revisited only after a juggle
   limit exists.
@@ -202,16 +204,18 @@ that section by hand afterward — the simulation step comes from
   Measured limits (PROPOSALS §6 launcher table): Peggy's EX route reaches and
   enforces the 3-airborne-hit cap; **Richard's 80% base launcher cannot connect
   a follow-up** (his recovery/walk consume the ~34-frame arc - a taller launch
-  is needed: about 260 for one hit, 340 for the full route). His EX reaches two
-  airborne hits. Owner decision needed if the base launcher must also juggle.
+  is needed: about 260 for one hit, 340 for the full route). Owner decision
+  (2026-11-07): Richard's base launcher is **260** (one juggle follow-up), an
+  intentional asymmetry - Peggy runs the full 3-hit route, Richard gets
+  shorter/heavier juggles with EX unlocking depth. His EX (340) reaches two
+  airborne hits.
 - **Jump-in follow-up has a measured spacing window.** PR B's sweep shows the
   chained `jump_light` connects at horizontal gaps 20-44 px with a 10-30 px
   launch height; at 0 px height the buffered grounded light connects at 20-44 px
   (Peggy) / 20-36 px (Richard `jump_heavy`). Outside that window the follow-up
   drops. The former #22 test only asserted the cancel started; it now asserts
   the follow-up hit CONNECTS at 20 px / 28 px for both starters and fighters.
-  Widening the window (hitbox depth, active frames, landing recovery) is an
-  owner decision.
+  Owner decision (2026-11-07): **KEEP** the 20-44 px window; no widening.
 - **No per-move cancel windows or juggle limit.** Cancel windows are authored
   data (`CancelRule` resources, PR 2). The §6 juggle rules are implemented
   (PR 3: 3-airborne-hit cap, repeat-hit pushback/gravity scaling). Counter-hit
@@ -222,7 +226,8 @@ that section by hand afterward — the simulation step comes from
   UNTECHABLE THROW-level command grab for each fighter; the normal throw remains
   techable. Owner decision (2026-11-07): these values are provisional first-pass
   numbers and the reward/whiff-punish ratios (0.80 Peggy / 0.97 Richard) are
-  informational; revisit in the Phase 9 balance pass after playtest.
+  informational; owner decision (2026-11-07): confirmed provisional, revisit in
+  Phase 9.
 - **No character/stage select.** Fixed matchup + Bus Stop (Night).
 - **Debug overlay is dev-only.** Boxes, frame state, frame advantage, input
   history, slow motion, frame-step and refill exist; there is no AI state view

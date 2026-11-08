@@ -1144,8 +1144,6 @@ the current code and data, not balance targets and not assertions.
 
 | Route | Peggy (measured) | Richard (measured) |
 |---|---|---|
-| jump-in > light > heavy (hits, damage, per-hit) | 1/3, 80, [80] | 1/3, 90, [90] |
-| jump-in follow-up reached | `jump_light` | `jump_light` |
 | grounded light > heavy > special | 3/3, 200.8, [35,85,81] scale [1,1,0.85] | 3/3, 234.2, [45,100,89] scale [1,1,0.85] |
 | grounded heavy > fwd EX, 100 meter | 2/2, 230, [85,145] | 2/2, 250, [100,150] |
 | grounded heavy > fwd, 0 meter | 2/2, 195, [85,110] | 2/2, 220, [100,120] |
@@ -1161,6 +1159,33 @@ implemented, the same probe reports (`LAUNCHERS` section):
 | Peggy | fwd EX | (150, 360) | yes | 112 | 69.0 | 3 | [1.00, 1.00, 0.85] | 3 | yes | -8 |
 | Richard | fwd special | (130, 200) | yes | 34 | 20.6 | 0 | [] | 0 | n/a | -11 |
 | Richard | fwd EX | (160, 340) | yes | 76 | 61.4 | 2 | [1.00, 1.00] | 2 | no | -8 |
+
+**Jump-in spacing sweep (PR B, informational; `air_probe.gd` "JUMP-IN SPACING
+SWEEP").** Grid: horizontal gap 20-100 px (11 samples) x launch height 0/10/20/30
+px, both starters (`jump_light`, `jump_heavy`), both build directions, both
+follow-up mechanisms (mid-air `jump_light` cancel, and a light buffered around
+landing that becomes the grounded light). The follow-up must CONNECT (damage),
+not merely start.
+
+| Fighter | Starter | Mode | Height 0 px | Height 10-30 px |
+|---|---|---|---|---|
+| Peggy | jump_light | chain | none | 20-44 px (`jump_light`) |
+| Peggy | jump_light | buffer | 20-44 px (ground light) | 20-44 px (`jump_light`) |
+| Peggy | jump_heavy | chain | none | 20-44 px (`jump_light`) |
+| Peggy | jump_heavy | buffer | 20-36 px (ground light) | 20-44 px (`jump_light`) |
+| Richard | jump_light | chain | none | 20-44 px at 10-20 px height; none at 30 px (starter misses) |
+| Richard | jump_light | buffer | 20-44 px (ground light) | 20-44 px at 10-20 px; none at 30 px |
+| Richard | jump_heavy | chain | none | 20-44 px (`jump_light`) |
+| Richard | jump_heavy | buffer | 20-36 px (ground light) | 20-44 px (`jump_light`) |
+
+The valid window is therefore **20-44 px horizontal gap at a 10-30 px launch
+height** for the mid-air follow-up, and **20-44 px (Peggy) / 20-36 px (Richard
+`jump_heavy`) at 0 px height** for the landing-buffer grounded light. This is
+documented next to the generator's `jump_heavy` chain rule and enforced by the
+corrected combat test at 20 px height / 28 px gap, which asserts the follow-up
+hit connects for both starters and both fighters. Outside the window the
+follow-up drops; widening it would need an owner decision (hitbox depth, active
+window, or landing-recovery changes).
 
 What these measurements show:
 

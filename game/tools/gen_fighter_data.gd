@@ -100,6 +100,10 @@ func _normals(light: Array, heavy: Array, clight: Array, cheavy: Array,
 			_cancel(m, CancelRule.Target.EX, CancelRule.Kind.CANCEL)
 			_cancel(m, CancelRule.Target.SPECIAL, CancelRule.Kind.CANCEL)
 	# jump_heavy carries the §6 jump-in starter route: a HIT chain into light.
+	# Measured connect window (PR B spacing sweep): the chained jump_light lands
+	# at launch heights 10-30 px and horizontal gaps 20-44 px; at 0 px height
+	# (already landing) the buffered grounded light lands at 20-44 px (Peggy) /
+	# 20-36 px (Richard's jump_heavy). Outside that range the follow-up drops.
 	for m in rows:
 		if m.id == "jump_heavy":
 			_cancel(m, CancelRule.Target.LIGHT, CancelRule.Kind.CHAIN)

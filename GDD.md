@@ -588,7 +588,9 @@ Suggested damage scaling:
 > scales horizontal pushback by `JUGGLE_KNOCKBACK_SCALE` (x0.7 per prior air
 > hit), and airborne gravity is multiplied by `JUGGLE_GRAVITY_MULT` (x1.25)
 > while a repeat hit carries the arc back to the floor. The counter resets only
-> with the combo. The floor grid above is unchanged: the juggle limit now
+> with the combo. Launchers are authored data as of the launcher PR: the forward
+> special and its EX launch for both fighters (base ~80% of jump takeoff, EX
+> higher), while crouch heavies stay hard knockdowns. The floor grid above is unchanged: the juggle limit now
 > exists, but the owner has not approved revisiting the 55% floor. Counter-hit
 > detection exists (see §5.6).
 > Blocked strikes currently receive a fixed 45 px/s pushback in the real

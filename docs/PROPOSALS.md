@@ -1135,45 +1135,59 @@ authored rules while leaving unrelated move data intact.
 
 ---
 
-**Combo-arc measurements (PR 7, informational; `game/tests/air_probe.gd`,
-"COMBO ARCS" section).** Each route runs through the real `MatchRoot` resolver
-at 28 px spacing against an idle, non-blocking, non-DI defender. The attacker
-pairs a cancel attempt only after a confirmed hit past startup, and holds the
-forward/heavy keys only for that attempt. These are finite samples of the
-current code and data, not balance targets and not assertions. Before = the
-pre-§6 baseline `bcee9d5`, run with the same probe; after = this branch.
+**Combo-arc measurements (PR 7, updated by the launcher PR; informational;
+`game/tests/air_probe.gd`).** Each route runs through the real `MatchRoot`
+resolver at 28 px spacing against an idle, non-blocking, non-DI defender. The
+attacker pairs a cancel attempt only after a confirmed hit past startup, and
+holds the forward/heavy keys only for that attempt. These are finite samples of
+the current code and data, not balance targets and not assertions.
 
-| Route | Peggy before | Peggy after | Richard before | Richard after |
-|---|---|---|---|---|
-| jump-in > light > heavy (hits, damage, per-hit) | 1/3, 80, [80] | 1/3, 80, [80] | 1/3, 90, [90] | 1/3, 90, [90] |
-| jump-in follow-up reached | none | `jump_light` | none | `jump_light` |
-| grounded light > heavy > special | 3/3, 200.8, [35,85,81] scale [1,1,0.85] | same | 3/3, 234.2, [45,100,89] scale [1,1,0.85] | same |
-| grounded heavy > fwd EX, 100 meter | 2/2, 230, [85,145] | same | 2/2, 250, [100,150] | same |
-| grounded heavy > fwd, 0 meter | 2/2, 195, [85,110] | same | 2/2, 220, [100,120] | same |
-| grounded heavy > neutral, 100 meter | 2/2, 180, [85,95] | same | 2/2, 205, [100,105] | same |
-| air juggle: light chain x4 (hits) | 1/5 | 1/5 | 1/5 | 1/5 |
+| Route | Peggy (measured) | Richard (measured) |
+|---|---|---|
+| jump-in > light > heavy (hits, damage, per-hit) | 1/3, 80, [80] | 1/3, 90, [90] |
+| jump-in follow-up reached | `jump_light` | `jump_light` |
+| grounded light > heavy > special | 3/3, 200.8, [35,85,81] scale [1,1,0.85] | 3/3, 234.2, [45,100,89] scale [1,1,0.85] |
+| grounded heavy > fwd EX, 100 meter | 2/2, 230, [85,145] | 2/2, 250, [100,150] |
+| grounded heavy > fwd, 0 meter | 2/2, 195, [85,110] | 2/2, 220, [100,120] |
+| grounded heavy > neutral, 100 meter | 2/2, 180, [85,95] | 2/2, 205, [100,105] |
+| air juggle: light chain x4 (hits) | 1/5 | 1/5 |
+
+**Launcher measurements (this PR).** With the owner-decided launcher category
+implemented, the same probe reports (`LAUNCHERS` section):
+
+| Fighter | Row | kb(x,y) | Launched | Airtime (frames) | Peak (px) | Airborne hits | Per-hit scale | Max juggle | Cap rejected | Block advantage |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Peggy | fwd special | (130, 228) | yes | 46 | 27.0 | 1 | [1.00] | 1 | n/a | -11 |
+| Peggy | fwd EX | (150, 360) | yes | 112 | 69.0 | 3 | [1.00, 1.00, 0.85] | 3 | yes | -8 |
+| Richard | fwd special | (130, 200) | yes | 34 | 20.6 | 0 | [] | 0 | n/a | -11 |
+| Richard | fwd EX | (160, 340) | yes | 76 | 61.4 | 2 | [1.00, 1.00] | 2 | no | -8 |
 
 What these measurements show:
 
-- **Scaling is measured, and it is the 85% third-hit step only.** The
-  55%-floor table is not reached by any authored route here. The scaled hit is
-  the third hit of the grounded chain (81 dealt for an 95-damage special).
-- **The jump-in starter links to `jump_light`, but the follow-up does not
-  connect at 28 px.** The chain starts (PR 4 authored it), but the air hit lands
-  only on the starter in both builds. Spacing or arc is the likely cause; a
-  spacing sweep is the next measurement, not a data change.
-- **Every authored knockback has a vertical component of 0** (30 of 30 rows,
-  `gen_fighter_data.gd` `_m()`). No move launches the defender, so the defender
-  never leaves the ground in any route (`def-air` is 0 everywhere). This means
-  the PR 3 juggle cap, gravity multiplier, and repeat-hit pushback are not
-  reachable from authored routes today. Making them reachable needs a launcher
-  row with an authored vertical knockback, which is a balance and design
-  decision for the owner, not something this probe changes.
-- **The EX and fallback rows match the baseline exactly** after the PR 4 fix
-  (the forward-held punish is forward EX or forward special; neutral stays
-  neutral). Before that fix, the 0-meter row with no direction held resolved to
-  the forward special, while the baseline gives the neutral special; see the PR 4
-  fix note above.
+- **The launchers work as authored data.** Both fighters' forward specials and
+  forward EX rows lift the defender off the floor; the COMBO ARCS `def-air`
+  column now shows real airborne time on the forward-special routes (Peggy 57/38,
+  Richard 55/34), where it was 0 before.
+- **The cap is reachable and enforced on a real route for Peggy's EX.** The
+  grounded follow-up (walk in, light > heavy > forward-special) lands three
+  airborne hits, the third at the 85% step, and a further strike through the real
+  hit path is rejected at the cap. Peggy's base launcher connects one airborne
+  follow-up before landing.
+- **Richard's base launcher does not connect a follow-up at 80%.** His 30-frame
+  recovery plus walk speed consumes the ~34-frame base arc; the measured
+  threshold for a Richard base follow-up is a taller launch (about 260 for one
+  hit, 340 for the full three-hit route), which is outside the owner's "near
+  80%" value. His EX launcher reaches two airborne hits. Making the cap
+  reachable for Richard on his base launcher needs an owner decision (raise his
+  base vertical, or change his recovery/air drift), not an unauthorised value
+  change here.
+- **Both launchers are punishable on block** (defender actionable 8-11 frames
+  before the attacker; the block advantage is negative).
+- **Scaling is measured, and the 85% third-hit step fires** in both the grounded
+  chain and Peggy's EX juggle. The 55%-floor step is still not reached by any
+  authored route.
+- **The jump-in follow-up still does not connect at 28 px** (unchanged from PR 7;
+  the spacing sweep is the next measurement, not a data change).
 
 ## 7. Grappling Expansion — proposal (Phase 3; direction approved, implementation pending)
 

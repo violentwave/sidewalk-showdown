@@ -195,11 +195,15 @@ that section by hand afterward — the simulation step comes from
 - **No dash/backdash.** GDD §5.2/§5.11 list them; neutral movement is walk-only.
 - **No gamepad support or input-remap UI.** Current inputs are a generated
   keyboard table; GDD §4.1/§4.6/§14 require both.
-- **Launcher category (owner decision, 2026-11-07):** the forward special and
-  its EX variant launch for both fighters, using authored per-move vertical
-  knockback; crouch heavies remain hard knockdowns. Implemented in the launcher
-  PR; the juggle cap and repeat-hit scaling are exercised by the launcher route.
-  EX cancel is grounded-only as ratified policy (not a temporary restriction).
+- **Launcher category (owner decision, 2026-11-07; implemented).** The forward
+  special and its EX variant launch for both fighters with authored vertical
+  knockback (base 228 Peggy / 200 Richard = 80% of jump; EX 360 / 340); crouch
+  heavies remain hard knockdowns; EX cancel is grounded-only as ratified policy.
+  Measured limits (PROPOSALS §6 launcher table): Peggy's EX route reaches and
+  enforces the 3-airborne-hit cap; **Richard's 80% base launcher cannot connect
+  a follow-up** (his recovery/walk consume the ~34-frame arc - a taller launch
+  is needed: about 260 for one hit, 340 for the full route). His EX reaches two
+  airborne hits. Owner decision needed if the base launcher must also juggle.
 - **The jump-in starter's follow-up does not connect at 28 px.** `jump_heavy` links to
   `jump_light` on hit, but the air follow-up does not land in the probe (1/3
   hits in both builds). Spacing sweep needed before any tuning.

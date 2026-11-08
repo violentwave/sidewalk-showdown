@@ -40,7 +40,8 @@ func _save(fighter: FighterData, file_name: String) -> void:
 func _m(id: String, input: MoveData.InputType, stance: MoveData.Stance, level: MoveData.Level,
 		startup: int, active: int, recovery: int, damage: float, block_damage: float,
 		hitstun: int, blockstun: int, kb_x: float, knockdown: bool,
-		hb_off: Vector2, hb_size: Vector2, hitstop: int, landing_recovery: int = 0) -> MoveData:
+		hb_off: Vector2, hb_size: Vector2, hitstop: int, landing_recovery: int = 0,
+		kb_y: float = 0.0) -> MoveData:
 	var m := MoveData.new()
 	m.id = id
 	m.input = input
@@ -53,7 +54,7 @@ func _m(id: String, input: MoveData.InputType, stance: MoveData.Stance, level: M
 	m.block_damage = block_damage
 	m.hitstun = hitstun
 	m.blockstun = blockstun
-	m.knockback = Vector2(kb_x, 0)
+	m.knockback = Vector2(kb_x, kb_y)
 	m.knockdown = knockdown
 	m.hitbox_offset = hb_off
 	m.hitbox_size = hb_size
@@ -130,12 +131,15 @@ func _normal_rows(light: Array, heavy: Array, clight: Array, cheavy: Array,
 
 
 func _specials(prefix: String, neutral: float, fwd: float, down: float,
-		back: float, air: float, grab: float) -> Array[MoveData]:
+		back: float, air: float, grab: float, fwd_launch: float) -> Array[MoveData]:
 	# Air specials are slower/narrower and lower-damage after the measured probe.
 	# Their 12f whiff LAND lockout is data, not an engine constant.
 	return [
 		_m(prefix + "_neutral", SP_NEUTRAL, STAND, MID, 9, 3, 19, neutral, 6.0, 20, 13, 110, false, Vector2(26, -40), Vector2(40, 20), 8),
-		_m(prefix + "_forward", SP_FWD, STAND, MID, 11, 4, 22, fwd, 7.0, 22, 14, 130, true, Vector2(30, -40), Vector2(44, 22), 8),
+		# PROPOSALS §6 launcher category (owner decision 2026-11-07): the forward
+		# special launches instead of hard-knocking-down, using authored vertical
+		# knockback data. Crouch heavies stay hard knockdowns; K1 is unchanged.
+		_m(prefix + "_forward", SP_FWD, STAND, MID, 11, 4, 22, fwd, 7.0, 22, 14, 130, false, Vector2(30, -40), Vector2(44, 22), 8, 0, fwd_launch),
 		_m(prefix + "_down", SP_DOWN, STAND, LOW, 10, 3, 20, down, 6.0, 18, 12, 80, false, Vector2(28, -18), Vector2(42, 14), 8),
 		_m(prefix + "_back", SP_BACK, STAND, MID, 8, 3, 18, back, 5.0, 18, 12, 60, false, Vector2(24, -40), Vector2(34, 20), 8),
 		_m(prefix + "_air", SP_AIR, AIR, OVERHEAD, 12, 2, 16, air, 5.0, 18, 12, 90, false, Vector2(26, -40), Vector2(34, 22), 8, 12),
@@ -176,11 +180,11 @@ func _peggy() -> FighterData:
 	var f := _fighter("peg_leg_peggy", "Peg Leg Peggy", 95.0, 72.0, 285.0, 26.0, 54.0,
 		Color(0.95, 0.55, 0.15, 1.0))
 	var moves: Array[MoveData] = _normals([3, 7, 35], [7, 15, 85, 5], [4, 9, 30], [8, 18, 75, 4], 40, 80)
-	moves.append_array(_specials("peggy", 95, 110, 90, 85, 70, 95))
+	moves.append_array(_specials("peggy", 95, 110, 90, 85, 70, 95, 228.0))
 	moves.append(_ex(_m("peggy_neutral_ex", SP_NEUTRAL, STAND, MID, 7, 3, 17, 120, 7.0,
 		22, 14, 120, false, Vector2(28, -40), Vector2(44, 20), 10)))
 	moves.append(_ex(_m("peggy_forward_ex", SP_FWD, STAND, MID, 9, 4, 20, 145, 9.0,
-		24, 15, 150, true, Vector2(32, -40), Vector2(48, 24), 10)))
+		24, 15, 150, false, Vector2(32, -40), Vector2(48, 24), 10, 0, 360.0)))
 	# §7 command grab (owner values, first pass): untechable, slow startup.
 	moves.append(_cg("peggy_command_grab", 14, 24, 120.0, 24, 6.0, 1.5, 4.0))
 	f.moves = moves
@@ -200,11 +204,11 @@ func _richard() -> FighterData:
 	var f := _fighter("whiskey_richard", "Whiskey Richard", 70.0, 55.0, 250.0, 32.0, 60.0,
 		Color(0.85, 0.2, 0.18, 1.0))
 	var moves: Array[MoveData] = _normals([4, 9, 45], [9, 17, 100, 5], [5, 10, 35], [10, 19, 90, 5], 45, 90)
-	moves.append_array(_specials("richard", 105, 120, 95, 100, 60, 105))
+	moves.append_array(_specials("richard", 105, 120, 95, 100, 60, 105, 200.0))
 	moves.append(_ex(_m("richard_neutral_ex", SP_NEUTRAL, STAND, MID, 7, 4, 17, 135, 8.0,
 		24, 14, 120, false, Vector2(28, -40), Vector2(44, 20), 10)))
 	moves.append(_ex(_m("richard_forward_ex", SP_FWD, STAND, MID, 9, 4, 20, 150, 9.0,
-		26, 15, 160, true, Vector2(32, -40), Vector2(48, 24), 10)))
+		26, 15, 160, false, Vector2(32, -40), Vector2(48, 24), 10, 0, 340.0)))
 	# §7 command grab (owner values, first pass): untechable, slow startup.
 	moves.append(_cg("richard_command_grab", 16, 26, 140.0, 26, 8.0, 1.5, 4.0))
 	f.moves = moves

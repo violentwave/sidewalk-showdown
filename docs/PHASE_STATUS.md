@@ -112,8 +112,11 @@ phase exit criteria:
   their values are provisional first-pass and the reward/whiff-punish metric is
   informational (owner decision 2026-11-07, Phase 9 revisit). Forward specials
   and their EX variants are the uniform launcher category for both fighters
-  (authored vertical knockback, never an engine special-case); crouch heavies
-  remain hard knockdowns. EX cancel is grounded-only as ratified policy. Blocked pushback is authored data (45 px/s on every strike row, with
+  (authored vertical knockback, never an engine special-case; base 80% of jump,
+  EX higher); crouch heavies remain hard knockdowns. The juggle cap is reachable
+  and enforced on Peggy's EX route; Richard's base launcher does not connect a
+  follow-up at 80% (see KNOWN_ISSUES). EX cancel is grounded-only as ratified
+  policy. Blocked pushback is authored data (45 px/s on every strike row, with
   corner transfer; PR 5). Cancel rules are authored data (PR 2); the six §§6 route shapes for
   both fighters (jump-in starter, grounded chain, punish EX with fallback) are
   authored with resolver-verified routes and measured blocked endpoints (PR 4);

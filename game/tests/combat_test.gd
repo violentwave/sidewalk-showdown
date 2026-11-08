@@ -2047,5 +2047,136 @@ func _run() -> void:
 		"state=%d hp=%.1f" % [p1.state, p2.health])
 	Input.action_release("p2_left")
 
+	# --- 46. launchers (PROPOSALS 6, owner decision 2026-11-07): authored
+	# vertical knockback on the forward specials + EX, launch state, juggle
+	# scaling/cap on the real hit path, and block punishability.
+	var launch_matrix_ok := true
+	var launch_detail := "ok"
+	for fighter_data in [p1.data, p2.data]:
+		var base_fwd: MoveData = fighter_data.find_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+		var ex_fwd: MoveData = fighter_data.find_ex_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+		var jump: float = fighter_data.jump_speed
+		if not is_equal_approx(base_fwd.knockback.y, jump * 0.8):
+			launch_matrix_ok = false
+			launch_detail = "%s base y=%.1f expected %.1f" % [fighter_data.id, base_fwd.knockback.y, jump * 0.8]
+		if ex_fwd.knockback.y <= base_fwd.knockback.y or ex_fwd.knockback.y <= 0.0:
+			launch_matrix_ok = false
+			launch_detail = "%s EX y=%.1f not above base %.1f" % [fighter_data.id, ex_fwd.knockback.y, base_fwd.knockback.y]
+		if base_fwd.knockdown or ex_fwd.knockdown:
+			launch_matrix_ok = false
+			launch_detail = "%s launcher rows must not be hard knockdowns" % fighter_data.id
+		var crouch_heavy: MoveData = fighter_data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.CROUCH)
+		if crouch_heavy.knockback.y != 0.0 or not crouch_heavy.knockdown:
+			launch_matrix_ok = false
+			launch_detail = "%s crouch heavy changed" % fighter_data.id
+	_check("launchers are authored vertical knockback data (base ~80%% of jump, EX higher)",
+		launch_matrix_ok, launch_detail)
+	_check("crouch heavies remain hard knockdowns with no vertical knockback",
+		p1.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.CROUCH).knockdown
+			and p1.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.CROUCH).knockback.y == 0.0
+			and p2.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.CROUCH).knockdown,
+		"")
+
+	# The launch happens through the real resolver and the defender is airborne.
+	for launch_pair in [[p1, p2], [p2, p1]]:
+		var latk: FighterBase = launch_pair[0]
+		var ldfd: FighterBase = launch_pair[1]
+		var tagl: String = "launcher " + latk.data.id
+		var lmove: MoveData = latk.data.find_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+		scene._begin_round()
+		scene._start_fight()
+		_reset_fighters(100, 128)
+		latk.input_enabled = false
+		ldfd.input_enabled = false
+		latk._start_move(lmove)
+		latk.state_frame = lmove.startup
+		scene._resolve_hits()
+		var airborne := not ldfd.grounded and ldfd.velocity.y < 0.0
+		latk._start_move(lmove)
+		latk.state_frame = 0
+		_check(tagl + ": the authored forward special launches the defender",
+			airborne and ldfd.state == FighterBase.State.HITSTUN,
+			"grounded=%s vy=%.1f state=%d" % [str(ldfd.grounded), ldfd.velocity.y, ldfd.state])
+
+		# A juggle hit connects on the airborne defender (real hit path).
+		var juggle_move: MoveData = latk.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.AIR)
+		var hp_before_launch: float = ldfd.health
+		ldfd.receive_hit(latk, juggle_move)
+		_check(tagl + ": at least one airborne juggle hit connects before landing",
+			ldfd.juggle_hits == 1 and ldfd.health < hp_before_launch,
+			"juggle=%d hp=%.1f" % [ldfd.juggle_hits, ldfd.health])
+
+	# Cap + 85% step through the real receive path on one airborne defender.
+	var cap_atk: FighterBase = p1
+	var cap_dfd: FighterBase = p2
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 128)
+	cap_atk.input_enabled = false
+	cap_dfd.input_enabled = false
+	var cap_launch: MoveData = cap_atk.data.find_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+	cap_atk._start_move(cap_launch)
+	cap_atk.state_frame = cap_launch.startup
+	scene._resolve_hits()
+	var cap_dmg: Array[float] = []
+	for i in range(FighterBase.JUGGLE_HIT_CAP):
+		var before_hp: float = cap_dfd.health
+		cap_atk._start_move(cap_atk.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.AIR))
+		var connected: bool = cap_dfd.receive_hit(cap_atk, cap_atk.current_move)
+		cap_dmg.append(before_hp - cap_dfd.health if connected else 0.0)
+	var fourth_hp: float = cap_dfd.health
+	cap_atk._start_move(cap_atk.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.AIR))
+	var fourth := cap_dfd.receive_hit(cap_atk, cap_atk.current_move)
+	_check("the airborne-hit cap is reachable (3 hits counted on one defender)",
+		cap_dfd.juggle_hits == FighterBase.JUGGLE_HIT_CAP
+			and not is_zero_approx(cap_dmg[0]) and not is_zero_approx(cap_dmg[1])
+			and not is_zero_approx(cap_dmg[2]),
+		"juggle=%d dmg=%s" % [cap_dfd.juggle_hits, str(cap_dmg)])
+	var juggle_heavy: MoveData = cap_atk.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.AIR)
+	_check("the 85% third-hit damage step fires in the airborne chain",
+		is_equal_approx(cap_dmg[0], juggle_heavy.damage)
+			and is_equal_approx(cap_dmg[1], juggle_heavy.damage * 0.85)
+			and is_equal_approx(cap_dmg[2], juggle_heavy.damage * 0.70),
+		"dmg=%s authored=%.1f" % [str(cap_dmg), juggle_heavy.damage])
+	_check("the cap rejects the next airborne hit and keeps the window live",
+		not fourth and cap_dfd.health == fourth_hp
+			and cap_dfd.is_invulnerable_to(cap_atk.data.find_move(MoveData.InputType.LIGHT,
+				MoveData.Stance.AIR)),
+		"connected=%s hp=%.1f" % [str(fourth), cap_dfd.health])
+
+	# Block: the launcher's recovery leaves it punishable (defender actionable first).
+	scene._begin_round()
+	scene._start_fight()
+	_reset_fighters(100, 128)
+	var blk_atk: FighterBase = p1
+	var blk_dfd: FighterBase = p2
+	Input.action_press("p2_right")
+	blk_atk._start_move(blk_atk.data.find_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND))
+	blk_atk.state_frame = blk_atk.current_move.startup
+	scene._resolve_hits()
+	var blocked_launcher: bool = blk_dfd.state == FighterBase.State.BLOCKSTUN
+	var dfd_act := -1
+	var atk_act := -1
+	for i in 90:
+		await _step()
+		if dfd_act < 0 and blk_dfd.state not in [FighterBase.State.BLOCKSTUN]:
+			dfd_act = i
+		if atk_act < 0 and blk_atk.state not in [FighterBase.State.ATTACK]:
+			atk_act = i
+		if dfd_act >= 0 and atk_act >= 0:
+			break
+	Input.action_release("p2_right")
+	_check("a blocked launcher is punishable (defender acts before the attacker recovers)",
+		blocked_launcher and dfd_act >= 0 and (atk_act < 0 or dfd_act < atk_act),
+		"blocked=%s dfd_act=%d atk_act=%d" % [str(blocked_launcher), dfd_act, atk_act])
+
+	# R1/K1/METH are unchanged; their dedicated regressions above cover them.
+	p2._force_state(FighterBase.State.KNOCKDOWN)
+	p2.knockdown_frames = 30
+	var r1_throw: MoveData = p1.data.find_move(MoveData.InputType.GRAB, MoveData.Stance.STAND)
+	_check("R1 still rejects a throw against a knocked-down defender",
+		p2.is_invulnerable_to(r1_throw))
+	p2.reset_state()
+
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

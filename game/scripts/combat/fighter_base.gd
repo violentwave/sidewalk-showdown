@@ -678,10 +678,19 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 	# PROPOSALS §6: repeated air hits return the arc to the floor. The first
 	# airborne hit of a combo keeps the authored knockback; each repeat scales
 	# horizontal pushback by JUGGLE_KNOCKBACK_SCALE per prior airborne hit.
+	# `was_airborne` is captured before the launch below: an authored upward
+	# knockback starts an airborne juggle, but the launcher itself is a grounded
+	# hit and must not increment the airborne-hit counter.
+	var was_airborne := not grounded
 	var air_knockback_x := move.knockback.x
-	if not grounded and juggle_hits > 0:
+	if was_airborne and juggle_hits > 0:
 		air_knockback_x *= pow(JUGGLE_KNOCKBACK_SCALE, float(juggle_hits))
 	velocity = Vector2(dir * air_knockback_x, -move.knockback.y)
+	# Authored launchers (PROPOSALS §6) are plain data: positive vertical
+	# knockback takes the defender off the floor so gravity and the juggle rules
+	# apply. This is not a per-move special case.
+	if move.knockback.y > 0.0 and not move.knockdown:
+		grounded = false
 	_emit_health()
 
 	if health <= 0.0:
@@ -692,7 +701,7 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 		ko.emit()
 		return true
 
-	if not grounded:
+	if was_airborne:
 		juggle_hits += 1
 	if move.knockdown:
 		knockdown_frames = 30

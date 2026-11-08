@@ -267,6 +267,7 @@ func _run() -> void:
 		defender = pair[1] as FighterBase
 		await _report_pair()
 		await _report_combo_arcs()
+		await _report_launchers()
 	print("\nProbe complete: coarse samples; overlap candidates and resolver-confirmed results are separate.")
 	print("(values are finite samples from current code/data; targets in §3 are project hypotheses, not validated rules)")
 
@@ -508,3 +509,139 @@ func _report_combo_arcs() -> void:
 		print("%-36s %d/%d   %6.1f  [%s]  [%s]  %-22s %6d  %7d" % [
 			r[0], result.hits, result.steps + 1, result.damage, per_hit_text, scale_text,
 			",".join(result.reached), result.juggle, result.air])
+
+# ---------------- launchers and juggle routes (PROPOSALS 6, informational) ----
+# Owner decision (2026-11-07): the forward special and its EX are the launcher
+# category for both fighters, using authored vertical knockback. These are
+# informational measurements: the real resolver runs the launch, the attacker
+# walks in and chains authored ground cancels (light > heavy > special), and the
+# airborne-hit cap is reported rather than asserted.
+const LAUNCH_DIST := 28.0
+const LAUNCH_MAX_FRAMES := 260
+
+func _launcher_route(move: MoveData, meter: float) -> Dictionary:
+	_reset_pair(LAUNCH_DIST)
+	attacker.meter = meter
+	attacker._start_move(move)
+	attacker.state_frame = move.startup
+	await _step()
+	scene._resolve_hits()
+	var launched := not defender.grounded
+	var launch_vy := defender.velocity.y
+	var peak := 0.0
+	var airtime := 0
+	var hits := 0
+	var per_hit: Array[float] = []
+	var scales: Array[float] = []
+	var last_hp: float = defender.health
+	var max_juggle := 0
+	var cap_rejected := false
+	var cap_checked := false
+	var started := false
+	var pending := ["heavy", "special"]
+	var fwd := "p%d_right" % attacker.player_index
+	for f in LAUNCH_MAX_FRAMES:
+		if not defender.grounded:
+			airtime += 1
+			peak = maxf(peak, floor_y - defender.position.y)
+		if not started and _actionable(attacker):
+			attacker.input_enabled = true
+			var box: Rect2 = attacker.data.find_move(MoveData.InputType.LIGHT,
+				MoveData.Stance.STAND).hitbox_rect(attacker.position, attacker.facing)
+			if box.intersects(defender.hurtbox_rect()):
+				attacker._start_move(attacker.data.find_move(MoveData.InputType.LIGHT,
+					MoveData.Stance.STAND))
+				started = true
+			else:
+				Input.action_press(fwd)
+		if started and attacker.move_hit_confirmed and attacker.current_move \
+				and attacker.state_frame > attacker.current_move.startup and pending.size() > 0:
+			attacker.input_buffer[pending[0]] = 0
+			attacker.input_enabled = true
+			Input.action_press(fwd) # forward-held so the special chain is the launcher
+			if attacker._try_cancel():
+				pending.pop_front()
+			else:
+				attacker.input_buffer.clear()
+			Input.action_release(fwd)
+			attacker.input_enabled = false
+		# Enforcement: at the cap on an airborne defender, the real hit path
+		# must reject a legitimate strike (no damage, no hit recorded).
+		if defender.juggle_hits >= FighterBase.JUGGLE_HIT_CAP and not defender.grounded \
+				and not cap_checked and started:
+			cap_checked = true
+			var before := defender.health
+			var strike: MoveData = attacker.data.find_move(MoveData.InputType.LIGHT,
+				MoveData.Stance.STAND)
+			cap_rejected = not defender.receive_hit(attacker, strike) and defender.health == before
+		await _step()
+		var hp_before := defender.health
+		scene._resolve_hits()
+		if defender.health < hp_before:
+			if not defender.grounded:
+				var dealt := hp_before - defender.health
+				hits += 1
+				per_hit.append(dealt)
+				var raw := attacker.current_move.damage if attacker.current_move else 0.0
+				scales.append(dealt / raw if raw > 0.0 else 0.0)
+				max_juggle = maxi(max_juggle, defender.juggle_hits)
+			last_hp = defender.health
+		if defender.grounded and f > 5:
+			break
+	Input.action_release(fwd)
+	attacker.input_enabled = false
+	return {
+		"launched": launched,
+		"launch_vy": launch_vy,
+		"airtime": airtime,
+		"peak": peak,
+		"hits": hits,
+		"per_hit": per_hit,
+		"scales": scales,
+		"max_juggle": max_juggle,
+		"cap_rejected": cap_rejected,
+	}
+
+func _launcher_block(move: MoveData, meter: float) -> Dictionary:
+	_reset_pair(LAUNCH_DIST)
+	attacker.meter = meter
+	defender.input_enabled = true
+	var block_action := "p%d_right" % defender.player_index
+	Input.action_press(block_action)
+	attacker._start_move(move)
+	attacker.state_frame = move.startup
+	await _step()
+	scene._resolve_hits()
+	var blocked := defender.state == FighterBase.State.BLOCKSTUN
+	var attacker_actionable := -1
+	var defender_actionable := -1
+	var t := 0
+	while t < 120 and (attacker_actionable < 0 or defender_actionable < 0):
+		await _step()
+		t += 1
+		scene._resolve_hits()
+		if attacker_actionable < 0 and _actionable(attacker):
+			attacker_actionable = t
+		if defender_actionable < 0 and _actionable(defender):
+			defender_actionable = t
+	Input.action_release(block_action)
+	defender.input_enabled = false
+	return {
+		"blocked": blocked,
+		"advantage": defender_actionable - attacker_actionable
+			if attacker_actionable >= 0 and defender_actionable >= 0 else 0,
+	}
+
+func _report_launchers() -> void:
+	var fwd: MoveData = attacker.data.find_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+	var fwd_ex: MoveData = attacker.data.find_ex_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+	print("-- LAUNCHERS: %s (authored vertical knockback; informational) --" % attacker.data.display_name)
+	print("move        kb(x,y)      launched airtime peak  airborne-hits  scale            max-juggle  cap-rejected  block-adv")
+	for entry in [["fwd special", fwd, 0.0], ["fwd EX", fwd_ex, 50.0]]:
+		var arc := await _launcher_route(entry[1], entry[2])
+		var block := await _launcher_block(entry[1], entry[2])
+		print("%-11s (%3d,%3d)  %-8s %5d  %5.1f  %8d       [%s]  %6d  %8s  %+d" % [
+			entry[0], int(entry[1].knockback.x), int(entry[1].knockback.y),
+			str(arc.launched), arc.airtime, arc.peak, arc.hits,
+			",".join(arc.scales.map(func(v): return "%.2f" % v)),
+			arc.max_juggle, str(arc.cap_rejected), block.advantage])

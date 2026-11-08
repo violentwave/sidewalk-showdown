@@ -195,12 +195,15 @@ that section by hand afterward — the simulation step comes from
 - **No dash/backdash.** GDD §5.2/§5.11 list them; neutral movement is walk-only.
 - **No gamepad support or input-remap UI.** Current inputs are a generated
   keyboard table; GDD §4.1/§4.6/§14 require both.
-- **No authored launcher, so the juggle rules are unreachable.** All 30 authored
-  knockbacks have a vertical component of 0 (`gen_fighter_data.gd` `_m()`), so no
-  route leaves the defender airborne (PROPOSALS §6, PR 7 measurements). The PR 3
-  juggle cap and repeat-hit scaling are implemented but not exercised by any
-  authored route. Owner decision needed: which move(s) launch, and with what
-  vertical knockback.
+- **Launcher category (owner decision, 2026-11-07; implemented).** The forward
+  special and its EX variant launch for both fighters with authored vertical
+  knockback (base 228 Peggy / 200 Richard = 80% of jump; EX 360 / 340); crouch
+  heavies remain hard knockdowns; EX cancel is grounded-only as ratified policy.
+  Measured limits (PROPOSALS §6 launcher table): Peggy's EX route reaches and
+  enforces the 3-airborne-hit cap; **Richard's 80% base launcher cannot connect
+  a follow-up** (his recovery/walk consume the ~34-frame arc - a taller launch
+  is needed: about 260 for one hit, 340 for the full route). His EX reaches two
+  airborne hits. Owner decision needed if the base launcher must also juggle.
 - **The jump-in starter's follow-up does not connect at 28 px.** `jump_heavy` links to
   `jump_light` on hit, but the air follow-up does not land in the probe (1/3
   hits in both builds). Spacing sweep needed before any tuning.
@@ -212,8 +215,9 @@ that section by hand afterward — the simulation step comes from
   route sets a `COUNTER_HIT` condition yet.
 - **Command grabs are authored (PROPOSALS §7, PR 6).** Forward+grab starts an
   UNTECHABLE THROW-level command grab for each fighter; the normal throw remains
-  techable. Owner values are first-pass and informational: reward/whiff-punish
-  ratios are 0.80 (Peggy) and 0.97 (Richard), and balance is not yet playtested.
+  techable. Owner decision (2026-11-07): these values are provisional first-pass
+  numbers and the reward/whiff-punish ratios (0.80 Peggy / 0.97 Richard) are
+  informational; revisit in the Phase 9 balance pass after playtest.
 - **No character/stage select.** Fixed matchup + Bus Stop (Night).
 - **Debug overlay is dev-only.** Boxes, frame state, frame advantage, input
   history, slow motion, frame-step and refill exist; there is no AI state view

@@ -2250,5 +2250,53 @@ func _run() -> void:
 		p2.is_invulnerable_to(r1_throw))
 	p2.reset_state()
 
+	# --- 47. combo readability flashes (GDD 10.3): silhouette-only, frozen
+	# during hitstop, restored afterwards. Headless-safe (modulate fields only).
+	var flash_light: MoveData = p1.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+	# Hit flash: strong, 3 frames, frozen by hitstop.
+	scene._begin_round(); scene._start_fight(); _reset_fighters(100, 128)
+	p1.input_enabled = false; p2.input_enabled = false
+	p1._start_move(flash_light); p1.state_frame = flash_light.startup
+	scene._resolve_hits()
+	var flash_body: Color = p2.body_color
+	_check("a hit starts the strong silhouette flash",
+		p2.hit_flash_frames == FighterBase.HIT_FLASH_FRAMES,
+		"frames=%d state=%d" % [p2.hit_flash_frames, p2.state])
+	var frozen_stop: float = p2.hitstop_frames
+	await _step() # one tick inside hitstop
+	_check("the flash survives hitstop frames without counting down",
+		p2.hit_flash_frames == FighterBase.HIT_FLASH_FRAMES and p2.hitstop_frames < frozen_stop,
+		"stop=%s->%s frames=%d" % [str(frozen_stop), str(p2.hitstop_frames), p2.hit_flash_frames])
+	p2.hitstop_frames = 0
+	for ff in FighterBase.HIT_FLASH_FRAMES + 1:
+		await _step()
+	_check("the flash clears and the silhouette restores its body color",
+		p2.hit_flash_frames == 0 and p2.block_flash_frames == 0
+			and p2.get_node("Silhouette").modulate == flash_body,
+		"hit=%d block=%d modulate=%s body=%s" % [p2.hit_flash_frames, p2.block_flash_frames,
+			str(p2.get_node("Silhouette").modulate), str(flash_body)])
+	# Block flash: subtle, 2 frames.
+	scene._begin_round(); scene._start_fight(); _reset_fighters(100, 128)
+	p1.input_enabled = false
+	Input.action_press("p2_right") # p2 faces left; right = away = standing block
+	p1._start_move(flash_light); p1.state_frame = flash_light.startup
+	scene._resolve_hits()
+	var block_body: Color = p2.body_color
+	var block_lightened: Color = block_body.lightened(0.35)
+	_check("a block starts the subtler silhouette flash",
+		p2.block_flash_frames == FighterBase.BLOCK_FLASH_FRAMES and p2.hit_flash_frames == 0
+			and p2.state == FighterBase.State.BLOCKSTUN,
+		"block=%d hit=%d state=%d" % [p2.block_flash_frames, p2.hit_flash_frames, p2.state])
+	_check("the block flash modulates with the lightened body color",
+		p2.get_node("Silhouette").modulate == block_lightened,
+		"modulate=%s expected=%s" % [str(p2.get_node("Silhouette").modulate), str(block_lightened)])
+	Input.action_release("p2_right")
+	p2.hitstop_frames = 0
+	for ff in FighterBase.BLOCK_FLASH_FRAMES + 1:
+		await _step()
+	_check("the block flash clears and restores the body color",
+		p2.block_flash_frames == 0 and p2.get_node("Silhouette").modulate == block_body,
+		"")
+
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

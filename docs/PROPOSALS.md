@@ -983,6 +983,18 @@ endpoint advantage to the authored route data and tests.
 
 ### Juggle, OTG, and knockdown protection
 
+> **Owner decisions (2026-11-07, verbatim):**
+>
+> - Launcher category: the forward special (and its EX variant) is the launcher
+>   for BOTH fighters, as a uniform per-fighter category rule. Launchers are
+>   authored per-move vertical knockback data, never an engine special-case.
+>   Crouch heavies remain hard knockdowns.
+> - EX cancel is grounded-only: ratified policy, not a temporary restriction.
+> - Command-grab values (120/14/3/24 Peggy, 140/16/3/26 Richard, knockdown 30f,
+>   meter 6-8/1.5/4) are provisional first-pass numbers; the reward-to-whiff-
+>   punish metric (0.80/0.97) is informational. Revisit in the Phase 9 balance
+>   pass after playtest.
+
 Proposed bounded rule set, with numeric tuning to be confirmed by the owner:
 - Track whether a combo has put the defender into an airborne juggle and count
   successful hits against that airborne defender per combo. Start with a

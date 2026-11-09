@@ -33,8 +33,6 @@ extends Resource
 @export_group("METHtality")
 # Canon: one unique finisher per fighter, all strings live in the .tres.
 @export var meth_name: String = "METHtality"
-# The opponent must be at or below this health for the finisher to be legal.
-@export var meth_health_threshold: float = 250.0
 # The finisher move itself (MoveData.meth = true). Not part of `moves`.
 @export var meth_move: MoveData
 

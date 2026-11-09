@@ -285,9 +285,9 @@ Recommended starting values:
 
 Input buffering should make the game feel responsive without turning every button mash into accidental specials.
 
-> **Implementation-status note (2026-11-05):** attack/grab/special buffering is
-> implemented. The current METHtality input buffer is 7 frames and is gated by
-> the kill-confirm rule, not the future finish-prompt flow. See §5.9.
+> **Implementation-status note (2026-11-09):** attack/grab/special buffering is
+> implemented. The METHtality input buffer is 7 frames; activation requires a
+> full meter only, not the future finish-prompt flow. See §5.9.
 
 ### 4.6 Remapping Requirement
 
@@ -337,10 +337,11 @@ ui_down
 | Stage hazards | Visual only in prototype |
 | METHtality availability | Final round only after decisive KO / finish prompt |
 
-> **Implementation-status note (2026-11-05):** current METHtality availability
-> differs from the row above: full meter, opponent at/below 25% health, opponent
-> in hitstun/knockdown, and not invulnerable. The final-round finish prompt is
-> future work; see §5.9 and `docs/PHASE_STATUS.md`.
+> **Implementation-status note (2026-11-09):** current METHtality availability
+> differs from the row above: the player needs a full meter and must press the
+> METHtality input; opponent health, state, and invulnerability do not block
+> activation. The final-round finish prompt is future work; see §5.9 and
+> `docs/PHASE_STATUS.md`.
 
 ### 5.2 Core Combat States
 
@@ -526,7 +527,7 @@ Meter can be spent on:
 > **Implementation-status note (2026-11-05):** EX specials are implemented as
 > the current meter spender. Combo extensions, defensive burst, super moves, and
 > METHtality-specific meter setup are future/conditional ideas; the current
-> METHtality drains the full bar through its kill-confirm gate.
+> METHtality drains the full bar when activated at full meter.
 
 ### 5.9 METHtality Trigger
 
@@ -544,13 +545,13 @@ If missed, standard victory animation plays.
 
 This makes METHtalities feel like a reward and keeps them from dominating match balance.
 
-**Implementation-status note (2026-11-05, `e6d40d9`):** the playable engine core
-uses an earlier, tighter kill-confirm gate rather than the match-ending-hit rule
-above: full hype meter, opponent at or below 25% health, opponent in
-hitstun/knockdown, and not invulnerable (so wake-up/reversal invuln rejects it).
-It drains the meter fully and reuses the normal KO flow. The final-round finish
-prompt, cinematic finish-state, camera, and choreography in the recommendation
-remain future work. See `docs/PROPOSALS.md` §4 and `docs/PHASE_STATUS.md`.
+**Implementation-status note (2026-11-09):** the playable engine core differs
+from the match-ending-hit recommendation above: pressing METHtality with a full
+hype meter starts the finisher regardless of the opponent's health, state, or
+invulnerability. The full bar is drained; the move may whiff if it cannot hit.
+It reuses the normal KO flow. The final-round finish prompt, cinematic
+finish-state, camera, and choreography in the recommendation remain future
+work. See `docs/PROPOSALS.md` §4 and `docs/PHASE_STATUS.md`.
 
 ### 5.10 Combos and Cancels
 
@@ -1570,9 +1571,10 @@ Exit criteria:
 
 Recommended content:
 
-- 2 playable fighters
-  - Burnout Bubba
-  - Peg Leg Peggy or Raccoon Randy
+- 2 playable fighters: **Peg Leg Peggy and Whiskey Richard** (official
+  vertical-slice cast; owner decision, 2026-11-09).
+- Burnout Bubba and Raccoon Randy remain later-roster canon, not slice-cast
+  alternatives.
 - 1–2 real stages
   - The Bus Stop
   - Gas-N-Go
@@ -1589,12 +1591,11 @@ Exit criteria:
 - one match looks and sounds close to the final target
 - the prototype is good enough to show privately
 
-> **Implementation-status note (2026-11-05):** the current slice implements
-> Peggy/Richard on Bus Stop Night with a HUD and a METHtality engine prototype.
-> It does not yet meet the polish/private-show exit: character select, Tripp
-> commentary, music/SFX, final art, and a mini story route are missing or
-> partial. The current cast differs from the recommended list above; confirm
-> scope rather than treating the recommendation as silently changed.
+> **Implementation-status note (2026-11-09):** the current slice implements the
+> officially selected Peggy/Richard pair on Bus Stop Night with a HUD and
+> METHtality engine prototype. It does not yet meet the polish/private-show
+> exit: character select, Tripp commentary, music/SFX, final art, and a mini
+> story route are missing or partial.
 
 ---
 

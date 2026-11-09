@@ -55,12 +55,11 @@ yet; GDD §4.1/§4.6 and §14 list them as requirements for later gates.
 meter on the strengthened version (PROPOSALS §5). Without enough meter the base
 special comes out and nothing is spent.
 
-**METHtality:** with a full meter, an opponent at or below 25% health, and that
-opponent in hitstun or knockdown, press METHtality (I / `'`) to spend the whole
-bar on the finisher (PROPOSALS §4). Wake-up invulnerability and a neutral
-opponent reject it. Current presentation is a freeze plus a banner; the normal
-KO flow ends the round. The GDD's final-round finish prompt/cinematic is future
-work.
+**METHtality:** with a full meter, press METHtality (I / `'`) to spend the whole
+bar on the finisher (PROPOSALS §4). Opponent health, state, and invulnerability
+do not block activation; the move can still whiff if it cannot connect. Current
+presentation is a freeze plus a banner; the normal KO flow ends the round. The
+GDD's final-round finish prompt/cinematic is future work.
 
 Specials are directional (GDD §4.4): neutral, forward (toward opponent), back,
 down, and air. Block by holding away from the opponent — including during

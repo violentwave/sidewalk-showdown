@@ -1,14 +1,13 @@
 # Known Issues — Phase 2
 
-GDD §13 Phase 1 greybox features and basic flow paths are implemented and tested,
-but this is **not a blanket phase-exit sign-off**. The current-baseline audit
-reproduced knockdown loops, buffer-aging, corner separation, and KO-order issues;
-K1 now guards the knockdown strike loop, while the remaining findings are open.
-“Hits feel responsive” also requires human playtesting. See
-`docs/PHASE_STATUS.md` for the requirement/evidence distinction and
+GDD §13 Phase 1 greybox features and core flow are implemented and verified by
+the current combat and round-flow suites. The known B1–B4 and B10 runtime defects
+have fixes and regression coverage; B7 is an explicit owner-approved behavior.
+This is technical verification, not a human feel/playtest sign-off. See
+`docs/PHASE_STATUS.md` for current phase evidence and
 `docs/audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md` for the
-current-main reconciliation. Phase 2 adds throw tech, draw resolution, EX
-specials and the METHtality engine core.
+historical baseline findings. Phase 2 adds throw tech, draw resolution, EX
+specials, and the METHtality engine core.
 
 ## Current-baseline reproduced defects
 
@@ -70,20 +69,19 @@ reconciliation for the finding-by-finding dispositions.
 - Command-grab techability: **decided (2026-11-06) as untechable**, with slow,
   punishable startup. The normal throw remains techable; throw-tech is not
   extended to command grabs.
-- Authored combos and command grabs are not implemented. `docs/PROPOSALS.md`
-  §§6–7 have approved direction; the correctness queue comes first. Command-grab
-  techability and the already-occupied Peggy back-special / Richard
-  forward-special slots still need explicit choices. Owner canon is shared
-  controls, silhouette playability with animation deferred, and Peggy/Richard-
-  only scope.
+- Authored combos and command grabs are implemented for Peggy and Richard.
+  Command-grab values remain provisional for the later-roster pass; the
+  forward-special/EX launcher category and grounded-only EX cancel are recorded
+  owner decisions. Owner canon is shared controls, silhouette playability with
+  animation deferred, and Peggy/Richard-only vertical-slice scope.
 - Gamepad support and in-game input remapping are GDD §4.1/§4.6/§14
   requirements but are not implemented; the current input map is generated from
   a fixed keyboard table.
-- METHtality currently uses a kill-confirm gate. GDD §5.9's final-round finish
-  prompt and cinematic remain future design/implementation, not current behavior.
-- The Phase 2 recommended cast differs from the implemented Peggy/Richard pair;
-  confirm scope rather than treating the recommendation as silently changed.
-  See `docs/PHASE_STATUS.md` for the phase evidence and gate status.
+- METHtality activation requires full meter only; opponent health, state, and
+  invulnerability do not gate starting the finisher. GDD §5.9's final-round
+  finish prompt and cinematic remain future design/implementation.
+- The official vertical-slice cast is Peggy and Richard. Burnout Bubba and
+  Raccoon Randy remain later-roster canon; see `GDD.md` §13.
 
 ## What the current build contains
 
@@ -138,11 +136,10 @@ Engine and feel:
   `.tres` overrides): +6 hit, +3 block, +1.5 whiff, +4 receive, max 100 — about
   one bar per round, two EX per bar.
 - METHtality engine core (PROPOSALS §4), data-driven: buffered `p1_meth` /
-  `p2_meth` fires only when the hype meter is **full**, the opponent is at or
-  below `meth_health_threshold` (250 / 25%), the opponent is in hitstun or
-  knockdown, and the opponent is not invulnerable (wake-up / reversal invuln
-  rejects it). Meter drains fully on activation; the finisher starts from both
-  the neutral starter and the hit-confirm cancel path. Phase-1 presentation: a
+  `p2_meth` fires when the hype meter is **full**, regardless of opponent health,
+  state, or invulnerability. Meter drains fully on activation; the finisher
+  starts from both the neutral starter and the hit-confirm cancel path. Phase-1
+  presentation: a
   30-frame hitstop freeze plus a `METHtality` HUD banner, then the normal KO flow
   awards the round. Vertical slice: **Walk the Plank** (Peggy) and
   **Flaming Belch** (Richard), each a distinct finisher row in `.tres`.
@@ -193,11 +190,10 @@ that section by hand afterward — the simulation step comes from
 - **No animation.** Fighters are colored silhouettes; no sprite frames wired.
 - **No audio or VFX.** No hit sparks, crowd, UI sounds, music.
 - **No CPU AI.** Both fighters are human-controlled (GDD Phase 3 baseline).
-- **METHtality presentation is minimal.** The rules, gate, spend and KO win are
+- **METHtality presentation is minimal.** The trigger, spend and KO win are
   real, but the finisher is a single point-blank hit with a long freeze and a
-  banner — no cinematic, camera, or choreography yet. The 25% threshold and 30f
-  freeze are first-pass balance numbers, and a whiffed finisher still spends the
-  full bar.
+  banner — no cinematic, camera, or choreography yet. The 30f freeze is a
+  first-pass balance value, and a whiffed finisher still spends the full bar.
 - **No dash/backdash.** GDD §5.2/§5.11 list them; neutral movement is walk-only.
 - **No gamepad support or input-remap UI.** Current inputs are a generated
   keyboard table; GDD §4.1/§4.6/§14 require both.
@@ -288,7 +284,7 @@ These are measured or first-pass limits, not phase-exit validation.
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **124 checks**: clean hits and damage-vs-data,
+- `game/tests/combat_test.gd` — **245 checks**: clean hits and damage-vs-data,
   block chip, low vs stand block, throw unblockability, jump arc, P2 bindings,
   blockstun blocking, shared hitstop, KO landing, real-key input-map resolution,
   the chip-cannot-KO floor, pause freezing fighters and opening the menu, menu
@@ -309,15 +305,15 @@ These are measured or first-pass limits, not phase-exit validation.
   row and deducts 50 meter, a short bar falls back to the base special without
   spending, EX data differs from base in damage/startup, `find_move()` skips EX
   rows, both fighters have neutral+forward EX rows, and spending floors at 0,
-  plus METHtality: health/state/meter gates reject early, a legal trigger spends
-  the whole bar and starts the finisher row, the HUD announces it, the opponent
-  is KO'd, the round is awarded as a normal KO win, wake-up invuln blocks it, and
+  plus METHtality: a non-full meter rejects activation; full meter starts the
+  finisher against a healthy neutral or wake-up-invulnerable target, spends the
+  whole bar, shows the banner, and the KO is awarded through normal round flow;
   the two fighters' finishers are distinct. Aerial landing tests cover startup,
   active, recovery and post-move falling touchdown; immediate hitbox/move clearing;
   whiff vs hit/block landing delay; pause and hitstop; anti-air interruption;
   un-blockable extended recovery vs legacy blockable LAND; reset/restart; P2 data;
   unchanged grounded attacks; and throw damage remaining 95/105.
-- `game/tests/round_flow_test.gd` — **30 checks**: intro→fight, KO phase, round
+- `game/tests/round_flow_test.gd` — **33 checks**: intro→fight, KO phase, round
   wins, timeout resolution, a simultaneous KO awarding a pip to both and the
   round advancing, a 2-2 scoreline continuing into a decisive round that ends on
   an outright win, reset clearing draw state, the first two timeout ties

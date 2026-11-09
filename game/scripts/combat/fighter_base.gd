@@ -363,12 +363,12 @@ func _try_start_attack() -> bool:
 
 # Authored cancel routes (PROPOSALS §6): the rules on current_move are evaluated
 # in array order, counter-specific rules first, and the first one that starts a
-# move wins. The METHtality gate stays global and runs before any rule.
+# move wins. METHtality remains a global full-meter path before any rule.
 func _try_cancel() -> bool:
 	if current_move == null:
 		return false
-	# A landed hit is the canonical kill-confirm moment: buffered METHtality
-	# fires from the hit-confirm cancel path as well as from neutral.
+	# Buffered METHtality can also interrupt a confirmed attack; activation itself
+	# requires only a full meter.
 	if move_hit_confirmed and state_frame > current_move.startup and _try_start_meth():
 		return true
 	for counter_pass in [true, false]:
@@ -440,21 +440,13 @@ func _cancel_into_forward_ex() -> bool:
 		return true
 	return false
 
-# METHtality gate (PROPOSALS §4): full meter, opponent under the health
-# threshold and in a real hitstun/knockdown window, and not invulnerable to the
-# finisher (wake-up/reversal invuln rejects it).
+# METHtality availability: a full meter and an authored finisher are the only
+# requirements. Opponent health, state, and invulnerability do not gate the
+# input; the finisher may whiff against an invulnerable target.
 func can_meth() -> bool:
 	if data == null or data.meth_move == null:
 		return false
 	if meter + 0.001 < max_meter:
-		return false
-	if opponent == null or opponent.state == State.KO:
-		return false
-	if opponent.health > data.meth_health_threshold:
-		return false
-	if opponent.state not in [State.HITSTUN, State.KNOCKDOWN]:
-		return false
-	if opponent.is_invulnerable_to(data.meth_move):
 		return false
 	return true
 

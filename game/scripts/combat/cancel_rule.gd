@@ -1,6 +1,7 @@
 # CancelRule — one authored hit-confirm cancel route on a MoveData (PROPOSALS §6).
 # Frames are simulation frames from move start; both bounds are inclusive.
-# METHtality is not a rule target: its kill-confirm gate stays global in FighterBase.
+# METHtality is not a rule target: its full-meter availability check stays
+# global in FighterBase.
 class_name CancelRule
 extends Resource
 

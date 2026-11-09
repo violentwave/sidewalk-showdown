@@ -193,7 +193,6 @@ func _peggy() -> FighterData:
 	moves.append(_cg("peggy_command_grab", 14, 24, 120.0, 24, 6.0, 1.5, 4.0))
 	f.moves = moves
 	f.meth_name = "Walk the Plank"
-	f.meth_health_threshold = 250.0
 	f.meth_move = _meth(_m("peggy_meth", SP_NEUTRAL, STAND, MID, 3, 2, 24, 1000, 0.0,
 		0, 8, 150, true, Vector2(30, -40), Vector2(60, 44), 30))
 	# PROPOSALS §6 block-pushback parity: 45 px/s authored on every strike row;
@@ -217,7 +216,6 @@ func _richard() -> FighterData:
 	moves.append(_cg("richard_command_grab", 16, 26, 140.0, 26, 8.0, 1.5, 4.0))
 	f.moves = moves
 	f.meth_name = "Flaming Belch"
-	f.meth_health_threshold = 250.0
 	f.meth_move = _meth(_m("richard_meth", SP_NEUTRAL, STAND, MID, 3, 2, 24, 1000, 0.0,
 		0, 8, 160, true, Vector2(32, -40), Vector2(64, 44), 30))
 	# PROPOSALS §6 block-pushback parity: 45 px/s authored on every strike row;

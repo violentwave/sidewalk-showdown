@@ -1,16 +1,17 @@
 # Implementation Proposals — Combat Systems and Balance
 
-Implementation status on `main` at `0d3cdfd` (after the first three correctness PRs):
+Implementation status on `main` through PR #31 (`4323096`); this PR records the
+owner's METHtality activation and vertical-slice-cast decisions:
 
 | Section | Implemented now | Future / still open |
 |---|---|---|
 | §1 Wake-up invulnerability | Data-driven wake-up strike/throw windows, per-move reversal invuln fields, overlay countdown, tests | No current move authors reversal invulnerability; no character-specific wake-up defense |
 | §2 Throw tech | 7f tech window, lockout, both-fighter `TECH`, 22f whiff recovery, tuned 95/105 damage | Punish Counter throws, delayed-throw pressure, shimmy baiting |
 | §3 Air special balance | Whiff-only landing recovery (8f normals / 12f specials), first-pass air-special data, two-direction probe | Reach/blocked-advantage targets still missed; probe is coarse and informational; no full-arc/combo simulation or competitive validation |
-| §4 METHtality | Meter/full-health-state kill-confirm gate, meter drain, finisher data, freeze/banner, KO flow | GDD §5.9 final-round finish prompt, cinematic/camera/choreography, fuller presentation |
+| §4 METHtality | Full-meter activation, meter drain, finisher data, freeze/banner, KO flow | GDD §5.9 final-round finish prompt, cinematic/camera/choreography, fuller presentation |
 | §5 Hype meter | EX specials at 50 meter, data-driven variants, fallback/floor tests | Combo extensions, defensive burst, super, other future spenders |
-| §6 Authored combos | Existing hit-confirm routes and 55% scaling floor | Direction approved; data-authored cancel windows, counter-hit, juggle/OTG policy, route data and combo-arc measurement are not implemented |
-| §7 Grappling expansion | Grounded, techable normal throws and existing throw rules | Direction approved; Peggy/Richard command-grab special rows and their tech policy are not implemented; detailed choices remain open |
+| §6 Authored combos | Data-authored cancel routes, counter-hit, juggle/OTG rules, 55% scaling floor, launchers, and EX routes | Further route tuning and broader combo-arc validation |
+| §7 Grappling expansion | Grounded, techable normal throws and untechable Peggy/Richard command grabs | Per-character values remain provisional for later roster work |
 
 Only the “Implemented now” cells are current behavior. The remainder are design
 proposals or known gaps, not shipped claims. See
@@ -626,22 +627,20 @@ not establish a universal matchup result.
 
 ### Trigger (engine core)
 
-The input already exists (`p1_meth` / `p2_meth`, buffered per action). A
-METHtality starts only when **all** of these hold, checked on the frame the
-buffered input is consumed:
+**Owner decision (2026-11-09):** METHtality activation requires a **full hype
+meter only**. Opponent health, state, and invulnerability do not gate starting
+the finisher. This replaces the earlier 25%-health kill-confirm rule.
 
-1. the fighter's hype meter is **full** (`100/100`);
-2. the opponent's health is **at or below** `FighterData.meth_health_threshold`
-   (250 = 25%);
-3. the opponent is in **hitstun or knockdown** (a real kill-confirm window, not
-   neutral);
-4. the opponent is **not invulnerable** to the finisher — this is what rejects
-   wake-up invulnerability and reversal invuln frames.
+The input already exists (`p1_meth` / `p2_meth`, buffered per action). When the
+buffered input is consumed, the fighter must have an authored METHtality row
+and a full meter (`100/100`). The opponent may be at any health or in any state;
+the finisher can still whiff if the target is out of range, invulnerable, or
+already KO'd.
 
 The trigger is checked from both the neutral action starter
-(`_try_start_attack`) and the hit-confirm cancel path (`_try_cancel`), so
-"land a hit, press the button" works. The buffered input is only consumed on a
-successful trigger; a failed check leaves it to age out normally.
+(`_try_start_attack`) and the hit-confirm cancel path (`_try_cancel`). The
+buffered input is only consumed on a successful full-meter activation; a
+non-full-meter press remains buffered until it ages out.
 
 On activation the meter **drains fully** (to 0), the finisher starts as a real
 move, and `meth_started` fires for presentation. A whiffed finisher is possible
@@ -652,11 +651,10 @@ if the opponent recovers during startup — the meter is still spent.
 - `MoveData.meth` marks the row as a finisher (never selected by ordinary
   lookups; it lives outside `moves`, referenced by
   `FighterData.meth_move`).
-- `FighterData` gains `meth_name`, `meth_health_threshold`, `meth_move` — all in
+- `FighterData` gains `meth_name`, `meth_move` — all in
   `resources/fighters/*.tres`, no engine literals.
 - Both finishers are 1000 damage, 3f startup / 2f active, `knockdown`, and
-  **30f hitstop** — enough damage to always finish an opponent already under the
-  threshold, and the long freeze is the phase-1 "screen freeze".
+  **30f hitstop**; the long freeze is the phase-1 "screen freeze".
 
 ### Presentation (phase 1 only)
 
@@ -665,17 +663,16 @@ if the opponent recovers during startup — the meter is still spent.
 - The normal KO flow is reused untouched: health hits 0 → `ko` → KO phase →
   pip → round/match end. No cinematic, no choreography, no unique camera.
 
-This is deliberately the cheapest honest version: the rules, gating, spend and
+This is deliberately the cheapest honest version: the trigger, spend and
 win condition are real; the spectacle is a later phase.
 
 ### Tests
 
-- above-threshold health blocks the trigger;
-- a neutral (non-stunned) opponent blocks the trigger;
+- a full-meter press starts against a healthy, neutral opponent;
+- opponent health/state and wake-up invulnerability do not block activation;
 - a non-full meter blocks the trigger;
 - a valid trigger spends the whole bar, starts the finisher row, and shows the
   banner;
-- wake-up invulnerability blocks the trigger;
 - the finisher ends the round as a normal KO win;
 - the two vertical-slice fighters have distinct finisher data.
 
@@ -685,8 +682,8 @@ win condition are real; the spectacle is a later phase.
   cinematics will need a dedicated state and camera/anim systems that do not
   exist yet.
 - AI and the CPU opponent must learn the same gate once AI exists.
-- The threshold (25%) and 30f freeze are first-pass balance numbers; treat them
-  as tunable data, not law.
+- The 30f freeze is a first-pass balance value; treat it as tunable data, not
+  law.
 
 ---
 
@@ -824,11 +821,10 @@ routes:
   encode the same effective frames, buffering, stance lookup, and EX selection.
 - Current route outcomes are hit-only. Do not add block, counter-hit, or whiff
   cancels in the parity migration. Preserve all other current move behavior.
-- Preserve the global METHtality kill-confirm gate: buffered METH is checked
-  separately after a hit-confirm from any move and from the neutral starter; it
-  still requires full meter, the health threshold, a hitstun/knockdown target,
-  and a target not invulnerable to the finisher. A METH category/rule must not
-  bypass these checks or narrow the existing global gate accidentally.
+- Preserve the global METHtality full-meter check: buffered METH is checked
+  from the neutral starter and after a hit-confirm from any move. Opponent
+  health/state do not gate activation. A METH category/rule must not bypass the
+  full-meter requirement or narrow the global activation path accidentally.
 - Compare before/after route reachability for every generated Peggy/Richard move
   and input buffer timing. Only after this parity state passes may additional
   authored routes be proposed and tuned.
@@ -881,9 +877,13 @@ resolver reports those outcomes. The legacy engine-coded routes were migrated to
 authored data on all 12 light rows and 2 heavy rows per fighter: window
 `startup+1 .. total_frames` (unchanged), light targets special-then-light-then-
 heavy, heavy targets special-only — behavior exactly preserved, with a
-generator-parity diff confirming every frame/damage/id line identical before
-and after regeneration. Buffered inputs are still consumed (and lost) when no
-matching move exists.
+  generator-parity diff confirming every frame/damage/id line identical before
+  and after regeneration. Buffered inputs are still consumed (and lost) when no
+  matching move exists.
+
+**Owner decision (2026-11-09):** METHtality activation now requires full meter
+only. The cancel window is unchanged; opponent health, state, and invulnerability
+no longer gate starting the finisher.
 
 ### Blocking interactions and blockstring safety
 
@@ -1021,9 +1021,10 @@ Proposed bounded rule set, with numeric tuning to be confirmed by the owner:
 - OTG means a hit against a grounded `KNOCKDOWN` target. The owner’s K1/R1
   decisions are boundaries: **K1: knockdown rejects strikes except METH rows**;
   **R1: throws are rejected during knockdown**. Therefore no ordinary OTG strike
-  or command grab may be added by this proposal. A METH row remains subject to
-  the existing global METHtality gate and invulnerability check; it is not a
-  general OTG exception for other move rows.
+  or command grab may be added by this proposal. METH activation remains subject
+  to the full-meter requirement; METH rows are still the only authored move rows
+  with the K1 knockdown-hit exception, not a general OTG exception for other
+  move rows.
 - Knockdown protection must be resolved before ordinary hit confirmation so a
   rejected strike does not consume its active window. Airborne juggle hits and
   grounded knockdown protection are distinct cases. Throws remain grounded-only
@@ -1291,7 +1292,7 @@ techability policy is implemented.
   invulnerability window. A command grab must not bypass `is_invulnerable_to()`.
 - **K1 — knockdown strikes:** this policy concerns strikes, not a command-grab
   loophole. A throw-level command grab remains rejected by R1 during knockdown;
-  METH rows keep their separate explicit exception and global gate.
+  METH rows keep their separate explicit exception and full-meter requirement.
 - **Airborne defenders:** retain the existing grounded-only throw rejection;
   command grabs whiff on airborne defenders and a brush must not consume the
   active window if that is the shared ordinary-throw rule.
@@ -1299,10 +1300,10 @@ techability policy is implemented.
   approved, it must be a normal EX data variant, use the existing EX input and
   authored meter cost (currently 50), and never become a free command-grab
   shortcut. Base command grabs must not spend EX meter.
-- **METHtality gate:** command-grab damage/knockdown must not trigger or bypass
-  the finisher. METH remains governed by full meter, health threshold,
-  hitstun/knockdown state, and invulnerability; the current global kill-confirm
-  path is preserved. Do not make command-grab contact an alternate METH gate.
+- **METHtality gate:** command-grab contact does not alter the full-meter-only
+  activation requirement. A buffered METH may start through the shared
+  hit-confirm path, but command-grab damage does not bypass the full-meter
+  requirement.
 - Throws remain unblockable because they are `THROW`, not because command grabs
   get a special block exception.
 

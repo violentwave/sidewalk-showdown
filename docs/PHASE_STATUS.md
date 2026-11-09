@@ -1,32 +1,33 @@
 # GDD Phase Status
 
-**Baseline:** `origin/main` at `0d3cdfdf84cf6ad8735ed5e93e4015c5de88e0ee` (after PRs 14–16; before PR 4a).
+**Baseline:** `main` through PR #31 (`4323096e47ee79de596ed20b2cedf1d53ee0fdf9`); this update records the meter-only METHtality decision and current vertical-slice cast.
 The companion audit reconciliation is [`docs/audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md`](audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md).
 
 ## Current phase
 
 The current official phase is **GDD §13 Phase 2 — Vertical Slice (in progress)**.
-This is a phase placement, not an exit sign-off. The Phase 1 greybox feature set
-exists, and many ordinary paths are covered by tests, but the combat audit's
-knockdown loops and other uncovered edge behavior leave the overall Phase 1
-feel/correctness claim at risk. Phase 2's presentation and private-show exit
-criteria are not met. `README.md` now uses the same GDD phase label.
+Phase 1's greybox combat and round-flow implementation is verified by the
+current suites and targeted regressions; subjective feel still needs human
+playtesting. Phase 2's presentation and private-show exit criteria are not met.
+`README.md` uses the same GDD phase label.
 
-## Owner decisions — correctness queue (verbatim)
+## Owner decisions — correctness, gameplay, and scope
 
-- D1: K1 — knockdown rejects all strikes except MoveData.meth rows;
-  can_meth() keeps the knockdown path. The exception must be documented
-  and tested both ways (METH triggers on knockdown and spends meter;
-  non-METH strikes whiff).
+- D1: K1 — knockdown rejects all strikes except `MoveData.meth` rows; METH
+  activation is full-meter-only and works against a knocked-down target.
 - D2: R1 — throws cannot connect during KNOCKDOWN.
 - D3: PR 4a only — bounded hitstop buffer freeze capped at one normal
   buffer window, all buffered actions (including grab and its lockout)
   frozen together. Blockstun policy (4b) is deferred to playtest.
+- METHtality (2026-11-09) — full meter plus the METH input is sufficient;
+  opponent health, state, and invulnerability do not gate activation. The full
+  bar is still spent and the authored 30-frame hitstop is unchanged.
+- Vertical-slice cast (2026-11-09) — Peggy and Richard officially; Burnout Bubba
+  and Raccoon Randy remain later-roster canon.
 
-Implementation order: PR 1 K1 strike guard; PR 2 R1 throw rejection; PR 3
-corner-separation remainder; PR 4a bounded hitstop-only buffer freeze. D1/K1,
-D2/R1, corner separation, and D3/PR 4a are implemented with regression tests.
-Blockstun buffer policy 4b remains deferred to playtest.
+K1, R1, corner-separation transfer, bounded hitstop-only buffer freeze, and the
+KO-phase winner repair are implemented with regression coverage. Blockstun
+buffer policy 4b remains deferred to playtest.
 
 Status labels distinguish the existence of features from validation of the
 phase exit criteria:
@@ -60,25 +61,22 @@ phase exit criteria:
   movement/jump/crouch/block, light/heavy/basic specials, health bars, timer,
   round reset, and hitbox debug. Exit: two boxes can fight, hits feel responsive,
   blocking and round flow work, and the match can end/restart.
-- **Status:** **Features implemented; exit partially verified / at risk.** The
-  vertical-slice pair, stage, combat, HUD, round manager, debug overlay and pause
-  path exist. The audited baseline had 124 combat and 30 round-flow checks; the
-  current suite has 148 combat and 30 round-flow checks. D1/K1, D2/R1, B4
-  corner separation, and B3 hitstop-only buffer freeze are implemented and
-  regression-tested. Non-METH strikes
-  whiff during knockdown while the full-meter METH path can connect; knockdown
-  throws reject in both orientations; corner overlap is fully separated in all
-  four wall arrangements; hitstop buffer freeze is capped at five frames across
-  all action buffers. The remaining current-main findings B7 and B10
-  remain open; see the companion report. “Hits feel responsive” remains a human
-  feel judgment.
-- **Owner playtest decisions (2026-11-07):** B5 keeps stop-on-attack (M2);
-  B7 keeps the no-block wake-up tail (W2); blockstun buffering 4b stays
-  deferred (S4); the 20-44 px jump-in window is kept; command-grab values stay
-  provisional for Phase 9. Richard's base launcher is 260 (one follow-up), an
-  intentional asymmetry with Peggy's full 3-hit route.
-- **Blockers:** B10 is repaired (KO-phase winner forced back to `WIN` after hit
-  resolution unless a true double KO); no runtime findings are blockers. Passing existing suites does not resolve uncovered runtime findings.
+- **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
+  Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
+  The current suites contain 245 combat and 33 round-flow checks. K1, R1, corner
+  separation, bounded hitstop buffer freeze, and the post-KO winner-state repair
+  are covered. Non-METH strikes reject during knockdown; METH remains the K1
+  exception. Knockdown throws reject in both orientations; wall separation is
+  covered in all four arrangements; hitstop buffer aging freezes for at most five
+  frames. “Hits feel responsive” remains a human playtest judgment.
+- **Owner playtest decisions (2026-11-07):** air attacks keep stop-on-attack
+  (M2); the no-block wake-up tail is kept (W2); blockstun buffering 4b stays
+  deferred (S4); the measured 20–44 px jump-in window is kept; command-grab
+  values remain provisional. Richard's base launcher is 260 (one follow-up), an
+  intentional asymmetry with Peggy's route. Forward-special/EX is the launcher
+  category; EX cancels are grounded-only.
+- **Blockers:** no known Phase 1 implementation blocker remains. Human feel
+  validation is still required; Phase 2 presentation goals remain incomplete.
 
 ### Phase 2 — Vertical Slice
 
@@ -87,17 +85,16 @@ phase exit criteria:
   prototype, Tripp commentary, one music track, and core SFX. Exit: the game
   feels like Sidewalk Showdown, a match looks/sounds close to target, and it is
   suitable for a private showing.
-- **Status:** **In progress; exit not met.** Peggy and Richard are playable on
-  the Bus Stop stage; the HUD and METHtality engine prototype exist. METHtality
-  currently uses the kill-confirm gate and a freeze/banner; GDD §5.9's
-  final-round finish prompt, cinematic, camera, and choreography remain future
-  work. There is no character-select mockup, Tripp commentary sample, music, or
-  core SFX, and the runtime fighters remain silhouettes.
-- **Blockers / decisions:** owner confirmation is needed if the recommended
-  Phase 2 cast is intended to be strict: GDD §13 suggests Burnout Bubba plus
-  Peggy or Randy, while the current pair is Peggy/Richard. Those names are under
-  “Recommended content,” so this is a scope/canon decision, not silently treated
-  as a failed hard requirement. The private-show exit also needs human approval.
+- **Status:** **In progress; exit not met.** The official cast is Peggy and
+  Richard on the Bus Stop stage; the HUD and METHtality engine prototype exist.
+  METHtality activates at full meter regardless of opponent health/state, drains
+  the bar, and uses a 30-frame freeze, banner, and normal KO flow. The final-round
+  finish prompt, cinematic, camera, and choreography remain future work. There
+  is no character-select mockup, Tripp commentary sample, music, or core SFX, and
+  the runtime fighters remain silhouettes.
+- **Decisions / blockers:** Burnout Bubba and Raccoon Randy remain later-roster
+  canon; they are not alternatives for the approved slice cast. The private-show
+  exit still needs human approval.
 
 ### Phase 3 — Core Systems Buildout
 
@@ -106,40 +103,24 @@ phase exit criteria:
   tools, AI baseline, audio/UI managers, and save/unlock system. Exit: fighters
   can be added without rewriting core code, stages load cleanly, frame data is
   efficiently tunable, and debug tools work.
-- **Status:** **Partial.** `FighterData`/`MoveData`, `.tres` resources and a
-  generator exist; match/round flow and debug tools exist. But `MatchRoot.gd`
-  preloads the two fighters and one stage, so generic selection/loading is not
-  demonstrated. Input is generated from a keyboard table but has no remapping
-  UI; training is limited to debug controls; AI, audio manager, save/unlock, and
-  an authored hitbox editor workflow are missing. Dash/backdash states are
-  absent. Command grabs are authored (PR 6: forward+grab, untechable, 30f knockdown);
-  their values are provisional first-pass and the reward/whiff-punish metric is
-  informational (owner decision 2026-11-07, Phase 9 revisit). Forward specials
-  and their EX variants are the uniform launcher category for both fighters
-  (authored vertical knockback, never an engine special-case; base 80% of jump,
-  EX higher); crouch heavies remain hard knockdowns. The juggle cap is reachable
-  and enforced on Peggy's EX route; Richard's base launcher does not connect a
-  follow-up at 80% (see KNOWN_ISSUES). EX cancel is grounded-only as ratified
-  policy. Blocked pushback is authored data (45 px/s on every strike row, with
-  corner transfer; PR 5). Cancel rules are authored data (PR 2); the six §§6 route shapes for
-  both fighters (jump-in starter, grounded chain, punish EX with fallback) are
-  authored with resolver-verified routes and measured blocked endpoints (PR 4);
-  the jump-in follow-up has a measured 20-44 px / 10-30 px connect window
-  (PR B); counter-hit detection exists
-  (PR 1); the §6 juggle rules (3-airborne-hit cap, repeat-hit pushback/gravity
-  (PR 3), while counter-specific routes are not authored. The 55% implemented
-  decision is conditioned on now exists, so any 35% revisit is owner-approval-only.
-  Owner decision (2026-11-06): the floor
-  is **55%**, and GDD §5.10's 35% entry is amended to 55%; 35% may be revisited
-  only after a juggle limit exists. Command grabs are **untechable** with slow,
-  punishable startup; the normal throw remains the techable layer, and the
-  throw-tech system is not extended to command grabs. `docs/PROPOSALS.md` §§6–7 have approved
-  design direction but are not implemented features; the correctness queue is
-  sequenced first. D1/K1, D2/R1, corner separation and D3/PR 4a are implemented;
-  blockstun policy 4b remains deferred. The owner has set shared controls across
-  fighters, silhouette playability with animation deferred, and Peggy/Richard-only
-  scope; command-grab techability and occupied
-  direction-slot selection remain open design decisions.
+- **Status:** **Partial, with substantial systems implemented.**
+  `FighterData`/`MoveData`, `.tres` resources, and the generator exist. Authored
+  cancel routes, counter-hit detection (+2 hitstop and HUD feedback), juggle/OTG
+  rules, launcher/EX routes, command grabs, match/round flow, and debug tools are
+  implemented. `MatchRoot.gd` still preloads two fighters and one stage, so
+  generic selection/loading is not demonstrated. Input has no remapping UI;
+  training is limited to debug controls; AI, audio manager, save/unlock, and an
+  authored hitbox editor workflow are missing. Dash/backdash states are absent.
+- **Owner decisions:** forward-special and its EX variant are the shared launcher
+  category; EX cancels are grounded-only. Richard's 260 base launcher is an
+  intentional asymmetry and enables one follow-up; Peggy retains her authored
+  route. The 3-airborne-hit cap and 55% scaling floor are implemented. The
+  jump-in follow-up's measured 20–44 px / 10–30 px connect window is kept.
+  Command grabs are untechable with slow, punishable startup; their values remain
+  provisional for the later-roster pass. Shared controls, silhouette playability
+  with animation deferred, and Peggy/Richard-only slice scope are canon. The
+  owner-approved directions in `docs/PROPOSALS.md` §§6–7 are implemented where
+  marked; additional systems listed above remain gaps.
 - **Exit verification:** not met; adding the current roster/stage still depends
   on hard-coded match setup, and several listed systems do not exist.
 
@@ -163,8 +144,8 @@ phase exit criteria:
 - **Status:** **Not met / early slice only.** Two fighters have gameplay data;
   the 15-character roster is canon, not a complete playable roster. Dialogue,
   campaign rivalry representation, and the remaining fighters are not complete.
-- **Blockers:** Phase 3 data/selection architecture and the owner-approved
-  vertical-slice cast/order.
+- **Blockers:** Phase 3 data/selection architecture and production of the
+  remaining roster content.
 
 ### Phase 6 — Stage Expansion
 
@@ -193,8 +174,8 @@ phase exit criteria:
 - **Status:** **Partial / mostly missing.** A functional HUD and pause menu exist;
   hitstop and a METHtality banner are basic scaffolding. No audio/VFX/crowd,
   screen shake, victory poses, or finished animation are wired.
-- **Blockers:** do not begin until the owner approves the combat/cast decisions
-  and the Phase 2 visual/audio direction.
+- **Blockers:** production of the approved combat/cast decisions and Phase 2
+  visual/audio direction; no such work is part of this update.
 
 ### Phase 9 — Testing, Balance, and Optimization
 
@@ -205,11 +186,13 @@ phase exit criteria:
 - **Status:** **In progress; exit not met.** CI runs the combat/round suites and
   air probe; Linux/Windows export builds pass. The air probe is informational and
   has no balance assertions, but its separate CI job is still part of the
-  workflow and can fail it. The current audit reproduced B1, B2, B3, B4, B7 and
-  B10; controller support, latency/performance profiling, AI and progression
-  coverage remain missing/unverified.
-- **Blockers:** correctness and owner decisions from B1–B8, plus gamepad and
-  target-machine validation. A passing old suite is not a blanket exit sign-off.
+  workflow and can fail it. B1–B4 and B10 have regression-tested repairs; B7 is
+  an explicit keep decision. B5/M2, B8/scaling, and B9/pushbox observations are
+  tracked separately; controller support, latency/performance profiling, AI and
+  progression coverage remain missing/unverified.
+- **Blockers:** gamepad and target-machine validation, latency/performance
+  profiling, and human playtesting. A passing suite is evidence for covered
+  paths, not a blanket exit sign-off.
 
 ### Phase 10 — Release Preparation
 
@@ -238,7 +221,7 @@ phase exit criteria:
 | First playable | Basic menu | **Partial:** pause/resume/restart/quit menu exists; no front-end/main menu or character flow. |
 | First playable | Keyboard/controller support | **Partial:** keyboard is device-agnostic and tested; no gamepad mappings, support UI, or controller test. This is a documented first-playable blocker unless the owner amends §14. |
 | First playable | Hitbox debug | **Implemented:** F1 boxes and other debug controls exist; box separation is incomplete (B9). |
-| Vertical slice | 2 polished fighters, 1 polished stage, real HUD, music/SFX, Tripp commentary, one METHtality, mini story route | **Partial:** HUD and METHtality rules exist; polish, audio, commentary and route are missing/minimal. |
+| Vertical slice | 2 polished fighters, 1 polished stage, real HUD, music/SFX, Tripp commentary, one METHtality, mini story route | **Partial:** official Peggy/Richard cast, Bus Stop stage, HUD, and full-meter METHtality exist; polish, audio, commentary and route are missing/minimal. |
 | Full v1.0 | 15 fighters, hidden Tripp boss, stages, campaign/arcade/versus/training, METHtalities, endings, options/accessibility, credits/licenses | **Not met; later GDD priorities.** |
 
 The companion reconciliation preserves the audit’s historical `d523ed0` claims

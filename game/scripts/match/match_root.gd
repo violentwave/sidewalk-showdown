@@ -25,6 +25,7 @@ var hud: MatchHUD
 var debug_overlay: DebugOverlay
 var p1: FighterBase
 var p2: FighterBase
+var audio_manager
 var selected_p1_data: FighterData = PEGGY_DATA
 var selected_p2_data: FighterData = RICHARD_DATA
 
@@ -111,9 +112,13 @@ func _start_fight() -> void:
 	p1.input_enabled = true
 	p2.input_enabled = true
 	hud.clear_message()
+	if audio_manager != null:
+		audio_manager.play_sfx("round_start")
 
 func _on_meth_started(meth_name: String) -> void:
 	hud.show_meth_message("METHtality\n%s" % meth_name.to_upper())
+	if audio_manager != null:
+		audio_manager.play_sfx("meth")
 
 func _on_fighter_ko(loser: FighterBase) -> void:
 	if phase == Phase.KO:
@@ -136,6 +141,8 @@ func _on_fighter_ko(loser: FighterBase) -> void:
 	phase_frame = 0
 	p1.input_enabled = false
 	p2.input_enabled = false
+	if audio_manager != null:
+		audio_manager.play_sfx("ko")
 	var winner := p2 if loser == p1 else p1
 	winner._force_state(FighterBase.State.WIN)
 	hud.show_message("K.O.")
@@ -310,6 +317,8 @@ func _toggle_pause() -> void:
 	pause_menu_open = paused
 	if paused:
 		pause_index = 0
+	if audio_manager != null:
+		audio_manager.play_ui_confirm()
 	hud.set_paused(paused)
 
 func _unpause() -> void:
@@ -328,8 +337,12 @@ func _move_pause_selection(dir: int) -> void:
 		return
 	pause_index = wrapi(pause_index + dir, 0, count)
 	hud.set_pause_selection(pause_index)
+	if audio_manager != null:
+		audio_manager.play_ui_move()
 
 func _confirm_pause_selection() -> void:
+	if audio_manager != null:
+		audio_manager.play_ui_confirm()
 	match pause_index:
 		1:
 			# Start the new match unpaused so its intro frames actually run.
@@ -352,12 +365,16 @@ func _resolve_hits() -> void:
 	if move_a != null:
 		var p2_before := p2.health
 		var counter_a := move_b == null and p2.is_in_attack_startup()
-		p1.on_attack_connected(p2.receive_hit(p1, move_a, counter_a))
+		var hit_a := p2.receive_hit(p1, move_a, counter_a)
+		p1.on_attack_connected(hit_a)
+		_play_contact_sfx(move_a, p2, p2_before)
 		round_damage[0] += maxf(0.0, p2_before - p2.health)
 	if move_b != null:
 		var p1_before := p1.health
 		var counter_b := move_a == null and p1.is_in_attack_startup()
-		p2.on_attack_connected(p1.receive_hit(p2, move_b, counter_b))
+		var hit_b := p1.receive_hit(p2, move_b, counter_b)
+		p2.on_attack_connected(hit_b)
+		_play_contact_sfx(move_b, p1, p1_before)
 		round_damage[1] += maxf(0.0, p1_before - p1.health)
 	# B10 repair: when the first hit of a trade KOs and _on_fighter_ko() moves
 	# the match into Phase.KO, the second hit was already polled, so the
@@ -370,6 +387,17 @@ func _resolve_hits() -> void:
 		var ko_winner: FighterBase = p2 if ko_loser == p1 else p1
 		if ko_winner.state != FighterBase.State.WIN:
 			ko_winner._force_state(FighterBase.State.WIN)
+
+func _play_contact_sfx(move: MoveData, defender: FighterBase, health_before: float) -> void:
+	if audio_manager == null:
+		return
+	if defender.state == FighterBase.State.BLOCKSTUN:
+		audio_manager.play_sfx("block")
+	elif defender.health < health_before:
+		if move.input == MoveData.InputType.LIGHT:
+			audio_manager.play_sfx("hit_light")
+		else:
+			audio_manager.play_sfx("hit_heavy")
 
 func _poll_hit(attacker: FighterBase, defender: FighterBase) -> MoveData:
 	if attacker.state != FighterBase.State.ATTACK:

@@ -61,6 +61,37 @@ func _run() -> void:
 				and main_scene.match_root.p2.data.display_name == "Peg Leg Peggy",
 			"fighters=%s / %s" % [main_scene.match_root.p1.data.display_name,
 				main_scene.match_root.p2.data.display_name])
+		_check("the match starts the temporary music loop",
+			main_scene.audio_manager.music_player.playing,
+			"music is not playing")
+		var music_stream := main_scene.audio_manager.music_player.stream as AudioStreamOggVorbis
+		_check("the temporary OGG track is configured to loop",
+			music_stream != null and music_stream.loop,
+			"music loop flag is off")
+		main_scene.audio_manager.play_sfx("hit_light")
+		_check("the audio manager can play a temporary combat effect",
+			main_scene.audio_manager.has_active_sfx(),
+			"no SFX player is active")
+		for player in main_scene.audio_manager.sfx_players:
+			player.stop()
+		var light: MoveData = main_scene.match_root.p1.data.find_move(
+			MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+		var p2: FighterBase = main_scene.match_root.p2
+		main_scene.match_root._play_contact_sfx(light, p2, p2.health + 1.0)
+		_check("a landed light hit plays the mapped impact cue",
+			main_scene.audio_manager.has_active_sfx(),
+			"hit SFX did not start")
+		for player in main_scene.audio_manager.sfx_players:
+			player.stop()
+		p2._force_state(FighterBase.State.BLOCKSTUN)
+		main_scene.match_root._play_contact_sfx(light, p2, p2.health)
+		_check("a blocked hit plays the block cue",
+			main_scene.audio_manager.has_active_sfx(),
+			"block SFX did not start")
 
+	main_scene.audio_manager.stop_all()
+	main_scene.queue_free()
+	for frame in 16:
+		await process_frame
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

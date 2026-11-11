@@ -1595,7 +1595,8 @@ Exit criteria:
 > officially selected Peggy/Richard pair on Bus Stop Night with a HUD, a
 > text-only two-player character-select mockup, and METHtality engine prototype.
 > It does not yet meet the polish/private-show exit: final art, Tripp commentary,
-> music/SFX, and a mini story route are missing or partial.
+> mini story route, final music, and the full SFX/voice pass are missing or
+> partial. Temporary CC0 music and core combat/UI cues are in the build.
 
 ---
 

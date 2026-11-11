@@ -11,9 +11,10 @@ legends eventually turn on him.
 
 **Current scope:** Peggy vs Richard on Bus Stop Night, a text-only two-player
 character-select mockup, greybox silhouettes, local keyboard play, HUD/timer/round
-flow, directional specials, EX spenders, and a minimal METHtality core. Missing
-or partial: gamepad support, stage select, animation, audio/VFX, CPU AI, campaign,
-and final art. Online play is deferred beyond v0.1 per GDD §2.4/§16.
+flow, directional specials, EX spenders, a minimal METHtality core, and temporary
+CC0 loop music/combat/UI sounds. Missing or partial: gamepad support, stage
+select, animation, final audio/voice/VFX, CPU AI, campaign, and final art. Online
+play is deferred beyond v0.1 per GDD §2.4/§16.
 
 **Readiness and audits:** [`docs/PHASE_STATUS.md`](docs/PHASE_STATUS.md) records
 GDD phase requirements versus evidence and owner decisions. The

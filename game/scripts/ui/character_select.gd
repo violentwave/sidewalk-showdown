@@ -2,6 +2,8 @@
 extends Control
 
 signal match_requested(p1_data: FighterData, p2_data: FighterData)
+signal selection_moved
+signal selection_confirmed
 
 const FIGHTERS: Array[FighterData] = [
 	preload("res://resources/fighters/peg_leg_peggy.tres"),
@@ -112,6 +114,7 @@ func _move_choice(player: int, direction: int) -> void:
 		p2_choice = wrapi(p2_choice + direction, 0, FIGHTERS.size())
 		p2_locked = false
 	_refresh()
+	selection_moved.emit()
 
 func _confirm(player: int) -> void:
 	if player == 1:
@@ -119,6 +122,7 @@ func _confirm(player: int) -> void:
 	else:
 		p2_locked = true
 	_refresh()
+	selection_confirmed.emit()
 	if p1_locked and p2_locked:
 		match_requested.emit(FIGHTERS[p1_choice], FIGHTERS[p2_choice])
 

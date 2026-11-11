@@ -9,11 +9,11 @@ legends eventually turn on him.
 **Status:** GDD Phase 2 — Vertical Slice, in progress. See `docs/PHASE_STATUS.md`.
 **License:** TBD — treat as all-rights-reserved until a LICENSE file is added.
 
-**Current scope:** Peggy vs Richard on Bus Stop Night, greybox silhouettes,
-local keyboard play, HUD/timer/round flow, directional specials, EX spenders, and
-a minimal METHtality core. Missing or partial: gamepad support, character/stage
-select, animation, audio/VFX, CPU AI, campaign, and final art. Online play is
-deferred beyond v0.1 per GDD §2.4/§16.
+**Current scope:** Peggy vs Richard on Bus Stop Night, a text-only two-player
+character-select mockup, greybox silhouettes, local keyboard play, HUD/timer/round
+flow, directional specials, EX spenders, and a minimal METHtality core. Missing
+or partial: gamepad support, stage select, animation, audio/VFX, CPU AI, campaign,
+and final art. Online play is deferred beyond v0.1 per GDD §2.4/§16.
 
 **Readiness and audits:** [`docs/PHASE_STATUS.md`](docs/PHASE_STATUS.md) records
 GDD phase requirements versus evidence and owner decisions. The
@@ -28,7 +28,12 @@ is preserved at its historical `d523ed0` baseline.
 godot --path game                     # play
 godot --headless --path game --script res://tests/combat_test.gd      # combat tests
 godot --headless --path game --script res://tests/round_flow_test.gd  # round flow tests
+godot --headless --path game --script res://tests/character_select_test.gd # select tests
 ```
+
+At startup, P1 uses **A/D + J** and P2 uses **arrow keys + Numpad 1** to choose
+and confirm a fighter. The match begins after both players confirm; either player
+may change a locked selection by moving again.
 
 ## Controls (current build)
 

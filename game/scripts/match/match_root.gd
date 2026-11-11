@@ -25,6 +25,8 @@ var hud: MatchHUD
 var debug_overlay: DebugOverlay
 var p1: FighterBase
 var p2: FighterBase
+var selected_p1_data: FighterData = PEGGY_DATA
+var selected_p2_data: FighterData = RICHARD_DATA
 
 var phase: Phase = Phase.INTRO
 var phase_frame := 0
@@ -53,8 +55,8 @@ func _ready() -> void:
 	hud = HUD_SCENE.instantiate()
 	add_child(hud)
 
-	p1 = _spawn_fighter(1, PEGGY_DATA)
-	p2 = _spawn_fighter(2, RICHARD_DATA)
+	p1 = _spawn_fighter(1, selected_p1_data)
+	p2 = _spawn_fighter(2, selected_p2_data)
 	p1.opponent = p2
 	p2.opponent = p1
 	hud.bind(p1, p2)

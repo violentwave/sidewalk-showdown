@@ -321,6 +321,9 @@ These are measured or first-pass limits, not phase-exit validation.
   sudden-death tie resolving by damage dealt (with the announced tiebreak), the
   deterministic P1 fallback, a clean win in sudden death ending the match, the
   clock frozen during hitstop, and a hit on the timer's final frame counting.
+- `game/tests/character_select_test.gd` — **8 checks**: default selections,
+  independent P1/P2 movement and confirmation, unlock-on-move behavior, and
+  selected fighter data reaching the match.
 - `game/tests/air_probe.gd` — metrics only, no assertions: both fighter
   directions; sampled geometry candidates vs resolver-confirmed reach/trade,
   direct damage ratios, hitstop, actual block advantage, and post-whiff

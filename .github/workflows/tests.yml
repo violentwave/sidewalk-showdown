@@ -22,6 +22,8 @@ jobs:
         run: godot --headless --path game --script res://tests/combat_test.gd
       - name: Round flow tests
         run: godot --headless --path game --script res://tests/round_flow_test.gd
+      - name: Character select tests
+        run: godot --headless --path game --script res://tests/character_select_test.gd
 
   air-probe:
     # Metrics only (docs/PROPOSALS.md section 3): the probe asserts nothing and

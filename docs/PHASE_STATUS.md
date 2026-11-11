@@ -1,6 +1,6 @@
 # GDD Phase Status
 
-**Baseline:** `main` through PR #31 (`4323096e47ee79de596ed20b2cedf1d53ee0fdf9`); this update records the meter-only METHtality decision and current vertical-slice cast.
+**Baseline:** `main` through PR #32 (`5966a68ee33c7c6470328e5eccae3c41e41404a3`); this update adds the Phase 2 character-select mockup.
 The companion audit reconciliation is [`docs/audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md`](audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md).
 
 ## Current phase
@@ -63,9 +63,10 @@ phase exit criteria:
   blocking and round flow work, and the match can end/restart.
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
-  The current suites contain 245 combat and 33 round-flow checks. K1, R1, corner
-  separation, bounded hitstop buffer freeze, and the post-KO winner-state repair
-  are covered. Non-METH strikes reject during knockdown; METH remains the K1
+  The current suites contain 245 combat, 33 round-flow, and 8 character-select
+  checks. K1, R1, corner separation, bounded hitstop buffer freeze, and the
+  post-KO winner-state repair are covered. Non-METH strikes reject during
+  knockdown; METH remains the K1
   exception. Knockdown throws reject in both orientations; wall separation is
   covered in all four arrangements; hitstop buffer aging freezes for at most five
   frames. “Hits feel responsive” remains a human playtest judgment.
@@ -87,11 +88,13 @@ phase exit criteria:
   suitable for a private showing.
 - **Status:** **In progress; exit not met.** The official cast is Peggy and
   Richard on the Bus Stop stage; the HUD and METHtality engine prototype exist.
-  METHtality activates at full meter regardless of opponent health/state, drains
-  the bar, and uses a 30-frame freeze, banner, and normal KO flow. The final-round
-  finish prompt, cinematic, camera, and choreography remain future work. There
-  is no character-select mockup, Tripp commentary sample, music, or core SFX, and
-  the runtime fighters remain silhouettes.
+  A text-only local character-select mockup (added 2026-11-11) lets P1/P2 pick
+  from the approved cast and routes both choices into the match. METHtality
+  activates at full meter regardless of opponent health/state, drains the bar,
+  and uses a 30-frame
+  freeze, banner, and normal KO flow. The final-round finish prompt, cinematic,
+  camera, and choreography remain future work. Tripp commentary, music, and core
+  SFX are missing, and the runtime fighters remain silhouettes.
 - **Decisions / blockers:** Burnout Bubba and Raccoon Randy remain later-roster
   canon; they are not alternatives for the approved slice cast. The private-show
   exit still needs human approval.
@@ -107,8 +110,10 @@ phase exit criteria:
   `FighterData`/`MoveData`, `.tres` resources, and the generator exist. Authored
   cancel routes, counter-hit detection (+2 hitstop and HUD feedback), juggle/OTG
   rules, launcher/EX routes, command grabs, match/round flow, and debug tools are
-  implemented. `MatchRoot.gd` still preloads two fighters and one stage, so
-  generic selection/loading is not demonstrated. Input has no remapping UI;
+  implemented. The text-only character-select mockup chooses between the two
+  slice fighters, but `MatchRoot.gd` still preloads the slice's two fighter
+  resources and one stage, so generic roster/stage loading is not demonstrated.
+  Input has no remapping UI;
   training is limited to debug controls; AI, audio manager, save/unlock, and an
   authored hitbox editor workflow are missing. Dash/backdash states are absent.
 - **Owner decisions:** forward-special and its EX variant are the shared launcher
@@ -218,10 +223,10 @@ phase exit criteria:
 | Priority | Requirement | Current status / evidence |
 |---|---|---|
 | First playable | 2 fighters; 1 stage; movement; block; attacks/specials; health/timer; round flow | **Implemented** for the keyboard-controlled Peggy/Richard Bus Stop slice; edge-case findings remain. |
-| First playable | Basic menu | **Partial:** pause/resume/restart/quit menu exists; no front-end/main menu or character flow. |
+| First playable | Basic menu | **Partial:** pause/resume/restart/quit and a two-player character-select mockup exist; no full front-end/main menu or stage flow. |
 | First playable | Keyboard/controller support | **Partial:** keyboard is device-agnostic and tested; no gamepad mappings, support UI, or controller test. This is a documented first-playable blocker unless the owner amends §14. |
 | First playable | Hitbox debug | **Implemented:** F1 boxes and other debug controls exist; box separation is incomplete (B9). |
-| Vertical slice | 2 polished fighters, 1 polished stage, real HUD, music/SFX, Tripp commentary, one METHtality, mini story route | **Partial:** official Peggy/Richard cast, Bus Stop stage, HUD, and full-meter METHtality exist; polish, audio, commentary and route are missing/minimal. |
+| Vertical slice | 2 polished fighters, 1 polished stage, real HUD, music/SFX, Tripp commentary, one METHtality, mini story route | **Partial:** official Peggy/Richard cast, Bus Stop stage, character-select mockup, HUD, and full-meter METHtality exist; polish, audio, commentary and route are missing/minimal. |
 | Full v1.0 | 15 fighters, hidden Tripp boss, stages, campaign/arcade/versus/training, METHtalities, endings, options/accessibility, credits/licenses | **Not met; later GDD priorities.** |
 
 The companion reconciliation preserves the audit’s historical `d523ed0` claims

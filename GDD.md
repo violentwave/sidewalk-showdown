@@ -1591,11 +1591,11 @@ Exit criteria:
 - one match looks and sounds close to the final target
 - the prototype is good enough to show privately
 
-> **Implementation-status note (2026-11-09):** the current slice implements the
-> officially selected Peggy/Richard pair on Bus Stop Night with a HUD and
-> METHtality engine prototype. It does not yet meet the polish/private-show
-> exit: character select, Tripp commentary, music/SFX, final art, and a mini
-> story route are missing or partial.
+> **Implementation-status note (2026-11-11):** the current slice implements the
+> officially selected Peggy/Richard pair on Bus Stop Night with a HUD, a
+> text-only two-player character-select mockup, and METHtality engine prototype.
+> It does not yet meet the polish/private-show exit: final art, Tripp commentary,
+> music/SFX, and a mini story route are missing or partial.
 
 ---
 
@@ -1839,10 +1839,10 @@ Possible updates:
 - keyboard/controller support
 - hitbox debug
 
-> **Implementation-status note (2026-11-05):** keyboard support exists and is
-> tested; gamepad support and the remap UI are missing. The current pause menu
-> is not a full front-end/main-menu flow. See `docs/PHASE_STATUS.md` for the
-> gate status.
+> **Implementation-status note (2026-11-11):** keyboard support exists and is
+> tested; gamepad support and the remap UI are missing. A text-only character
+> select mockup now precedes the match, but there is no full main-menu or stage
+> select flow. See `docs/PHASE_STATUS.md` for the gate status.
 
 ### Must-Have for Vertical Slice
 

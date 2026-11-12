@@ -24,6 +24,8 @@ jobs:
         run: godot --headless --path game --script res://tests/round_flow_test.gd
       - name: Character select tests
         run: godot --headless --path game --script res://tests/character_select_test.gd
+      - name: The Clip intro tests
+        run: godot --headless --path game --script res://tests/the_clip_test.gd
 
   air-probe:
     # Metrics only (docs/PROPOSALS.md section 3): the probe asserts nothing and

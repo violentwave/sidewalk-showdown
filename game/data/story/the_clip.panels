@@ -1,0 +1,235 @@
+{
+  "schema_version": 1,
+  "owner_editable": true,
+  "panels": [
+    {
+      "number": 1,
+      "page_title": "PAGE ONE — \"THE DYING CHANNEL\"",
+      "image_slot": "res://art/story/the_clip/panel_01.png",
+      "placeholder_color": "#202a39",
+      "art_note": "Tripp's apartment — ring lights, dead energy cans, a follower counter ticking down to 47.",
+      "caption_text": [
+        {"text": "TRIPP VLOGS used to be somebody.", "style": "caption"},
+        {"text": "He had a merch line once. It's a rag now.", "style": "small"}
+      ],
+      "dialogue": [],
+      "chat_comments": [],
+      "hold_seconds": 3.5
+    },
+    {
+      "number": 2,
+      "page_title": "PAGE ONE — \"THE DYING CHANNEL\"",
+      "image_slot": "res://art/story/the_clip/panel_02.png",
+      "placeholder_color": "#30303a",
+      "art_note": "Phone screen, upload grid.",
+      "caption_text": [
+        {"text": "I ATE GAS STATION SUSHI FOR 48 HOURS (12 views) · I LIVED LIKE A NORMAL POOR FOR ONE DAY (9 views) · PRANKING MY LANDLORD AT 3 AM (31 views)", "style": "screen"},
+        {"text": "His most-watched video that month was his landlord's response.", "style": "caption"}
+      ],
+      "dialogue": [],
+      "chat_comments": [],
+      "hold_seconds": 2.5
+    },
+    {
+      "number": 3,
+      "page_title": "PAGE ONE — \"THE DYING CHANNEL\"",
+      "image_slot": "res://art/story/the_clip/panel_03.png",
+      "fallback_image": "res://art/stages/bus_stop/BusStopNight.png",
+      "placeholder_color": "#29353a",
+      "art_note": "Tripp livestreaming at the bus stop, phone taped to a mop.",
+      "caption_text": [],
+      "dialogue": [
+        {"speaker": "TRIPP", "text": "Chat. CHAT. I'm listening. You want a giveaway? A kindness arc? I'll do a kindness arc. I have a mop.", "style": "speech"}
+      ],
+      "chat_comments": ["who", "this is a funeral home", "unsubbed", "first"],
+      "hold_seconds": 3.5
+    },
+    {
+      "number": 4,
+      "page_title": "PAGE ONE — \"THE DYING CHANNEL\"",
+      "image_slot": "res://art/story/the_clip/panel_04.png",
+      "fallback_image": "res://art/stages/bus_stop/BusStopNight.png",
+      "placeholder_color": "#41403a",
+      "art_note": "Behind him, in frame but unnoticed — Peggy and Richard squaring up over a bench.",
+      "caption_text": [
+        {"text": "Behind him, two sidewalk regulars began arguing about a bench.", "style": "caption"}
+      ],
+      "dialogue": [
+        {"speaker": "RICHARD", "text": "That's my seat, peg-leg.", "style": "speech"},
+        {"speaker": "PEGGY", "text": "It's a bus stop, stool boy.", "style": "speech"}
+      ],
+      "chat_comments": [],
+      "hold_seconds": 2.5
+    },
+    {
+      "number": 5,
+      "page_title": "PAGE TWO — \"THE CLIP\"",
+      "image_slot": "res://art/story/the_clip/panel_05.png",
+      "fallback_image": "res://art/stages/bus_stop/BusStopNight.png",
+      "placeholder_color": "#63342e",
+      "art_note": "Wide — the brawl in full swing behind a still-streaming Tripp.",
+      "caption_text": [
+        {"text": "Tripp's instincts kicked in. He didn't break it up. He didn't check if anyone was hurt. He didn't even turn around.", "style": "caption"},
+        {"text": "He checked his battery.", "style": "small"}
+      ],
+      "dialogue": [],
+      "chat_comments": [],
+      "hold_seconds": 2.5
+    },
+    {
+      "number": 6,
+      "page_title": "PAGE TWO — \"THE CLIP\"",
+      "image_slot": "res://art/story/the_clip/panel_06.png",
+      "fallback_image": "res://art/stages/bus_stop/BusStopNight.png",
+      "placeholder_color": "#42383d",
+      "art_note": "Extreme close-up — Tripp's thumb on the screen.",
+      "caption_text": [
+        {"text": "ZOOM", "style": "sfx"}
+      ],
+      "dialogue": [],
+      "chat_comments": [],
+      "hold_seconds": 2.0,
+      "sfx_event": "ui_confirm"
+    },
+    {
+      "number": 7,
+      "page_title": "PAGE TWO — \"THE CLIP\"",
+      "image_slot": "res://art/story/the_clip/panel_07.png",
+      "fallback_image": "res://art/stages/bus_stop/BusStopNight.png",
+      "placeholder_color": "#3d3344",
+      "art_note": "The phone — a view counter spinning like a slot machine, reaction thumbnails spawning.",
+      "caption_text": [
+        {"text": "By sunrise, the whole planet had watched two strangers fight about a bench.", "style": "caption"},
+        {"text": "The comments called it 'authentic.' Nobody had ever called Tripp that.", "style": "small"}
+      ],
+      "dialogue": [],
+      "chat_comments": [],
+      "hold_seconds": 2.5
+    },
+    {
+      "number": 8,
+      "page_title": "PAGE TWO — \"THE CLIP\"",
+      "image_slot": "res://art/story/the_clip/panel_08.png",
+      "fallback_image": "res://art/stages/bus_stop/BusStopNight.png",
+      "placeholder_color": "#50413a",
+      "art_note": "An email notification, garish logo.",
+      "caption_text": [
+        {"text": "For the first time in months, somebody wanted Tripp. A sponsor. Sort of.", "style": "caption"}
+      ],
+      "dialogue": [
+        {"speaker": "EMAIL", "text": "Dear Creator! Your raw street energy aligns with our brand values! — Probably Legal Energy™", "style": "message"}
+      ],
+      "chat_comments": [],
+      "hold_seconds": 2.5
+    },
+    {
+      "number": 9,
+      "page_title": "PAGE THREE — \"THE ANNOUNCEMENT\"",
+      "image_slot": "res://art/story/the_clip/panel_09.png",
+      "placeholder_color": "#4d3b2d",
+      "art_note": "A parking lot. A folding table. A hand-painted banner: SIDEWALK SHOWDOWN.",
+      "caption_text": [
+        {"text": "SIDEWALK SHOWDOWN", "style": "banner"},
+        {"text": "He announced it from a folding table in a parking lot, like all great movements.", "style": "caption"}
+      ],
+      "dialogue": [
+        {"speaker": "TRIPP", "text": "LADIES AND GENTLEMEN... SIDEWALK SHOWDOWN! Real people! Real stakes! Real... whatever this is!", "style": "speech"}
+      ],
+      "chat_comments": [],
+      "hold_seconds": 3.5
+    },
+    {
+      "number": 10,
+      "page_title": "PAGE THREE — \"THE ANNOUNCEMENT\"",
+      "image_slot": "res://art/story/the_clip/panel_10.png",
+      "placeholder_color": "#6b4030",
+      "art_note": "The flyer, full-frame, huge type. Bottom edge: an illegible smudge where fine print should be. Do not add readable fine print.",
+      "fine_print_render": "illegible_squiggle",
+      "caption_text": [
+        {"text": "WINNER GETS $100,000 AND A FREE HOUSE", "style": "flyer"},
+        {"text": "The fine print was too small to read. That was the point.", "style": "caption"}
+      ],
+      "dialogue": [],
+      "chat_comments": [],
+      "hold_seconds": 4.5
+    },
+    {
+      "number": 11,
+      "page_title": "PAGE THREE — \"THE ANNOUNCEMENT\"",
+      "image_slot": "res://art/story/the_clip/panel_11.png",
+      "placeholder_color": "#403b34",
+      "art_note": "Three quick signup vignettes — a man with a grudge, a woman squinting at the flyer upside-down, somebody already holding a hot dog.",
+      "caption_text": [
+        {"text": "Word spread. Some wanted revenge. Some misunderstood the flyer. Some just heard there'd be free hot dogs.", "style": "caption"}
+      ],
+      "dialogue": [],
+      "chat_comments": [],
+      "hold_seconds": 2.5
+    },
+    {
+      "number": 12,
+      "page_title": "PAGE THREE — \"THE ANNOUNCEMENT\"",
+      "image_slot": "res://art/story/the_clip/panel_12.png",
+      "placeholder_color": "#4e393b",
+      "art_note": "Tripp straight to camera, hand on heart, ring light halo.",
+      "caption_text": [
+        {"text": "He posted it with a caption about raising awareness. He raised nothing else.", "style": "small"}
+      ],
+      "dialogue": [
+        {"speaker": "TRIPP", "text": "I'm not using these people. I'm elevating them through conflict. Some call it exploitation. I call it vertical-format hope.", "style": "speech"}
+      ],
+      "chat_comments": [],
+      "hold_seconds": 3.5
+    },
+    {
+      "number": 13,
+      "page_title": "PAGE FOUR — \"THE BRACKET\"",
+      "image_slot": "res://art/story/the_clip/panel_13.png",
+      "placeholder_color": "#332c39",
+      "art_note": "Tournament bracket, Mortal Kombat style — fifteen silhouette portraits; Peggy and Richard rendered in full color, dead center. Do not render the host as a fighter.",
+      "caption_text": [
+        {"text": "Fifteen fighters. One host. One livestream.", "style": "caption"}
+      ],
+      "dialogue": [
+        {"speaker": "TRIPP", "text": "They were fighting for free before I got here.", "style": "small"}
+      ],
+      "chat_comments": [],
+      "hold_seconds": 2.5,
+      "bracket_slots": 15
+    },
+    {
+      "number": 14,
+      "page_title": "PAGE FOUR — \"THE BRACKET\"",
+      "image_slot": "res://art/story/the_clip/panel_14.png",
+      "placeholder_color": "#3b2d38",
+      "art_note": "Close on the bracket's bottom edge — a sixteenth slot marked '?'. This tease is intro-only; do not add it to character select.",
+      "caption_text": [
+        {"text": "?", "style": "teaser_slot"},
+        {"text": "Nobody asked about the sixteenth slot.", "style": "caption"}
+      ],
+      "dialogue": [
+        {"speaker": "TRIPP", "text": "Terms apply.", "style": "whisper"}
+      ],
+      "chat_comments": [],
+      "hold_seconds": 2.5,
+      "teaser_slot": "?"
+    },
+    {
+      "number": 15,
+      "page_title": "PAGE FOUR — \"THE BRACKET\"",
+      "image_slot": "res://art/story/the_clip/panel_15.png",
+      "placeholder_color": "#62442e",
+      "art_note": "Splash — the SIDEWALK SHOWDOWN logo over a subscriber count climbing in real time.",
+      "caption_text": [
+        {"text": "SIDEWALK SHOWDOWN", "style": "logo"},
+        {"text": "Welcome to SIDEWALK SHOWDOWN. Everybody here is about to get famous.", "style": "caption"},
+        {"text": "Except, eventually, Tripp.", "style": "small"}
+      ],
+      "dialogue": [
+        {"speaker": "TRIPP", "text": "smash that follow.", "style": "tiny"}
+      ],
+      "chat_comments": [],
+      "hold_seconds": 4.5
+    }
+  ]
+}

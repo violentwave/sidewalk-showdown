@@ -24,6 +24,8 @@ func _press(action: String) -> void:
 
 func _run() -> void:
 	await process_frame
+	main_scene.intro.skip_intro()
+	await process_frame
 	var select: Control = main_scene.character_select
 	_check("select screen defaults to Peggy for P1 and Richard for P2",
 		select.p1_choice == 0 and select.p2_choice == 1,
@@ -90,7 +92,7 @@ func _run() -> void:
 			"block SFX did not start")
 
 	main_scene.audio_manager.stop_all()
-	main_scene.queue_free()
+	main_scene.free()
 	for frame in 16:
 		await process_frame
 	print("\n%d failure(s)" % failures)

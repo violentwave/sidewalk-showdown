@@ -1,10 +1,12 @@
-# Main flow: choose the vertical-slice fighters, then start the match.
+# Main flow: The Clip intro, character select, then the match.
 extends Node
 
 const CHARACTER_SELECT_SCENE := preload("res://scenes/menus/CharacterSelect.tscn")
+const THE_CLIP_SCENE := preload("res://scenes/menus/TheClip.tscn")
 const MATCH_SCENE := preload("res://scenes/match/MatchRoot.tscn")
 const AUDIO_MANAGER_SCRIPT := preload("res://scripts/audio/audio_manager.gd")
 
+var intro: Control
 var character_select: Control
 var match_root: Node
 var audio_manager
@@ -12,6 +14,18 @@ var audio_manager
 func _ready() -> void:
 	audio_manager = AUDIO_MANAGER_SCRIPT.new()
 	add_child(audio_manager)
+	_show_intro()
+
+func _show_intro() -> void:
+	intro = THE_CLIP_SCENE.instantiate()
+	intro.audio_manager = audio_manager
+	intro.intro_finished.connect(_on_intro_finished)
+	add_child(intro)
+
+func _on_intro_finished() -> void:
+	if intro != null:
+		intro.queue_free()
+		intro = null
 	_show_character_select()
 
 func _show_character_select() -> void:

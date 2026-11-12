@@ -9,12 +9,12 @@ legends eventually turn on him.
 **Status:** GDD Phase 2 — Vertical Slice, in progress. See `docs/PHASE_STATUS.md`.
 **License:** TBD — treat as all-rights-reserved until a LICENSE file is added.
 
-**Current scope:** Peggy vs Richard on Bus Stop Night, a text-only two-player
-character-select mockup, greybox silhouettes, local keyboard play, HUD/timer/round
-flow, directional specials, EX spenders, a minimal METHtality core, and temporary
-CC0 loop music/combat/UI sounds. Missing or partial: gamepad support, stage
-select, animation, final audio/voice/VFX, CPU AI, campaign, and final art. Online
-play is deferred beyond v0.1 per GDD §2.4/§16.
+**Current scope:** the 15-panel “The Clip” intro leads to Peggy vs Richard on Bus
+Stop Night, a text-only two-player character-select mockup, greybox silhouettes,
+local keyboard play, HUD/timer/round flow, directional specials, EX spenders, a
+minimal METHtality core, and temporary CC0 loop music/combat/UI sounds. Missing
+or partial: gamepad support, stage select, animation, final audio/voice/VFX, CPU
+AI, campaign, and final art. Online play is deferred beyond v0.1 per GDD §2.4/§16.
 
 **Readiness and audits:** [`docs/PHASE_STATUS.md`](docs/PHASE_STATUS.md) records
 GDD phase requirements versus evidence and owner decisions. The
@@ -30,11 +30,16 @@ godot --path game                     # play
 godot --headless --path game --script res://tests/combat_test.gd      # combat tests
 godot --headless --path game --script res://tests/round_flow_test.gd  # round flow tests
 godot --headless --path game --script res://tests/character_select_test.gd # select tests
+godot --headless --path game --script res://tests/the_clip_test.gd    # intro tests
 ```
 
-At startup, P1 uses **A/D + J** and P2 uses **arrow keys + Numpad 1** to choose
-and confirm a fighter. The match begins after both players confirm; either player
-may change a locked selection by moving again.
+At startup, a 15-panel comic intro runs before character select. **Enter/Space**
+or either player's confirm advances; **Esc** skips it. It auto-advances in about
+45 seconds. P1 uses **A/D + J** and P2 uses **arrow keys + Numpad 1** to choose
+and confirm a fighter. The match begins after both players confirm; either
+player may change a locked selection by moving again. Panel copy/timing are in
+`game/data/story/the_clip.panels`; art slots are in
+`docs/story/the_clip_art_manifest.md`.
 
 ## Controls (current build)
 

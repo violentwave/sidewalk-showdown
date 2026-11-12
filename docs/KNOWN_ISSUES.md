@@ -326,14 +326,18 @@ These are measured or first-pass limits, not phase-exit validation.
 - `game/tests/character_select_test.gd` — **13 checks**: default selections,
   independent P1/P2 movement/confirmation, unlock-on-move, selected fighter data
   reaching the match, temporary music/SFX playback, and impact/block cue routing.
+- `game/tests/the_clip_test.gd` — **11 checks**: approved 15-panel data validity,
+  ordering/text/duration, ~45s unskipped runtime, bracket/fine-print canon,
+  boot-to-intro, hold-timer and P1/P2 confirm advancement to select, and Esc skip.
 - `game/tests/air_probe.gd` — metrics only, no assertions: both fighter
   directions; sampled geometry candidates vs resolver-confirmed reach/trade,
   direct damage ratios, hitstop, actual block advantage, and post-whiff
   actionability. Prints a report and exits 0 on success; `docs/PROPOSALS.md` §3
   documents the coarse grid, before/after metrics, and target limitations. Its
   numbers are informational measurements, not passing balance assertions.
-- `.github/workflows/tests.yml` runs both suites plus the air probe on push, pull
-  request and manual dispatch. They are separate jobs in one workflow; parallel
+- `.github/workflows/tests.yml` runs the combat, round-flow, character-select,
+  and intro suites plus the air probe on push, pull request and manual dispatch.
+  They are separate jobs in one workflow; parallel
   execution does not make a job non-gating. A non-zero command or job failure in
   the air-probe job can still fail the workflow even though the script contains
   no assertions.

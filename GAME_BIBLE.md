@@ -98,6 +98,19 @@ The final battle is not just about winning the tournament.
 
 It is about beating the man who thought everybody else was the joke.
 
+### Owner-confirmed “The Clip” canon (2026-11-11)
+
+- The two fighters in the viral clip are Peg Leg Peggy and Whiskey Richard,
+  arguing over a bench. This is confirmed canon, not a draft.
+- The announced tournament prize is $100,000 and a free house. The flyer's fine
+  print is a purely visual gag: render it as an illegible smudge or squiggle — do
+  NOT author legible fine-print text. The later prize-scam canon (GAME_BIBLE Act
+  VI) is unchanged.
+- The intro's bracket panel shows 15 fighters plus one "?" sixteenth slot. This
+  tease exists ONLY in the intro; the character-select grid remains exactly 15
+  slots (Peggy/Richard selectable, 13 locked) with no "?" entry. Tripp is never
+  a playable, selectable, or named fighter entity anywhere.
+
 ---
 
 ## 3. Tone

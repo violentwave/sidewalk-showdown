@@ -1127,6 +1127,25 @@ The fighters keep fighting, but now they are also sabotaging Tripp’s productio
 
 The winner reaches the end. Tripp refuses to pay, reveals the hidden commissioner clause, and becomes the final boss.
 
+#### Implementation notes — “The Clip” (owner-confirmed, 2026-11-11)
+
+- The two fighters in the viral clip are Peg Leg Peggy and Whiskey Richard,
+  arguing over a bench. This is confirmed canon, not a draft.
+- The announced tournament prize is $100,000 and a free house. The flyer's fine
+  print is a purely visual gag: render it as an illegible smudge or squiggle — do
+  NOT author legible fine-print text. The later prize-scam canon (GAME_BIBLE Act
+  VI) is unchanged.
+- The intro's bracket panel shows 15 fighters plus one "?" sixteenth slot. This
+  tease exists ONLY in the intro; the character-select grid remains exactly 15
+  slots (Peggy/Richard selectable, 13 locked) with no "?" entry. Tripp is never
+  a playable, selectable, or named fighter entity anywhere.
+
+> **Implementation-status note (2026-11-11):** boot now runs the 15-panel
+> `TheClip` scene before the existing character select. Panel copy and timing
+> live in `game/data/story/the_clip.panels`; art slots are listed in
+> `docs/story/the_clip_art_manifest.md`. The intro auto-advances in about 45
+> seconds; Enter/Space or either player's confirm advances, and Esc skips.
+
 #### Ending
 
 Tripp is exposed. The winner gets a personal ending. The fighters share a strange, filthy, temporary sense of victory.

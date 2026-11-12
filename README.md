@@ -34,7 +34,8 @@ godot --headless --path game --script res://tests/the_clip_test.gd    # intro te
 ```
 
 At startup, a 15-panel comic intro runs before character select. **Space**
-advances one panel; **Esc** skips it. Panels never advance on a timer. P1 uses
+advances the current beat or panel (dense copy may take extra presses);
+**Esc** skips it. The intro never advances on a timer. P1 uses
 **A/D + J** and P2 uses **arrow keys + Numpad 1** to choose and confirm a fighter.
 The match begins after both players confirm; either player may change a locked
 selection by moving again. Panel copy and deprecated hold values are in

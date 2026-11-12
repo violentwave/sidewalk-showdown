@@ -60,6 +60,8 @@ func _run() -> void:
 	_check("script has 15 panels in authored order",
 		panels.size() == 15 and _panels_in_order(panels),
 		"panel count=%d" % panels.size())
+	_check("all 15 panel art slots are installed",
+		_panel_art_slots_exist(), "one or more image slots are missing")
 	_check("panel copy and deprecated hold values remain present",
 		_panels_have_text_and_expected_holds(panels), "copy/hold values changed or missing")
 	_check("bracket tease is 15 fighters plus intro-only question slot",
@@ -86,6 +88,11 @@ func _run() -> void:
 			and _panel_has_dialogue(panels[13], "TRIPP",
 				"That's because there isn't one."),
 		"panel 14 teaser slot or denial line missing")
+	var split_probe: Control = INTRO_SCRIPT.new()
+	_check("split visual beats reconstruct the authored text exactly",
+		_split_script_text_is_lossless(split_probe, panels),
+		"a split visual beat changed or dropped script text")
+	split_probe.free()
 
 	var advance_main: Node = await _start_main()
 	_check("boot starts in The Clip before character select",
@@ -123,8 +130,10 @@ func _run() -> void:
 		var skip_main: Node = await _start_main()
 		if skip_main.intro != null:
 			var skip_intro: Control = skip_main.intro
-			for _step in panel_index:
+			var guard := 0
+			while skip_intro.current_panel_index < panel_index and guard < 80:
 				_press_space(skip_intro)
+				guard += 1
 			_press_escape(skip_intro)
 		await process_frame
 		_check("Esc from panel %02d reaches character select" % (panel_index + 1),
@@ -142,17 +151,23 @@ func _run() -> void:
 		for _step in 10:
 			if font_main.intro == null \
 					or (font_intro.current_panel_index == 2
-						and font_intro.current_panel_step == 1):
+						and font_intro.current_panel_step == 2):
 				break
 			_press_space(font_intro)
 		await process_frame
 		_check("chat strip appears on panel 03 at its second beat",
 			font_main.intro != null and font_intro.current_panel_index == 2
-				and font_intro.current_panel_step == 1,
+				and font_intro.current_panel_step == 2,
 			"panel=%d step=%d" % [font_intro.current_panel_index,
 				font_intro.current_panel_step])
 		_check("livestream chat uses the bundled monospaced font",
 			_chat_uses_share_tech_mono(font_intro), "chat label is not Share Tech Mono")
+		font_intro._render_panel(9)
+		_check("panel 10 flyer keeps its artwork in nearest-neighbor aspect-fit mode",
+			font_intro._art_texture.visible
+				and font_intro._art_texture.stretch_mode == TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				and font_intro._art_texture.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST,
+			"flyer overlay hid or cropped the panel art")
 	else:
 		_check("all intro labels use bundled fonts with fallback disabled", false,
 			"intro scene unavailable")
@@ -169,6 +184,28 @@ func _panels_in_order(panels: Array) -> bool:
 				or int(panels[index].get("number", -1)) != index + 1:
 			return false
 	return true
+
+func _panel_art_slots_exist() -> bool:
+	for panel_index in 15:
+		var path := "res://art/story/the_clip/panel_%02d.png" % (panel_index + 1)
+		if not ResourceLoader.exists(path):
+			return false
+	return true
+
+func _split_script_text_is_lossless(intro: Control, panels: Array) -> bool:
+	if intro == null or panels.size() != 15:
+		return false
+	var dialogue_targets := [[2, 0], [8, 0], [11, 0]]
+	for target in dialogue_targets:
+		var text := str(panels[target[0]].get("dialogue", [])[target[1]].get("text", ""))
+		if intro._text_part(text, 0) + " " + intro._text_part(text, 1) != text:
+			return false
+	var final_caption := ""
+	for caption in panels[14].get("caption_text", []):
+		if str(caption.get("style", "")) == "caption":
+			final_caption = str(caption.get("text", ""))
+	return not final_caption.is_empty() \
+		and intro._text_part(final_caption, 0) + " " + intro._text_part(final_caption, 1) == final_caption
 
 func _panels_have_text_and_expected_holds(panels: Array) -> bool:
 	if panels.size() != EXPECTED_HOLDS.size():

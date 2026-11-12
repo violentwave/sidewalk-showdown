@@ -71,7 +71,7 @@ phase exit criteria:
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
   The current suites contain 245 combat, 33 round-flow, 13 audio/select
-  integration, and 20 intro checks. K1, R1, corner separation, bounded hitstop
+   integration, and 23 intro checks. K1, R1, corner separation, bounded hitstop
   buffer freeze, and the
   post-KO winner-state repair are covered. Non-METH strikes reject during
   knockdown; METH remains the K1
@@ -97,8 +97,9 @@ phase exit criteria:
 - **Status:** **In progress; exit not met.** The official cast is Peggy and
   Richard on the Bus Stop stage; the HUD and METHtality engine prototype exist.
   The Clip now plays before character select; it is a 15-panel, owner-editable
-  comic intro with placeholder art and the approved Peggy/Richard origin. Space
-  advances one panel, Esc skips, and no timer advances the story. Procedural
+  comic intro with all 15 pixel-art panels and the approved Peggy/Richard origin.
+  Space advances the current beat or panel (dense copy may take extra presses),
+  Esc skips, and no timer advances the story. Procedural
   newsprint/halftone and bundled OFL comic fonts are used throughout. The
   text-only local character-select mockup (added 2026-11-11) lets P1/P2 pick
   from the approved cast and routes both choices into the match. METHtality

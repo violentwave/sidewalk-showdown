@@ -1,5 +1,11 @@
 # Art and type credits
 
+## “The Clip” intro panel art
+
+Panels 1–15 are owner-supplied pixel-art illustrations. Source files are kept in
+`art/source/Intro/`; game-ready 640 × 360 versions are in
+`game/art/story/the_clip/`.
+
 ## “The Clip” intro fonts
 
 All three bundled families are licensed under the SIL Open Font License 1.1.

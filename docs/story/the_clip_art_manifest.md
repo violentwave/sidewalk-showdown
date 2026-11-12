@@ -7,6 +7,12 @@ the slots. No scene or script edits should be needed.
 ## Delivery spec
 
 - One full-panel PNG per slot, native size **320 × 180 px**, **16:9**.
+  640 × 360 is also accepted for crisper detail; the game downsamples it
+  with nearest-neighbor on import.
+- Art style: **chunky retro pixel art** matching the character sprites —
+  large visible square pixels, hard pixel edges, no anti-aliasing or
+  smooth gradients, one consistent pixel size per image. See
+  `docs/story/the_clip_art_prompts.md` for the full v2 prompt kit.
 - RGB or RGBA; transparent pixels are optional, not required.
 - Keep captions, speech, chat, the flyer headline, and other legible copy out of
   the image. Those are live, owner-editable panel data rendered by the UI.

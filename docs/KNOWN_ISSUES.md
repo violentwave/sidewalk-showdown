@@ -326,7 +326,7 @@ These are measured or first-pass limits, not phase-exit validation.
 - `game/tests/character_select_test.gd` — **13 checks**: default selections,
   independent P1/P2 movement/confirmation, unlock-on-move, selected fighter data
   reaching the match, temporary music/SFX playback, and impact/block cue routing.
-- `game/tests/the_clip_test.gd` — **15 checks**: deprecated hold values/copy,
+- `game/tests/the_clip_test.gd` — **20 checks**: deprecated hold values/copy, owner-script canon guards,
   panel ordering and canon guards, boot-to-intro, Space-only one-panel advancement,
   complete Space-only handoff, Esc skips from panels 1/8/15, explicit bundled
   comic fonts, and monospaced livestream chat.

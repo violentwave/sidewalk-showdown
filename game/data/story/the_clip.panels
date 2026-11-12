@@ -11,8 +11,8 @@
       "placeholder_color": "#202a39",
       "art_note": "Tripp's apartment — ring lights, dead energy cans, a follower counter ticking down to 47.",
       "caption_text": [
-        {"text": "TRIPP VLOGS used to be somebody.", "style": "caption"},
-        {"text": "He had a merch line once. It's a rag now.", "style": "small"}
+        {"text": "This is Tripp Vlogs. He was once described as an influencer. By himself. During a job interview.", "style": "caption"},
+        {"text": "He had 47 followers. His mother followed him twice. Once on her account, once on his grandmother's.", "style": "small"}
       ],
       "dialogue": [],
       "chat_comments": [],
@@ -26,7 +26,8 @@
       "art_note": "Phone screen, upload grid.",
       "caption_text": [
         {"text": "I ATE GAS STATION SUSHI FOR 48 HOURS (12 views) · I LIVED LIKE A NORMAL POOR FOR ONE DAY (9 views) · PRANKING MY LANDLORD AT 3 AM (31 views)", "style": "screen"},
-        {"text": "His most-watched video that month was his landlord's response.", "style": "caption"}
+        {"text": "After years of content creation, Tripp had finally found his niche: doing things nobody asked him to do and calling it entertainment.", "style": "caption"},
+        {"text": "The landlord video performed exceptionally well after his landlord uploaded the security footage.", "style": "small"}
       ],
       "dialogue": [],
       "chat_comments": [],
@@ -39,11 +40,14 @@
       "fallback_image": "res://art/stages/bus_stop/BusStopNight.png",
       "placeholder_color": "#29353a",
       "art_note": "Tripp livestreaming at the bus stop, phone taped to a mop.",
-      "caption_text": [],
-      "dialogue": [
-        {"speaker": "TRIPP", "text": "Chat. CHAT. I'm listening. You want a giveaway? A kindness arc? I'll do a kindness arc. I have a mop.", "style": "speech"}
+      "caption_text": [
+        {"text": "His mother had entered the chat to ask him to bring her Tupperware back.", "style": "small"}
       ],
-      "chat_comments": ["who", "this is a funeral home", "unsubbed", "first"],
+      "dialogue": [
+        {"speaker": "TRIPP", "text": "Chat. CHAT. I know what you're thinking. 'Tripp, where have you been? Tripp, why haven't you posted? Tripp, are you legally allowed to be within 500 feet of a gas station?' And the answer is YES. Mostly. Anyway, we're doing a giveaway. We're giving BACK.", "style": "speech"},
+        {"speaker": "TRIPP", "text": "That's not relevant. That's a separate financial matter.", "style": "speech"}
+      ],
+      "chat_comments": ["who", "wrong stream", "your mom is here", "bro owes me $20"],
       "hold_seconds": 3.5
     },
     {
@@ -52,13 +56,16 @@
       "image_slot": "res://art/story/the_clip/panel_04.png",
       "fallback_image": "res://art/stages/bus_stop/BusStopNight.png",
       "placeholder_color": "#41403a",
-      "art_note": "Behind him, in frame but unnoticed — Peggy and Richard squaring up over a bench.",
+      "art_note": "Behind him, in frame but unnoticed — Peggy and Richard squaring up over a bench. Richard wears a red bandana-style cap and holds a green bottle; Peggy wears a green beanie and has a slim tan peg leg.",
       "caption_text": [
-        {"text": "Behind him, two sidewalk regulars began arguing about a bench.", "style": "caption"}
+        {"text": "Behind Tripp, two local residents were engaged in a property dispute over a bench neither of them owned.", "style": "caption"}
       ],
       "dialogue": [
-        {"speaker": "RICHARD", "text": "That's my seat, peg-leg.", "style": "speech"},
-        {"speaker": "PEGGY", "text": "It's a bus stop, stool boy.", "style": "speech"}
+        {"speaker": "RICHARD", "text": "I've been warming this bench since 2019. You can't just sit there.", "style": "speech"},
+        {"speaker": "PEGGY", "text": "You were asleep in a dumpster ten minutes ago.", "style": "speech"},
+        {"speaker": "RICHARD", "text": "I was resting my eyes. And that dumpster has nothing to do with this.", "style": "speech"},
+        {"speaker": "PEGGY", "text": "Your bandana has its own ecosystem.", "style": "speech"},
+        {"speaker": "RICHARD", "text": "It's called fashion. You wouldn't understand.", "style": "speech"}
       ],
       "chat_comments": [],
       "hold_seconds": 2.5
@@ -71,8 +78,8 @@
       "placeholder_color": "#63342e",
       "art_note": "Wide — the brawl in full swing behind a still-streaming Tripp.",
       "caption_text": [
-        {"text": "Tripp's instincts kicked in. He didn't break it up. He didn't check if anyone was hurt. He didn't even turn around.", "style": "caption"},
-        {"text": "He checked his battery.", "style": "small"}
+        {"text": "Tripp's instincts kicked in. He didn't intervene. He didn't call the authorities. He didn't even consider whether either person was having a medical emergency.", "style": "caption"},
+        {"text": "He did, however, recognize an opportunity to avoid getting a real job.", "style": "small"}
       ],
       "dialogue": [],
       "chat_comments": [],
@@ -86,9 +93,12 @@
       "placeholder_color": "#42383d",
       "art_note": "Extreme close-up — Tripp's thumb on the screen.",
       "caption_text": [
-        {"text": "ZOOM", "style": "sfx"}
+        {"text": "ZOOM!!!", "style": "sfx"},
+        {"text": "Tripp had finally found something more unstable than his career.", "style": "small"}
       ],
-      "dialogue": [],
+      "dialogue": [
+        {"speaker": "TRIPP", "text": "OH MY GOD. OH MY GOD. DON'T STOP. I'M GETTING THIS. THIS IS CONTENT!", "style": "speech"}
+      ],
       "chat_comments": [],
       "hold_seconds": 2.0,
       "sfx_event": "ui_confirm"
@@ -101,8 +111,8 @@
       "placeholder_color": "#3d3344",
       "art_note": "The phone — a view counter spinning like a slot machine, reaction thumbnails spawning.",
       "caption_text": [
-        {"text": "By sunrise, the whole planet had watched two strangers fight about a bench.", "style": "caption"},
-        {"text": "The comments called it 'authentic.' Nobody had ever called Tripp that.", "style": "small"}
+        {"text": "By sunrise, the footage had millions of views. People shared it. Reacted to it. Debated it. Analyzed the sociological implications of two homeless-adjacent strangers fighting over municipal seating.", "style": "caption"},
+        {"text": "One commenter called it the most honest thing they'd seen all year. Tripp reported the comment for impersonation.", "style": "small"}
       ],
       "dialogue": [],
       "chat_comments": [],
@@ -116,10 +126,11 @@
       "placeholder_color": "#50413a",
       "art_note": "An email notification, garish logo.",
       "caption_text": [
-        {"text": "For the first time in months, somebody wanted Tripp. A sponsor. Sort of.", "style": "caption"}
+        {"text": "For the first time in months, Tripp received an email from someone who wasn't asking him to stop contacting them.", "style": "caption"},
+        {"text": "It was a sponsorship offer. Or a scam. Frankly, the distinction was becoming increasingly irrelevant.", "style": "small"}
       ],
       "dialogue": [
-        {"speaker": "EMAIL", "text": "Dear Creator! Your raw street energy aligns with our brand values! — Probably Legal Energy™", "style": "message"}
+        {"speaker": "EMAIL", "text": "DEAR CREATOR! Your raw street energy aligns with our brand values! Let's discuss a potential partnership! — PROBABLY LEGAL ENERGY™", "style": "message"}
       ],
       "chat_comments": [],
       "hold_seconds": 2.5
@@ -132,10 +143,11 @@
       "art_note": "A parking lot. A folding table. A hand-painted banner: SIDEWALK SHOWDOWN.",
       "caption_text": [
         {"text": "SIDEWALK SHOWDOWN", "style": "banner"},
-        {"text": "He announced it from a folding table in a parking lot, like all great movements.", "style": "caption"}
+        {"text": "Tripp announced his new business venture from a folding table in a parking lot. He had no business license, no insurance, and no idea what he was doing.", "style": "caption"},
+        {"text": "He did have a microphone. Which, in his opinion, made him the person in charge.", "style": "small"}
       ],
       "dialogue": [
-        {"speaker": "TRIPP", "text": "LADIES AND GENTLEMEN... SIDEWALK SHOWDOWN! Real people! Real stakes! Real... whatever this is!", "style": "speech"}
+        {"speaker": "TRIPP", "text": "LISTEN UP, PEOPLE! I'VE GOT AN OPPORTUNITY FOR YOU! SIDEWALK SHOWDOWN! A COMPETITION! A CHANCE TO CHANGE YOUR LIVES! AND BEFORE ANYBODY ASKS, YES, THERE IS MONEY. A LOT OF MONEY. POTENTIALLY.", "style": "speech"}
       ],
       "chat_comments": [],
       "hold_seconds": 3.5
@@ -148,8 +160,9 @@
       "art_note": "The flyer, full-frame, huge type. Bottom edge: an illegible smudge where fine print should be. Do not add readable fine print.",
       "fine_print_render": "illegible_squiggle",
       "caption_text": [
-        {"text": "WINNER GETS $100,000 AND A FREE HOUSE", "style": "flyer"},
-        {"text": "The fine print was too small to read. That was the point.", "style": "caption"}
+        {"text": "WINNER GETS $100,000 AND A FREE HOUSE!", "style": "flyer"},
+        {"text": "The fine print was intentionally illegible. Tripp had consulted a lawyer. Well, he'd watched a lawyer on YouTube.", "style": "caption"},
+        {"text": "The house was a real property. Whether it was habitable, accessible, or legally his to give away remained a matter for the courts.", "style": "small"}
       ],
       "dialogue": [],
       "chat_comments": [],
@@ -162,9 +175,12 @@
       "placeholder_color": "#403b34",
       "art_note": "Three quick signup vignettes — a man with a grudge, a woman squinting at the flyer upside-down, somebody already holding a hot dog.",
       "caption_text": [
-        {"text": "Word spread. Some wanted revenge. Some misunderstood the flyer. Some just heard there'd be free hot dogs.", "style": "caption"}
+        {"text": "Word spread. Some came for the money. Some came because they hated each other. Some came because they thought it was a government assistance program.", "style": "caption"},
+        {"text": "A surprising number came for the hot dogs. Tripp had not budgeted for hot dogs.", "style": "small"}
       ],
-      "dialogue": [],
+      "dialogue": [
+        {"speaker": "TRIPP", "text": "THERE ARE NO FREE HOT DOGS! WHO TOLD YOU THAT?!", "style": "small"}
+      ],
       "chat_comments": [],
       "hold_seconds": 2.5
     },
@@ -173,12 +189,12 @@
       "page_title": "PAGE THREE — \"THE ANNOUNCEMENT\"",
       "image_slot": "res://art/story/the_clip/panel_12.png",
       "placeholder_color": "#4e393b",
-      "art_note": "Tripp straight to camera, hand on heart, ring light halo.",
+      "art_note": "Tripp straight to camera, hand on heart, ring light halo, holding a Probably Legal Energy™ can. He is trying to look sincere but is clearly reading his own reflection on the phone screen.",
       "caption_text": [
-        {"text": "He posted it with a caption about raising awareness. He raised nothing else.", "style": "small"}
+        {"text": "He had rehearsed this speech in the mirror. The mirror had cracked.", "style": "small"}
       ],
       "dialogue": [
-        {"speaker": "TRIPP", "text": "I'm not using these people. I'm elevating them through conflict. Some call it exploitation. I call it vertical-format hope.", "style": "speech"}
+        {"speaker": "TRIPP", "text": "I'm not exploiting anybody. I'm providing an opportunity. These people are already fighting. I'm simply creating a structured environment in which they can fight for financial compensation. It's called capitalism. Look it up.", "style": "speech"}
       ],
       "chat_comments": [],
       "hold_seconds": 3.5
@@ -188,12 +204,13 @@
       "page_title": "PAGE FOUR — \"THE BRACKET\"",
       "image_slot": "res://art/story/the_clip/panel_13.png",
       "placeholder_color": "#332c39",
-      "art_note": "Tournament bracket, Mortal Kombat style — fifteen silhouette portraits; Peggy and Richard rendered in full color, dead center. Do not render the host as a fighter.",
+      "art_note": "Tournament bracket, fifteen silhouettes; Peggy and Richard in full color at center. The bracket's little logo mark: two silhouettes fighting over a bench. Tripp has drawn a little dollar sign next to their names. Do not render the host as a fighter.",
       "caption_text": [
-        {"text": "Fifteen fighters. One host. One livestream.", "style": "caption"}
+        {"text": "Fifteen fighters. One host. One livestream. Absolutely no contingency planning.", "style": "caption"},
+        {"text": "Peggy and Richard occupied the center positions. They were still arguing about the bench. Nobody had told them the tournament was about to start.", "style": "small"}
       ],
       "dialogue": [
-        {"speaker": "TRIPP", "text": "They were fighting for free before I got here.", "style": "small"}
+        {"speaker": "TRIPP", "text": "I actually think their rivalry is the emotional centerpiece of the whole thing. I'm trying to get them to sign merchandise.", "style": "small"}
       ],
       "chat_comments": [],
       "hold_seconds": 2.5,
@@ -204,13 +221,14 @@
       "page_title": "PAGE FOUR — \"THE BRACKET\"",
       "image_slot": "res://art/story/the_clip/panel_14.png",
       "placeholder_color": "#3b2d38",
-      "art_note": "Close on the bracket's bottom edge — a sixteenth slot marked '?'. This tease is intro-only; do not add it to character select.",
+      "art_note": "Close on the bracket's bottom edge — a sixteenth slot marked '?'. This tease is intro-only; do not add it to character select. The slot is drawn while Tripp denies it exists.",
       "caption_text": [
         {"text": "?", "style": "teaser_slot"},
-        {"text": "Nobody asked about the sixteenth slot.", "style": "caption"}
+        {"text": "Nobody asked about the sixteenth slot.", "style": "caption"},
+        {"text": "There was, however, a clause in the contract that allowed Tripp to compete in the event of a scheduling conflict. He had written the contract himself.", "style": "small"}
       ],
       "dialogue": [
-        {"speaker": "TRIPP", "text": "Terms apply.", "style": "whisper"}
+        {"speaker": "TRIPP", "text": "That's because there isn't one.", "style": "whisper"}
       ],
       "chat_comments": [],
       "hold_seconds": 2.5,
@@ -224,8 +242,9 @@
       "art_note": "Splash — the SIDEWALK SHOWDOWN logo over a subscriber count climbing in real time.",
       "caption_text": [
         {"text": "SIDEWALK SHOWDOWN", "style": "logo"},
-        {"text": "Welcome to SIDEWALK SHOWDOWN. Everybody here is about to get famous.", "style": "caption"},
-        {"text": "Except, eventually, Tripp.", "style": "small"}
+        {"text": "PRESENTED BY PROBABLY LEGAL ENERGY™", "style": "banner"},
+        {"text": "Where every route is late, every beef is personal, and everyone has a legitimate reason to hate everyone else. Fifteen contestants enter. One walks away with the money. Assuming there's money.", "style": "caption"},
+        {"text": "The tournament was never about the fighters. It was about Tripp. Unfortunately, nobody liked Tripp.", "style": "small"}
       ],
       "dialogue": [
         {"speaker": "TRIPP", "text": "smash that follow.", "style": "tiny"}

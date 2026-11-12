@@ -158,6 +158,36 @@ func _run() -> void:
 	p2 = scene.p2
 	_check("fighters spawned", p1 != null and p2 != null)
 	_check("match reaches FIGHT phase", scene.phase == 1, "phase=%d" % scene.phase)
+	_reset_fighters(100, 200)
+	p1.input_enabled = false
+	p2.input_enabled = false
+	p1._force_state(FighterBase.State.WALK_F)
+	p2._force_state(FighterBase.State.WALK_F)
+	p1.state_frame = 4
+	p2.state_frame = 4
+	var p1_box_before := p1.pushbox_rect()
+	var p2_box_before := p2.pushbox_rect()
+	p1._sync_visuals()
+	p2._sync_visuals()
+	_check("Peggy and Richard have distinct visual walk cycles without moving combat boxes",
+		p1.visual_root.position.distance_to(p2.visual_root.position) > 0.1
+			and p1.position == Vector2(100, 150) and p2.position == Vector2(200, 150)
+			and p1.pushbox_rect().position == p1_box_before.position
+			and p1.pushbox_rect().size == p1_box_before.size
+			and p2.pushbox_rect().position == p2_box_before.position
+			and p2.pushbox_rect().size == p2_box_before.size,
+		"animation profiles overlap or changed fighter collision positions")
+	p1._force_state(FighterBase.State.IDLE)
+	p1.state_frame = 1
+	p1._sync_visuals()
+	var peggy_idle_pose := p1.visual_root.position
+	p1.state_frame = 8
+	p1._sync_visuals()
+	_check("Peggy's idle breathing cycles on simulation frames",
+		p1.visual_root.position.distance_to(peggy_idle_pose) > 0.1,
+		"idle animation did not advance with state_frame")
+	p1.input_enabled = true
+	p2.input_enabled = true
 
 	# --- 1. clean hit ---
 	_reset_fighters(100, 120)
@@ -2241,9 +2271,9 @@ func _run() -> void:
 		await _step()
 	_check("the flash clears and the silhouette restores its body color",
 		p2.hit_flash_frames == 0 and p2.block_flash_frames == 0
-			and p2.get_node("Silhouette").modulate == flash_body,
+			and p2.get_node("VisualRoot/Silhouette").modulate == flash_body,
 		"hit=%d block=%d modulate=%s body=%s" % [p2.hit_flash_frames, p2.block_flash_frames,
-			str(p2.get_node("Silhouette").modulate), str(flash_body)])
+			str(p2.get_node("VisualRoot/Silhouette").modulate), str(flash_body)])
 	# Block flash: subtle, 2 frames.
 	scene._begin_round(); scene._start_fight(); _reset_fighters(100, 128)
 	p1.input_enabled = false
@@ -2257,14 +2287,14 @@ func _run() -> void:
 			and p2.state == FighterBase.State.BLOCKSTUN,
 		"block=%d hit=%d state=%d" % [p2.block_flash_frames, p2.hit_flash_frames, p2.state])
 	_check("the block flash modulates with the lightened body color",
-		p2.get_node("Silhouette").modulate == block_lightened,
-		"modulate=%s expected=%s" % [str(p2.get_node("Silhouette").modulate), str(block_lightened)])
+		p2.get_node("VisualRoot/Silhouette").modulate == block_lightened,
+		"modulate=%s expected=%s" % [str(p2.get_node("VisualRoot/Silhouette").modulate), str(block_lightened)])
 	Input.action_release("p2_right")
 	p2.hitstop_frames = 0
 	for ff in FighterBase.BLOCK_FLASH_FRAMES + 1:
 		await _step()
 	_check("the block flash clears and restores the body color",
-		p2.block_flash_frames == 0 and p2.get_node("Silhouette").modulate == block_body,
+		p2.block_flash_frames == 0 and p2.get_node("VisualRoot/Silhouette").modulate == block_body,
 		"")
 
 	print("\n%d failure(s)" % failures)

@@ -2,6 +2,10 @@
 class_name FighterBase
 extends CharacterBody2D
 
+@onready var visual_root: Node2D = $VisualRoot
+@onready var silhouette: Polygon2D = $VisualRoot/Silhouette
+@onready var facing_marker: Polygon2D = $VisualRoot/FacingMarker
+
 enum State {
 	IDLE, WALK_F, WALK_B, CROUCH,
 	JUMP_START, JUMP_RISE, JUMP_FALL, LAND,
@@ -101,11 +105,12 @@ var hit_flash_frames: int = 0
 var block_flash_frames: int = 0
 
 func _ready() -> void:
-	$Silhouette.modulate = body_color
-	$FacingMarker.modulate = body_color.lightened(0.35)
+	silhouette.modulate = body_color
+	facing_marker.modulate = body_color.lightened(0.35)
 	if data:
 		apply_data(data)
 	state_changed.connect(_on_state_changed)
+	_sync_visuals()
 
 func apply_data(d: FighterData) -> void:
 	data = d
@@ -117,8 +122,8 @@ func apply_data(d: FighterData) -> void:
 	body_width = d.body_width
 	body_height = d.body_height
 	body_color = d.body_color
-	$Silhouette.modulate = body_color
-	$FacingMarker.modulate = body_color.lightened(0.35)
+	silhouette.modulate = body_color
+	facing_marker.modulate = body_color.lightened(0.35)
 
 func begin_round(spawn_pos: Vector2, opponent_x: float) -> void:
 	position = spawn_pos
@@ -922,18 +927,82 @@ func _force_state(new_state: State) -> void:
 func _update_silhouette_flash() -> void:
 	# Hit flash is the strong white; block flash is a subtle lightening only.
 	if hit_flash_frames > 0:
-		$Silhouette.modulate = Color(1.0, 1.0, 1.0)
+		silhouette.modulate = Color(1.0, 1.0, 1.0)
 	elif block_flash_frames > 0:
-		$Silhouette.modulate = body_color.lightened(0.35)
+		silhouette.modulate = body_color.lightened(0.35)
 	else:
-		$Silhouette.modulate = body_color
+		silhouette.modulate = body_color
 
 func _sync_visuals() -> void:
 	var h := _pushbox_height()
-	$Silhouette.scale.y = h / SILHOUETTE_HEIGHT
-	$FacingMarker.position.x = facing * body_width * 0.5
-	$FacingMarker.scale.x = facing
-	$FacingMarker.position.y = -h + 8.0
+	silhouette.scale.y = h / SILHOUETTE_HEIGHT
+	facing_marker.position.x = facing * body_width * 0.5
+	facing_marker.scale.x = facing
+	facing_marker.position.y = -h + 8.0
+	visual_root.position = Vector2.ZERO
+	visual_root.rotation = 0.0
+	visual_root.scale = Vector2.ONE
+	_apply_state_animation()
+
+func _apply_state_animation() -> void:
+	# First-pass, render-only motion on the placeholder shapes. All animation is
+	# attached to VisualRoot, so it never moves the fighter body or combat boxes.
+	var is_peggy := data != null and data.id == "peg_leg_peggy"
+	var frame := float(state_frame)
+	match state:
+		State.IDLE:
+			var rate := 0.2 if is_peggy else 0.12
+			var phase := frame * rate + (0.0 if is_peggy else 0.75)
+			var breath := absf(sin(phase))
+			visual_root.position.y = -breath * (1.2 if is_peggy else 0.75)
+			visual_root.scale.x = 1.0 + breath * (0.016 if is_peggy else 0.008)
+			visual_root.scale.y = 1.0 - breath * (0.012 if is_peggy else 0.006)
+		State.WALK_F, State.WALK_B:
+			var rate := 0.55 if is_peggy else 0.36
+			var stride := sin(frame * rate)
+			visual_root.position = Vector2(
+				stride * (0.7 if is_peggy else 0.35),
+				-absf(stride) * (2.0 if is_peggy else 1.2))
+			visual_root.rotation = stride * (0.025 if is_peggy else 0.014)
+			visual_root.scale.y = 1.0 + absf(cos(frame * rate)) * 0.025
+		State.JUMP_START:
+			visual_root.scale = Vector2(0.94, 1.1)
+		State.JUMP_RISE:
+			visual_root.scale = Vector2(0.96, 1.07)
+			visual_root.rotation = -float(facing) * 0.025
+		State.JUMP_FALL, State.LAND:
+			visual_root.scale = Vector2(1.04, 0.95)
+		State.ATTACK:
+			var startup := float(current_move.startup) if current_move else 1.0
+			if frame < startup:
+				visual_root.scale = Vector2(0.9 if not is_peggy else 0.95, 1.06)
+				visual_root.rotation = -float(facing) * (0.06 if not is_peggy else 0.035)
+			else:
+				visual_root.position.x = float(facing) * (4.0 if not is_peggy else 2.5)
+				visual_root.scale = Vector2(1.05, 0.97)
+				visual_root.rotation = float(facing) * (0.06 if not is_peggy else 0.04)
+		State.HITSTUN:
+			visual_root.position.x = -float(facing) * 2.0
+			visual_root.rotation = -float(facing) * 0.055
+			visual_root.scale.x = 0.94
+		State.BLOCKSTUN:
+			visual_root.position.x = -float(facing) * 1.0
+			visual_root.rotation = -float(facing) * 0.025
+		State.KNOCKDOWN, State.KO:
+			var fall := clampf(frame / 5.0, 0.0, 1.0)
+			fall = fall * fall * (3.0 - 2.0 * fall)
+			visual_root.position = Vector2(-float(facing) * 3.0 * fall, -4.0 * fall)
+			visual_root.rotation = -float(facing) * 1.1 * fall
+			visual_root.scale.y = 1.0 - 0.08 * fall
+		State.WAKE_UP:
+			var stand_progress := clampf(frame / float(maxi(wakeup_frames, 1)), 0.0, 1.0)
+			var fall := 1.0 - stand_progress
+			visual_root.position = Vector2(-float(facing) * 3.0 * fall, -4.0 * fall)
+			visual_root.rotation = -float(facing) * 1.1 * fall
+		State.TECH:
+			visual_root.scale = Vector2(0.92, 1.07)
+		State.WIN:
+			visual_root.position.y = -absf(sin(frame * 0.24)) * (2.4 if is_peggy else 1.5)
 
 func _on_state_changed(new_state: State) -> void:
 	if new_state == State.CROUCH:

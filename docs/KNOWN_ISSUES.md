@@ -72,8 +72,10 @@ reconciliation for the finding-by-finding dispositions.
 - Authored combos and command grabs are implemented for Peggy and Richard.
   Command-grab values remain provisional for the later-roster pass; the
   forward-special/EX launcher category and grounded-only EX cancel are recorded
-  owner decisions. Owner canon is shared controls, silhouette playability with
-  animation deferred, and Peggy/Richard-only vertical-slice scope.
+  owner decisions. Owner canon is shared controls, silhouette playability, and
+  Peggy/Richard-only vertical-slice scope. Per owner direction (2026-11-12), an
+  initial procedural silhouette-animation pass is underway; authored sprite
+  frames remain deferred.
 - Gamepad support and in-game input remapping are GDD §4.1/§4.6/§14
   requirements but are not implemented; the current input map is generated from
   a fixed keyboard table.
@@ -187,10 +189,14 @@ that section by hand afterward — the simulation step comes from
 
 ## Deliberate gaps (next phases)
 
-- **No animation.** Fighters are colored silhouettes; no sprite frames wired.
-- **Temporary audio only; no final VFX/mix.** A CC0 battle loop and basic
-  hit/block/UI/round/KO/METHtality cues are wired. Tripp voice, crowd, hit sparks,
-  screen shake, spatial/priority mixing, and the full GDD §12 SFX list remain.
+- **No character sprite frames yet.** The colored silhouettes now have a first
+  procedural, state-driven visual pass on a dedicated VisualRoot (idle, walk,
+  jump, attack, hit/recovery, knockdown, and win). These transforms do not affect
+  combat boxes; authored frame animation and final character art remain.
+- **Temporary audio only; no final VFX/mix.** Intro/menu and fight MP3 tracks plus
+  basic hit/block/UI/round/KO/METHtality cues are wired; confirm MP3 usage rights
+  before public release. Tripp voice, crowd, hit sparks, screen shake,
+  spatial/priority mixing, and the full GDD §12 SFX list remain.
 - **No CPU AI.** Both fighters are human-controlled (GDD Phase 3 baseline).
 - **METHtality presentation is minimal.** The trigger, spend and KO win are
   real, but the finisher is a single point-blank hit with a long freeze and a
@@ -286,7 +292,9 @@ These are measured or first-pass limits, not phase-exit validation.
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **245 checks**: clean hits and damage-vs-data,
+- `game/tests/combat_test.gd` — **247 checks**: distinct Peggy/Richard visual
+  walk cycles, cycling idle breathing, unchanged combat boxes, clean hits and
+  damage-vs-data,
   block chip, low vs stand block, throw unblockability, jump arc, P2 bindings,
   blockstun blocking, shared hitstop, KO landing, real-key input-map resolution,
   the chip-cannot-KO floor, pause freezing fighters and opening the menu, menu

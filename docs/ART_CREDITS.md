@@ -6,6 +6,24 @@ Panels 1–15 are owner-supplied pixel-art illustrations. Source files are kept 
 `art/source/Intro/`; game-ready 640 × 360 versions are in
 `game/art/story/the_clip/`.
 
+## Peggy and Richard combat cutouts
+
+The first-pass combat cutouts in `game/art/characters/` are crops of the
+owner-supplied Peggy and Richard title-card stills in `art/source/Characters/`.
+The title lettering and unused canvas are excluded; the original source files
+are unchanged. Each cutout is a single pose animated at runtime with the
+procedural `VisualRoot` state motion. They are not sprite sheets or final
+frame-by-frame character animation.
+
+## Peggy and Richard combat cutouts
+
+The first-pass combat cutouts in `game/art/characters/` are crops of the
+owner-supplied Peggy and Richard title-card stills in `art/source/Characters/`.
+The title lettering and unused canvas are excluded; the original source files
+are unchanged. Each cutout is a single pose, animated at runtime with the
+procedural `VisualRoot` state motion; these are not sprite sheets or final
+frame-by-frame character animation.
+
 ## “The Clip” intro fonts
 
 All three bundled families are licensed under the SIL Open Font License 1.1.

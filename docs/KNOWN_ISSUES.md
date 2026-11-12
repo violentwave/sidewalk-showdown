@@ -189,10 +189,11 @@ that section by hand afterward — the simulation step comes from
 
 ## Deliberate gaps (next phases)
 
-- **No character sprite frames yet.** The colored silhouettes now have a first
-  procedural, state-driven visual pass on a dedicated VisualRoot (idle, walk,
-  jump, attack, hit/recovery, knockdown, and win). These transforms do not affect
-  combat boxes; authored frame animation and final character art remain.
+- **No authored sprite animation frames yet.** Runtime fighters use cropped
+  single-pose cutouts from the supplied title cards, with state-driven VisualRoot
+  motion (idle, walk, jump, attack, hit/recovery, knockdown, and win). It moves
+  each full-body still rather than animating limbs. Combat boxes are unchanged;
+  authored frame animation and final character art remain.
 - **Temporary audio only; no final VFX/mix.** Intro/menu and fight MP3 tracks plus
   basic hit/block/UI/round/KO/METHtality cues are wired; confirm MP3 usage rights
   before public release. Tripp voice, crowd, hit sparks, screen shake,

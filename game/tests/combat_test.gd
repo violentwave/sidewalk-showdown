@@ -169,8 +169,9 @@ func _run() -> void:
 	var p2_box_before := p2.pushbox_rect()
 	p1._sync_visuals()
 	p2._sync_visuals()
-	_check("Peggy and Richard have distinct visual walk cycles without moving combat boxes",
-		p1.visual_root.position.distance_to(p2.visual_root.position) > 0.1
+	_check("Peggy and Richard cutouts animate differently without moving combat boxes",
+		p1.character_sprite.visible and p2.character_sprite.visible
+			and p1.visual_root.position.distance_to(p2.visual_root.position) > 0.1
 			and p1.position == Vector2(100, 150) and p2.position == Vector2(200, 150)
 			and p1.pushbox_rect().position == p1_box_before.position
 			and p1.pushbox_rect().size == p1_box_before.size

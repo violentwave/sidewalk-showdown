@@ -1140,11 +1140,12 @@ The winner reaches the end. Tripp refuses to pay, reveals the hidden commissione
   slots (Peggy/Richard selectable, 13 locked) with no "?" entry. Tripp is never
   a playable, selectable, or named fighter entity anywhere.
 
-> **Implementation-status note (2026-11-11):** boot now runs the 15-panel
-> `TheClip` scene before the existing character select. Panel copy and timing
-> live in `game/data/story/the_clip.panels`; art slots are listed in
-> `docs/story/the_clip_art_manifest.md`. The intro auto-advances in about 45
-> seconds; Enter/Space or either player's confirm advances, and Esc skips.
+> **Implementation-status note (2026-11-12):** boot runs the 15-panel `TheClip`
+> scene before the existing character select. Space advances one panel; Esc
+> skips directly to select, and panels never advance on a timer. Panel copy and
+> deprecated `hold_seconds` values live in `game/data/story/the_clip.panels`;
+> art slots are listed in `docs/story/the_clip_art_manifest.md`. The printed-page
+> styling and bundled-font attributions are documented in `docs/ART_CREDITS.md`.
 
 #### Ending
 

@@ -1,9 +1,10 @@
-# Headless test for the Phase 2 “The Clip” intro and its handoff.
+# Headless tests for manual progression and the comic intro rendering setup.
 extends SceneTree
 
 const MAIN_SCENE := preload("res://scenes/main/Main.tscn")
-const INTRO_SCRIPT := preload("res://scripts/ui/the_clip.gd")
+const INTRO_SCRIPT := preload("res://scripts/ui/the_clip_comic.gd")
 const PANEL_DATA_PATH := "res://data/story/the_clip.panels"
+const EXPECTED_HOLDS := [3.5, 2.5, 3.5, 2.5, 2.5, 2.0, 2.5, 2.5, 3.5, 4.5, 2.5, 3.5, 2.5, 2.5, 4.5]
 
 var failures := 0
 
@@ -17,16 +18,41 @@ func _check(label: String, condition: bool, detail: String = "") -> void:
 		failures += 1
 		print("FAIL: ", label, "  ", detail)
 
-func _press_intro(intro: Control, action: String) -> void:
-	var event := InputEventAction.new()
-	event.action = action
+func _press_space(intro: Control) -> void:
+	var event := InputEventKey.new()
+	event.keycode = KEY_SPACE
+	event.physical_keycode = KEY_SPACE
 	event.pressed = true
 	intro._unhandled_input(event)
 
+func _press_escape(intro: Control) -> void:
+	var event := InputEventKey.new()
+	event.keycode = KEY_ESCAPE
+	event.physical_keycode = KEY_ESCAPE
+	event.pressed = true
+	intro._unhandled_input(event)
+
+func _start_main() -> Node:
+	var main: Node = MAIN_SCENE.instantiate()
+	root.add_child(main)
+	await process_frame
+	if main.intro != null:
+		main.intro.audio_manager = null
+	return main
+
+func _dispose_main(main: Node) -> void:
+	if main.audio_manager != null:
+		main.audio_manager.stop_all()
+	main.free()
+	await process_frame
+
 func _run() -> void:
 	var file := FileAccess.open(PANEL_DATA_PATH, FileAccess.READ)
-	var panel_data: Variant = JSON.parse_string(file.get_as_text()) if file else null
+	var source := file.get_as_text() if file else ""
+	var panel_data: Variant = INTRO_SCRIPT.parse_panel_data_text(source)
 	var validation_errors := INTRO_SCRIPT.validate_panel_data(panel_data)
+	_check("hold_seconds is marked deprecated in the panel-file header",
+		source.begins_with("# DEPRECATED FIELD: hold_seconds"), "deprecation header missing")
 	_check("owner-editable panel data validates", validation_errors.is_empty(),
 		str(validation_errors))
 
@@ -34,11 +60,8 @@ func _run() -> void:
 	_check("script has 15 panels in authored order",
 		panels.size() == 15 and _panels_in_order(panels),
 		"panel count=%d" % panels.size())
-	_check("every panel has visible story text and a sane hold duration",
-		_panels_have_text_and_sane_holds(panels), "panel text/duration validation failed")
-	_check("authored unskipped runtime is about 45 seconds",
-		is_equal_approx(_total_hold_seconds(panels), 45.0),
-		"runtime=%.1fs" % _total_hold_seconds(panels))
+	_check("panel copy and deprecated hold values remain present",
+		_panels_have_text_and_expected_holds(panels), "copy/hold values changed or missing")
 	_check("bracket tease is 15 fighters plus intro-only question slot",
 		panels.size() == 15 and panels[12].get("bracket_slots", 0) == 15
 			and panels[13].get("teaser_slot", "") == "?",
@@ -50,51 +73,67 @@ func _run() -> void:
 			and not _caption_has_fine_print_copy(panels[9]),
 		"panel 10 contains legible fine-print copy")
 
-	var advance_main: Node = MAIN_SCENE.instantiate()
-	root.add_child(advance_main)
-	await process_frame
+	var advance_main: Node = await _start_main()
 	_check("boot starts in The Clip before character select",
 		advance_main.intro != null and advance_main.character_select == null
 			and advance_main.match_root == null,
 		"boot did not start on intro")
 	if advance_main.intro != null:
 		var intro: Control = advance_main.intro
-		_press_intro(intro, "ui_confirm")
-		_check("Enter/UI confirm advances immediately",
-			intro.current_panel_index == 1,
-			"current panel=%d" % intro.current_panel_index)
-		intro._process(float(intro.panels[1].hold_seconds))
-		_check("authored hold duration auto-advances a panel",
-			intro.current_panel_index == 2,
-			"current panel=%d" % intro.current_panel_index)
-		for step in 13:
-			_press_intro(intro, "p1_light" if step % 2 == 0 else "p2_light")
+		var enter_event := InputEventKey.new()
+		enter_event.keycode = KEY_ENTER
+		enter_event.pressed = true
+		intro._unhandled_input(enter_event)
+		_check("non-Space confirm does not advance a panel",
+			intro.current_panel_index == 0, "Enter unexpectedly advanced the intro")
+		_press_space(intro)
+		_check("one Space press advances exactly one panel",
+			intro.current_panel_index == 1, "current panel=%d" % intro.current_panel_index)
+		for _step in 14:
+			_press_space(intro)
 		await process_frame
-		_check("player confirm advances all panels into character select",
-			advance_main.intro == null and advance_main.character_select != null,
-			"intro/select state incorrect after final panel")
+		_check("Space on the final panel reaches character select",
+			advance_main.intro == null and advance_main.character_select != null
+				and advance_main.match_root == null,
+			"15 Space presses did not hand off to select")
 	else:
-		_check("player confirm advances all panels into character select", false,
+		_check("non-Space confirm does not advance a panel", false,
 			"intro scene unavailable")
-	advance_main.audio_manager.stop_all()
-	advance_main.queue_free()
-	for frame in 12:
-		await process_frame
+		_check("one Space press advances exactly one panel", false, "intro scene unavailable")
+		_check("Space on the final panel reaches character select", false, "intro scene unavailable")
+	await _dispose_main(advance_main)
 
-	var skip_main: Node = MAIN_SCENE.instantiate()
-	root.add_child(skip_main)
-	await process_frame
-	if skip_main.intro != null:
-		_press_intro(skip_main.intro, "p1_pause")
-	await process_frame
-	_check("Esc skips the intro directly to character select",
-		skip_main.intro == null and skip_main.character_select != null
-			and skip_main.match_root == null,
-		"skip did not hand off to character select")
-	skip_main.audio_manager.stop_all()
-	skip_main.queue_free()
-	for frame in 12:
+	for panel_index in [0, 7, 14]:
+		var skip_main: Node = await _start_main()
+		if skip_main.intro != null:
+			var skip_intro: Control = skip_main.intro
+			for _step in panel_index:
+				_press_space(skip_intro)
+			_press_escape(skip_intro)
 		await process_frame
+		_check("Esc from panel %02d reaches character select" % (panel_index + 1),
+			skip_main.intro == null and skip_main.character_select != null
+				and skip_main.match_root == null,
+			"Esc did not skip from panel %d" % (panel_index + 1))
+		await _dispose_main(skip_main)
+
+	var font_main: Node = await _start_main()
+	if font_main.intro != null:
+		var font_intro: Control = font_main.intro
+		_check("all intro labels use bundled fonts with fallback disabled",
+			_all_labels_have_sourced_fonts(font_intro),
+			"a label has no bundled font override or has system fallback enabled")
+		_press_space(font_intro)
+		_press_space(font_intro)
+		await process_frame
+		_check("livestream chat uses the bundled monospaced font",
+			_chat_uses_share_tech_mono(font_intro), "chat label is not Share Tech Mono")
+	else:
+		_check("all intro labels use bundled fonts with fallback disabled", false,
+			"intro scene unavailable")
+		_check("livestream chat uses the bundled monospaced font", false,
+			"intro scene unavailable")
+	await _dispose_main(font_main)
 
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)
@@ -106,12 +145,13 @@ func _panels_in_order(panels: Array) -> bool:
 			return false
 	return true
 
-func _panels_have_text_and_sane_holds(panels: Array) -> bool:
-	for panel in panels:
-		if typeof(panel) != TYPE_DICTIONARY:
-			return false
-		if float(panel.get("hold_seconds", 0.0)) < 1.5 \
-				or float(panel.get("hold_seconds", 0.0)) > 6.0:
+func _panels_have_text_and_expected_holds(panels: Array) -> bool:
+	if panels.size() != EXPECTED_HOLDS.size():
+		return false
+	for index in panels.size():
+		var panel: Variant = panels[index]
+		if typeof(panel) != TYPE_DICTIONARY \
+				or not is_equal_approx(float(panel.get("hold_seconds", -1)), EXPECTED_HOLDS[index]):
 			return false
 		var has_text := false
 		for caption in panel.get("caption_text", []):
@@ -127,11 +167,26 @@ func _panels_have_text_and_sane_holds(panels: Array) -> bool:
 			return false
 	return true
 
-func _total_hold_seconds(panels: Array) -> float:
-	var total := 0.0
-	for panel in panels:
-		total += float(panel.get("hold_seconds", 0.0))
-	return total
+func _all_labels_have_sourced_fonts(node: Node) -> bool:
+	if node is Label:
+		var font: Font = node.get_theme_font("font")
+		if font == null or not font.resource_path.begins_with("res://assets/fonts/"):
+			return false
+		if font is FontFile and font.allow_system_fallback:
+			return false
+	for child in node.get_children():
+		if not _all_labels_have_sourced_fonts(child):
+			return false
+	return true
+
+func _chat_uses_share_tech_mono(node: Node) -> bool:
+	if node is Label and node.text == "WHO":
+		var font: Font = node.get_theme_font("font")
+		return font != null and font.resource_path.ends_with("ShareTechMono-Regular.ttf")
+	for child in node.get_children():
+		if _chat_uses_share_tech_mono(child):
+			return true
+	return false
 
 func _caption_has_fine_print_copy(panel: Dictionary) -> bool:
 	for caption in panel.get("caption_text", []):

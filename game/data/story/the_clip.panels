@@ -1,3 +1,5 @@
+# DEPRECATED FIELD: hold_seconds values are retained for reference only and are ignored by intro timing.
+# Intro panels advance only by SPACE; ESC skips to character select.
 {
   "schema_version": 1,
   "owner_editable": true,

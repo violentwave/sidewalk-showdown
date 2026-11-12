@@ -326,9 +326,10 @@ These are measured or first-pass limits, not phase-exit validation.
 - `game/tests/character_select_test.gd` — **13 checks**: default selections,
   independent P1/P2 movement/confirmation, unlock-on-move, selected fighter data
   reaching the match, temporary music/SFX playback, and impact/block cue routing.
-- `game/tests/the_clip_test.gd` — **11 checks**: approved 15-panel data validity,
-  ordering/text/duration, ~45s unskipped runtime, bracket/fine-print canon,
-  boot-to-intro, hold-timer and P1/P2 confirm advancement to select, and Esc skip.
+- `game/tests/the_clip_test.gd` — **15 checks**: deprecated hold values/copy,
+  panel ordering and canon guards, boot-to-intro, Space-only one-panel advancement,
+  complete Space-only handoff, Esc skips from panels 1/8/15, explicit bundled
+  comic fonts, and monospaced livestream chat.
 - `game/tests/air_probe.gd` — metrics only, no assertions: both fighter
   directions; sampled geometry candidates vs resolver-confirmed reach/trade,
   direct damage ratios, hitstop, actual block advantage, and post-whiff

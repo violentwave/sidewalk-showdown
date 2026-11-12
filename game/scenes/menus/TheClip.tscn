@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://scripts/ui/the_clip.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/ui/the_clip_comic.gd" id="1"]
 
 [node name="TheClip" type="Control"]
 layout_mode = 3

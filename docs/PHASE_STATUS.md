@@ -1,6 +1,6 @@
 # GDD Phase Status
 
-**Baseline:** `main` through PR #34 (`16308012eca8703c49e3656dc6d94bc8cb4bf0cd`); this update adds the data-driven “The Clip” intro before character select.
+**Baseline:** `main` through PR #35 (`c9bc80779c2257a01855b2f095b5b54e7626013c`); this update makes “The Clip” manually advanced and gives it printed-comic presentation.
 The companion audit reconciliation is [`docs/audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md`](audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md).
 
 ## Current phase
@@ -75,7 +75,7 @@ phase exit criteria:
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
   The current suites contain 245 combat, 33 round-flow, 13 audio/select
-  integration, and 11 intro checks. K1, R1, corner separation, bounded hitstop
+  integration, and 15 intro checks. K1, R1, corner separation, bounded hitstop
   buffer freeze, and the
   post-KO winner-state repair are covered. Non-METH strikes reject during
   knockdown; METH remains the K1
@@ -101,7 +101,9 @@ phase exit criteria:
 - **Status:** **In progress; exit not met.** The official cast is Peggy and
   Richard on the Bus Stop stage; the HUD and METHtality engine prototype exist.
   The Clip now plays before character select; it is a 15-panel, owner-editable
-  comic intro with placeholder art and the approved Peggy/Richard origin. The
+  comic intro with placeholder art and the approved Peggy/Richard origin. Space
+  advances one panel, Esc skips, and no timer advances the story. Procedural
+  newsprint/halftone and bundled OFL comic fonts are used throughout. The
   text-only local character-select mockup (added 2026-11-11) lets P1/P2 pick
   from the approved cast and routes both choices into the match. METHtality
   activates at full meter regardless of opponent health/state, drains the bar,

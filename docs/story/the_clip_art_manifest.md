@@ -15,8 +15,9 @@ the slots. No scene or script edits should be needed.
   illegible smudge/squiggle there.
 - Panels 3–8 may use the existing `game/art/stages/bus_stop/BusStopNight.png`
   as the temporary backdrop. Panel artwork, when supplied, takes precedence.
-- Until a slot exists, the intro renders a flat color, the panel number, and the
-  art note from `game/data/story/the_clip.panels` as placeholder text.
+- Until a slot exists, the intro renders a halftone placeholder, an ink-framed
+  panel number, and the art note from `game/data/story/the_clip.panels` in comic
+  lettering.
 
 | Panel | Expected file | Art direction |
 |---:|---|---|

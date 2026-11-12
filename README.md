@@ -33,13 +33,14 @@ godot --headless --path game --script res://tests/character_select_test.gd # sel
 godot --headless --path game --script res://tests/the_clip_test.gd    # intro tests
 ```
 
-At startup, a 15-panel comic intro runs before character select. **Enter/Space**
-or either player's confirm advances; **Esc** skips it. It auto-advances in about
-45 seconds. P1 uses **A/D + J** and P2 uses **arrow keys + Numpad 1** to choose
-and confirm a fighter. The match begins after both players confirm; either
-player may change a locked selection by moving again. Panel copy/timing are in
+At startup, a 15-panel comic intro runs before character select. **Space**
+advances one panel; **Esc** skips it. Panels never advance on a timer. P1 uses
+**A/D + J** and P2 uses **arrow keys + Numpad 1** to choose and confirm a fighter.
+The match begins after both players confirm; either player may change a locked
+selection by moving again. Panel copy and deprecated hold values are in
 `game/data/story/the_clip.panels`; art slots are in
-`docs/story/the_clip_art_manifest.md`.
+`docs/story/the_clip_art_manifest.md`. Intro font sources/licenses are recorded
+in `docs/ART_CREDITS.md`.
 
 ## Controls (current build)
 

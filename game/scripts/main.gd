@@ -17,6 +17,7 @@ func _ready() -> void:
 	_show_intro()
 
 func _show_intro() -> void:
+	audio_manager.start_intro_music()
 	intro = THE_CLIP_SCENE.instantiate()
 	intro.audio_manager = audio_manager
 	intro.intro_finished.connect(_on_intro_finished)

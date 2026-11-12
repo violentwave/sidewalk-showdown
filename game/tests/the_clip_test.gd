@@ -38,13 +38,15 @@ func _start_main() -> Node:
 	await process_frame
 	if main.intro != null:
 		main.intro.audio_manager = null
+		main.audio_manager.stop_all()
 	return main
 
 func _dispose_main(main: Node) -> void:
 	if main.audio_manager != null:
 		main.audio_manager.stop_all()
 	main.free()
-	await process_frame
+	for _frame in 16:
+		await process_frame
 
 func _run() -> void:
 	var file := FileAccess.open(PANEL_DATA_PATH, FileAccess.READ)

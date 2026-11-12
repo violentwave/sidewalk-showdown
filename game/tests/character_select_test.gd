@@ -76,10 +76,12 @@ func _run() -> void:
 		_check("the match switches from intro music to the existing match track",
 			main_scene.audio_manager.music_player.playing,
 			"match music is not playing")
-		var music_stream := main_scene.audio_manager.music_player.stream as AudioStreamOggVorbis
-		_check("the temporary OGG track is configured to loop",
-			music_stream != null and music_stream.loop,
-			"music loop flag is off")
+		var music_stream := main_scene.audio_manager.music_player.stream as AudioStreamMP3
+		_check("fight.mp3 is the looping track used only after match start",
+			music_stream != null
+				and music_stream == main_scene.audio_manager.fight_music_stream
+				and music_stream.loop,
+			"fight MP3 did not replace intro music for the match")
 		main_scene.audio_manager.play_sfx("hit_light")
 		_check("the audio manager can play a temporary combat effect",
 			main_scene.audio_manager.has_active_sfx(),

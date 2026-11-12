@@ -1,8 +1,8 @@
 # Minimal Phase 2 mixer for temporary prototype audio assets.
 extends Node
 
-const MUSIC_PATH := "res://audio/temporary/music_bus_stop_loop_temp.ogg"
 const INTRO_MUSIC_PATH := "res://audio/temporary/intro.mp3"
+const FIGHT_MUSIC_PATH := "res://audio/temporary/fight.mp3"
 const SFX_PATHS: Dictionary = {
 	"hit_light": "res://audio/temporary/sfx_hit_light_temp.ogg",
 	"hit_heavy": "res://audio/temporary/sfx_hit_heavy_temp.ogg",
@@ -17,7 +17,7 @@ const SFX_PLAYER_COUNT := 12
 
 var music_player: AudioStreamPlayer
 var intro_music_stream: AudioStreamMP3
-var match_music_stream: AudioStreamOggVorbis
+var fight_music_stream: AudioStreamMP3
 var sfx_players: Array[AudioStreamPlayer] = []
 var _sfx_streams: Dictionary = {}
 var _next_sfx_player := 0
@@ -26,9 +26,9 @@ func _ready() -> void:
 	intro_music_stream = load(INTRO_MUSIC_PATH) as AudioStreamMP3
 	if intro_music_stream:
 		intro_music_stream.loop = true
-	match_music_stream = load(MUSIC_PATH) as AudioStreamOggVorbis
-	if match_music_stream:
-		match_music_stream.loop = true
+	fight_music_stream = load(FIGHT_MUSIC_PATH) as AudioStreamMP3
+	if fight_music_stream:
+		fight_music_stream.loop = true
 	music_player = AudioStreamPlayer.new()
 	music_player.name = "TemporaryMusic"
 	music_player.stream = intro_music_stream
@@ -49,10 +49,10 @@ func _exit_tree() -> void:
 	_sfx_streams.clear()
 
 func start_music() -> void:
-	if music_player and match_music_stream:
-		if music_player.stream != match_music_stream:
+	if music_player and fight_music_stream:
+		if music_player.stream != fight_music_stream:
 			music_player.stop()
-			music_player.stream = match_music_stream
+			music_player.stream = fight_music_stream
 		if not music_player.playing:
 			music_player.play()
 

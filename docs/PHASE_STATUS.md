@@ -70,8 +70,8 @@ phase exit criteria:
   blocking and round flow work, and the match can end/restart.
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
-   The current suites contain 245 combat, 33 round-flow, 15 audio/select
-   integration, and 23 intro checks. K1, R1, corner separation, bounded hitstop
+  The current suites contain 245 combat, 34 round-flow, 15 audio/select
+  integration, and 23 intro checks. K1, R1, corner separation, bounded hitstop
   buffer freeze, and the
   post-KO winner-state repair are covered. Non-METH strikes reject during
   knockdown; METH remains the K1
@@ -104,11 +104,13 @@ phase exit criteria:
   text-only local character-select mockup (added 2026-11-11) lets P1/P2 pick
   from the approved cast and routes both choices into the match. METHtality
   activates at full meter regardless of opponent health/state, drains the bar,
-  and uses a 30-frame freeze, banner, and normal KO flow. The final-round finish
-  prompt, cinematic, camera, and choreography remain future work. A temporary
-  CC0 loop track and hit/block/UI/KO/METHtality cues are wired; final music,
-  Tripp voice/commentary, and the broader SFX pass remain. Runtime fighters
-  remain silhouettes.
+  and uses a 30-frame freeze, banner, and normal KO flow. A text-only Tripp
+  commentary sample appears at the first fight start. The intro/menu and fight
+  MP3 tracks loop in their respective screens; hit/block/UI/KO/METHtality cues
+  are wired. Runtime fighters remain silhouettes; polished stage/fighter art,
+  voiced/full commentary, a broader SFX pass, and the fighter-specific mini route
+  remain. The final-round finish prompt, cinematic, camera, and choreography are
+  future work. Confirm usage rights for owner-supplied MP3s before public release.
 - **Decisions / blockers:** Burnout Bubba and Raccoon Randy remain later-roster
   canon; they are not alternatives for the approved slice cast. The private-show
   exit still needs human approval.
@@ -192,11 +194,13 @@ phase exit criteria:
   transition stingers. Exit: satisfying hits, on-theme menus, clear supporting
   audio, and non-obscuring effects.
 - **Status:** **Partial / mostly missing.** A functional HUD and pause menu exist;
-  hitstop and a METHtality banner are basic scaffolding. Temporary CC0 music and
-  core hit/block/UI/round cues are wired; there is no final mix, full SFX pass,
-  Tripp voice, crowd, VFX, screen shake, victory poses, or finished animation.
-- **Blockers:** production of the approved combat/cast decisions and Phase 2
-  visual/audio direction; no such work is part of this update.
+  hitstop and a METHtality banner are basic scaffolding. Temporary intro/menu and
+  match tracks, a text-only Tripp sample, and core hit/block/UI/round cues are
+  wired. The owner-supplied MP3 rights need confirmation before public release.
+  There is no final mix, full SFX/voice pass, crowd, VFX, screen shake, victory
+  poses, or finished animation.
+- **Blockers:** final production and approval of the combat/cast, visual, and
+  audio direction; this phase is not a substitute for human review.
 
 ### Phase 9 — Testing, Balance, and Optimization
 
@@ -242,7 +246,7 @@ phase exit criteria:
 | First playable | Basic menu | **Partial:** pause/resume/restart/quit and a two-player character-select mockup exist; no full front-end/main menu or stage flow. |
 | First playable | Keyboard/controller support | **Partial:** keyboard is device-agnostic and tested; no gamepad mappings, support UI, or controller test. This is a documented first-playable blocker unless the owner amends §14. |
 | First playable | Hitbox debug | **Implemented:** F1 boxes and other debug controls exist; box separation is incomplete (B9). |
-| Vertical slice | 2 polished fighters, 1 polished stage, real HUD, music/SFX, Tripp commentary, one METHtality, mini story route | **Partial:** official Peggy/Richard cast, Bus Stop stage, character-select mockup, HUD, and full-meter METHtality exist; polished art/audio, Tripp commentary and route are missing/minimal. |
+| Vertical slice | 2 polished fighters, 1 polished stage, real HUD, music/SFX, Tripp commentary, one METHtality, mini story route | **Partial:** official Peggy/Richard cast, Bus Stop stage, character-select mockup, HUD, full-meter METHtality, 15-panel prologue, and one text-only Tripp commentary sample exist; polished runtime art, voiced/full commentary, broad SFX, and a fighter-specific route remain. |
 | Full v1.0 | 15 fighters, hidden Tripp boss, stages, campaign/arcade/versus/training, METHtalities, endings, options/accessibility, credits/licenses | **Not met; later GDD priorities.** |
 
 The companion reconciliation preserves the audit’s historical `d523ed0` claims

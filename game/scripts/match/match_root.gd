@@ -45,6 +45,7 @@ var sudden_death := false
 var round_damage: Array[float] = [0.0, 0.0]
 var pause_index := 0
 var pause_menu_open := false
+var commentary_sample_shown := false
 
 func _ready() -> void:
 	process_physics_priority = 100 # run after fighters update their state
@@ -112,6 +113,9 @@ func _start_fight() -> void:
 	p1.input_enabled = true
 	p2.input_enabled = true
 	hud.clear_message()
+	if not commentary_sample_shown:
+		hud.show_commentary("TRIPP: The crowd is going insane!")
+		commentary_sample_shown = true
 	if audio_manager != null:
 		audio_manager.play_sfx("round_start")
 
@@ -233,6 +237,7 @@ func _reset_match() -> void:
 	round_number = 1
 	timeout_ties = 0
 	sudden_death = false
+	commentary_sample_shown = false
 	_begin_round()
 
 # Debug frame-step: advance exactly one simulation frame while the tree stays

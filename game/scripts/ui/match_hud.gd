@@ -21,6 +21,9 @@ var p1_name: Label
 var p2_name: Label
 var p1_combo: Label
 var p2_combo: Label
+var commentary_panel: Panel
+var commentary_label: Label
+var commentary_frames: int = 0
 var message: Label
 var tech_flash: Label
 var tech_flash_frames: int = 0
@@ -38,6 +41,10 @@ func _ready() -> void:
 	_build()
 
 func _process(_delta: float) -> void:
+	if commentary_frames > 0:
+		commentary_frames -= 1
+		if commentary_frames == 0:
+			commentary_panel.visible = false
 	if tech_flash_frames > 0:
 		tech_flash_frames -= 1
 		if tech_flash_frames == 0:
@@ -78,6 +85,20 @@ func _build() -> void:
 
 	p1_combo = _label(root, "", Vector2(P1_X, 64), Vector2(110, 14), HORIZONTAL_ALIGNMENT_LEFT, 10, Color(1, 0.9, 0.4))
 	p2_combo = _label(root, "", Vector2(202, 64), Vector2(110, 14), HORIZONTAL_ALIGNMENT_RIGHT, 10, Color(1, 0.9, 0.4))
+
+	commentary_panel = Panel.new()
+	commentary_panel.position = Vector2(40, 45)
+	commentary_panel.size = Vector2(240, 16)
+	commentary_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var commentary_style := StyleBoxFlat.new()
+	commentary_style.bg_color = Color(0.045, 0.035, 0.045, 0.88)
+	commentary_style.border_color = Color(0.98, 0.64, 0.18, 0.95)
+	commentary_style.set_border_width_all(1)
+	commentary_panel.add_theme_stylebox_override("panel", commentary_style)
+	commentary_panel.visible = false
+	root.add_child(commentary_panel)
+	commentary_label = _label(commentary_panel, "", Vector2(4, 1), Vector2(232, 14),
+		HORIZONTAL_ALIGNMENT_CENTER, 8, Color(1.0, 0.87, 0.61))
 
 	message = _label(root, "", Vector2(40, 76), Vector2(240, 34), HORIZONTAL_ALIGNMENT_CENTER, 14, Color(1, 0.95, 0.8))
 	message.visible = false
@@ -218,6 +239,11 @@ func set_pips(p1_wins: int, p2_wins: int) -> void:
 func show_message(text: String) -> void:
 	message.text = text
 	message.visible = true
+
+func show_commentary(text: String, duration_frames := 180) -> void:
+	commentary_label.text = text
+	commentary_panel.visible = true
+	commentary_frames = duration_frames
 
 func clear_message() -> void:
 	message.visible = false

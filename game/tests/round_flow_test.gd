@@ -83,6 +83,10 @@ func _run() -> void:
 	p1 = scene.p1
 	p2 = scene.p2
 	_check("intro -> fight", scene.phase == 1 and scene.round_number == 1, "phase=%d" % scene.phase)
+	_check("Tripp's Phase 2 commentary sample appears at first fight start",
+		scene.hud.commentary_panel.visible
+			and scene.hud.commentary_label.text == "TRIPP: The crowd is going insane!",
+		"commentary sample is missing or changed")
 
 	# --- Round 1: KO ---
 	_place_for_ko()

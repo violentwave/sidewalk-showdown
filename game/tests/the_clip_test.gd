@@ -72,6 +72,20 @@ func _run() -> void:
 			and str(panels[9].get("art_note", "")).contains("illegible smudge")
 			and not _caption_has_fine_print_copy(panels[9]),
 		"panel 10 contains legible fine-print copy")
+	_check("panel 04 Peggy line matches the owner script",
+		panels.size() == 15 and _panel_has_dialogue(panels[3], "PEGGY",
+			"You were asleep in a dumpster ten minutes ago."),
+		"panel 4 Peggy line mismatch")
+	_check("dumpster lid hat is not referenced anywhere in panel data",
+		not source.to_lower().contains("dumpster lid"), "stale dumpster lid hat text found")
+	_check("stale panel 14 'Terms apply' copy is gone",
+		not source.contains("Terms apply"), "stale 'Terms apply' line found")
+	_check("panel 14 keeps both halves of the joke",
+		panels.size() == 15
+			and str(panels[13].get("teaser_slot", "")) == "?"
+			and _panel_has_dialogue(panels[13], "TRIPP",
+				"That's because there isn't one."),
+		"panel 14 teaser slot or denial line missing")
 
 	var advance_main: Node = await _start_main()
 	_check("boot starts in The Clip before character select",
@@ -89,7 +103,9 @@ func _run() -> void:
 		_press_space(intro)
 		_check("one Space press advances exactly one panel",
 			intro.current_panel_index == 1, "current panel=%d" % intro.current_panel_index)
-		for _step in 14:
+		for _step in 80:
+			if advance_main.intro == null:
+				break
 			_press_space(intro)
 		await process_frame
 		_check("Space on the final panel reaches character select",
@@ -123,9 +139,18 @@ func _run() -> void:
 		_check("all intro labels use bundled fonts with fallback disabled",
 			_all_labels_have_sourced_fonts(font_intro),
 			"a label has no bundled font override or has system fallback enabled")
-		_press_space(font_intro)
-		_press_space(font_intro)
+		for _step in 10:
+			if font_main.intro == null \
+					or (font_intro.current_panel_index == 2
+						and font_intro.current_panel_step == 1):
+				break
+			_press_space(font_intro)
 		await process_frame
+		_check("chat strip appears on panel 03 at its second beat",
+			font_main.intro != null and font_intro.current_panel_index == 2
+				and font_intro.current_panel_step == 1,
+			"panel=%d step=%d" % [font_intro.current_panel_index,
+				font_intro.current_panel_step])
 		_check("livestream chat uses the bundled monospaced font",
 			_chat_uses_share_tech_mono(font_intro), "chat label is not Share Tech Mono")
 	else:
@@ -166,6 +191,13 @@ func _panels_have_text_and_expected_holds(panels: Array) -> bool:
 		if not has_text:
 			return false
 	return true
+
+func _panel_has_dialogue(panel: Dictionary, speaker: String, text: String) -> bool:
+	for line in panel.get("dialogue", []):
+		if str(line.get("speaker", "")) == speaker \
+				and str(line.get("text", "")) == text:
+			return true
+	return false
 
 func _all_labels_have_sourced_fonts(node: Node) -> bool:
 	if node is Label:

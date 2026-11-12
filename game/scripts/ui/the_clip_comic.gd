@@ -20,6 +20,7 @@ const PANEL_SIZE := Vector2(290, 128)
 
 var panels: Array = []
 var current_panel_index := 0
+var current_panel_step := 0
 var audio_manager
 var _finished := false
 var _hint_clock := 0.0
@@ -38,6 +39,7 @@ var _page_title: Label
 var _panel_counter: Label
 var _advance_hint: Label
 var _comic_shader: Shader
+var _content_top_y := 5.0
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -170,8 +172,28 @@ static func validate_panel_data(data: Variant) -> Array[String]:
 			errors.append("panel %d sfx_event must reuse ui_confirm or ui_move" % (index + 1))
 	return errors
 
+static func manual_steps_for_panel(panel_index: int) -> int:
+	match panel_index:
+		2: return 4 # Tripp, chat, Tripp, undercut caption.
+		3: return 4 # Two exchanges, the final line, then the caption.
+		5: return 3 # SFX, shout, undercut caption.
+		7: return 3 # Email, main caption, undercut.
+		8: return 3 # Announcement, main caption, undercut.
+		9: return 2 # Flyer caption and fine-print aside.
+		10: return 3 # Signup captions, undercut, background shout.
+		11: return 2 # Long speech and mirror aside.
+		12: return 3 # Bracket captions, undercut, Tripp's small line.
+		13: return 3 # Slot joke, denial, contract aside.
+		14: return 3 # Main caption, undercut, tiny sign-off.
+	return 1
+
 func advance_panel() -> void:
 	if _finished:
+		return
+	if current_panel_step + 1 < manual_steps_for_panel(current_panel_index):
+		current_panel_step += 1
+		_play_sfx_event("ui_confirm")
+		_transition_within_panel()
 		return
 	if current_panel_index >= panels.size() - 1:
 		_play_sfx_event("ui_confirm")
@@ -180,6 +202,7 @@ func advance_panel() -> void:
 	var next_index := current_panel_index + 1
 	var next_event := str(panels[next_index].get("sfx_event", "ui_confirm"))
 	_play_sfx_event(next_event)
+	current_panel_step = 0
 	_transition_to_panel(next_index)
 
 func skip_intro() -> void:
@@ -219,6 +242,21 @@ func _transition_to_panel(next_index: int) -> void:
 		_transition_tween.tween_property(_page_canvas, "position:x", 0.0, 0.12) \
 			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		_transition_tween.tween_property(_page_canvas, "modulate:a", 1.0, 0.12)
+
+func _transition_within_panel() -> void:
+	if _transition_tween and _transition_tween.is_running():
+		_transition_tween.kill()
+	_page_canvas.scale.x = 1.0
+	_page_canvas.position.x = 0.0
+	_page_canvas.modulate.a = 1.0
+	_render_panel(current_panel_index)
+	_page_canvas.position.x = 7.0
+	_page_canvas.modulate.a = 0.6
+	_transition_tween = create_tween()
+	_transition_tween.set_parallel(true)
+	_transition_tween.tween_property(_page_canvas, "position:x", 0.0, 0.1) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_transition_tween.tween_property(_page_canvas, "modulate:a", 1.0, 0.1)
 
 func _build_ui() -> void:
 	_comic_shader = Shader.new()
@@ -338,23 +376,103 @@ func _render_panel(index: int) -> void:
 	_panel_counter.text = "PANEL %02d / %02d" % [int(panel.get("number", index + 1)), panels.size()]
 	_clear_children(_dynamic_layer)
 	var captions: Array = panel.get("caption_text", [])
+	var displayed_captions := _captions_for_step(index, captions, current_panel_step)
+	var dialogue: Array = panel.get("dialogue", [])
+	var displayed_dialogue := _dialogue_for_step(index, dialogue, current_panel_step)
+	var displayed_chat: Array = panel.get("chat_comments", []) \
+		if index != 2 or current_panel_step == 1 else []
 	var caption_start_y := 5.0
 	if _placeholder_art_active:
 		caption_start_y = _render_placeholder(panel, _has_caption_style(captions, ["banner", "logo"]))
 	var has_banner := _has_caption_style(captions, ["banner", "logo"])
 	if has_banner:
 		_render_banner(captions)
-		caption_start_y = maxf(caption_start_y, 30.0 if _placeholder_art_active else 29.0)
-	if _has_caption_style(captions, ["sfx"]):
+		var dual_brand_row := _has_caption_style(captions, ["logo"]) \
+			and _has_caption_style(captions, ["banner"])
+		caption_start_y = maxf(caption_start_y,
+			60.0 if dual_brand_row and _placeholder_art_active else 30.0 if _placeholder_art_active else 29.0)
+	_content_top_y = caption_start_y
+	if _has_caption_style(captions, ["sfx"]) and current_panel_step == 0:
 		_render_sfx()
 	elif _has_caption_style(captions, ["flyer"]):
-		_render_flyer(panel, captions)
+		_render_flyer(panel, captions, displayed_captions)
 	else:
-		_render_caption_boxes(captions, caption_start_y)
+		var caption_y := caption_start_y
+		if index == 2 and current_panel_step == 3:
+			caption_y = 98.0
+		elif index == 3 and current_panel_step == 3:
+			caption_y = 94.0
+		_render_caption_boxes(displayed_captions, caption_y)
 		if _has_caption_style(captions, ["teaser_slot"]):
 			_render_teaser_slot()
-	_render_dialogue(panel.get("dialogue", []), not panel.get("chat_comments", []).is_empty())
-	_render_chat(panel.get("chat_comments", []))
+	_render_dialogue(displayed_dialogue, not displayed_chat.is_empty(), index)
+	_render_chat(displayed_chat)
+
+func _captions_for_step(panel_index: int, captions: Array, step: int) -> Array:
+	if panel_index == 2:
+		return _captions_with_style(captions, "small") if step == 3 else []
+	if panel_index == 3:
+		return _captions_with_style(captions, "caption") if step == 3 else []
+	if panel_index == 5:
+		return _captions_with_style(captions, "small") if step == 2 else []
+	if panel_index == 7:
+		return _captions_with_style(captions, "caption") if step == 1 else \
+			(_captions_with_style(captions, "small") if step == 2 else [])
+	if panel_index == 8:
+		return _captions_with_style(captions, "caption") if step == 1 else \
+			(_captions_with_style(captions, "small") if step == 2 else [])
+	if panel_index == 9:
+		return _captions_with_style(captions, "caption") if step == 0 else \
+			(_captions_with_style(captions, "small") if step == 1 else [])
+	if panel_index == 10:
+		return _captions_with_style(captions, "caption") if step == 0 else \
+			(_captions_with_style(captions, "small") if step == 1 else [])
+	if panel_index == 11:
+		return _captions_with_style(captions, "small") if step == 1 else []
+	if panel_index == 12:
+		return _captions_with_style(captions, "caption") if step == 0 else \
+			(_captions_with_style(captions, "small") if step == 1 else [])
+	if panel_index == 13:
+		return _captions_with_style(captions, "caption") if step == 0 else \
+			(_captions_with_style(captions, "small") if step == 2 else [])
+	if panel_index == 14:
+		return _captions_with_style(captions, "caption") if step == 0 else \
+			(_captions_with_style(captions, "small") if step == 1 else [])
+	return captions
+
+func _dialogue_for_step(panel_index: int, dialogue: Array, step: int) -> Array:
+	if panel_index == 2:
+		return [dialogue[0]] if step == 0 else ([dialogue[1]] if step == 2 else [])
+	if panel_index == 3:
+		if step == 0:
+			return [dialogue[0], dialogue[1]]
+		if step == 1:
+			return [dialogue[2], dialogue[3]]
+		return [dialogue[4]] if step == 2 else []
+	if panel_index == 5:
+		return [dialogue[0]] if step == 1 else []
+	if panel_index == 7:
+		return [dialogue[0]] if step == 0 else []
+	if panel_index == 8:
+		return [dialogue[0]] if step == 0 else []
+	if panel_index == 10:
+		return [dialogue[0]] if step == 2 else []
+	if panel_index == 11:
+		return [dialogue[0]] if step == 0 else []
+	if panel_index == 12:
+		return [dialogue[0]] if step == 2 else []
+	if panel_index == 13:
+		return [dialogue[0]] if step == 1 else []
+	if panel_index == 14:
+		return [dialogue[0]] if step == 2 else []
+	return dialogue
+
+func _captions_with_style(captions: Array, wanted_style: String) -> Array:
+	var result: Array = []
+	for caption in captions:
+		if typeof(caption) == TYPE_DICTIONARY and str(caption.get("style", "")) == wanted_style:
+			result.append(caption)
+	return result
 
 func _render_placeholder(panel: Dictionary, has_banner: bool) -> float:
 	var note_width := 150.0 if has_banner else 232.0
@@ -405,18 +523,27 @@ func _render_caption_boxes(captions: Array, start_y: float) -> void:
 		y += box.size.y + 3.0
 
 func _render_banner(captions: Array) -> void:
+	var has_logo := _has_caption_style(captions, ["logo"])
+	var has_banner := _has_caption_style(captions, ["banner"])
 	for caption in captions:
 		var style := str(caption.get("style", ""))
 		if style not in ["banner", "logo"]:
 			continue
 		var is_logo := style == "logo"
+		var dual_brand_row := has_logo and has_banner and _placeholder_art_active
 		var width := 124.0 if _placeholder_art_active else (256.0 if is_logo else 230.0)
-		var height := 22.0
+		var font_size := 8 if _placeholder_art_active else (12 if is_logo else 10)
 		var x := 160.0 if _placeholder_art_active else (PANEL_SIZE.x - width) * 0.5
 		var y := 4.0 if _placeholder_art_active else 5.0
+		var height := 22.0
+		if dual_brand_row and not is_logo:
+			x = 6.0
+			width = 278.0
+			y = 34.0
+			font_size = 9
 		var fill := Color("#e83d24") if is_logo else Color("#f7a91f")
 		var banner := _make_text_panel(str(caption.get("text", "")), Vector2(x, y),
-			width, BANGERS, 8 if _placeholder_art_active else (12 if is_logo else 10), fill, INK, 3,
+			width, BANGERS, font_size, fill, INK, 3,
 			HORIZONTAL_ALIGNMENT_CENTER, height, Color("#fff5d5"))
 		banner.z_index = 12
 		_dynamic_layer.add_child(banner)
@@ -465,7 +592,7 @@ func _render_sfx() -> void:
 	lettering.z_index = 13
 	_dynamic_layer.add_child(lettering)
 
-func _render_flyer(panel: Dictionary, captions: Array) -> void:
+func _render_flyer(panel: Dictionary, captions: Array, displayed_captions: Array) -> void:
 	_art_backdrop.visible = true
 	_art_backdrop.color = Color("#ffe04e")
 	_art_backdrop.material = _halftone_material(_art_backdrop.color, 0.10, Vector2(42, 24))
@@ -476,13 +603,16 @@ func _render_flyer(panel: Dictionary, captions: Array) -> void:
 		if style == "flyer":
 			var display_text := text.to_upper().replace(" $100,000 AND ", "\n$100,000 AND\n")
 			var prize := _make_label(display_text,
-				Rect2(12, 34, 266, 72), 22, BANGERS, INK, HORIZONTAL_ALIGNMENT_CENTER)
+				Rect2(12, 36, 266, 64), 19, BANGERS, INK, HORIZONTAL_ALIGNMENT_CENTER)
 			prize.autowrap_mode = TextServer.AUTOWRAP_OFF
 			prize.z_index = 12
 			_dynamic_layer.add_child(prize)
-		elif style == "caption":
-			var caption_box := _make_text_panel(text, Vector2(6, 108), 212, BANGERS,
-				6, CAPTION_YELLOW, INK, 3, HORIZONTAL_ALIGNMENT_LEFT, 19)
+	for caption in displayed_captions:
+		var style := str(caption.get("style", ""))
+		if style in ["caption", "small"]:
+			var caption_box := _make_text_panel(str(caption.get("text", "")),
+				Vector2(6, 101), 212, BANGERS, 5, CAPTION_YELLOW, INK, 3,
+				HORIZONTAL_ALIGNMENT_LEFT, 25)
 			caption_box.z_index = 15
 			_dynamic_layer.add_child(caption_box)
 	if str(panel.get("fine_print_render", "")) == "illegible_squiggle":
@@ -501,7 +631,7 @@ func _draw_fine_print_squiggle(at: Vector2, width: float) -> void:
 	squiggle.z_index = 20
 	_dynamic_layer.add_child(squiggle)
 
-func _render_dialogue(entries: Array, has_chat: bool) -> void:
+func _render_dialogue(entries: Array, has_chat: bool, panel_index: int) -> void:
 	var valid_entries: Array = []
 	for entry in entries:
 		if typeof(entry) == TYPE_DICTIONARY:
@@ -511,31 +641,40 @@ func _render_dialogue(entries: Array, has_chat: bool) -> void:
 	if str(valid_entries[0].get("speaker", "")) == "EMAIL":
 		_render_email_card(valid_entries[0])
 		return
+	var bubbles: Array[Panel] = []
+	var width := 268.0
 	if valid_entries.size() > 1:
-		var bubble_width := 134.0
-		for index in valid_entries.size():
-			var entry: Dictionary = valid_entries[index]
-			var x := 5.0 + index * 141.0
-			var bubble := _make_speech_bubble(entry, Vector2(x, 0), bubble_width,
-				str(entry.get("style", "speech")), index == 0)
-			bubble.position.y = PANEL_SIZE.y - bubble.size.y - 5.0
-			_dynamic_layer.add_child(bubble)
+		width = 278.0
+	elif has_chat:
+		width = 188.0
 	else:
-		var entry: Dictionary = valid_entries[0]
-		var style := str(entry.get("style", "speech"))
-		var width := 188.0 if has_chat else 252.0
+		var style := str(valid_entries[0].get("style", "speech"))
 		if style == "small":
 			width = 218.0
 		elif style in ["whisper", "tiny"]:
 			width = 142.0 if style == "whisper" else 132.0
-		var x := 5.0 if has_chat else (PANEL_SIZE.x - width) * 0.5
-		var bubble := _make_speech_bubble(entry, Vector2(x, 0), width, style, false)
-		bubble.position.y = PANEL_SIZE.y - bubble.size.y - 5.0
+	for entry_index in valid_entries.size():
+		var entry: Dictionary = valid_entries[entry_index]
+		var style := str(entry.get("style", "speech"))
+		var body_size_override := 7 if panel_index == 3 else -1
+		var tail_left := str(entry.get("speaker", "")) == "RICHARD" \
+			or (panel_index == 2 and entry_index == 0)
+		var bubble := _make_speech_bubble(entry, Vector2.ZERO, width, style,
+			tail_left, body_size_override)
+		bubbles.append(bubble)
+	var total_height := 0.0
+	for bubble in bubbles:
+		total_height += bubble.size.y + 3.0
+	var top := maxf(_content_top_y, PANEL_SIZE.y - total_height - 5.0)
+	for bubble in bubbles:
+		bubble.position = Vector2((PANEL_SIZE.x - width) * 0.5, top)
 		_dynamic_layer.add_child(bubble)
+		top += bubble.size.y + 3.0
 
 func _make_speech_bubble(entry: Dictionary, at: Vector2, width: float,
-		style: String, tail_left: bool) -> Panel:
-	var body_size := 8 if style in ["speech", "message"] else 7
+		style: String, tail_left: bool, body_size_override: int = -1) -> Panel:
+	var body_size := body_size_override if body_size_override > 0 \
+		else (8 if style in ["speech", "message"] else 7)
 	var body_font := COMIC_NEUE if style in ["tiny", "whisper"] else COMIC_NEUE_BOLD
 	var body_text := str(entry.get("text", "")).to_upper()
 	var body_lines := _wrapped_line_count(body_text, body_font, body_size, width - 16.0)

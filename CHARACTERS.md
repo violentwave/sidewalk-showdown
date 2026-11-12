@@ -28,6 +28,15 @@ These rules must not be contradicted by future character, story, art, or gamepla
 - The world is fictional **Sidewalk Florida**, not real Florida.
 - Use no real towns, real brands, or real public figures as canon.
 
+### Owner-confirmed “The Clip” canon (2026-11-12)
+
+- The two fighters in the viral clip are Peg Leg Peggy and Whiskey Richard, arguing over a bench.
+- Announced prize: $100,000 and a free house. The flyer's fine print is an illegible squiggle only; never author legible fine print.
+- The intro bracket shows 15 fighters plus a "?" sixteenth slot. The tease exists ONLY in the intro. Character select is unchanged. Tripp is never a playable, selectable, or named fighter entity.
+- Panel 14 keeps BOTH halves of the joke: the "?" slot is drawn, and Tripp's dialogue denies it exists.
+- Name spelling stays "Tripp Vlogs" everywhere. (The owner's sprite title card reads "Vlogz"; do NOT change the spelling in code or docs.)
+- Sprite-confirmed looks: Richard wears a red bandana-style cap and carries a green bottle. Peggy wears a green beanie with a white stripe and has a slim tan peg leg. Tripp wears a blue tee reading "THOUGHTS & PRAYERS" (owner to confirm), blue jeans, and white sneakers with cyan soles, and holds a smartphone.
+
 ---
 
 ## 1. External Design Research Notes

@@ -14,6 +14,9 @@ the slots. No scene or script edits should be needed.
   smooth gradients, one consistent pixel size per image. See
   `docs/story/the_clip_art_prompts.md` for the full v2 prompt kit.
 - RGB or RGBA; transparent pixels are optional, not required.
+- All 15 source images are installed at **640 × 360 px**. They are center-cropped
+  only as needed to 16:9, then downsampled with nearest-neighbor. The intro
+  displays the complete image at 1280 × 720 and 1920 × 1080 without aspect crop.
 - Keep captions, speech, chat, the flyer headline, and other legible copy out of
   the image. Those are live, owner-editable panel data rendered by the UI.
 - Use pixel-art forms with bold comic silhouettes and keep faces/action readable
@@ -21,9 +24,8 @@ the slots. No scene or script edits should be needed.
   illegible smudge/squiggle there.
 - Panels 3–8 may use the existing `game/art/stages/bus_stop/BusStopNight.png`
   as the temporary backdrop. Panel artwork, when supplied, takes precedence.
-- Until a slot exists, the intro renders a halftone placeholder, an ink-framed
-  panel number, and the art note from `game/data/story/the_clip.panels` in comic
-  lettering.
+- All fifteen art slots are populated. If a slot is missing at runtime, the intro
+  retains its halftone placeholder, ink-framed panel number, and panel art note.
 
 | Panel | Expected file | Art direction |
 |---:|---|---|

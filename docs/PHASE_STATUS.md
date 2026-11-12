@@ -70,7 +70,7 @@ phase exit criteria:
   blocking and round flow work, and the match can end/restart.
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
-  The current suites contain 245 combat, 34 round-flow, 15 audio/select
+  The current suites contain 247 combat, 34 round-flow, 15 audio/select
   integration, and 23 intro checks. K1, R1, corner separation, bounded hitstop
   buffer freeze, and the
   post-KO winner-state repair are covered. Non-METH strikes reject during
@@ -107,10 +107,12 @@ phase exit criteria:
   and uses a 30-frame freeze, banner, and normal KO flow. A text-only Tripp
   commentary sample appears at the first fight start. The intro/menu and fight
   MP3 tracks loop in their respective screens; hit/block/UI/KO/METHtality cues
-  are wired. Runtime fighters remain silhouettes; polished stage/fighter art,
-  voiced/full commentary, a broader SFX pass, and the fighter-specific mini route
-  remain. The final-round finish prompt, cinematic, camera, and choreography are
-  future work. Confirm usage rights for owner-supplied MP3s before public release.
+  are wired. Both silhouette fighters now have a first procedural visual
+  animation pass on a dedicated VisualRoot mount for future art. Authored sprite
+  frames, polished stage/fighter art, voiced/full commentary, a broader SFX pass,
+  and the fighter-specific mini route remain. The final-round finish prompt,
+  cinematic, camera, and choreography are future work. Confirm usage rights for
+  owner-supplied MP3s before public release.
 - **Decisions / blockers:** Burnout Bubba and Raccoon Randy remain later-roster
   canon; they are not alternatives for the approved slice cast. The private-show
   exit still needs human approval.
@@ -139,10 +141,11 @@ phase exit criteria:
   route. The 3-airborne-hit cap and 55% scaling floor are implemented. The
   jump-in follow-up's measured 20–44 px / 10–30 px connect window is kept.
   Command grabs are untechable with slow, punishable startup; their values remain
-  provisional for the later-roster pass. Shared controls, silhouette playability
-  with animation deferred, and Peggy/Richard-only slice scope are canon. The
-  owner-approved directions in `docs/PROPOSALS.md` §§6–7 are implemented where
-  marked; additional systems listed above remain gaps.
+  provisional for the later-roster pass. Shared controls, silhouette playability,
+  and Peggy/Richard-only slice scope are canon. The initial procedural silhouette
+  animation pass is an implementation step toward sprite wiring; authored frames
+  remain deferred. The owner-approved directions in `docs/PROPOSALS.md` §§6–7
+  are implemented where marked; additional systems listed above remain gaps.
 - **Exit verification:** not met; adding the current roster/stage still depends
   on hard-coded match setup, and several listed systems do not exist.
 
@@ -153,9 +156,10 @@ phase exit criteria:
   guide, and import/export settings. Exit: new art follows one standard and
   style changes require review.
 - **Status:** **Partial / unverified.** AI/source concepts and prompt documents
-  exist, along with export presets, but the runtime is still silhouettes and the
-  final art templates/style lock are not evidenced. `KNOWN_ISSUES.md` records no
-  wired animation.
+  exist, along with export presets, but the runtime still uses silhouette
+  placeholders and the final art templates/style lock are not evidenced. A
+  procedural motion pass is present; authored sprite-frame animation remains
+  unwired.
 - **Blockers:** art-direction approval and human review of source/exports.
 
 ### Phase 5 — Playable Roster Expansion

@@ -10,12 +10,13 @@ legends eventually turn on him.
 **License:** TBD — treat as all-rights-reserved until a LICENSE file is added.
 
 **Current scope:** the 15-panel “The Clip” intro leads to Peggy vs Richard on Bus
-Stop Night, a text-only two-player character-select mockup, greybox silhouettes,
-local keyboard play, HUD/timer/round flow, directional specials, EX spenders, a
-minimal METHtality core, a temporary intro/menu song, and temporary match-loop
-music/combat/UI sounds. Missing or partial: gamepad support, stage select,
-animation, final audio/voice/VFX, CPU AI, campaign, and final art. Online play is
-deferred beyond v0.1 per GDD §2.4/§16.
+Stop Night, a text-only two-player character-select mockup, first-pass character
+cutouts with procedural motion, local keyboard play, HUD/timer/round flow,
+directional specials, EX spenders, a minimal METHtality core, a temporary
+intro/menu song, and temporary match-loop music/combat/UI sounds. Missing or
+partial: gamepad support, stage select, frame-by-frame animation, final
+audio/voice/VFX, CPU AI, campaign, and final art. Online play is deferred beyond
+v0.1 per GDD §2.4/§16.
 
 **Readiness and audits:** [`docs/PHASE_STATUS.md`](docs/PHASE_STATUS.md) records
 GDD phase requirements versus evidence and owner decisions. The

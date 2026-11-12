@@ -5,6 +5,7 @@ extends CharacterBody2D
 @onready var visual_root: Node2D = $VisualRoot
 @onready var silhouette: Polygon2D = $VisualRoot/Silhouette
 @onready var facing_marker: Polygon2D = $VisualRoot/FacingMarker
+@onready var character_sprite: Sprite2D = $VisualRoot/CharacterSprite
 
 enum State {
 	IDLE, WALK_F, WALK_B, CROUCH,
@@ -37,6 +38,10 @@ signal counter_hit_landed
 # Height of the Silhouette polygon in FighterBase.tscn. Visuals scale against
 # this constant, not body_height, so each fighter's art matches its own hurtbox.
 const SILHOUETTE_HEIGHT := 56.0
+const CHARACTER_SPRITE_PATHS := {
+	"peg_leg_peggy": "res://art/characters/peg_leg_peggy/spr_peg_leg_peggy_cutout.png",
+	"whiskey_richard": "res://art/characters/whiskey_richard/spr_whiskey_richard_cutout.png",
+}
 const DEFAULT_LANDING_FRAMES := 2
 # GDD §5.6: a counter hit adds +2 frames of hitstop, shared like ordinary hitstop.
 const COUNTER_HIT_HITSTOP := 2
@@ -103,6 +108,7 @@ const HIT_FLASH_FRAMES := 3
 const BLOCK_FLASH_FRAMES := 2
 var hit_flash_frames: int = 0
 var block_flash_frames: int = 0
+var _character_art_scale := 0.0
 
 func _ready() -> void:
 	silhouette.modulate = body_color
@@ -124,6 +130,30 @@ func apply_data(d: FighterData) -> void:
 	body_color = d.body_color
 	silhouette.modulate = body_color
 	facing_marker.modulate = body_color.lightened(0.35)
+	_configure_character_sprite()
+
+func _configure_character_sprite() -> void:
+	var sprite_path := str(CHARACTER_SPRITE_PATHS.get(data.id, ""))
+	if sprite_path.is_empty() or not ResourceLoader.exists(sprite_path):
+		character_sprite.texture = null
+		character_sprite.visible = false
+		silhouette.visible = true
+		facing_marker.visible = true
+		_character_art_scale = 0.0
+		return
+	character_sprite.texture = load(sprite_path) as Texture2D
+	if character_sprite.texture == null:
+		character_sprite.visible = false
+		silhouette.visible = true
+		facing_marker.visible = true
+		_character_art_scale = 0.0
+		return
+	_character_art_scale = SILHOUETTE_HEIGHT / character_sprite.texture.get_height()
+	character_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	character_sprite.modulate = Color.WHITE
+	character_sprite.visible = true
+	silhouette.visible = false
+	facing_marker.visible = false
 
 func begin_round(spawn_pos: Vector2, opponent_x: float) -> void:
 	position = spawn_pos
@@ -928,14 +958,23 @@ func _update_silhouette_flash() -> void:
 	# Hit flash is the strong white; block flash is a subtle lightening only.
 	if hit_flash_frames > 0:
 		silhouette.modulate = Color(1.0, 1.0, 1.0)
+		character_sprite.modulate = Color(1.35, 1.35, 1.35)
 	elif block_flash_frames > 0:
 		silhouette.modulate = body_color.lightened(0.35)
+		character_sprite.modulate = Color(1.12, 1.12, 1.12)
 	else:
 		silhouette.modulate = body_color
+		character_sprite.modulate = Color.WHITE
 
 func _sync_visuals() -> void:
 	var h := _pushbox_height()
 	silhouette.scale.y = h / SILHOUETTE_HEIGHT
+	if character_sprite.visible and character_sprite.texture:
+		var height_scale := h / SILHOUETTE_HEIGHT
+		character_sprite.scale = Vector2(_character_art_scale,
+			_character_art_scale * height_scale)
+		character_sprite.position = Vector2(0.0, -h * 0.5)
+		character_sprite.flip_h = facing < 0
 	facing_marker.position.x = facing * body_width * 0.5
 	facing_marker.scale.x = facing
 	facing_marker.position.y = -h + 8.0

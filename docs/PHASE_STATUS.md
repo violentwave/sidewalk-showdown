@@ -107,9 +107,10 @@ phase exit criteria:
   and uses a 30-frame freeze, banner, and normal KO flow. A text-only Tripp
   commentary sample appears at the first fight start. The intro/menu and fight
   MP3 tracks loop in their respective screens; hit/block/UI/KO/METHtality cues
-  are wired. Both silhouette fighters now have a first procedural visual
-  animation pass on a dedicated VisualRoot mount for future art. Authored sprite
-  frames, polished stage/fighter art, voiced/full commentary, a broader SFX pass,
+  are wired. Peggy and Richard now use transparent cutouts cropped from their
+  supplied title-card stills; state-driven VisualRoot motion animates those
+  single poses. Authored limb/frame animation, polished stage/fighter art,
+  voiced/full commentary, a broader SFX pass,
   and the fighter-specific mini route remain. The final-round finish prompt,
   cinematic, camera, and choreography are future work. Confirm usage rights for
   owner-supplied MP3s before public release.
@@ -141,10 +142,11 @@ phase exit criteria:
   route. The 3-airborne-hit cap and 55% scaling floor are implemented. The
   jump-in follow-up's measured 20–44 px / 10–30 px connect window is kept.
   Command grabs are untechable with slow, punishable startup; their values remain
-  provisional for the later-roster pass. Shared controls, silhouette playability,
-  and Peggy/Richard-only slice scope are canon. The initial procedural silhouette
-  animation pass is an implementation step toward sprite wiring; authored frames
-  remain deferred. The owner-approved directions in `docs/PROPOSALS.md` §§6–7
+  provisional for the later-roster pass. Shared controls and Peggy/Richard-only
+  slice scope are canon. The initial procedural silhouette
+  animation direction is superseded by cropped still art under VisualRoot;
+  authored pose/limb frames remain deferred. The owner-approved directions in
+  `docs/PROPOSALS.md` §§6–7
   are implemented where marked; additional systems listed above remain gaps.
 - **Exit verification:** not met; adding the current roster/stage still depends
   on hard-coded match setup, and several listed systems do not exist.
@@ -156,8 +158,8 @@ phase exit criteria:
   guide, and import/export settings. Exit: new art follows one standard and
   style changes require review.
 - **Status:** **Partial / unverified.** AI/source concepts and prompt documents
-  exist, along with export presets, but the runtime still uses silhouette
-  placeholders and the final art templates/style lock are not evidenced. A
+  exist, along with export presets, but runtime art is still first-pass cropped
+  single poses and the final art templates/style lock are not evidenced. A
   procedural motion pass is present; authored sprite-frame animation remains
   unwired.
 - **Blockers:** art-direction approval and human review of source/exports.

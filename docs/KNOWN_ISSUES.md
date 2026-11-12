@@ -323,7 +323,8 @@ These are measured or first-pass limits, not phase-exit validation.
   sudden-death tie resolving by damage dealt (with the announced tiebreak), the
   deterministic P1 fallback, a clean win in sudden death ending the match, the
   clock frozen during hitstop, and a hit on the timer's final frame counting.
-- `game/tests/character_select_test.gd` — **13 checks**: default selections,
+- `game/tests/character_select_test.gd` — **15 checks**: intro MP3 playback on
+  The Clip and character select, default selections,
   independent P1/P2 movement/confirmation, unlock-on-move, selected fighter data
   reaching the match, temporary music/SFX playback, and impact/block cue routing.
 - `game/tests/the_clip_test.gd` — **23 checks**: installed art slots, lossless

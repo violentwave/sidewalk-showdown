@@ -24,9 +24,19 @@ func _press(action: String) -> void:
 
 func _run() -> void:
 	await process_frame
+	var intro_song: AudioStreamMP3 = main_scene.audio_manager.intro_music_stream
+	_check("the intro song starts on The Clip and loops",
+		main_scene.audio_manager.music_player.playing
+			and main_scene.audio_manager.music_player.stream == intro_song
+			and intro_song != null and intro_song.loop,
+		"intro MP3 is not playing as a loop")
 	main_scene.intro.skip_intro()
 	await process_frame
 	var select: Control = main_scene.character_select
+	_check("the intro song continues on character select",
+		main_scene.audio_manager.music_player.playing
+			and main_scene.audio_manager.music_player.stream == intro_song,
+		"character select did not retain intro MP3")
 	_check("select screen defaults to Peggy for P1 and Richard for P2",
 		select.p1_choice == 0 and select.p2_choice == 1,
 		"choices=%d/%d" % [select.p1_choice, select.p2_choice])
@@ -63,9 +73,9 @@ func _run() -> void:
 				and main_scene.match_root.p2.data.display_name == "Peg Leg Peggy",
 			"fighters=%s / %s" % [main_scene.match_root.p1.data.display_name,
 				main_scene.match_root.p2.data.display_name])
-		_check("the match starts the temporary music loop",
+		_check("the match switches from intro music to the existing match track",
 			main_scene.audio_manager.music_player.playing,
-			"music is not playing")
+			"match music is not playing")
 		var music_stream := main_scene.audio_manager.music_player.stream as AudioStreamOggVorbis
 		_check("the temporary OGG track is configured to loop",
 			music_stream != null and music_stream.loop,

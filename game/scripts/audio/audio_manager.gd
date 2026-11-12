@@ -1,7 +1,8 @@
-# Minimal Phase 2 mixer for temporary CC0 prototype assets.
+# Minimal Phase 2 mixer for temporary prototype audio assets.
 extends Node
 
 const MUSIC_PATH := "res://audio/temporary/music_bus_stop_loop_temp.ogg"
+const INTRO_MUSIC_PATH := "res://audio/temporary/intro.mp3"
 const SFX_PATHS: Dictionary = {
 	"hit_light": "res://audio/temporary/sfx_hit_light_temp.ogg",
 	"hit_heavy": "res://audio/temporary/sfx_hit_heavy_temp.ogg",
@@ -15,18 +16,22 @@ const SFX_PATHS: Dictionary = {
 const SFX_PLAYER_COUNT := 12
 
 var music_player: AudioStreamPlayer
+var intro_music_stream: AudioStreamMP3
+var match_music_stream: AudioStreamOggVorbis
 var sfx_players: Array[AudioStreamPlayer] = []
 var _sfx_streams: Dictionary = {}
 var _next_sfx_player := 0
 
 func _ready() -> void:
-	var music_stream: AudioStream = load(MUSIC_PATH)
-	var music_ogg := music_stream as AudioStreamOggVorbis
-	if music_ogg:
-		music_ogg.loop = true
+	intro_music_stream = load(INTRO_MUSIC_PATH) as AudioStreamMP3
+	if intro_music_stream:
+		intro_music_stream.loop = true
+	match_music_stream = load(MUSIC_PATH) as AudioStreamOggVorbis
+	if match_music_stream:
+		match_music_stream.loop = true
 	music_player = AudioStreamPlayer.new()
 	music_player.name = "TemporaryMusic"
-	music_player.stream = music_stream
+	music_player.stream = intro_music_stream
 	music_player.volume_db = -15.0
 	add_child(music_player)
 	for sound_id in SFX_PATHS:
@@ -44,8 +49,20 @@ func _exit_tree() -> void:
 	_sfx_streams.clear()
 
 func start_music() -> void:
-	if music_player and not music_player.playing:
-		music_player.play()
+	if music_player and match_music_stream:
+		if music_player.stream != match_music_stream:
+			music_player.stop()
+			music_player.stream = match_music_stream
+		if not music_player.playing:
+			music_player.play()
+
+func start_intro_music() -> void:
+	if music_player and intro_music_stream:
+		if music_player.stream != intro_music_stream:
+			music_player.stop()
+			music_player.stream = intro_music_stream
+		if not music_player.playing:
+			music_player.play()
 
 func play_ui_move() -> void:
 	play_sfx("menu_move")

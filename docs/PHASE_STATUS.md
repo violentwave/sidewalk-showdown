@@ -70,7 +70,7 @@ phase exit criteria:
   blocking and round flow work, and the match can end/restart.
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
-  The current suites contain 245 combat, 33 round-flow, 13 audio/select
+   The current suites contain 245 combat, 33 round-flow, 15 audio/select
    integration, and 23 intro checks. K1, R1, corner separation, bounded hitstop
   buffer freeze, and the
   post-KO winner-state repair are covered. Non-METH strikes reject during

@@ -1608,12 +1608,16 @@ Exit criteria:
 - one match looks and sounds close to the final target
 - the prototype is good enough to show privately
 
-> **Implementation-status note (2026-11-11):** the current slice implements the
+> **Implementation-status note (2026-11-12):** the current slice implements the
 > officially selected Peggy/Richard pair on Bus Stop Night with a HUD, a
 > text-only two-player character-select mockup, and METHtality engine prototype.
-> It does not yet meet the polish/private-show exit: final art, Tripp commentary,
-> mini story route, final music, and the full SFX/voice pass are missing or
-> partial. Temporary CC0 music and core combat/UI cues are in the build.
+> The 15-panel Clip prologue and its pixel-art panels are installed; a text-only
+> Tripp commentary sample appears at the first fight start. The intro/menu and
+> fight MP3 tracks are wired to their respective screens. The polish/private-show
+> exit is still unmet: runtime fighters remain silhouettes, the stage/art are not
+> final, voiced/full commentary and the broader SFX pass are absent, the fighter-
+> specific mini route is not implemented, and private-show approval is pending.
+> Confirm usage rights for the owner-supplied MP3 tracks before public release.
 
 ---
 

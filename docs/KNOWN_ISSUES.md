@@ -315,7 +315,8 @@ These are measured or first-pass limits, not phase-exit validation.
   whiff vs hit/block landing delay; pause and hitstop; anti-air interruption;
   un-blockable extended recovery vs legacy blockable LAND; reset/restart; P2 data;
   unchanged grounded attacks; and throw damage remaining 95/105.
-- `game/tests/round_flow_test.gd` — **33 checks**: intro→fight, KO phase, round
+- `game/tests/round_flow_test.gd` — **34 checks**: intro→fight, first-fight
+  Tripp commentary sample, KO phase, round
   wins, timeout resolution, a simultaneous KO awarding a pip to both and the
   round advancing, a 2-2 scoreline continuing into a decisive round that ends on
   an outright win, reset clearing draw state, the first two timeout ties

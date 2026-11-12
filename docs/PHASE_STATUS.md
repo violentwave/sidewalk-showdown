@@ -1,6 +1,6 @@
 # GDD Phase Status
 
-**Baseline:** `main` through PR #33 (`e95061837cc186deb56b0223ce95349b873194d5`); this update adds a temporary CC0 audio set and playback wiring.
+**Baseline:** `main` through PR #34 (`16308012eca8703c49e3656dc6d94bc8cb4bf0cd`); this update adds the data-driven “The Clip” intro before character select.
 The companion audit reconciliation is [`docs/audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md`](audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md).
 
 ## Current phase
@@ -24,6 +24,17 @@ playtesting. Phase 2's presentation and private-show exit criteria are not met.
   bar is still spent and the authored 30-frame hitstop is unchanged.
 - Vertical-slice cast (2026-11-09) — Peggy and Richard officially; Burnout Bubba
   and Raccoon Randy remain later-roster canon.
+- The Clip (2026-11-11):
+  - The two fighters in the viral clip are Peg Leg Peggy and Whiskey Richard,
+    arguing over a bench. This is confirmed canon, not a draft.
+  - The announced tournament prize is $100,000 and a free house. The flyer's
+    fine print is a purely visual gag: render it as an illegible smudge or
+    squiggle — do NOT author legible fine-print text. The later prize-scam canon
+    (GAME_BIBLE Act VI) is unchanged.
+  - The intro's bracket panel shows 15 fighters plus one "?" sixteenth slot.
+    This tease exists ONLY in the intro; the character-select grid remains
+    exactly 15 slots (Peggy/Richard selectable, 13 locked) with no "?" entry.
+    Tripp is never a playable, selectable, or named fighter entity anywhere.
 
 K1, R1, corner-separation transfer, bounded hitstop-only buffer freeze, and the
 KO-phase winner repair are implemented with regression coverage. Blockstun
@@ -63,8 +74,9 @@ phase exit criteria:
   blocking and round flow work, and the match can end/restart.
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
-  The current suites contain 245 combat, 33 round-flow, and 13 integration
-  checks. K1, R1, corner separation, bounded hitstop buffer freeze, and the
+  The current suites contain 245 combat, 33 round-flow, 13 audio/select
+  integration, and 11 intro checks. K1, R1, corner separation, bounded hitstop
+  buffer freeze, and the
   post-KO winner-state repair are covered. Non-METH strikes reject during
   knockdown; METH remains the K1
   exception. Knockdown throws reject in both orientations; wall separation is
@@ -88,7 +100,9 @@ phase exit criteria:
   suitable for a private showing.
 - **Status:** **In progress; exit not met.** The official cast is Peggy and
   Richard on the Bus Stop stage; the HUD and METHtality engine prototype exist.
-  A text-only local character-select mockup (added 2026-11-11) lets P1/P2 pick
+  The Clip now plays before character select; it is a 15-panel, owner-editable
+  comic intro with placeholder art and the approved Peggy/Richard origin. The
+  text-only local character-select mockup (added 2026-11-11) lets P1/P2 pick
   from the approved cast and routes both choices into the match. METHtality
   activates at full meter regardless of opponent health/state, drains the bar,
   and uses a 30-frame freeze, banner, and normal KO flow. The final-round finish

@@ -10,8 +10,9 @@ legends eventually turn on him.
 **License:** TBD — treat as all-rights-reserved until a LICENSE file is added.
 
 **Current scope:** the 15-panel “The Clip” intro leads to Peggy vs Richard on Bus
-Stop Night, a text-only two-player character-select mockup, first-pass character
-cutouts with procedural motion, local keyboard play, HUD/timer/round flow,
+Stop Night, a text-only two-player character-select mockup, owner-approved idle
+sprite sheets (looping in idle; cel 0 as static artwork elsewhere, over
+procedural motion), local keyboard play, HUD/timer/round flow,
 directional specials, EX spenders, a minimal METHtality core, a temporary
 intro/menu song, and temporary match-loop music/combat/UI sounds. Missing or
 partial: gamepad support, stage select, frame-by-frame animation, final

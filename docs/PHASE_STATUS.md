@@ -70,7 +70,7 @@ phase exit criteria:
   blocking and round flow work, and the match can end/restart.
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
-  The current suites contain 247 combat, 34 round-flow, 15 audio/select
+  The current suites contain 260 combat, 34 round-flow, 15 audio/select
   integration, and 23 intro checks. K1, R1, corner separation, bounded hitstop
   buffer freeze, and the
   post-KO winner-state repair are covered. Non-METH strikes reject during
@@ -107,9 +107,11 @@ phase exit criteria:
   and uses a 30-frame freeze, banner, and normal KO flow. A text-only Tripp
   commentary sample appears at the first fight start. The intro/menu and fight
   MP3 tracks loop in their respective screens; hit/block/UI/KO/METHtality cues
-  are wired. Peggy and Richard now use transparent cutouts cropped from their
-  supplied title-card stills; state-driven VisualRoot motion animates those
-  single poses. Authored limb/frame animation, polished stage/fighter art,
+  are wired. Peggy and Richard now render the owner-approved four-cel idle
+  sheets (Pixelorama pipeline, `docs/PIXELORAMA_PIPELINE.md`): the idle loop
+  plays in IDLE and cel 0 is the static artwork for all other states over the
+  state-driven VisualRoot motion. Authored limb/frame animation for the
+  remaining states, polished stage/fighter art,
   voiced/full commentary, a broader SFX pass,
   and the fighter-specific mini route remain. The final-round finish prompt,
   cinematic, camera, and choreography are future work. Confirm usage rights for

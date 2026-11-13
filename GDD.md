@@ -1614,9 +1614,10 @@ Exit criteria:
 > The 15-panel Clip prologue and its pixel-art panels are installed; a text-only
 > Tripp commentary sample appears at the first fight start. The intro/menu and
 > fight MP3 tracks are wired to their respective screens. The polish/private-show
-> exit is still unmet: runtime fighters use first-pass cutouts cropped from the
-> owner-supplied title-card stills, with state-driven motion but no authored
-> frame-by-frame poses; polished stage/art are not final, voiced/full commentary
+> exit is still unmet: runtime fighters play the owner-approved four-cel idle
+> sheets in idle and reuse cel 0 as static artwork for all other states (over
+> state-driven motion, with no authored frame-by-frame poses yet); polished
+> stage/art are not final, voiced/full commentary
 > and the broader SFX pass are absent, the fighter-
 > specific mini route is not implemented, and private-show approval is pending.
 > Confirm usage rights for the owner-supplied MP3 tracks before public release.

@@ -189,11 +189,14 @@ that section by hand afterward — the simulation step comes from
 
 ## Deliberate gaps (next phases)
 
-- **No authored sprite animation frames yet.** Runtime fighters use cropped
-  single-pose cutouts from the supplied title cards, with state-driven VisualRoot
-  motion (idle, walk, jump, attack, hit/recovery, knockdown, and win). It moves
-  each full-body still rather than animating limbs. Combat boxes are unchanged;
-  authored frame animation and final character art remain.
+- **Only the idle loops are authored sprite animation.** Runtime fighters use
+  the owner-approved four-cel idle sheets (`art/source/Characters/Animations/`):
+  the loop plays in IDLE, and cel 0 serves as static artwork for every other
+  state, on top of the existing state-driven VisualRoot motion (walk, crouch,
+  jump, attack, hit/recovery, knockdown, and win). That cel-0 static artwork
+  still does not animate limbs; authored frames for the remaining states and
+  final character art remain. Combat boxes are unchanged. The facing-flip
+  side-swap question (Peggy's peg leg / Richard's bottle) is still deferred.
 - **Temporary audio only; no final VFX/mix.** Intro/menu and fight MP3 tracks plus
   basic hit/block/UI/round/KO/METHtality cues are wired; confirm MP3 usage rights
   before public release. Tripp voice, crowd, hit sparks, screen shake,
@@ -293,8 +296,10 @@ These are measured or first-pass limits, not phase-exit validation.
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **247 checks**: distinct Peggy/Richard visual
-  walk cycles, cycling idle breathing, unchanged combat boxes, clean hits and
+- `game/tests/combat_test.gd` — **260 checks**: distinct Peggy/Richard sheet
+  artwork in walk states, the authored idle sheet (selection, visibility, cel
+  cadence, wrap, hitstop/pause freeze, re-entry reset, facing pivot, and the
+  missing-art fallback), unchanged combat boxes, clean hits and
   damage-vs-data,
   block chip, low vs stand block, throw unblockability, jump arc, P2 bindings,
   blockstun blocking, shared hitstop, KO landing, real-key input-map resolution,

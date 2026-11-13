@@ -6,6 +6,7 @@ extends CharacterBody2D
 @onready var silhouette: Polygon2D = $VisualRoot/Silhouette
 @onready var facing_marker: Polygon2D = $VisualRoot/FacingMarker
 @onready var character_sprite: Sprite2D = $VisualRoot/CharacterSprite
+@onready var idle_sprite: Sprite2D = $VisualRoot/IdleSprite
 
 enum State {
 	IDLE, WALK_F, WALK_B, CROUCH,
@@ -42,6 +43,16 @@ const CHARACTER_SPRITE_PATHS := {
 	"peg_leg_peggy": "res://art/characters/peg_leg_peggy/spr_peg_leg_peggy_cutout.png",
 	"whiskey_richard": "res://art/characters/whiskey_richard/spr_whiskey_richard_cutout.png",
 }
+# Owner-approved four-cel idle loops (Pixelorama pipeline, 0.15 s per cel).
+# Shown ONLY in State.IDLE; every other state keeps the cutout/silhouette path.
+const IDLE_SHEET_PATHS := {
+	"peg_leg_peggy": "res://art/characters/peg_leg_peggy/spr_peg_leg_peggy_idle.png",
+	"whiskey_richard": "res://art/characters/whiskey_richard/spr_whiskey_richard_idle.png",
+}
+const IDLE_CELLS := 4
+const IDLE_CEL_DURATION := 0.15
+# In-sheet feet anchor (pixel) shared by both approved sheets' manifests.
+const IDLE_ANCHOR := Vector2(48, 78)
 const DEFAULT_LANDING_FRAMES := 2
 # GDD §5.6: a counter hit adds +2 frames of hitstop, shared like ordinary hitstop.
 const COUNTER_HIT_HITSTOP := 2
@@ -109,6 +120,11 @@ const BLOCK_FLASH_FRAMES := 2
 var hit_flash_frames: int = 0
 var block_flash_frames: int = 0
 var _character_art_scale := 0.0
+# Authored idle loop state (see IDLE_SHEET_PATHS). Kept separate from the
+# cutout path so the existing fallback stays intact when idle art is absent.
+var _idle_art_scale := 0.0
+var _idle_art_valid := false
+var _idle_ticks_per_cel := 1
 
 func _ready() -> void:
 	silhouette.modulate = body_color
@@ -154,6 +170,69 @@ func _configure_character_sprite() -> void:
 	character_sprite.visible = true
 	silhouette.visible = false
 	facing_marker.visible = false
+	_configure_idle_sprite()
+
+# Loads the fighter's authored idle sheet (if any) and validates it. Any
+# failure leaves _idle_art_valid false and the existing cutout/silhouette
+# fallback fully in charge - missing idle art must never hide the fighter.
+func _configure_idle_sprite() -> void:
+	_idle_art_valid = false
+	_idle_art_scale = 0.0
+	_idle_ticks_per_cel = maxi(roundi(IDLE_CEL_DURATION * Engine.physics_ticks_per_second), 1)
+	if data == null or _character_art_scale <= 0.0:
+		idle_sprite.visible = false
+		idle_sprite.texture = null
+		return
+	var sheet_path := str(IDLE_SHEET_PATHS.get(data.id, ""))
+	if sheet_path.is_empty() or not ResourceLoader.exists(sheet_path):
+		idle_sprite.visible = false
+		idle_sprite.texture = null
+		return
+	var sheet := load(sheet_path) as Texture2D
+	if sheet == null \
+			or sheet.get_width() != 96 * IDLE_CELLS or sheet.get_height() != 80:
+		idle_sprite.visible = false
+		idle_sprite.texture = null
+		return
+	idle_sprite.texture = sheet
+	idle_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	idle_sprite.hframes = IDLE_CELLS
+	idle_sprite.centered = false
+	# Map the in-sheet feet anchor onto the fighter origin (ground contact),
+	# keeping the node's local x centered on the anchor so flip_h pivots the
+	# art around the planted feet instead of drifting them.
+	idle_sprite.offset = Vector2(-IDLE_ANCHOR.x, -IDLE_ANCHOR.y)
+	idle_sprite.position = Vector2.ZERO
+	# Measure the visible (opaque) bounds across all cels. Scale maps the
+	# visible character height - not the padded cell height - into the same
+	# SILHOUETTE_HEIGHT band the cutout path uses, so the established fighter
+	# height and ground contact are preserved.
+	var image := idle_sprite.texture.get_image()
+	if image == null or image.is_empty():
+		idle_sprite.texture = null
+		return
+	if image.is_compressed() and image.decompress() != OK:
+		idle_sprite.texture = null
+		return
+	var top := int(IDLE_ANCHOR.y)
+	var cel_start := Vector2i(0, 0)
+	for cel in IDLE_CELLS:
+		cel_start = Vector2i(cel * 96, 0)
+		var used := Rect2i(0, 0, 0, 0)
+		for y in range(0, 80):
+			for x in range(cel_start.x, cel_start.x + 96):
+				if image.get_pixel(x, y).a > 0.0:
+					used = used.expand(Vector2i(x, y))
+		if used.size == Vector2i.ZERO:
+			idle_sprite.texture = null
+			return
+		top = mini(top, used.position.y)
+	var visible_height := int(IDLE_ANCHOR.y) - top
+	if visible_height <= 0:
+		idle_sprite.texture = null
+		return
+	_idle_art_scale = SILHOUETTE_HEIGHT / float(visible_height)
+	_idle_art_valid = true
 
 func begin_round(spawn_pos: Vector2, opponent_x: float) -> void:
 	position = spawn_pos
@@ -956,15 +1035,20 @@ func _force_state(new_state: State) -> void:
 
 func _update_silhouette_flash() -> void:
 	# Hit flash is the strong white; block flash is a subtle lightening only.
+	# The authored sheet art takes the same modulate as the legacy cutout so
+	# hit/block feedback stays visible no matter which artwork is showing.
 	if hit_flash_frames > 0:
 		silhouette.modulate = Color(1.0, 1.0, 1.0)
 		character_sprite.modulate = Color(1.35, 1.35, 1.35)
+		idle_sprite.modulate = Color(1.35, 1.35, 1.35)
 	elif block_flash_frames > 0:
 		silhouette.modulate = body_color.lightened(0.35)
 		character_sprite.modulate = Color(1.12, 1.12, 1.12)
+		idle_sprite.modulate = Color(1.12, 1.12, 1.12)
 	else:
 		silhouette.modulate = body_color
 		character_sprite.modulate = Color.WHITE
+		idle_sprite.modulate = Color.WHITE
 
 func _sync_visuals() -> void:
 	var h := _pushbox_height()
@@ -981,7 +1065,34 @@ func _sync_visuals() -> void:
 	visual_root.position = Vector2.ZERO
 	visual_root.rotation = 0.0
 	visual_root.scale = Vector2.ONE
+	_update_idle_display()
 	_apply_state_animation()
+
+# Exactly one character-art visual is visible at a time. The authored sheet
+# shows the four-cel loop in State.IDLE, and cel 0 as static artwork in every
+# other state, so the fighter never swaps back to the clashing legacy cutout.
+# The cutout/silhouette path below remains the emergency fallback when the
+# idle sheet is missing or invalid.
+func _update_idle_display() -> void:
+	var sheet_active := _idle_art_valid and _character_art_scale > 0.0
+	idle_sprite.visible = sheet_active
+	character_sprite.visible = not sheet_active and _character_art_scale > 0.0
+	if not sheet_active:
+		return
+	if state == State.IDLE:
+		# Idle cel timing lives on the simulation clock: state_frame only
+		# advances past the hitstop early-return, so hitstop and match pause
+		# freeze the loop, and _set_state(IDLE) resetting state_frame to 0
+		# restarts at cel 0.
+		idle_sprite.frame = (state_frame / _idle_ticks_per_cel) % IDLE_CELLS
+	else:
+		# Static first cel for every non-idle placeholder state: same scale,
+		# anchor, filtering, and facing as the loop, so transitions never
+		# change character size, ground placement, or artwork.
+		idle_sprite.frame = 0
+	var height_scale := _pushbox_height() / SILHOUETTE_HEIGHT
+	idle_sprite.scale = Vector2(_idle_art_scale, _idle_art_scale * height_scale)
+	idle_sprite.flip_h = facing < 0
 
 func _apply_state_animation() -> void:
 	# First-pass, render-only motion on the placeholder shapes. All animation is
@@ -990,6 +1101,11 @@ func _apply_state_animation() -> void:
 	var frame := float(state_frame)
 	match state:
 		State.IDLE:
+			# Authored idle art replaces the old whole-body breathing bob: with
+			# the sheet active the loop itself carries the motion, so VisualRoot
+			# stays at rest and the feet never drift.
+			if _idle_art_valid:
+				return
 			var rate := 0.2 if is_peggy else 0.12
 			var phase := frame * rate + (0.0 if is_peggy else 0.75)
 			var breath := absf(sin(phase))

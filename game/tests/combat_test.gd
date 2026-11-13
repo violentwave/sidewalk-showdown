@@ -169,8 +169,10 @@ func _run() -> void:
 	var p2_box_before := p2.pushbox_rect()
 	p1._sync_visuals()
 	p2._sync_visuals()
-	_check("Peggy and Richard cutouts animate differently without moving combat boxes",
-		p1.character_sprite.visible and p2.character_sprite.visible
+	_check("Peggy and Richard sheet artwork animates differently without moving combat boxes",
+		p1.idle_sprite.visible and p2.idle_sprite.visible
+			and not p1.character_sprite.visible and not p2.character_sprite.visible
+			and p1.idle_sprite.frame == 0 and p2.idle_sprite.frame == 0
 			and p1.visual_root.position.distance_to(p2.visual_root.position) > 0.1
 			and p1.position == Vector2(100, 150) and p2.position == Vector2(200, 150)
 			and p1.pushbox_rect().position == p1_box_before.position
@@ -184,9 +186,106 @@ func _run() -> void:
 	var peggy_idle_pose := p1.visual_root.position
 	p1.state_frame = 8
 	p1._sync_visuals()
-	_check("Peggy's idle breathing cycles on simulation frames",
-		p1.visual_root.position.distance_to(peggy_idle_pose) > 0.1,
-		"idle animation did not advance with state_frame")
+	_check("authored idle replaces the idle breathing bob",
+		p1.idle_sprite.texture != null and p1.idle_sprite.hframes == 4
+			and p1._idle_art_valid and p1._idle_ticks_per_cel == 9
+			and p1.visual_root.position == Vector2.ZERO
+			and p1.visual_root.scale == Vector2.ONE
+			and p1.visual_root.position.distance_to(peggy_idle_pose) == 0.0,
+		"idle sheet missing or visual_root still animating")
+	p1.input_enabled = true
+	p2.input_enabled = true
+
+	# --- 1b. authored idle loop behavior (IDLE only, sim-timed) ---
+	_reset_fighters(100, 200)
+	p1.input_enabled = false
+	p2.input_enabled = false
+	p1._force_state(FighterBase.State.IDLE)
+	p1.state_frame = 0
+	p1._sync_visuals()
+	_check("idle shows the sheet and hides the cutout",
+		p1.idle_sprite.visible and not p1.character_sprite.visible
+			and p1.character_sprite.texture != null,
+		"idle=%s cutout=%s" % [str(p1.idle_sprite.visible), str(p1.character_sprite.visible)])
+	var idle_box := p1.pushbox_rect()
+	_check("idle does not move combat boxes",
+		idle_box.position == Vector2(100 - p1.body_width * 0.5, 150 - p1.body_height)
+			and idle_box.size == Vector2(p1.body_width, p1.body_height),
+		str(idle_box))
+	var sync_frame := p1.idle_sprite.frame
+	for i in 5:
+		p1._sync_visuals()
+	_check("repeated visual syncs do not restart the idle", p1.idle_sprite.frame == sync_frame,
+		"frame %d -> %d" % [sync_frame, p1.idle_sprite.frame])
+	var cel_samples := {0: 0, 8: 0, 9: 1, 17: 1, 18: 2, 35: 3, 36: 0}
+	var cel_ok := true
+	for tick: int in cel_samples:
+		p1.state_frame = tick
+		p1._sync_visuals()
+		if p1.idle_sprite.frame != cel_samples[tick]:
+			cel_ok = false
+	_check("idle cels advance every 9 simulation ticks and wrap",
+		cel_ok and p1._idle_ticks_per_cel == 9,
+		"ticks_per_cel=%d" % p1._idle_ticks_per_cel)
+	p1.state_frame = 4
+	p1.facing = -1
+	p1._sync_visuals()
+	_check("facing flip pivots the idle around the feet anchor",
+		p1.idle_sprite.flip_h and p1.idle_sprite.position == Vector2.ZERO
+			and p1.idle_sprite.offset == Vector2(-48, -78),
+		"flip=%s pos=%s" % [str(p1.idle_sprite.flip_h), str(p1.idle_sprite.position)])
+	p1.facing = 1
+	p1._force_state(FighterBase.State.WALK_F)
+	p1.state_frame = 30
+	p1._sync_visuals()
+	var walk_scale := p1.idle_sprite.scale
+	var walk_pos := p1.idle_sprite.position
+	_check("non-idle states keep the same sheet artwork, scale, and anchor",
+		p1.idle_sprite.visible and not p1.character_sprite.visible
+			and p1.idle_sprite.frame == 0 and walk_pos == Vector2.ZERO
+			and is_equal_approx(walk_scale.x, p1._idle_art_scale),
+		"frame=%d pos=%s scale=%s" % [p1.idle_sprite.frame, str(walk_pos), str(walk_scale)])
+	p1._force_state(FighterBase.State.CROUCH)
+	p1._sync_visuals()
+	_check("crouch squash matches the legacy height rule",
+		is_equal_approx(p1.idle_sprite.scale.y,
+			p1._idle_art_scale * (p1.body_height * 0.65) / FighterBase.SILHOUETTE_HEIGHT)
+			and p1.idle_sprite.frame == 0,
+		"scale.y=%.3f" % p1.idle_sprite.scale.y)
+	# Crouch sets crouching=true via state change; clear it through IDLE.
+	p1._force_state(FighterBase.State.IDLE)
+	p1.crouching = false
+	p1._sync_visuals()
+	_check("idle re-entry restarts deterministically at cel zero",
+		p1.state_frame == 0 and p1.idle_sprite.frame == 0,
+		"state_frame=%d cel=%d" % [p1.state_frame, p1.idle_sprite.frame])
+	_check("idle loop resumes with the shared artwork and no size jump",
+		p1.idle_sprite.visible and not p1.character_sprite.visible
+			and is_equal_approx(p1.idle_sprite.scale.x, walk_scale.x),
+		"scale %.3f vs %.3f" % [p1.idle_sprite.scale.x, walk_scale.x])
+	# Hitstop/pause freeze: the frame index derives from state_frame, which the
+	# hitstop early-return never advances and a paused tree never ticks.
+	var frozen_cel := p1.idle_sprite.frame
+	p1.hitstop_frames = 5
+	await _step(3)
+	_check("hitstop freezes idle cels",
+		p1.hitstop_frames == 2 and p1.state_frame == 0 and p1.idle_sprite.frame == frozen_cel,
+		"hitstop=%d state_frame=%d cel=%d" % [p1.hitstop_frames, p1.state_frame, p1.idle_sprite.frame])
+	await _step(5)
+	p1._idle_art_valid = false
+	p1._sync_visuals()
+	_check("invalid idle art falls back to the cutout",
+		not p1.idle_sprite.visible and p1.character_sprite.visible,
+		"idle=%s cutout=%s" % [str(p1.idle_sprite.visible), str(p1.character_sprite.visible)])
+	p1._configure_idle_sprite()
+	p2._force_state(FighterBase.State.IDLE)
+	p2.state_frame = 0
+	p2._sync_visuals()
+	_check("Richard's idle sheet loads with his own silhouette",
+		p2.idle_sprite.texture != null and p2.idle_sprite.hframes == 4
+			and p2.idle_sprite.visible and not p2.character_sprite.visible
+			and p2.idle_sprite.texture != p1.idle_sprite.texture,
+		"richard idle=%s" % str(p2.idle_sprite.texture != null))
 	p1.input_enabled = true
 	p2.input_enabled = true
 
@@ -357,6 +456,12 @@ func _run() -> void:
 	await _step(4)
 	_check("pause freezes fighters", p2.state_frame == p2_frame,
 		"frame %d -> %d" % [p2_frame, p2.state_frame])
+	p1._sync_visuals()
+	_check("pause freezes idle cels",
+		p1.state == FighterBase.State.IDLE and p1.idle_sprite.frame == 0
+			and p1.idle_sprite.visible,
+		"state=%d cel=%d visible=%s" % [p1.state, p1.idle_sprite.frame,
+			str(p1.idle_sprite.visible)])
 	_check("pause keeps match controller running", scene.can_process(),
 		"can_process=%s" % str(scene.can_process()))
 	_check("pause opens the menu", paused and scene.pause_index == 0,

@@ -11,6 +11,12 @@ on:
 permissions:
   contents: read
 
+# A newer push supersedes an in-flight export; cancelling keeps the queue (and
+# artifact storage) from filling with obsolete builds.
+concurrency:
+  group: export-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   GODOT_VERSION: "4.7.2"
 
@@ -39,24 +45,17 @@ jobs:
         id: sha
         run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
-      # The ~1GB export templates only change when the Godot version does.
-      # setup-godot caches its own download, but only in the runner's local tool
-      # cache, which hosted runners do not keep between jobs — so keep the
-      # installed templates in the Actions cache instead.
-      - name: Cache Godot export templates
-        id: templates
-        uses: actions/cache@v4
-        with:
-          path: ~/.local/share/godot/export_templates
-          key: godot-${{ env.GODOT_VERSION }}-templates-${{ runner.os }}
-
+      # The ~1 GB export templates do not fit this repository's Actions storage
+      # budget: on the free plan the total is 500 MB, so caching the installed
+      # templates (even as one entry) consumes the quota the build artifacts
+      # need, and both upload steps then fail with "Artifact storage quota has
+      # been hit". Download the templates per run instead — that is the only
+      # step that gets slower, and it keeps exports publishable.
       - uses: chickensoft-games/setup-godot@v2
         with:
           version: ${{ env.GODOT_VERSION }}
           use-dotnet: false
-          # On a cache hit the templates are already restored into Godot's
-          # export_templates directory, so skip the download.
-          include-templates: ${{ steps.templates.outputs.cache-hit != 'true' }}
+          include-templates: true
 
       - name: Import project
         run: godot --headless --path game --import
@@ -75,4 +74,7 @@ jobs:
           name: ${{ matrix.artifact }}-${{ steps.sha.outputs.short }}
           path: ${{ matrix.dir }}
           if-no-files-found: error
-          retention-days: 30
+          # Builds are ~50-60 MB per platform. A shorter window keeps the free
+          # Actions storage budget below its 500 MB cap; anything older is
+          # reproducible from its commit.
+          retention-days: 14

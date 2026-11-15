@@ -36,6 +36,14 @@ owner-cleaned exports, and several Richard sheets are drawn at different art
 scales (measured per clip via `h_ref`), so uniform-scale re-exports are
 welcome but not required for the current integration.
 
+## Screenshots
+
+`docs/assets/` holds captures of this build (match, The Clip intro panel, and
+character select) used in `README.md`. They are framebuffer captures produced by
+`game/tools/readme_capture.gd`, so they show only owner-supplied project art
+under the same all-rights-reserved terms as the rest of the repository; no
+third-party image is embedded in them.
+
 ## “The Clip” intro fonts
 
 All three bundled families are licensed under the SIL Open Font License 1.1.

@@ -405,5 +405,14 @@ These are measured or first-pass limits, not phase-exit validation.
   the air-probe job can still fail the workflow even though the script contains
   no assertions.
 - `.github/workflows/export.yml` builds Linux/Windows artifacts on `main` and
-  `v*` tags, can be dispatched by hand, and caches the export templates per
-  Godot version.
+  `v*` tags, can be dispatched by hand, cancels superseded runs on the same
+  ref, and keeps artifacts for 14 days. It downloads Godot's export templates
+  on every run instead of caching them: the ~1 GB template cache alone exceeds
+  the free plan's 500 MB Actions storage budget, which previously made both
+  artifact uploads fail with "Artifact storage quota has been hit" (first seen
+  with #42 on 2026-11-12, before the animation work). Per-run downloads are the
+  only cost; the builds themselves were never affected.
+- `game/tools/readme_capture.gd` is a display-only helper that captures the
+  three screens used in `README.md` (intro panel, character select, posed
+  match) to `/tmp/opencode/readme/`. Reviewed images are copied into
+  `docs/assets/` deliberately; the tool never writes into the repo.

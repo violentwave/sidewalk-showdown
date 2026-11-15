@@ -19,3 +19,8 @@ polygon = PackedVector2Array(0, -4, 7, 0, 0, 4)
 [node name="CharacterSprite" type="Sprite2D" parent="VisualRoot"]
 visible = false
 texture_filter = 1
+
+[node name="IdleSprite" type="Sprite2D" parent="VisualRoot"]
+visible = false
+centered = false
+texture_filter = 1

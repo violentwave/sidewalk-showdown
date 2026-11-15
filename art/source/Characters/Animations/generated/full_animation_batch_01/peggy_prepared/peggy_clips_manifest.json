@@ -1,0 +1,974 @@
+{
+ "standing_reference_px": 74.0,
+ "clips": [
+  {
+   "key": "air",
+   "source": "peggy_air_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    76,
+    89
+   ],
+   "anchor": [
+    37,
+    86
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "all poses airborne; ref is the landing frame"
+   ],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/air.png"
+  },
+  {
+   "key": "back",
+   "source": "peggy_back_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    58,
+    79
+   ],
+   "anchor": [
+    28,
+    76
+   ],
+   "h_ref": 73.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/back.png"
+  },
+  {
+   "key": "block_crouch",
+   "source": "peggy_block_crouch_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    64,
+    92
+   ],
+   "anchor": [
+    31,
+    89
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "guard pose is flattened; art scale matched to idle via hat-width measure",
+    "h_ref estimated (no upright pose in sheet)"
+   ],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/block_crouch.png"
+  },
+  {
+   "key": "block_stand",
+   "source": "peggy_block_stand_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 2,
+   "cel": [
+    88,
+    119
+   ],
+   "anchor": [
+    43,
+    116
+   ],
+   "h_ref": 107.0,
+   "baseline": 185,
+   "enabled": true,
+   "flags": [
+    "sheet drawn ~1.55x larger; auto-normalized via h_ref"
+   ],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/block_stand.png"
+  },
+  {
+   "key": "blockstun_crouch",
+   "source": "peggy_blockstun_crouch_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    64,
+    78
+   ],
+   "anchor": [
+    31,
+    75
+   ],
+   "h_ref": 73.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/blockstun_crouch.png"
+  },
+  {
+   "key": "blockstun_stand",
+   "source": "peggy_blockstun_stand_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 2,
+   "cel": [
+    80,
+    122
+   ],
+   "anchor": [
+    39,
+    119
+   ],
+   "h_ref": 117.0,
+   "baseline": 188,
+   "enabled": true,
+   "flags": [
+    "sheet drawn ~1.55x larger; auto-normalized via h_ref"
+   ],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/blockstun_stand.png"
+  },
+  {
+   "key": "command_grab",
+   "source": "peggy_command_grab_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    56,
+    80
+   ],
+   "anchor": [
+    27,
+    77
+   ],
+   "h_ref": 72.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/command_grab.png"
+  },
+  {
+   "key": "crouch_down",
+   "source": "peggy_crouch_down_draft_sheet.jpeg",
+   "source_format": "JPEG",
+   "source_size": [
+    1792,
+    592
+   ],
+   "frames": 3,
+   "cel": [
+    316,
+    562
+   ],
+   "anchor": [
+    157,
+    559
+   ],
+   "h_ref": 580.5352112676056,
+   "baseline": 588,
+   "enabled": false,
+   "flags": [
+    "JPEG front-facing crouch on painted checkerboard; needs owner review before enabling",
+    "opaque JPEG source; exterior-connected masking applied on derived copy",
+    "crouched-only JPEG; standing height estimated from pose"
+   ],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/crouch_down.png"
+  },
+  {
+   "key": "crouch_heavy",
+   "source": "peggy_crouch_heavy_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    64,
+    81
+   ],
+   "anchor": [
+    31,
+    78
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/crouch_heavy.png"
+  },
+  {
+   "key": "crouch_hold",
+   "source": "peggy_crouch_hold_draft_sheet.jpeg",
+   "source_format": "JPEG",
+   "source_size": [
+    1584,
+    672
+   ],
+   "frames": 2,
+   "cel": [
+    514,
+    617
+   ],
+   "anchor": [
+    256,
+    614
+   ],
+   "h_ref": 637.8591549295775,
+   "baseline": 671,
+   "enabled": true,
+   "flags": [
+    "JPEG side-facing crouch; masked on derived copy; scale estimated from crouch pose",
+    "opaque JPEG source; exterior-connected masking applied on derived copy",
+    "crouched-only JPEG; standing height estimated from pose"
+   ],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/crouch_hold.png"
+  },
+  {
+   "key": "crouch_light",
+   "source": "peggy_crouch_light_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 5,
+   "cel": [
+    64,
+    79
+   ],
+   "anchor": [
+    31,
+    76
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/crouch_light.png"
+  },
+  {
+   "key": "crouch_up",
+   "source": "peggy_crouch_up_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    50,
+    79
+   ],
+   "anchor": [
+    24,
+    76
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/crouch_up.png"
+  },
+  {
+   "key": "down",
+   "source": "peggy_down_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    64,
+    81
+   ],
+   "anchor": [
+    31,
+    78
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/down.png"
+  },
+  {
+   "key": "forward",
+   "source": "peggy_forward_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    62,
+    94
+   ],
+   "anchor": [
+    30,
+    91
+   ],
+   "h_ref": 75.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/forward.png"
+  },
+  {
+   "key": "forward_ex",
+   "source": "peggy_forward_ex_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    52,
+    96
+   ],
+   "anchor": [
+    25,
+    93
+   ],
+   "h_ref": 73.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/forward_ex.png"
+  },
+  {
+   "key": "grab",
+   "source": "peggy_grab_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    54,
+    79
+   ],
+   "anchor": [
+    26,
+    76
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/grab.png"
+  },
+  {
+   "key": "heavy",
+   "source": "peggy_heavy_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    58,
+    79
+   ],
+   "anchor": [
+    28,
+    76
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/heavy.png"
+  },
+  {
+   "key": "hitstun_air",
+   "source": "peggy_hitstun_air_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    78,
+    97
+   ],
+   "anchor": [
+    38,
+    94
+   ],
+   "h_ref": 74.0,
+   "baseline": 174,
+   "enabled": true,
+   "flags": [
+    "airborne pose shortens on screen; art scale matched to idle via hat-width measure",
+    "h_ref estimated (no upright pose in sheet)"
+   ],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/hitstun_air.png"
+  },
+  {
+   "key": "hitstun_crouch",
+   "source": "peggy_hitstun_crouch_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    82,
+    98
+   ],
+   "anchor": [
+    40,
+    95
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "crouched-only sheet; art scale matched to idle via hat-width measure",
+    "h_ref estimated (no upright pose in sheet)"
+   ],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/hitstun_crouch.png"
+  },
+  {
+   "key": "hitstun_stand",
+   "source": "peggy_hitstun_stand_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    56,
+    85
+   ],
+   "anchor": [
+    27,
+    82
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "recoil pose is shortened; art scale matched to idle via hat-width measure",
+    "h_ref estimated (no upright pose in sheet)"
+   ],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/hitstun_stand.png"
+  },
+  {
+   "key": "jump_fall",
+   "source": "peggy_jump_fall_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 2,
+   "cel": [
+    60,
+    108
+   ],
+   "anchor": [
+    29,
+    105
+   ],
+   "h_ref": 74.0,
+   "baseline": 175,
+   "enabled": true,
+   "flags": [
+    "airborne-only sheet; art scale matched to idle via hat-width measure",
+    "h_ref estimated (no upright pose in sheet)"
+   ],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/jump_fall.png"
+  },
+  {
+   "key": "jump_heavy",
+   "source": "peggy_jump_heavy_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    64,
+    79
+   ],
+   "anchor": [
+    31,
+    76
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/jump_heavy.png"
+  },
+  {
+   "key": "jump_light",
+   "source": "peggy_jump_light_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    76,
+    83
+   ],
+   "anchor": [
+    37,
+    80
+   ],
+   "h_ref": 71.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/jump_light.png"
+  },
+  {
+   "key": "jump_rise",
+   "source": "peggy_jump_rise_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    56,
+    79
+   ],
+   "anchor": [
+    27,
+    76
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/jump_rise.png"
+  },
+  {
+   "key": "jump_start",
+   "source": "peggy_jump_start_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    56,
+    79
+   ],
+   "anchor": [
+    27,
+    76
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/jump_start.png"
+  },
+  {
+   "key": "knockdown",
+   "source": "peggy_knockdown_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 4,
+   "cel": [
+    92,
+    81
+   ],
+   "anchor": [
+    45,
+    78
+   ],
+   "h_ref": 76.0,
+   "baseline": 168,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/knockdown.png"
+  },
+  {
+   "key": "ko_air",
+   "source": "peggy_ko_air_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    78,
+    83
+   ],
+   "anchor": [
+    38,
+    80
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/ko_air.png"
+  },
+  {
+   "key": "ko_ground",
+   "source": "peggy_ko_ground_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    66,
+    83
+   ],
+   "anchor": [
+    32,
+    80
+   ],
+   "h_ref": 72.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "final pose is a hunched collapse, not flat-on-ground; owner review advised"
+   ],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/ko_ground.png"
+  },
+  {
+   "key": "land",
+   "source": "peggy_land_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    74,
+    91
+   ],
+   "anchor": [
+    36,
+    88
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "pose-height ref overstated scale; art scale matched to idle via hat-width measure",
+    "h_ref estimated (no upright pose in sheet)"
+   ],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/land.png"
+  },
+  {
+   "key": "light",
+   "source": "peggy_light_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    52,
+    79
+   ],
+   "anchor": [
+    25,
+    76
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/light.png"
+  },
+  {
+   "key": "meth",
+   "source": "peggy_meth_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    62,
+    85
+   ],
+   "anchor": [
+    30,
+    82
+   ],
+   "h_ref": 79.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/meth.png"
+  },
+  {
+   "key": "neutral",
+   "source": "peggy_neutral_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    54,
+    79
+   ],
+   "anchor": [
+    26,
+    76
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/neutral.png"
+  },
+  {
+   "key": "neutral_ex",
+   "source": "peggy_neutral_ex_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    68,
+    79
+   ],
+   "anchor": [
+    33,
+    76
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/neutral_ex.png"
+  },
+  {
+   "key": "stage_intro",
+   "source": "peggy_stage_intro_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 4,
+   "cel": [
+    56,
+    95
+   ],
+   "anchor": [
+    27,
+    92
+   ],
+   "h_ref": 90.0,
+   "baseline": 167,
+   "enabled": false,
+   "flags": [
+    "optional; no runtime hook yet"
+   ],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/stage_intro.png"
+  },
+  {
+   "key": "throw_target",
+   "source": "peggy_throw_target_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    100,
+    85
+   ],
+   "anchor": [
+    49,
+    82
+   ],
+   "h_ref": 80.0,
+   "baseline": 167,
+   "enabled": false,
+   "flags": [
+    "optional throw-victim clip; no paired throw cinematic, unmapped"
+   ],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/throw_target.png"
+  },
+  {
+   "key": "throw_tech",
+   "source": "peggy_throw_tech_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    66,
+    80
+   ],
+   "anchor": [
+    32,
+    77
+   ],
+   "h_ref": 75.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/throw_tech.png"
+  },
+  {
+   "key": "wake_up",
+   "source": "peggy_wake_up_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 4,
+   "cel": [
+    68,
+    79
+   ],
+   "anchor": [
+    33,
+    76
+   ],
+   "h_ref": 74.0,
+   "baseline": 168,
+   "enabled": true,
+   "flags": [],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/wake_up.png"
+  },
+  {
+   "key": "walk_backward",
+   "source": "peggy_walk_backward_draft_sheet.jpeg",
+   "source_format": "JPEG",
+   "source_size": [
+    2544,
+    416
+   ],
+   "frames": 6,
+   "cel": [
+    564,
+    421
+   ],
+   "anchor": [
+    281,
+    418
+   ],
+   "h_ref": 416.0,
+   "baseline": 416,
+   "enabled": false,
+   "flags": [
+    "JPEG front-facing walk; painted checkerboard; needs owner review before enabling",
+    "opaque JPEG source; exterior-connected masking applied on derived copy",
+    "standing height taken from tallest pose"
+   ],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/walk_backward.png"
+  },
+  {
+   "key": "walk_forward",
+   "source": "peggy_walk_forward_draft_sheet.jpeg",
+   "source_format": "JPEG",
+   "source_size": [
+    1133,
+    944
+   ],
+   "frames": 8,
+   "cel": [
+    248,
+    436
+   ],
+   "anchor": [
+    123,
+    433
+   ],
+   "h_ref": 431.0,
+   "baseline": 938,
+   "enabled": false,
+   "flags": [
+    "JPEG front-facing walk; painted checkerboard; needs owner review before enabling",
+    "opaque JPEG source; exterior-connected masking applied on derived copy",
+    "standing height taken from tallest pose"
+   ],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/walk_forward.png"
+  },
+  {
+   "key": "win",
+   "source": "peggy_win_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 4,
+   "cel": [
+    56,
+    89
+   ],
+   "anchor": [
+    27,
+    86
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "art scale matched to idle via hat-width measure",
+    "h_ref estimated (no upright pose in sheet)"
+   ],
+   "runtime": "res://art/characters/peg_leg_peggy/clips/win.png"
+  }
+ ]
+}

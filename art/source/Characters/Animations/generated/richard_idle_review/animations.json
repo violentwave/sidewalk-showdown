@@ -1,0 +1,71 @@
+{
+  "status": "generated review draft; not wired into game",
+  "image": "whiskey_richard_idle_sheet.png",
+  "canvas": {
+    "width": 384,
+    "height": 80
+  },
+  "cell": {
+    "width": 96,
+    "height": 80
+  },
+  "anchor": {
+    "x": 48,
+    "y": 78
+  },
+  "facing": "screen-right three-quarter",
+  "animations": {
+    "idle": {
+      "loop": true,
+      "frames": [
+        {
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 80
+          },
+          "duration_seconds": 0.15
+        },
+        {
+          "rect": {
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 80
+          },
+          "duration_seconds": 0.15
+        },
+        {
+          "rect": {
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 80
+          },
+          "duration_seconds": 0.15
+        },
+        {
+          "rect": {
+            "x": 288,
+            "y": 0,
+            "width": 96,
+            "height": 80
+          },
+          "duration_seconds": 0.15
+        }
+      ]
+    }
+  },
+  "processing": [
+    "alpha threshold 128",
+    "uniform nearest-neighbor scale",
+    "shared 32-color palette without dithering",
+    "lower 24 rows locked to first cel for planted feet"
+  ],
+  "review_notes": [
+    "No combat timing or runtime changes",
+    "No native PXO created; import cels into prepared template",
+    "AI-generated review draft; review small prop/face variations before approval"
+  ]
+}

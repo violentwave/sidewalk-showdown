@@ -70,7 +70,7 @@ phase exit criteria:
   blocking and round flow work, and the match can end/restart.
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
-  The current suites contain 247 combat, 34 round-flow, 15 audio/select
+  The current suites contain 260 combat, 34 round-flow, 15 audio/select
   integration, and 23 intro checks. K1, R1, corner separation, bounded hitstop
   buffer freeze, and the
   post-KO winner-state repair are covered. Non-METH strikes reject during
@@ -107,11 +107,32 @@ phase exit criteria:
   and uses a 30-frame freeze, banner, and normal KO flow. A text-only Tripp
   commentary sample appears at the first fight start. The intro/menu and fight
   MP3 tracks loop in their respective screens; hit/block/UI/KO/METHtality cues
-  are wired. Peggy and Richard now use transparent cutouts cropped from their
-  supplied title-card stills; state-driven VisualRoot motion animates those
-  single poses. Authored limb/frame animation, polished stage/fighter art,
-  voiced/full commentary, a broader SFX pass,
-  and the fighter-specific mini route remain. The final-round finish prompt,
+  are wired. Peggy and Richard render the owner-approved four-cel idle
+  sheets (Pixelorama pipeline, `docs/PIXELORAMA_PIPELINE.md`): the idle loop
+  plays in IDLE and cel 0 is the static artwork for all other states over the
+  state-driven VisualRoot motion. As of 2026-11-13 (uncommitted), Peggy's
+  non-idle states and all 16 attacks play the owner's full-animation-batch
+  authored clips (`docs/PIXELORAMA_PIPELINE.md` §8); her walk/crouch-down JPEGs
+  are gated off pending owner review. As of 2026-11-14 (uncommitted), Richard
+  also plays his own 40-clip batch (`docs/PIXELORAMA_PIPELINE.md` §9): 38 clips
+  live (incl. side-facing walks and crouch-hold), 16/16 moves mapped, with
+  `stage_intro`/`throw_target` gated and `crouch_down` unmapped until a
+  crouch-entry state exists. Richard's sheets are drawn at different art
+  scales, so each clip records a measured `h_ref` and renders at the idle
+  on-screen height with no resampling. As of 2026-11-15 (uncommitted), a
+  presentation-only polish pass (`docs/PIXELORAMA_PIPELINE.md` §9a) fixed
+  frozen walk cycles, a landing pose that played mid-air, landing cel order,
+  the skipped jump launch pose, and dead guard poses (stand/crouch guard now
+  appears when holding back at a wall or crouch-blocking); six attack sheets
+  that rendered 15–48 % oversized were recalibrated to idle height. Gameplay
+  data is untouched.
+  Both facings were reviewed in rendered matches; a 3,000-frame live-input
+  soak for each fighter shows no sprite dropouts, stacking, or mid-move size
+  pops.
+  Remaining work: a crouch-entry state (to use Richard's prepared
+  `crouch_down`), a throw cinematic (for `throw_target`), polished
+  stage/fighter art, voiced/full commentary, a broader SFX pass,
+  and the fighter-specific mini route. The final-round finish prompt,
   cinematic, camera, and choreography are future work. Confirm usage rights for
   owner-supplied MP3s before public release.
 - **Decisions / blockers:** Burnout Bubba and Raccoon Randy remain later-roster

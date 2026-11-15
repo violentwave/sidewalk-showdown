@@ -1,0 +1,1083 @@
+{
+ "standing_reference_px": 74.0,
+ "clips": [
+  {
+   "key": "air",
+   "source": "richard_air_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    92,
+    99
+   ],
+   "anchor": [
+    45,
+    96
+   ],
+   "h_ref": 71.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "all poses airborne; h_ref measured from bandana",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle",
+    "h_ref recalibrated from head height (bandana occlusion skewed the red-area estimate)"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/air.png"
+  },
+  {
+   "key": "back",
+   "source": "richard_back_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    64,
+    62
+   ],
+   "anchor": [
+    31,
+    59
+   ],
+   "h_ref": 60.0,
+   "baseline": 158,
+   "enabled": true,
+   "flags": [
+    "sheet drawn smaller than idle; h_ref measured from bandana",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/back.png"
+  },
+  {
+   "key": "block_crouch",
+   "source": "richard_block_crouch_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 2,
+   "cel": [
+    74,
+    79
+   ],
+   "anchor": [
+    36,
+    76
+   ],
+   "h_ref": 71.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "crouched guard; h_ref measured from bandana",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/block_crouch.png"
+  },
+  {
+   "key": "block_stand",
+   "source": "richard_block_stand_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 2,
+   "cel": [
+    82,
+    78
+   ],
+   "anchor": [
+    40,
+    75
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/block_stand.png"
+  },
+  {
+   "key": "blockstun_crouch",
+   "source": "richard_blockstun_crouch_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 2,
+   "cel": [
+    88,
+    78
+   ],
+   "anchor": [
+    43,
+    75
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/blockstun_crouch.png"
+  },
+  {
+   "key": "blockstun_stand",
+   "source": "richard_blockstun_stand_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 2,
+   "cel": [
+    88,
+    78
+   ],
+   "anchor": [
+    43,
+    75
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/blockstun_stand.png"
+  },
+  {
+   "key": "command_grab",
+   "source": "richard_command_grab_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    66,
+    62
+   ],
+   "anchor": [
+    32,
+    59
+   ],
+   "h_ref": 53.0,
+   "baseline": 156,
+   "enabled": true,
+   "flags": [
+    "sheet drawn smaller than idle; h_ref measured from bandana",
+    "component segmentation [5] -> 6 solo figures (touch-split/speck-drop)",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/command_grab.png"
+  },
+  {
+   "key": "crouch_down",
+   "source": "richard_crouch_down_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    90,
+    86
+   ],
+   "anchor": [
+    44,
+    83
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/crouch_down.png"
+  },
+  {
+   "key": "crouch_heavy",
+   "source": "richard_crouch_heavy_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    66,
+    61
+   ],
+   "anchor": [
+    32,
+    58
+   ],
+   "h_ref": 57.0,
+   "baseline": 160,
+   "enabled": true,
+   "flags": [
+    "sheet drawn smaller than idle; h_ref measured from bandana",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/crouch_heavy.png"
+  },
+  {
+   "key": "crouch_hold",
+   "source": "richard_crouch_hold_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 2,
+   "cel": [
+    88,
+    78
+   ],
+   "anchor": [
+    43,
+    75
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/crouch_hold.png"
+  },
+  {
+   "key": "crouch_light",
+   "source": "richard_crouch_light_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    70,
+    68
+   ],
+   "anchor": [
+    34,
+    65
+   ],
+   "h_ref": 59.0,
+   "baseline": 163,
+   "enabled": true,
+   "flags": [
+    "sheet drawn smaller than idle; h_ref measured from bandana",
+    "component segmentation [5] -> 6 solo figures (touch-split/speck-drop)",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/crouch_light.png"
+  },
+  {
+   "key": "crouch_up",
+   "source": "richard_crouch_up_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    80,
+    92
+   ],
+   "anchor": [
+    39,
+    89
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/crouch_up.png"
+  },
+  {
+   "key": "down",
+   "source": "richard_down_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    60,
+    58
+   ],
+   "anchor": [
+    29,
+    55
+   ],
+   "h_ref": 50.0,
+   "baseline": 156,
+   "enabled": true,
+   "flags": [
+    "sheet drawn smaller than idle; h_ref measured from bandana",
+    "component segmentation [3] -> 6 solo figures (touch-split/speck-drop)",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/down.png"
+  },
+  {
+   "key": "forward",
+   "source": "richard_forward_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    70,
+    85
+   ],
+   "anchor": [
+    34,
+    82
+   ],
+   "h_ref": 72.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "sheet drawn smaller than idle; h_ref measured from bandana",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle",
+    "h_ref recalibrated from head height (bandana occlusion skewed the red-area estimate)"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/forward.png"
+  },
+  {
+   "key": "forward_ex",
+   "source": "richard_forward_ex_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    70,
+    104
+   ],
+   "anchor": [
+    34,
+    101
+   ],
+   "h_ref": 75.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "sheet drawn smaller than idle; h_ref measured from bandana",
+    "component segmentation [5] -> 6 solo figures (touch-split/speck-drop)",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle",
+    "h_ref recalibrated from head height (bandana occlusion skewed the red-area estimate)"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/forward_ex.png"
+  },
+  {
+   "key": "grab",
+   "source": "richard_grab_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    80,
+    63
+   ],
+   "anchor": [
+    39,
+    60
+   ],
+   "h_ref": 62.0,
+   "baseline": 160,
+   "enabled": true,
+   "flags": [
+    "sheet drawn smaller than idle; h_ref measured from bandana",
+    "component segmentation [5] -> 6 solo figures (touch-split/speck-drop)",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/grab.png"
+  },
+  {
+   "key": "heavy",
+   "source": "richard_heavy_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 5,
+   "cel": [
+    78,
+    82
+   ],
+   "anchor": [
+    38,
+    79
+   ],
+   "h_ref": 70.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "bottle windup above head; h_ref measured from bandana",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/heavy.png"
+  },
+  {
+   "key": "hitstun_air",
+   "source": "richard_hitstun_air_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    100,
+    95
+   ],
+   "anchor": [
+    49,
+    92
+   ],
+   "h_ref": 74.0,
+   "baseline": 169,
+   "enabled": true,
+   "flags": [
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/hitstun_air.png"
+  },
+  {
+   "key": "hitstun_crouch",
+   "source": "richard_hitstun_crouch_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    84,
+    82
+   ],
+   "anchor": [
+    41,
+    79
+   ],
+   "h_ref": 68.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "crouched recoil; h_ref measured from bandana",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/hitstun_crouch.png"
+  },
+  {
+   "key": "hitstun_stand",
+   "source": "richard_hitstun_stand_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    88,
+    85
+   ],
+   "anchor": [
+    43,
+    82
+   ],
+   "h_ref": 73.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/hitstun_stand.png"
+  },
+  {
+   "key": "jump_fall",
+   "source": "richard_jump_fall_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 2,
+   "cel": [
+    104,
+    97
+   ],
+   "anchor": [
+    51,
+    94
+   ],
+   "h_ref": 71.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "airborne-only sheet; h_ref measured from bandana",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/jump_fall.png"
+  },
+  {
+   "key": "jump_heavy",
+   "source": "richard_jump_heavy_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    70,
+    101
+   ],
+   "anchor": [
+    34,
+    98
+   ],
+   "h_ref": 70.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "sheet drawn smaller than idle; h_ref measured from bandana",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle",
+    "h_ref recalibrated from head height (bandana occlusion skewed the red-area estimate)"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/jump_heavy.png"
+  },
+  {
+   "key": "jump_light",
+   "source": "richard_jump_light_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    78,
+    82
+   ],
+   "anchor": [
+    38,
+    79
+   ],
+   "h_ref": 65.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "sheet drawn smaller than idle; h_ref measured from bandana",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle",
+    "h_ref recalibrated from head height (bandana occlusion skewed the red-area estimate)"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/jump_light.png"
+  },
+  {
+   "key": "jump_rise",
+   "source": "richard_jump_rise_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 2,
+   "cel": [
+    104,
+    102
+   ],
+   "anchor": [
+    51,
+    99
+   ],
+   "h_ref": 74.0,
+   "baseline": 176,
+   "enabled": true,
+   "flags": [
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/jump_rise.png"
+  },
+  {
+   "key": "jump_start",
+   "source": "richard_jump_start_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 2,
+   "cel": [
+    106,
+    101
+   ],
+   "anchor": [
+    52,
+    98
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/jump_start.png"
+  },
+  {
+   "key": "knockdown",
+   "source": "richard_knockdown_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 4,
+   "cel": [
+    78,
+    76
+   ],
+   "anchor": [
+    38,
+    73
+   ],
+   "h_ref": 63.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "reclining frames; h_ref measured from bandana",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/knockdown.png"
+  },
+  {
+   "key": "ko_air",
+   "source": "richard_ko_air_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    98,
+    95
+   ],
+   "anchor": [
+    48,
+    92
+   ],
+   "h_ref": 67.0,
+   "baseline": 176,
+   "enabled": true,
+   "flags": [
+    "airborne KO; h_ref measured from bandana",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/ko_air.png"
+  },
+  {
+   "key": "ko_ground",
+   "source": "richard_ko_ground_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    90,
+    84
+   ],
+   "anchor": [
+    44,
+    81
+   ],
+   "h_ref": 74.0,
+   "baseline": 170,
+   "enabled": true,
+   "flags": [
+    "component segmentation [4] -> 3 solo figures (touch-split/speck-drop)",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/ko_ground.png"
+  },
+  {
+   "key": "land",
+   "source": "richard_land_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    88,
+    87
+   ],
+   "anchor": [
+    43,
+    84
+   ],
+   "h_ref": 81.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "sheet drawn slightly larger than idle; h_ref measured from bandana",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/land.png"
+  },
+  {
+   "key": "light",
+   "source": "richard_light_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 5,
+   "cel": [
+    86,
+    79
+   ],
+   "anchor": [
+    42,
+    76
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "component segmentation [4] -> 5 solo figures (touch-split/speck-drop)",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/light.png"
+  },
+  {
+   "key": "meth",
+   "source": "richard_meth_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    60,
+    61
+   ],
+   "anchor": [
+    29,
+    58
+   ],
+   "h_ref": 56.0,
+   "baseline": 156,
+   "enabled": true,
+   "flags": [
+    "crouched super; sheet drawn smaller than idle; h_ref measured from bandana",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle",
+    "h_ref recalibrated from head height (bandana occlusion skewed the red-area estimate)"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/meth.png"
+  },
+  {
+   "key": "neutral",
+   "source": "richard_neutral_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    66,
+    63
+   ],
+   "anchor": [
+    32,
+    60
+   ],
+   "h_ref": 58.0,
+   "baseline": 160,
+   "enabled": true,
+   "flags": [
+    "sheet drawn smaller than idle; h_ref measured from bandana",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/neutral.png"
+  },
+  {
+   "key": "neutral_ex",
+   "source": "richard_neutral_ex_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 5,
+   "cel": [
+    80,
+    78
+   ],
+   "anchor": [
+    39,
+    75
+   ],
+   "h_ref": 73.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "component segmentation [3] -> 5 solo figures (touch-split/speck-drop)",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/neutral_ex.png"
+  },
+  {
+   "key": "stage_intro",
+   "source": "richard_stage_intro_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 4,
+   "cel": [
+    82,
+    84
+   ],
+   "anchor": [
+    40,
+    81
+   ],
+   "h_ref": 73.0,
+   "baseline": 167,
+   "enabled": false,
+   "flags": [
+    "optional; no runtime hook yet",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/stage_intro.png"
+  },
+  {
+   "key": "throw_target",
+   "source": "richard_throw_target_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    96,
+    82
+   ],
+   "anchor": [
+    47,
+    79
+   ],
+   "h_ref": 51.0,
+   "baseline": 167,
+   "enabled": false,
+   "flags": [
+    "optional throw-victim clip; no paired throw cinematic, unmapped",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/throw_target.png"
+  },
+  {
+   "key": "throw_tech",
+   "source": "richard_throw_tech_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 3,
+   "cel": [
+    96,
+    78
+   ],
+   "anchor": [
+    47,
+    75
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/throw_tech.png"
+  },
+  {
+   "key": "wake_up",
+   "source": "richard_wake_up_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 4,
+   "cel": [
+    86,
+    77
+   ],
+   "anchor": [
+    42,
+    74
+   ],
+   "h_ref": 73.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/wake_up.png"
+  },
+  {
+   "key": "walk_backward",
+   "source": "richard_walk_backward_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    68,
+    75
+   ],
+   "anchor": [
+    33,
+    72
+   ],
+   "h_ref": 65.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "side-facing walk cycle",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/walk_backward.png"
+  },
+  {
+   "key": "walk_forward",
+   "source": "richard_walk_forward_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 6,
+   "cel": [
+    88,
+    84
+   ],
+   "anchor": [
+    43,
+    81
+   ],
+   "h_ref": 78.0,
+   "baseline": 226,
+   "enabled": true,
+   "flags": [
+    "side-facing walk cycle",
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/walk_forward.png"
+  },
+  {
+   "key": "win",
+   "source": "richard_win_draft_sheet.png",
+   "source_format": "PNG",
+   "source_size": [
+    256,
+    256
+   ],
+   "frames": 4,
+   "cel": [
+    72,
+    78
+   ],
+   "anchor": [
+    35,
+    75
+   ],
+   "h_ref": 74.0,
+   "baseline": 167,
+   "enabled": true,
+   "flags": [
+    "h_ref supplied by config (bandana-area scale vs idle)",
+    "frame count verified visually; h_ref from bandana-area scale vs idle"
+   ],
+   "runtime": "res://art/characters/whiskey_richard/clips/win.png"
+  }
+ ]
+}

@@ -12,17 +12,29 @@ The first-pass combat cutouts in `game/art/characters/` are crops of the
 owner-supplied Peggy and Richard title-card stills in `art/source/Characters/`.
 The title lettering and unused canvas are excluded; the original source files
 are unchanged. Each cutout is a single pose animated at runtime with the
-procedural `VisualRoot` state motion. They are not sprite sheets or final
-frame-by-frame character animation.
-
-## Peggy and Richard combat cutouts
-
-The first-pass combat cutouts in `game/art/characters/` are crops of the
-owner-supplied Peggy and Richard title-card stills in `art/source/Characters/`.
-The title lettering and unused canvas are excluded; the original source files
-are unchanged. Each cutout is a single pose, animated at runtime with the
 procedural `VisualRoot` state motion; these are not sprite sheets or final
 frame-by-frame character animation.
+
+## Peggy and Richard idle sprite sheets
+
+The approved four-cel idle loops (`spr_peg_leg_peggy_idle.png`,
+`spr_whiskey_richard_idle.png`) are AI-generated drafts that the owner cleaned,
+palette-fixed, reviewed, and approved. The review packs (individual cels,
+manifests, contact/loop previews) and the native editable Pixelorama projects
+(`.pxo`) are kept in `art/source/Characters/Animations/`. No image-provider
+license is claimed for the generated cels; they are treated as
+owner-supplied, all-rights-reserved project assets like the rest of the art.
+Non-idle states reuse cel 0 of these sheets as the fallback for gated or
+missing clips. **Exception (Peggy and Richard):** both fighters' non-idle
+states and attacks now play the owner's full-animation-batch clips (see
+`docs/PIXELORAMA_PIPELINE.md` §8 for Peggy, §9 for Richard); those clips come
+from the same AI-generated PixelLab download batch, are treated identically as
+owner-supplied, all-rights-reserved project assets with no image-provider
+license claimed. The front-facing JPEG-derived Peggy clips
+(`walk_forward`, `walk_backward`, `crouch_down`, `crouch_hold`) still need
+owner-cleaned exports, and several Richard sheets are drawn at different art
+scales (measured per clip via `h_ref`), so uniform-scale re-exports are
+welcome but not required for the current integration.
 
 ## “The Clip” intro fonts
 

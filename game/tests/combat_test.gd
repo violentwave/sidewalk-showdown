@@ -169,9 +169,14 @@ func _run() -> void:
 	var p2_box_before := p2.pushbox_rect()
 	p1._sync_visuals()
 	p2._sync_visuals()
-	_check("Peggy and Richard cutouts animate differently without moving combat boxes",
-		p1.character_sprite.visible and p2.character_sprite.visible
-			and p1.visual_root.position.distance_to(p2.visual_root.position) > 0.1
+	var richard_walk_tex := p2._clip_texture(RichardClipLibrary.state_clip("walk_f"))
+	_check("Richard's authored walk plays while Peggy's gated walk keeps the idle fallback",
+		p1.idle_sprite.visible and p2.idle_sprite.visible
+			and not p1.character_sprite.visible and not p2.character_sprite.visible
+			and p1.idle_sprite.texture == p1._idle_sheet_tex and p1.idle_sprite.frame == 0
+			and p2.idle_sprite.texture == richard_walk_tex and p2.idle_sprite.frame == 0
+			and p1.visual_root.position != Vector2.ZERO
+			and p2.visual_root.position == Vector2.ZERO
 			and p1.position == Vector2(100, 150) and p2.position == Vector2(200, 150)
 			and p1.pushbox_rect().position == p1_box_before.position
 			and p1.pushbox_rect().size == p1_box_before.size
@@ -184,9 +189,115 @@ func _run() -> void:
 	var peggy_idle_pose := p1.visual_root.position
 	p1.state_frame = 8
 	p1._sync_visuals()
-	_check("Peggy's idle breathing cycles on simulation frames",
-		p1.visual_root.position.distance_to(peggy_idle_pose) > 0.1,
-		"idle animation did not advance with state_frame")
+	_check("authored idle replaces the idle breathing bob",
+		p1.idle_sprite.texture != null and p1.idle_sprite.hframes == 4
+			and p1._idle_art_valid and p1._idle_ticks_per_cel == 9
+			and p1.visual_root.position == Vector2.ZERO
+			and p1.visual_root.scale == Vector2.ONE
+			and p1.visual_root.position.distance_to(peggy_idle_pose) == 0.0,
+		"idle sheet missing or visual_root still animating")
+	p1.input_enabled = true
+	p2.input_enabled = true
+
+	# --- 1b. authored idle loop behavior (IDLE only, sim-timed) ---
+	_reset_fighters(100, 200)
+	p1.input_enabled = false
+	p2.input_enabled = false
+	p1._force_state(FighterBase.State.IDLE)
+	p1.state_frame = 0
+	p1._sync_visuals()
+	_check("idle shows the sheet and hides the cutout",
+		p1.idle_sprite.visible and not p1.character_sprite.visible
+			and p1.character_sprite.texture != null,
+		"idle=%s cutout=%s" % [str(p1.idle_sprite.visible), str(p1.character_sprite.visible)])
+	var idle_box := p1.pushbox_rect()
+	_check("idle does not move combat boxes",
+		idle_box.position == Vector2(100 - p1.body_width * 0.5, 150 - p1.body_height)
+			and idle_box.size == Vector2(p1.body_width, p1.body_height),
+		str(idle_box))
+	var sync_frame := p1.idle_sprite.frame
+	for i in 5:
+		p1._sync_visuals()
+	_check("repeated visual syncs do not restart the idle", p1.idle_sprite.frame == sync_frame,
+		"frame %d -> %d" % [sync_frame, p1.idle_sprite.frame])
+	var cel_samples := {0: 0, 8: 0, 9: 1, 17: 1, 18: 2, 35: 3, 36: 0}
+	var cel_ok := true
+	for tick: int in cel_samples:
+		p1.state_frame = tick
+		p1._sync_visuals()
+		if p1.idle_sprite.frame != cel_samples[tick]:
+			cel_ok = false
+	_check("idle cels advance every 9 simulation ticks and wrap",
+		cel_ok and p1._idle_ticks_per_cel == 9,
+		"ticks_per_cel=%d" % p1._idle_ticks_per_cel)
+	p1.state_frame = 4
+	p1.facing = -1
+	p1._sync_visuals()
+	_check("facing flip pivots the idle around the feet anchor",
+		p1.idle_sprite.flip_h and p1.idle_sprite.position == Vector2.ZERO
+			and p1.idle_sprite.offset == Vector2(-48, -78),
+		"flip=%s pos=%s" % [str(p1.idle_sprite.flip_h), str(p1.idle_sprite.position)])
+	p1.facing = 1
+	p1._force_state(FighterBase.State.WALK_F)
+	p1.state_frame = 30
+	p1._sync_visuals()
+	var walk_scale := p1.idle_sprite.scale
+	var walk_pos := p1.idle_sprite.position
+	_check("non-idle states keep the same sheet artwork, scale, and anchor",
+		p1.idle_sprite.visible and not p1.character_sprite.visible
+			and p1.idle_sprite.frame == 0 and walk_pos == Vector2.ZERO
+			and is_equal_approx(walk_scale.x, p1._idle_art_scale),
+		"frame=%d pos=%s scale=%s" % [p1.idle_sprite.frame, str(walk_pos), str(walk_scale)])
+	p1._force_state(FighterBase.State.CROUCH)
+	p1._sync_visuals()
+	var crouch_clip: Dictionary = p1._active_clip
+	_check("crouch shows the authored crouch_hold clip at the shared height",
+		not crouch_clip.is_empty() and p1.idle_sprite.texture != null
+			and p1.idle_sprite.texture != p1._idle_sheet_tex
+			and is_equal_approx(p1.idle_sprite.scale.x,
+				p1._idle_art_scale * PeggyClipLibrary.STANDING_REFERENCE_H_REF
+					/ float(crouch_clip.h_ref))
+			and p1.idle_sprite.frame == 0,
+		"scale=%.3f frame=%d" % [p1.idle_sprite.scale.x, p1.idle_sprite.frame])
+	# The hurtbox squash is gameplay and stays procedural: the pushbox still
+	# collapses to 0.65 height while the authored art carries the crouch pose.
+	_check("crouch keeps the authored pushbox squash",
+		is_equal_approx(p1._pushbox_height(), p1.body_height * 0.65),
+		"pushbox_h=%.1f" % p1._pushbox_height())
+	# Crouch sets crouching=true via state change; clear it through IDLE.
+	p1._force_state(FighterBase.State.IDLE)
+	p1.crouching = false
+	p1._sync_visuals()
+	_check("idle re-entry restarts deterministically at cel zero",
+		p1.state_frame == 0 and p1.idle_sprite.frame == 0,
+		"state_frame=%d cel=%d" % [p1.state_frame, p1.idle_sprite.frame])
+	_check("idle loop resumes with the shared artwork and no size jump",
+		p1.idle_sprite.visible and not p1.character_sprite.visible
+			and is_equal_approx(p1.idle_sprite.scale.x, walk_scale.x),
+		"scale %.3f vs %.3f state=%s transient=%s active=%s tex=%s" % [p1.idle_sprite.scale.x, walk_scale.x, str(p1.state), p1._transient_clip_key, str(p1._active_clip), str(p1.idle_sprite.texture.resource_path if p1.idle_sprite.texture else "")])
+	# Hitstop/pause freeze: the frame index derives from state_frame, which the
+	# hitstop early-return never advances and a paused tree never ticks.
+	var frozen_cel := p1.idle_sprite.frame
+	p1.hitstop_frames = 5
+	await _step(3)
+	_check("hitstop freezes idle cels",
+		p1.hitstop_frames == 2 and p1.state_frame == 0 and p1.idle_sprite.frame == frozen_cel,
+		"hitstop=%d state_frame=%d cel=%d" % [p1.hitstop_frames, p1.state_frame, p1.idle_sprite.frame])
+	await _step(5)
+	p1._idle_art_valid = false
+	p1._sync_visuals()
+	_check("invalid idle art falls back to the cutout",
+		not p1.idle_sprite.visible and p1.character_sprite.visible,
+		"idle=%s cutout=%s" % [str(p1.idle_sprite.visible), str(p1.character_sprite.visible)])
+	p1._configure_idle_sprite()
+	p2._force_state(FighterBase.State.IDLE)
+	p2.state_frame = 0
+	p2._sync_visuals()
+	_check("Richard's idle sheet loads with his own silhouette",
+		p2.idle_sprite.texture != null and p2.idle_sprite.hframes == 4
+			and p2.idle_sprite.visible and not p2.character_sprite.visible
+			and p2.idle_sprite.texture != p1.idle_sprite.texture,
+		"richard idle=%s" % str(p2.idle_sprite.texture != null))
 	p1.input_enabled = true
 	p2.input_enabled = true
 
@@ -357,6 +468,12 @@ func _run() -> void:
 	await _step(4)
 	_check("pause freezes fighters", p2.state_frame == p2_frame,
 		"frame %d -> %d" % [p2_frame, p2.state_frame])
+	p1._sync_visuals()
+	_check("pause freezes idle cels",
+		p1.state == FighterBase.State.IDLE and p1.idle_sprite.frame == 0
+			and p1.idle_sprite.visible,
+		"state=%d cel=%d visible=%s" % [p1.state, p1.idle_sprite.frame,
+			str(p1.idle_sprite.visible)])
 	_check("pause keeps match controller running", scene.can_process(),
 		"can_process=%s" % str(scene.can_process()))
 	_check("pause opens the menu", paused and scene.pause_index == 0,
@@ -2296,6 +2413,519 @@ func _run() -> void:
 		await _step()
 	_check("the block flash clears and restores the body color",
 		p2.block_flash_frames == 0 and p2.get_node("VisualRoot/Silhouette").modulate == block_body,
+		"")
+
+	# ---------------- Authored presentation clips (Peggy) ----------------
+	_reset_fighters(100.0, 400.0)
+	_check("clip test context: p1 is Peggy with a clip library",
+		p1.data.id == "peg_leg_peggy" and p1._clip_library_valid
+			and PeggyClipLibrary.has_clips("peg_leg_peggy")
+			and not PeggyClipLibrary.has_clips("whiskey_richard"),
+		"p1=%s valid=%s" % [p1.data.id, str(p1._clip_library_valid)])
+
+	# Library integrity: every enabled clip texture loads with a valid single
+	# row of integer cels and a sane anchor/scale reference.
+	var clip_defects := 0
+	for key in PeggyClipLibrary.CLIPS:
+		var c: Dictionary = PeggyClipLibrary.CLIPS[key]
+		if not c.enabled:
+			continue
+		var tex := p1._clip_texture(c)
+		var cel_w := tex.get_width() / int(c.frames) if tex != null else 0
+		if tex == null or int(c.anchor.y) > tex.get_height() \
+				or int(c.anchor.x) <= 0 or int(c.anchor.x) >= cel_w \
+				or float(c.h_ref) <= 0.0:
+			clip_defects += 1
+	_check("every enabled Peggy clip loads with valid cel geometry", clip_defects == 0,
+		"defects=%d" % clip_defects)
+
+	# Scale consistency: every enabled clip must render at the idle art scale
+	# (runtime scale = idle_art_scale * 74 / h_ref). Sheets drawn at a different
+	# art scale carry their own h_ref, so only the known odd-scale sources are
+	# exempt: the two guard sheets are drawn ~1.5x larger, and the JPEG-derived
+	# crouch_hold is masked from an opaque photo whose scale is estimated.
+	var scale_off := []
+	for key in PeggyClipLibrary.CLIPS:
+		var c: Dictionary = PeggyClipLibrary.CLIPS[key]
+		if not c.enabled:
+			continue
+		if key in ["block_stand", "blockstun_stand", "crouch_hold"]:
+			continue
+		if absf(float(c.h_ref) - 74.0) > 5.0:
+			scale_off.append("%s=%.1f" % [key, float(c.h_ref)])
+	_check("enabled clips share the idle art scale (no size popping)", scale_off.is_empty(),
+		", ".join(scale_off))
+
+	# Draft-strip playback order: the airborne sheet's last cel is a touchdown
+	# crouch and the land sheet starts upright, so the renderer holds the
+	# airborne cel and re-orders the landing to absorb-then-recover.
+	var p_fall: Dictionary = PeggyClipLibrary.state_clip("jump_fall")
+	p1._force_state(FighterBase.State.JUMP_FALL)
+	var p_fall_frames := []
+	for sf in [0, 4, 12, 40]:
+		p1.state_frame = sf
+		p_fall_frames.append(p1._clip_frame(p_fall))
+	var p_land: Dictionary = PeggyClipLibrary.state_clip("land")
+	p1._force_state(FighterBase.State.LAND)
+	p1.landing_recovery_frames = 2
+	p1.state_frame = 0
+	var p_land_first := p1._clip_frame(p_land)
+	p1.state_frame = 1
+	var p_land_second := p1._clip_frame(p_land)
+	_check("Peggy's jump-fall holds the airborne cel for the whole descent",
+		p_fall_frames == [0, 0, 0, 0], str(p_fall_frames))
+	_check("Peggy's landing absorbs first and recovers on the next frame",
+		p_land_first == 1 and p_land_second == 2,
+		"first=%d second=%d" % [p_land_first, p_land_second])
+	p1._force_state(FighterBase.State.IDLE)
+
+	# Move mapping: every Peggy move ID resolves its intended clip.
+	var unmapped_moves := 0
+	for move: MoveData in p1.data.moves:
+		if PeggyClipLibrary.move_clip(move.id).is_empty():
+			unmapped_moves += 1
+	var meth_clip := PeggyClipLibrary.move_clip("peggy_meth")
+	_check("all 16 authored Peggy move rows resolve a clip", unmapped_moves == 0,
+		"unmapped=%d" % unmapped_moves)
+	_check("gated and optional clips stay unavailable to the runtime",
+		PeggyClipLibrary.move_clip("peggy_meth").is_empty() == false
+			and PeggyClipLibrary.state_clip("walk_f").is_empty()
+			and PeggyClipLibrary.state_clip("walk_b").is_empty()
+			and PeggyClipLibrary.CLIPS["crouch_down"].enabled == false
+			and PeggyClipLibrary.CLIPS["stage_intro"].enabled == false
+			and PeggyClipLibrary.CLIPS["throw_target"].enabled == false,
+		"")
+
+	# Attack phase boundaries: cels map onto authored startup/active/recovery.
+	var clip_light: MoveData = p1.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+	var clip_heavy: MoveData = p1.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.STAND)
+	var clip_meth: MoveData = p1.data.meth_move
+	p1._force_state(FighterBase.State.ATTACK)
+	p1.current_move = clip_light
+	p1.state_frame = 0
+	_check("light startup starts on cel 0",
+		p1._attack_clip_frame(clip_light, 6) == 0, "")
+	p1.state_frame = 2
+	_check("light keeps its second startup cel through the last startup frame",
+		p1._attack_clip_frame(clip_light, 6) == 1, "")
+	p1.state_frame = 3
+	_check("light switches to the active group exactly at the active frame",
+		clip_light.is_active_frame(3) and p1._attack_clip_frame(clip_light, 6) == 2, "")
+	p1.state_frame = 4
+	_check("light holds the active cel through the last active frame",
+		clip_light.is_active_frame(4) and p1._attack_clip_frame(clip_light, 6) == 2, "")
+	p1.state_frame = 5
+	_check("light enters recovery cels on the first recovery frame",
+		not clip_light.is_active_frame(5) and p1._attack_clip_frame(clip_light, 6) == 3, "")
+	p1.state_frame = 11
+	_check("light clamps to its final recovery cel",
+		p1._attack_clip_frame(clip_light, 6) == 5, "")
+	p1.current_move = clip_heavy
+	p1.state_frame = 6
+	_check("heavy maps its longer startup across two cels",
+		p1._attack_clip_frame(clip_heavy, 6) == 1, "")
+	p1.state_frame = 7
+	_check("heavy reaches the active group at frame 7",
+		clip_heavy.is_active_frame(7) and p1._attack_clip_frame(clip_heavy, 6) == 2, "")
+	p1.state_frame = 9
+	_check("heavy holds the active cel through the last active frame",
+		clip_heavy.is_active_frame(9) and p1._attack_clip_frame(clip_heavy, 6) == 2, "")
+	p1.state_frame = 10
+	_check("heavy enters recovery after the active window",
+		p1._attack_clip_frame(clip_heavy, 6) == 3, "")
+	p1.current_move = clip_meth
+	p1.state_frame = 2
+	_check("meth spends no cel on its zero-length active phase",
+		p1._attack_clip_frame(clip_meth, 6) == 0, "")
+	p1.state_frame = 3
+	_check("meth starts recovery cels immediately after startup",
+		p1._attack_clip_frame(clip_meth, 6) == 1, "")
+	p1.state_frame = 26
+	_check("meth finishes on its final recovery cel",
+		p1._attack_clip_frame(clip_meth, 6) == 5, "")
+
+	# End-to-end attack display: texture, cel count, and no procedural pose
+	# transforms stacking on top of the authored animation.
+	p1.current_move = clip_light
+	p1.state_frame = 3
+	p1._sync_visuals()
+	var light_tex: Texture2D = p1._clip_texture(PeggyClipLibrary.move_clip("light"))
+	_check("light attack displays its authored clip on the art sprite",
+		p1.idle_sprite.visible and not p1.character_sprite.visible
+			and p1.idle_sprite.texture == light_tex
+			and p1.idle_sprite.hframes == 6
+			and p1.idle_sprite.frame == 2,
+		"frame=%d hframes=%d" % [p1.idle_sprite.frame, p1.idle_sprite.hframes])
+	_check("authored attacks disable the procedural pose transforms",
+		p1.visual_root.scale == Vector2.ONE and p1.visual_root.rotation == 0.0
+			and p1.visual_root.position == Vector2.ZERO,
+		"scale=%s rot=%.3f" % [str(p1.visual_root.scale), p1.visual_root.rotation])
+	_check("attack clip scale keeps the established body height",
+		is_equal_approx(p1.idle_sprite.scale.x,
+			p1._idle_art_scale * PeggyClipLibrary.STANDING_REFERENCE_H_REF
+				/ float(PeggyClipLibrary.move_clip("light").h_ref)),
+		"scale=%.3f" % p1.idle_sprite.scale.x)
+
+	# Repeat attacks reset deterministically; hitstop freezes playback.
+	p1.hitstop_frames = 4
+	await _step(2)
+	var frozen_attack_cel := p1.idle_sprite.frame
+	_check("hitstop freezes authored attack playback",
+		p1.hitstop_frames == 2 and p1.state_frame == 3
+			and p1.idle_sprite.frame == frozen_attack_cel,
+		"frame=%d frozen=%d" % [p1.idle_sprite.frame, frozen_attack_cel])
+	await _step(2)
+	await _step(10)
+	p1._start_move(clip_light)
+	p1._sync_visuals()
+	_check("repeating the same attack restarts the clip at cel 0",
+		p1.state_frame == 0 and p1.idle_sprite.frame == 0
+			and p1.idle_sprite.texture == light_tex,
+		"frame=%d" % p1.idle_sprite.frame)
+
+	# Interruption: a hit during the move swaps to the authored reaction clip.
+	p1.hitstun_frames = 12
+	p1._force_state(FighterBase.State.HITSTUN)
+	p1.state_frame = 3
+	p1._sync_visuals()
+	var hitstun_tex: Texture2D = p1._clip_texture(PeggyClipLibrary.state_clip("hitstun_stand"))
+	_check("hit reactions swap to the authored hitstun clip immediately",
+		p1._active_clip.is_empty() == false
+			and p1.idle_sprite.texture == hitstun_tex and p1.idle_sprite.hframes == 3,
+		"texture_swapped=%s" % str(p1.idle_sprite.texture == hitstun_tex))
+	p1.state_frame = 11
+	p1._sync_visuals()
+	_check("hitstun one-shot clamps to its final cel without looping",
+		p1.idle_sprite.frame == 2, "frame=%d" % p1.idle_sprite.frame)
+
+	# Reactions resolve by combat context, including crouching and airborne.
+	p1.crouching = true
+	p1._sync_visuals()
+	var hitstun_crouch_tex: Texture2D = p1._clip_texture(PeggyClipLibrary.state_clip("hitstun_crouch"))
+	_check("crouching defenders show the crouched hitstun clip",
+		p1.idle_sprite.texture == hitstun_crouch_tex, "")
+	p1.crouching = false
+	p1.grounded = false
+	p1._sync_visuals()
+	var hitstun_air_tex: Texture2D = p1._clip_texture(PeggyClipLibrary.state_clip("hitstun_air"))
+	_check("airborne defenders show the air hitstun clip",
+		p1.idle_sprite.texture == hitstun_air_tex, "")
+	p1.grounded = true
+
+	# Holds and one-shots: crouch loops, knockdown fits its authored duration.
+	p1._force_state(FighterBase.State.CROUCH)
+	p1.state_frame = 0
+	p1._sync_visuals()
+	var crouch_tex: Texture2D = p1._clip_texture(PeggyClipLibrary.state_clip("crouch"))
+	_check("crouch hold loops its authored two cels",
+		p1.idle_sprite.texture == crouch_tex and p1.idle_sprite.frame == 0, "")
+	p1.state_frame = 12
+	p1._sync_visuals()
+	_check("crouch hold cadence advances to the second cel",
+		p1.idle_sprite.frame == 1, "frame=%d" % p1.idle_sprite.frame)
+	p1.state_frame = 24
+	p1._sync_visuals()
+	_check("crouch hold wraps without leaving the clip",
+		p1.idle_sprite.frame == 0 and p1.idle_sprite.texture == crouch_tex,
+		"frame=%d" % p1.idle_sprite.frame)
+
+	p1.knockdown_frames = 30
+	p1._force_state(FighterBase.State.KNOCKDOWN)
+	p1.state_frame = 0
+	p1._sync_visuals()
+	var knockdown_tex: Texture2D = p1._clip_texture(PeggyClipLibrary.state_clip("knockdown"))
+	_check("knockdown plays its authored fall-and-drop clip",
+		p1.idle_sprite.texture == knockdown_tex and p1.idle_sprite.frame == 0, "")
+	p1.state_frame = 29
+	p1._sync_visuals()
+	_check("knockdown holds its final downed cel across the authored duration",
+		p1.idle_sprite.frame == 3, "frame=%d" % p1.idle_sprite.frame)
+
+	# KO: air cels while airborne, grounded cels after landing, final pose held.
+	p1._force_state(FighterBase.State.KO)
+	p1.grounded = false
+	p1.state_frame = 0
+	p1._ko_grounded_frame = 0
+	p1._sync_visuals()
+	var ko_air_tex: Texture2D = p1._clip_texture(PeggyClipLibrary.state_clip("ko_air"))
+	var ko_ground_tex: Texture2D = p1._clip_texture(PeggyClipLibrary.state_clip("ko_ground"))
+	_check("KO shows the air clip while airborne",
+		p1.idle_sprite.texture == ko_air_tex, "")
+	p1.grounded = true
+	p1._ko_grounded_frame = 20
+	p1._sync_visuals()
+	_check("KO switches to the grounded clip on landing",
+		p1.idle_sprite.texture == ko_ground_tex, "")
+	p1._ko_grounded_frame = 400
+	p1._sync_visuals()
+	_check("grounded KO holds its final pose forever",
+		p1.idle_sprite.frame == 2, "frame=%d" % p1.idle_sprite.frame)
+
+	# Gated walk clips keep the approved static-artwork fallback in place.
+	p1._force_state(FighterBase.State.WALK_F)
+	p1.state_frame = 10
+	p1._sync_visuals()
+	_check("gated walk clips leave the approved idle-artwork fallback",
+		p1._resolve_visual_clip().is_empty() and p1.idle_sprite.texture == p1._idle_sheet_tex
+			and p1.idle_sprite.frame == 0 and p1.idle_sprite.hframes == 4,
+		"hframes=%d" % p1.idle_sprite.hframes)
+
+	# ---------------- Authored presentation clips (Richard) ----------------
+	_reset_fighters(100.0, 400.0)
+	p2._configure_idle_sprite()
+	_check("clip test context: p2 is Richard with his own clip library",
+		p2.data.id == "whiskey_richard" and p2._clip_library_valid
+			and RichardClipLibrary.has_clips("whiskey_richard")
+			and not RichardClipLibrary.has_clips("peg_leg_peggy"),
+		"p2=%s valid=%s" % [p2.data.id, str(p2._clip_library_valid)])
+
+	# Library integrity: every enabled clip texture loads with a valid single
+	# row of integer cels and a sane anchor/scale reference.
+	var r_clip_defects := 0
+	var r_clip_paths := {}
+	for key in RichardClipLibrary.CLIPS:
+		var c: Dictionary = RichardClipLibrary.CLIPS[key]
+		if not c.enabled:
+			continue
+		var tex := p2._clip_texture(c)
+		var cel_w := tex.get_width() / int(c.frames) if tex != null else 0
+		if tex == null or int(c.anchor.y) > tex.get_height() \
+				or int(c.anchor.x) <= 0 or int(c.anchor.x) >= cel_w \
+				or float(c.h_ref) <= 0.0:
+			r_clip_defects += 1
+		r_clip_paths[str(c.path)] = true
+	_check("every enabled Richard clip loads with valid cel geometry", r_clip_defects == 0,
+		"defects=%d" % r_clip_defects)
+	_check("all 38 enabled Richard clips point at distinct runtime textures",
+		r_clip_paths.size() == 38, "paths=%d" % r_clip_paths.size())
+
+	var r_unmapped := 0
+	for move: MoveData in p2.data.moves:
+		if RichardClipLibrary.move_clip(move.id).is_empty():
+			r_unmapped += 1
+	_check("all 16 authored Richard move rows resolve a clip", r_unmapped == 0,
+		"unmapped=%d" % r_unmapped)
+	_check("Richard's custom move rows map to their intended clips",
+		RichardClipLibrary.move_clip("richard_meth").get("path", "").ends_with("/meth.png")
+			and RichardClipLibrary.move_clip("richard_command_grab").get("path", "").ends_with("/command_grab.png")
+			and RichardClipLibrary.move_clip("richard_neutral").get("path", "").ends_with("/neutral.png")
+			and RichardClipLibrary.move_clip("richard_forward_ex").get("path", "").ends_with("/forward_ex.png"),
+		"")
+	_check("Richard's optional clips stay unavailable to the runtime",
+		RichardClipLibrary.CLIPS["stage_intro"].enabled == false
+			and RichardClipLibrary.CLIPS["throw_target"].enabled == false,
+		"")
+	_check("Richard's walk and crouch-hold clips are live (unlike Peggy's gated JPEGs)",
+		RichardClipLibrary.state_clip("walk_f").get("path", "").ends_with("/walk_forward.png")
+			and RichardClipLibrary.state_clip("walk_b").get("path", "").ends_with("/walk_backward.png")
+			and RichardClipLibrary.state_clip("crouch").get("path", "").ends_with("/crouch_hold.png")
+			and RichardClipLibrary.CLIPS["crouch_down"].enabled,
+		"")
+
+	# --- Jump / landing / walk presentation regressions (2026-11-15) ---
+	# Walk cycles wrap instead of clamping on their final cel (the old path froze
+	# the last cel and read as a sliding statue while a direction was held).
+	var r_walk_b: Dictionary = RichardClipLibrary.state_clip("walk_b")
+	p2._force_state(FighterBase.State.WALK_B)
+	var walk_frames := []
+	for sf in [0, 6, 12, 24, 30, 36, 42]:
+		p2.state_frame = sf
+		walk_frames.append(p2._clip_frame(r_walk_b))
+	_check("Richard's walk cycle wraps instead of freezing on its last cel",
+		walk_frames == [0, 1, 2, 4, 5, 0, 1], str(walk_frames))
+
+	# jump_fall holds the airborne cel: the touchdown crouch no longer plays in
+	# mid-air, which used to read as standing on invisible ground before landing.
+	var r_fall: Dictionary = RichardClipLibrary.state_clip("jump_fall")
+	p2._force_state(FighterBase.State.JUMP_FALL)
+	var fall_frames := []
+	for sf in [0, 3, 6, 20, 60]:
+		p2.state_frame = sf
+		fall_frames.append(p2._clip_frame(r_fall))
+	_check("Richard's jump-fall never plays the touchdown pose mid-air",
+		fall_frames == [0, 0, 0, 0, 0], str(fall_frames))
+
+	# Landing plays absorb -> recover. The draft strip starts upright, so the
+	# default order popped back to standing before the crouch absorb.
+	var r_land: Dictionary = RichardClipLibrary.state_clip("land")
+	p2._force_state(FighterBase.State.LAND)
+	p2.landing_recovery_frames = 2
+	p2.state_frame = 0
+	var land_first := p2._clip_frame(r_land)
+	p2.state_frame = 1
+	var land_second := p2._clip_frame(r_land)
+	_check("Richard's landing absorbs first and recovers on the next frame",
+		land_first == 1 and land_second == 2,
+		"first=%d second=%d" % [land_first, land_second])
+
+	# Guard presentation while holding back: pinned at a wall shows the authored
+	# stand guard, crouch-blocking shows the crouch guard, and a mid-screen
+	# retreat still plays the walk cycle.
+	var r_guard_stand := p2._clip_texture(RichardClipLibrary.state_clip("block_stand"))
+	var r_guard_crouch := p2._clip_texture(RichardClipLibrary.state_clip("block_crouch"))
+	p2.input_enabled = true
+	Input.action_press("p2_right") # p2 faces left, so right is back
+	p2._force_state(FighterBase.State.WALK_B)
+	p2.position.x = (p2.stage.left_bound + p2.stage.right_bound) * 0.5
+	p2.velocity.x = p2.walk_speed_back
+	p2._sync_visuals()
+	var retreat_tex := p2.idle_sprite.texture
+	p2.position.x = p2.stage.right_bound
+	p2.velocity.x = p2.walk_speed_back
+	p2._sync_visuals()
+	var wall_guard := p2.idle_sprite.texture == r_guard_stand
+	p2._force_state(FighterBase.State.CROUCH)
+	p2._sync_visuals()
+	var crouch_guard := p2.idle_sprite.texture == r_guard_crouch
+	Input.action_release("p2_right")
+	p2.input_enabled = false
+	_check("Richard shows the authored stand guard when pinned at the wall",
+		wall_guard and retreat_tex != r_guard_stand,
+		"wall_guard=%s retreat_guard=%s" % [str(wall_guard), str(retreat_tex == r_guard_stand)])
+	_check("Richard shows the authored crouch guard while holding down-back",
+		crouch_guard, "")
+	p2._force_state(FighterBase.State.IDLE)
+	p2.position.x = 400.0
+	p2.velocity.x = 0.0
+
+	# Attack phase boundaries: cels map onto authored startup/active/recovery.
+	var r_light: MoveData = p2.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+	var r_heavy: MoveData = p2.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.STAND)
+	var r_meth: MoveData = p2.data.meth_move
+	p2._force_state(FighterBase.State.ATTACK)
+	p2.current_move = r_light
+	p2.state_frame = 0
+	_check("Richard's light starts on cel 0",
+		p2._attack_clip_frame(r_light, 5) == 0, "")
+	p2.state_frame = 3
+	_check("Richard's light keeps startup cels through the last startup frame",
+		p2._attack_clip_frame(r_light, 5) == 0, "")
+	p2.state_frame = 4
+	_check("Richard's light switches to its active cel exactly at the active frame",
+		r_light.is_active_frame(4) and p2._attack_clip_frame(r_light, 5) == 1, "")
+	p2.state_frame = 5
+	_check("Richard's light holds the active cel through the last active frame",
+		r_light.is_active_frame(5) and p2._attack_clip_frame(r_light, 5) == 1, "")
+	p2.state_frame = 6
+	_check("Richard's light enters recovery cels on the first recovery frame",
+		not r_light.is_active_frame(6) and p2._attack_clip_frame(r_light, 5) == 2, "")
+	p2.state_frame = 14
+	_check("Richard's light clamps to its final recovery cel",
+		p2._attack_clip_frame(r_light, 5) == 4, "")
+	p2.current_move = r_heavy
+	p2.state_frame = 8
+	_check("Richard's heavy maps its longer startup across two cels",
+		p2._attack_clip_frame(r_heavy, 5) == 1, "")
+	p2.state_frame = 9
+	_check("Richard's heavy reaches the active group at its active frame",
+		r_heavy.is_active_frame(9) and p2._attack_clip_frame(r_heavy, 5) == 2, "")
+	p2.state_frame = 11
+	_check("Richard's heavy holds the active cel through the last active frame",
+		r_heavy.is_active_frame(11) and p2._attack_clip_frame(r_heavy, 5) == 2, "")
+	p2.state_frame = 12
+	_check("Richard's heavy enters recovery after the active window",
+		p2._attack_clip_frame(r_heavy, 5) == 3, "")
+	p2.current_move = r_meth
+	p2.state_frame = 2
+	_check("Richard's meth spends no cel on its zero-length active phase",
+		p2._attack_clip_frame(r_meth, 6) == 0, "")
+	p2.state_frame = 3
+	_check("Richard's meth starts recovery cels immediately after startup",
+		p2._attack_clip_frame(r_meth, 6) == 1, "")
+	p2.state_frame = 26
+	_check("Richard's meth finishes on its final recovery cel",
+		p2._attack_clip_frame(r_meth, 6) == 5, "")
+
+	# End-to-end display: texture, cel count, no procedural transform stacking,
+	# and the runtime scale the manifest's h_ref implies.
+	p2.current_move = r_light
+	p2.state_frame = 4
+	p2._sync_visuals()
+	var r_light_tex: Texture2D = p2._clip_texture(RichardClipLibrary.move_clip("light"))
+	_check("Richard's attack displays his authored clip on the art sprite",
+		p2.idle_sprite.visible and not p2.character_sprite.visible
+			and p2.idle_sprite.texture == r_light_tex
+			and p2.idle_sprite.hframes == 5
+			and p2.idle_sprite.frame == 1,
+		"frame=%d hframes=%d" % [p2.idle_sprite.frame, p2.idle_sprite.hframes])
+	_check("Richard's authored attacks disable the procedural pose transforms",
+		p2.visual_root.scale == Vector2.ONE and p2.visual_root.rotation == 0.0
+			and p2.visual_root.position == Vector2.ZERO,
+		"scale=%s rot=%.3f" % [str(p2.visual_root.scale), p2.visual_root.rotation])
+	_check("Richard's attack clip scale follows his measured h_ref",
+		is_equal_approx(p2.idle_sprite.scale.x,
+			p2._idle_art_scale * RichardClipLibrary.STANDING_REFERENCE_H_REF
+				/ float(RichardClipLibrary.move_clip("light").h_ref)),
+		"scale=%.3f" % p2.idle_sprite.scale.x)
+
+	# Repeat attacks reset deterministically; hitstop freezes playback.
+	p2.state_frame = 3
+	p2.hitstop_frames = 4
+	await _step(2)
+	var r_frozen_cel := p2.idle_sprite.frame
+	_check("hitstop freezes Richard's authored attack playback",
+		p2.hitstop_frames == 2 and p2.state_frame == 3
+			and p2.idle_sprite.frame == r_frozen_cel,
+		"frame=%d frozen=%d" % [p2.idle_sprite.frame, r_frozen_cel])
+	await _step(2)
+	await _step(10)
+	p2._start_move(r_light)
+	p2._sync_visuals()
+	_check("repeating Richard's same attack restarts the clip at cel 0",
+		p2.state_frame == 0 and p2.idle_sprite.frame == 0
+			and p2.idle_sprite.texture == r_light_tex,
+		"frame=%d" % p2.idle_sprite.frame)
+
+	# Interruption: a hit during the move swaps to the authored reaction clip.
+	p2.hitstun_frames = 12
+	p2._force_state(FighterBase.State.HITSTUN)
+	p2.state_frame = 3
+	p2._sync_visuals()
+	var r_hitstun_tex: Texture2D = p2._clip_texture(RichardClipLibrary.state_clip("hitstun_stand"))
+	_check("Richard's hit reaction swaps to his authored hitstun clip",
+		p2._active_clip.is_empty() == false
+			and p2.idle_sprite.texture == r_hitstun_tex and p2.idle_sprite.hframes == 3,
+		"texture_swapped=%s" % str(p2.idle_sprite.texture == r_hitstun_tex))
+	p2.state_frame = 11
+	p2._sync_visuals()
+	_check("Richard's hitstun one-shot clamps to its final cel without looping",
+		p2.idle_sprite.frame == 2, "frame=%d" % p2.idle_sprite.frame)
+
+	# Both fighters now carry authored sets: representative states and every
+	# move row resolve for each, with no cross-contamination of their tables.
+	var coverage_gaps := []
+	var states_checked := 0
+	for fighter in [p1, p2]:
+		for state_key in ["walk_f", "walk_b", "crouch", "jump_start", "jump_rise",
+				"jump_fall", "land", "block_stand", "block_crouch", "hitstun_stand",
+				"hitstun_crouch", "hitstun_air", "blockstun_stand", "blockstun_crouch",
+				"knockdown", "wake_up", "tech", "ko_air", "ko_ground", "win",
+				"crouch_up_transient"]:
+			var enabled_candidate := false
+			for cand in fighter._clip_lib.STATE_CLIPS.get(state_key, []):
+				var cdef: Dictionary = fighter._clip_lib.CLIPS.get(str(cand), {})
+				if cdef.get("enabled", false):
+					enabled_candidate = true
+			if not enabled_candidate:
+				continue  # intentionally gated (e.g. Peggy's JPEG walk)
+			states_checked += 1
+			if fighter._clip_lib.state_clip(state_key).is_empty():
+				coverage_gaps.append("%s:%s" % [fighter.data.id, state_key])
+		for move: MoveData in fighter.data.moves:
+			if fighter._clip_lib.move_clip(move.id).is_empty():
+				coverage_gaps.append("%s:move:%s" % [fighter.data.id, move.id])
+	_check("both fighters resolve every enabled authored state and move clip",
+		coverage_gaps.is_empty() and states_checked >= 36,
+		"states=%d %s" % [states_checked, ", ".join(coverage_gaps)])
+
+	# Round reset clears all presentation-clip playback state.
+	p1._transient_clip_key = "crouch_up"
+	p1._transient_clip_tick = 3
+	p1._ko_grounded_frame = 9
+	p1.begin_round(Vector2(100, 150), 200.0)
+	_check("round reset clears presentation-clip playback state",
+		p1._transient_clip_key == "" and p1._transient_clip_tick == 0
+			and p1._ko_grounded_frame == 0 and p1._active_clip.is_empty(),
 		"")
 
 	print("\n%d failure(s)" % failures)

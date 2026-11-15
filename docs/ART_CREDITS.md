@@ -24,8 +24,17 @@ manifests, contact/loop previews) and the native editable Pixelorama projects
 (`.pxo`) are kept in `art/source/Characters/Animations/`. No image-provider
 license is claimed for the generated cels; they are treated as
 owner-supplied, all-rights-reserved project assets like the rest of the art.
-Non-idle states currently reuse cel 0 of these sheets as static artwork while
-the remaining animations are authored.
+Non-idle states reuse cel 0 of these sheets as the fallback for gated or
+missing clips. **Exception (Peggy and Richard):** both fighters' non-idle
+states and attacks now play the owner's full-animation-batch clips (see
+`docs/PIXELORAMA_PIPELINE.md` §8 for Peggy, §9 for Richard); those clips come
+from the same AI-generated PixelLab download batch, are treated identically as
+owner-supplied, all-rights-reserved project assets with no image-provider
+license claimed. The front-facing JPEG-derived Peggy clips
+(`walk_forward`, `walk_backward`, `crouch_down`, `crouch_hold`) still need
+owner-cleaned exports, and several Richard sheets are drawn at different art
+scales (measured per clip via `h_ref`), so uniform-scale re-exports are
+welcome but not required for the current integration.
 
 ## “The Clip” intro fonts
 

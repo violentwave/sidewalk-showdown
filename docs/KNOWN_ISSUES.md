@@ -189,14 +189,40 @@ that section by hand afterward — the simulation step comes from
 
 ## Deliberate gaps (next phases)
 
-- **Only the idle loops are authored sprite animation.** Runtime fighters use
-  the owner-approved four-cel idle sheets (`art/source/Characters/Animations/`):
-  the loop plays in IDLE, and cel 0 serves as static artwork for every other
-  state, on top of the existing state-driven VisualRoot motion (walk, crouch,
-  jump, attack, hit/recovery, knockdown, and win). That cel-0 static artwork
-  still does not animate limbs; authored frames for the remaining states and
-  final character art remain. Combat boxes are unchanged. The facing-flip
-  side-swap question (Peggy's peg leg / Richard's bottle) is still deferred.
+- **Authored sprite animation status (updated 2026-11-14).** Both fighters now
+  play the owner's full-animation-batch clips. Peggy: 16 attack moves and 18
+  core states (see `docs/PIXELORAMA_PIPELINE.md` §8 and
+  `game/scripts/combat/peggy_clip_library.gd`). Richard: all 16 moves and 20
+  core states, plus side-facing walks and crouch-hold (see §9 and
+  `game/scripts/combat/richard_clip_library.gd`); `crouch_down` is prepared and
+  enabled but has no crouch-entry state to map yet. The idle loops and the
+  static cel-0 fallback remain exactly as approved. **Gated off pending owner
+  review:** Peggy's `walk_forward` / `walk_backward` / `crouch_down` clips
+  (front-facing JPEGs that clash with the side-view presentation) and
+  `stage_intro`; `throw_target` is prepared but unmapped. Richard's
+  `stage_intro` and `throw_target` are likewise unmapped, and his draft sheets
+  are drawn at different art scales, so every clip stores a measured `h_ref`
+  (47–81) instead of a uniform 74. Six action sheets whose bandana was
+  occluded (`forward`, `forward_ex`, `jump_light`, `jump_heavy`, `meth`, `air`)
+  were recalibrated on 2026-11-15 from head height and now render at the idle
+  body height instead of 15–48 % larger. The same pass fixed frozen walk
+  cycles, a landing cel playing mid-air, landing cel order, the skipped jump
+  launch pose, and dead guard poses (see `docs/PIXELORAMA_PIPELINE.md` §9a).
+  Combat boxes, timings, and gameplay are unchanged everywhere. The facing-flip
+  side-swap question (Peggy's peg leg / Richard's bottle) is still deferred, and
+  final/cleaned exports are still wanted for the JPEG-derived Peggy clips
+  (`walk_forward`, `walk_backward`, `crouch_down`, `crouch_hold`) and for any
+  Richard sheet the owner re-exports at a uniform scale.
+  Live-input glitches reported on 2026-11-13 were traced to the prep step, not
+  the renderer: pitch-line slicing chopped limbs, bounding-box centring made
+  the body lurch, and pose-height `h_ref` estimates shrank `jump_fall`/`land`/
+  `hitstun_*` by 8–24 %. Peggy's prep now cuts at minimum-coverage columns,
+  anchors on the planted foot, and normalizes scale from hat width. Richard's
+  overlapping figures use component segmentation with touch-splitting and
+  orphan-sliver cleanup; all 40 prepared sheets were re-verified one-body-per-
+  cel. A 3,000-frame real-input soak is clean for each fighter. The round-end
+  "duplicate fighter" was a round reset plus a bystander painted into
+  `BusStopNight.png`, not a sprite bug.
 - **Temporary audio only; no final VFX/mix.** Intro/menu and fight MP3 tracks plus
   basic hit/block/UI/round/KO/METHtality cues are wired; confirm MP3 usage rights
   before public release. Tripp voice, crowd, hit sparks, screen shake,
@@ -296,7 +322,7 @@ These are measured or first-pass limits, not phase-exit validation.
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **260 checks**: distinct Peggy/Richard sheet
+- `game/tests/combat_test.gd` — **333 checks**: distinct Peggy/Richard sheet
   artwork in walk states, the authored idle sheet (selection, visibility, cel
   cadence, wrap, hitstop/pause freeze, re-entry reset, facing pivot, and the
   missing-art fallback), unchanged combat boxes, clean hits and
@@ -328,7 +354,15 @@ These are measured or first-pass limits, not phase-exit validation.
   active, recovery and post-move falling touchdown; immediate hitbox/move clearing;
   whiff vs hit/block landing delay; pause and hitstop; anti-air interruption;
   un-blockable extended recovery vs legacy blockable LAND; reset/restart; P2 data;
-  unchanged grounded attacks; and throw damage remaining 95/105.
+  unchanged grounded attacks; and throw damage remaining 95/105. Authored-clip
+  coverage now asserts both libraries' integrity (cel geometry, distinct enabled
+  textures), 16/16 move mapping per fighter including `richard_*` rows, gated
+  optional clips, Richard's live walks/crouch-hold, exact light/heavy/meth phase
+  boundaries, end-to-end display with procedural transforms suppressed and
+  `h_ref` scaling, hitstop freeze, repeat-attack reset, hitstun interruption,
+  walk-cycle wrapping, jump-fall cel selection, landing cel order, wall/crouch
+  guard poses (Richard) and jump/landing order (Peggy), and a shared
+  state+move coverage sweep for both fighters.
 - `game/tests/round_flow_test.gd` — **34 checks**: intro→fight, first-fight
   Tripp commentary sample, KO phase, round
   wins, timeout resolution, a simultaneous KO awarding a pip to both and the
@@ -347,6 +381,17 @@ These are measured or first-pass limits, not phase-exit validation.
   owner-script canon guards, panel ordering, boot-to-intro, Space-only
   beat/panel advancement, complete Space-only handoff, Esc skips from panels
   1/8/15, explicit bundled comic fonts, and monospaced livestream chat.
+- Rendered/live verification harnesses (not run by CI; require a display
+  because they read back the framebuffer, so they are manual review tools):
+  `richard_clip_render_check.gd` (27 captures) and
+  `peggy_clip_render_check.gd` (23) write contact sheets to
+  `/tmp/opencode/`; `jump_block_render_check.gd` captures 18 ordered
+  jump/landing/walk/guard poses; `jump_block_trace.gd` drives real input and
+  prints state/cel/scale per frame; `attack_scale_check.gd` compares the six
+  recalibrated attacks against an idle reference; `richard_live_soak.gd` and
+  `peggy_live_soak.gd` run 3,000 real-Input frames each and assert the art
+  stays centred; `richard_jump_check.gd` / `peggy_jump_check.gd` trace an input
+  jump for scale pops. These are disposable review tools, not pass/fail gates.
 - `game/tests/air_probe.gd` — metrics only, no assertions: both fighter
   directions; sampled geometry candidates vs resolver-confirmed reach/trade,
   direct damage ratios, hitstop, actual block advantage, and post-whiff

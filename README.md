@@ -11,11 +11,14 @@ legends eventually turn on him.
 
 **Current scope:** the 15-panel “The Clip” intro leads to Peggy vs Richard on Bus
 Stop Night, a text-only two-player character-select mockup, owner-approved idle
-sprite sheets (looping in idle; cel 0 as static artwork elsewhere, over
-procedural motion), local keyboard play, HUD/timer/round flow,
-directional specials, EX spenders, a minimal METHtality core, a temporary
-intro/menu song, and temporary match-loop music/combat/UI sounds. Missing or
-partial: gamepad support, stage select, frame-by-frame animation, final
+sprite sheets plus authored per-state/per-move animation clips for both
+fighters (from the owner's PixelLab animation batch; see
+`docs/PIXELORAMA_PIPELINE.md` §8–§9a), local keyboard play,
+HUD/timer/round flow, directional specials, EX spenders, a minimal METHtality
+core, a temporary intro/menu song, and temporary match-loop music/combat/UI
+sounds. Missing or partial: gamepad support, stage select, final animation
+cleanup (gated walk/crouch JPEGs for Peggy, uniform-scale re-exports for
+Richard, unmapped `stage_intro`/`throw_target`/`crouch_down`), final
 audio/voice/VFX, CPU AI, campaign, and final art. Online play is deferred beyond
 v0.1 per GDD §2.4/§16.
 

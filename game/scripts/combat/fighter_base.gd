@@ -125,6 +125,23 @@ var _character_art_scale := 0.0
 var _idle_art_scale := 0.0
 var _idle_art_valid := false
 var _idle_ticks_per_cel := 1
+var _idle_sheet_tex: Texture2D
+
+# Authored presentation clips (Peggy + Richard; see PeggyClipLibrary /
+# RichardClipLibrary). Playback is a pure function of the simulation clock
+# (state_frame / authored durations / the two counters below), so hitstop and
+# match pause freeze it automatically, and every state/move entry restarts the
+# clip deterministically.
+var _clip_lib: GDScript = null
+var _clip_library_valid := false
+var _clip_cache: Dictionary = {}
+var _active_clip: Dictionary = {}
+var _transient_clip_key := ""
+var _transient_clip_tick := 0
+var _ko_grounded_frame := 0
+# Previous sim state, captured by _set_state/_force_state before the state
+# change lands, so _on_state_changed can detect crouch-exit transitions.
+var _prev_state: State = State.IDLE
 
 func _ready() -> void:
 	silhouette.modulate = body_color
@@ -198,6 +215,7 @@ func _configure_idle_sprite() -> void:
 	idle_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	idle_sprite.hframes = IDLE_CELLS
 	idle_sprite.centered = false
+	_idle_sheet_tex = sheet
 	# Map the in-sheet feet anchor onto the fighter origin (ground contact),
 	# keeping the node's local x centered on the anchor so flip_h pivots the
 	# art around the planted feet instead of drifting them.
@@ -233,6 +251,25 @@ func _configure_idle_sprite() -> void:
 		return
 	_idle_art_scale = SILHOUETTE_HEIGHT / float(visible_height)
 	_idle_art_valid = true
+	# Authored presentation clips piggyback on the same sprite node and only
+	# activate for fighters with a clip set (Peggy, Richard). A failure here
+	# leaves the fighter on the idle-loop/cutout path untouched.
+	_clip_lib = _clip_library_for(data.id)
+	_clip_library_valid = _clip_lib != null and _clip_lib.has_clips(data.id)
+	_clip_cache.clear()
+	_active_clip = {}
+	_transient_clip_key = ""
+	_transient_clip_tick = 0
+
+# Returns the generated clip table for a fighter, or null when that fighter
+# has no authored presentation set (they keep the approved fallback path).
+func _clip_library_for(fighter_id: String) -> GDScript:
+	match fighter_id:
+		"peg_leg_peggy":
+			return PeggyClipLibrary
+		"whiskey_richard":
+			return RichardClipLibrary
+	return null
 
 func begin_round(spawn_pos: Vector2, opponent_x: float) -> void:
 	position = spawn_pos
@@ -253,6 +290,10 @@ func begin_round(spawn_pos: Vector2, opponent_x: float) -> void:
 	move_hit_confirmed = false
 	move_already_hit = false
 	input_buffer.clear()
+	_active_clip = {}
+	_transient_clip_key = ""
+	_transient_clip_tick = 0
+	_ko_grounded_frame = 0
 	facing = 1 if opponent_x > spawn_pos.x else -1
 	_force_state(State.IDLE)
 	_emit_health()
@@ -272,6 +313,18 @@ func _physics_process(_delta: float) -> void:
 		hit_flash_frames = maxi(hit_flash_frames - 1, 0)
 		block_flash_frames = maxi(block_flash_frames - 1, 0)
 		_update_silhouette_flash()
+
+	# Presentation-only counters (authored clips). Both advance on the sim
+	# clock past the hitstop early-return, so hitstop and pause freeze them.
+	if _transient_clip_key != "":
+		_transient_clip_tick += 1
+		var tclip: Dictionary = _clip_lib.state_clip("crouch_up_transient")
+		var tpf := int(_clip_lib.LOOP_CEL_TICKS.get("crouch_up", 5))
+		var dur := int(tclip.frames) * tpf if not tclip.is_empty() else 12
+		if _transient_clip_tick > dur:
+			_transient_clip_key = ""
+	if state == State.KO:
+		_ko_grounded_frame = _ko_grounded_frame + 1 if grounded else 0
 
 	state_frame += 1
 	var axis := _axis("left", "right")
@@ -921,6 +974,11 @@ func reset_state() -> void:
 	grounded = true
 	hit_flash_frames = 0
 	block_flash_frames = 0
+	# Presentation-clip playback state is fully reset with the match.
+	_active_clip = {}
+	_transient_clip_key = ""
+	_transient_clip_tick = 0
+	_ko_grounded_frame = 0
 	_update_silhouette_flash()
 	_sync_visuals()
 
@@ -1024,11 +1082,13 @@ func hurtbox_rect() -> Rect2:
 
 func _set_state(new_state: State) -> void:
 	if new_state != state:
+		_prev_state = state
 		state = new_state
 		state_frame = 0
 		state_changed.emit(new_state)
 
 func _force_state(new_state: State) -> void:
+	_prev_state = state
 	state = new_state
 	state_frame = 0
 	state_changed.emit(new_state)
@@ -1070,15 +1130,25 @@ func _sync_visuals() -> void:
 
 # Exactly one character-art visual is visible at a time. The authored sheet
 # shows the four-cel loop in State.IDLE, and cel 0 as static artwork in every
-# other state, so the fighter never swaps back to the clashing legacy cutout.
-# The cutout/silhouette path below remains the emergency fallback when the
-# idle sheet is missing or invalid.
+# other state that has no authored clip, so the fighter never swaps back to the
+# clashing legacy cutout. For fighters with a clip set (Peggy) the matching
+# authored clip plays instead; any missing/gated clip falls back to that same
+# static cel-0 artwork. The cutout/silhouette path below remains the emergency
+# fallback when the idle sheet is missing or invalid.
 func _update_idle_display() -> void:
 	var sheet_active := _idle_art_valid and _character_art_scale > 0.0
 	idle_sprite.visible = sheet_active
 	character_sprite.visible = not sheet_active and _character_art_scale > 0.0
 	if not sheet_active:
 		return
+	_active_clip = _resolve_visual_clip() if _clip_library_valid else {}
+	if not _active_clip.is_empty():
+		_display_clip(_active_clip)
+		return
+	_display_idle_art()
+
+# Renders the approved idle sheet: the loop in IDLE, cel 0 elsewhere.
+func _display_idle_art() -> void:
 	if state == State.IDLE:
 		# Idle cel timing lives on the simulation clock: state_frame only
 		# advances past the hitstop early-return, so hitstop and match pause
@@ -1090,11 +1160,225 @@ func _update_idle_display() -> void:
 		# anchor, filtering, and facing as the loop, so transitions never
 		# change character size, ground placement, or artwork.
 		idle_sprite.frame = 0
+	# Restore the idle sheet's geometry; a previous clip display may have
+	# swapped texture, cel count, or anchor.
+	if idle_sprite.texture != _idle_sheet_tex:
+		idle_sprite.texture = _idle_sheet_tex
+		idle_sprite.hframes = IDLE_CELLS
+		idle_sprite.offset = Vector2(-IDLE_ANCHOR.x, -IDLE_ANCHOR.y)
 	var height_scale := _pushbox_height() / SILHOUETTE_HEIGHT
 	idle_sprite.scale = Vector2(_idle_art_scale, _idle_art_scale * height_scale)
 	idle_sprite.flip_h = facing < 0
 
+# ---------------- Authored presentation clips ----------------
+# Selects the authored clip for the current simulation state. Pure lookup on
+# sim state — no timers — so playback restarts on every state/move entry
+# (including repeated use of the same attack) and survives determinism.
+func _resolve_visual_clip() -> Dictionary:
+	if not _clip_library_valid:
+		return {}
+	if _transient_clip_key != "":
+		return _clip_lib.state_clip("crouch_up_transient")
+	# Authored guard presentation: holding back while stationary (pinned against
+	# a wall) or crouch-blocking shows the guard pose instead of a frozen walk
+	# cel. This is presentation only — blocking, movement, and pushback are
+	# decided by the simulation exactly as before.
+	if bool(_clip_lib.GUARD_POSE) and grounded and is_holding_back() \
+			and state in [State.IDLE, State.WALK_B, State.CROUCH]:
+		if _down() or state == State.CROUCH:
+			return _clip_lib.state_clip("block_crouch")
+		if state == State.IDLE or _pinned_at_stage_wall(velocity.x):
+			return _clip_lib.state_clip("block_stand")
+	match state:
+		State.ATTACK:
+			if current_move == null:
+				return {}
+			return _clip_lib.move_clip(current_move.id)
+		State.WALK_F:
+			return _clip_lib.state_clip("walk_f")
+		State.WALK_B:
+			return _clip_lib.state_clip("walk_b")
+		State.CROUCH:
+			return _clip_lib.state_clip("crouch")
+		State.JUMP_START:
+			return _clip_lib.state_clip("jump_start")
+		State.JUMP_RISE:
+			return _clip_lib.state_clip("jump_rise")
+		State.JUMP_FALL:
+			return _clip_lib.state_clip("jump_fall")
+		State.LAND:
+			return _clip_lib.state_clip("land")
+		State.BLOCK_STAND:
+			return _clip_lib.state_clip("block_stand")
+		State.BLOCK_CROUCH:
+			return _clip_lib.state_clip("block_crouch")
+		State.HITSTUN:
+			if not grounded:
+				return _clip_lib.state_clip("hitstun_air")
+			return _clip_lib.state_clip(
+				"hitstun_crouch" if (crouching or _down()) else "hitstun_stand")
+		State.BLOCKSTUN:
+			return _clip_lib.state_clip(
+				"blockstun_crouch" if (crouching or _down()) else "blockstun_stand")
+		State.KNOCKDOWN:
+			return _clip_lib.state_clip("knockdown")
+		State.WAKE_UP:
+			return _clip_lib.state_clip("wake_up")
+		State.TECH:
+			return _clip_lib.state_clip("tech")
+		State.KO:
+			return _clip_lib.state_clip("ko_air" if not grounded else "ko_ground")
+		State.WIN:
+			return _clip_lib.state_clip("win")
+		_:
+			return {}
+
+func _clip_texture(clip: Dictionary) -> Texture2D:
+	var path := str(clip.get("path", ""))
+	if path.is_empty() or not ResourceLoader.exists(path):
+		return null
+	var tex := load(path) as Texture2D
+	if tex == null or tex.get_width() % int(clip.frames) != 0 or tex.get_height() <= 0:
+		return null
+	return tex
+
+# Frames advance strictly on the simulation clock. One-shots are fitted to
+# their authored state durations and clamp to the final cel; they never delay
+# gameplay, and grounded KO holds its last (downed) pose instead of looping.
+# A clip may declare an explicit cel order (`cels`) when its draft strip is
+# authored in a different pose order than the state expects; gameplay timing
+# still comes from the state counters.
+func _clip_frame(clip: Dictionary) -> int:
+	var count := _clip_cel_count(clip)
+	if state == State.ATTACK and current_move != null:
+		return _attack_clip_frame(current_move, count)
+	var idx := count - 1
+	match state:
+		State.LAND:
+			idx = _fitted_frame(count, landing_recovery_frames)
+		State.KNOCKDOWN:
+			idx = _fitted_frame(count, knockdown_frames)
+		State.WAKE_UP:
+			idx = _fitted_frame(count, wakeup_frames)
+		State.TECH:
+			idx = _fitted_frame(count, tech_frames)
+		State.HITSTUN:
+			idx = _fitted_frame(count, hitstun_frames)
+		State.BLOCKSTUN:
+			idx = _fitted_frame(count, blockstun_frames)
+		State.KO:
+			if not grounded:
+				idx = mini(state_frame / _clip_lib.ONESHOT_CEL_TICKS["ko_air"], count - 1)
+			else:
+				idx = mini(_ko_grounded_frame / _clip_lib.ONESHOT_CEL_TICKS["ko_ground"], count - 1)
+		State.JUMP_START:
+			idx = mini(state_frame / _clip_lib.ONESHOT_CEL_TICKS["jump_start"], count - 1)
+		State.JUMP_RISE:
+			idx = mini(state_frame / _clip_lib.ONESHOT_CEL_TICKS["jump_rise"], count - 1)
+		State.JUMP_FALL:
+			idx = mini(state_frame / _clip_lib.ONESHOT_CEL_TICKS["jump_fall"], count - 1)
+		State.WALK_F, State.WALK_B:
+			# Locomotion loops: a clamped walk used to freeze on its last cel and
+			# read as a slider. Wrapping keeps the cycle moving for as long as the
+			# direction is held.
+			var walk_key := "walk_f" if state == State.WALK_F else "walk_b"
+			var walk_ticks := int(_clip_lib.LOOP_CEL_TICKS.get(walk_key, 6))
+			idx = (state_frame / walk_ticks) % count
+		State.CROUCH, State.WIN, State.BLOCK_STAND, State.BLOCK_CROUCH:
+			var key := "crouch"
+			if state == State.WIN:
+				key = "win"
+			elif state in [State.BLOCK_STAND, State.BLOCK_CROUCH]:
+				key = "block_stand"
+			var ticks := int(_clip_lib.LOOP_CEL_TICKS.get(key, 8))
+			idx = (state_frame / ticks) % count
+		_:
+			idx = mini(state_frame / 6, count - 1)
+	return _cel_for(clip, idx)
+
+# Number of cels the renderer plays for a clip. Normally the sheet's cel count;
+# an explicit `cels` order can play fewer cels (e.g. hold only the airborne cel).
+func _clip_cel_count(clip: Dictionary) -> int:
+	var cels: Array = clip.get("cels", [])
+	return int(clip.frames) if cels.is_empty() else cels.size()
+
+# Maps a playback index onto the clip's authored cel index.
+func _cel_for(clip: Dictionary, index: int) -> int:
+	var cels: Array = clip.get("cels", [])
+	if cels.is_empty():
+		return index
+	return int(cels[clampi(index, 0, cels.size() - 1)])
+
+# Evenly distributes n cels across `duration` sim ticks (duration <= 0 clamps
+# to cel 0). Pure integer math; never adds simulation ticks.
+func _fitted_frame(n: int, duration: int) -> int:
+	if n <= 1:
+		return 0
+	var span := maxi(duration, 1)
+	return clampi(n * state_frame / span, 0, n - 1)
+
+# Attack cels map onto the authored startup/active/recovery phases. Cel counts
+# are allocated proportionally (ceil for nonzero phases, 0 for zero-length
+# phases), and the within-phase cel is floor-divided across the phase length,
+# so impact poses land on the actual active frames.
+func _attack_clip_frame(move: MoveData, n: int) -> int:
+	var s := move.startup
+	var a := move.active
+	var r := move.recovery
+	var total := maxi(s + a + r, 1)
+	var n_s := maxi(1, roundi(n * float(s) / total)) if s > 0 else 0
+	var n_a := maxi(1, roundi(n * float(a) / total)) if a > 0 else 0
+	var n_r := maxi(1, roundi(n * float(r) / total)) if r > 0 else 0
+	while n_s + n_a + n_r > n:
+		if n_r > n_a and n_r > n_s:
+			n_r -= 1
+		elif n_s > n_a:
+			n_s -= 1
+		elif n_r > 1:
+			n_r -= 1
+		elif n_s > 1:
+			n_s -= 1
+		elif n_a > 1:
+			n_a -= 1
+		else:
+			break
+	if state_frame < s:
+		return mini(n_s * state_frame / maxi(s, 1), maxi(n_s - 1, 0))
+	if state_frame < s + a and n_a > 0:
+		var off := state_frame - s
+		return n_s + mini(n_a * off / maxi(a, 1), n_a - 1)
+	var off_r := state_frame - (s + a)
+	return mini(n_s + n_a + n_r * off_r / maxi(r, 1), maxi(n - 1, 0))
+
+# Shows an authored clip on the shared art sprite. Scale derives from the
+# idle sheet's own scale so a clip's standing figure is exactly as tall on
+# screen as the idle artwork's standing figure (no size jump between the
+# loop, the static fallback, and any authored clip); the art already carries
+# the pose, so no procedural squash is applied on top.
+func _display_clip(clip: Dictionary) -> void:
+	var tex := _clip_texture(clip)
+	if tex == null:
+		# Missing/invalid clip: fall back to the idle sheet path below.
+		_active_clip = {}
+		_display_idle_art()
+		return
+	if idle_sprite.texture != tex:
+		idle_sprite.texture = tex
+		idle_sprite.hframes = int(clip.frames)
+		idle_sprite.vframes = 1
+		idle_sprite.offset = -Vector2(clip.anchor)
+	idle_sprite.frame = _clip_frame(clip)
+	var s: float = _idle_art_scale * float(_clip_lib.STANDING_REFERENCE_H_REF) / float(clip.h_ref)
+	idle_sprite.scale = Vector2(s, s)
+	idle_sprite.flip_h = facing < 0
+
 func _apply_state_animation() -> void:
+	# Authored clips carry their own pose and timing: when one is displaying,
+	# the obsolete procedural bob/squash/pose transforms stay off so the two
+	# animations can never double up. Hit/block flashes, EX tint, facing flip,
+	# and camera effects are untouched (they modulate, not transform).
+	if not _active_clip.is_empty():
+		return
 	# First-pass, render-only motion on the placeholder shapes. All animation is
 	# attached to VisualRoot, so it never moves the fighter body or combat boxes.
 	var is_peggy := data != null and data.id == "peg_leg_peggy"
@@ -1160,7 +1444,20 @@ func _apply_state_animation() -> void:
 			visual_root.position.y = -absf(sin(frame * 0.24)) * (2.4 if is_peggy else 1.5)
 
 func _on_state_changed(new_state: State) -> void:
+	var was_crouch := _prev_state == State.CROUCH
 	if new_state == State.CROUCH:
 		crouching = true
 	elif new_state in [State.IDLE, State.WALK_F, State.WALK_B]:
 		crouching = false
+	# Presentation-clip bookkeeping: the authored stand-up transient plays when
+	# a crouch ends into idle; every other entry clears any transient, and KO
+	# restarts its grounded counter.
+	if _clip_library_valid:
+		if was_crouch and new_state == State.IDLE:
+			_transient_clip_key = "crouch_up"
+			_transient_clip_tick = 0
+		else:
+			_transient_clip_key = ""
+			_transient_clip_tick = 0
+		if new_state == State.KO:
+			_ko_grounded_frame = 0

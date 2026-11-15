@@ -22,3 +22,7 @@ desktop.ini
 .vscode/
 .idea/
 *.swp
+
+# Python tooling
+__pycache__/
+*.pyc

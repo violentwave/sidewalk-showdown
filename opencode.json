@@ -1,0 +1,14 @@
+{
+  "mcp": {
+    "servers": {
+      "pixellab": {
+        "type": "remote",
+        "url": "https://api.pixellab.ai/mcp",
+        "oauth": false,
+        "headers": {
+          "Authorization": "Bearer {env:PIXELLAB_API_KEY}"
+        }
+      }
+    }
+  }
+}

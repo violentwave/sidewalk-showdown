@@ -46,16 +46,16 @@ jobs:
         run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       # The ~1 GB export templates do not fit this repository's Actions storage
-      # budget: on the free plan the total is 500 MB, so caching the installed
-      # templates (even as one entry) consumes the quota the build artifacts
-      # need, and both upload steps then fail with "Artifact storage quota has
-      # been hit". Download the templates per run instead — that is the only
-      # step that gets slower, and it keeps exports publishable.
+      # budget: on the free plan the total is 500 MB, so caching the templates
+      # consumes the quota the build artifacts need and both upload steps fail
+      # with "Artifact storage quota has been hit". Download the full
+      # engine+templates bundle per run instead and cache nothing.
       - uses: chickensoft-games/setup-godot@v2
         with:
           version: ${{ env.GODOT_VERSION }}
           use-dotnet: false
           include-templates: true
+          cache: false
 
       - name: Import project
         run: godot --headless --path game --import

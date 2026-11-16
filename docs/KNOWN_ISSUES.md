@@ -189,13 +189,14 @@ that section by hand afterward — the simulation step comes from
 
 ## Deliberate gaps (next phases)
 
-- **Authored sprite animation status (updated 2026-11-14).** Both fighters now
+- **Authored sprite animation status (updated 2026-11-16).** Both fighters now
   play the owner's full-animation-batch clips. Peggy: 16 attack moves and 18
   core states (see `docs/PIXELORAMA_PIPELINE.md` §8 and
-  `game/scripts/combat/peggy_clip_library.gd`). Richard: all 16 moves and 20
+  `game/scripts/combat/peggy_clip_library.gd`). Richard: all 16 moves and 21
   core states, plus side-facing walks and crouch-hold (see §9 and
-  `game/scripts/combat/richard_clip_library.gd`); `crouch_down` is prepared and
-  enabled but has no crouch-entry state to map yet. The idle loops and the
+  `game/scripts/combat/richard_clip_library.gd`); `crouch_down` now plays as a
+  presentation-only crouch-entry transient (§9b), so all 39 of his enabled clips
+  are mapped without adding a simulation state. The idle loops and the
   static cel-0 fallback remain exactly as approved. **Gated off pending owner
   review:** Peggy's `walk_forward` / `walk_backward` / `crouch_down` clips
   (front-facing JPEGs that clash with the side-view presentation) and
@@ -322,7 +323,7 @@ These are measured or first-pass limits, not phase-exit validation.
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **333 checks**: distinct Peggy/Richard sheet
+- `game/tests/combat_test.gd` — **337 checks**: distinct Peggy/Richard sheet
   artwork in walk states, the authored idle sheet (selection, visibility, cel
   cadence, wrap, hitstop/pause freeze, re-entry reset, facing pivot, and the
   missing-art fallback), unchanged combat boxes, clean hits and
@@ -357,11 +358,12 @@ These are measured or first-pass limits, not phase-exit validation.
   unchanged grounded attacks; and throw damage remaining 95/105. Authored-clip
   coverage now asserts both libraries' integrity (cel geometry, distinct enabled
   textures), 16/16 move mapping per fighter including `richard_*` rows, gated
-  optional clips, Richard's live walks/crouch-hold, exact light/heavy/meth phase
-  boundaries, end-to-end display with procedural transforms suppressed and
-  `h_ref` scaling, hitstop freeze, repeat-attack reset, hitstun interruption,
-  walk-cycle wrapping, jump-fall cel selection, landing cel order, wall/crouch
-  guard poses (Richard) and jump/landing order (Peggy), and a shared
+  optional clips, Richard's live walks/crouch-hold/crouch-entry transient, exact
+  light/heavy/meth phase boundaries, end-to-end display with procedural
+  transforms suppressed and `h_ref` scaling, hitstop freeze, repeat-attack
+  reset, hitstun interruption, walk-cycle wrapping, jump-fall cel selection,
+  landing cel order, wall/crouch guard poses (Richard), jump/landing order
+  (Peggy), the crouch-entry transient deferring the guard pose, and a shared
   state+move coverage sweep for both fighters.
 - `game/tests/round_flow_test.gd` — **34 checks**: intro→fight, first-fight
   Tripp commentary sample, KO phase, round

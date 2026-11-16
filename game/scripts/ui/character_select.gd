@@ -5,10 +5,10 @@ signal match_requested(p1_data: FighterData, p2_data: FighterData)
 signal selection_moved
 signal selection_confirmed
 
-const FIGHTERS: Array[FighterData] = [
-	preload("res://resources/fighters/peg_leg_peggy.tres"),
-	preload("res://resources/fighters/whiskey_richard.tres"),
-]
+# Cast comes from the shared roster; the list is kept local because the cursor
+# and card loop index it repeatedly.
+@export var roster: MatchRoster
+var FIGHTERS: Array[FighterData] = []
 const P1_ACCENT := Color(0.98, 0.64, 0.18)
 const P2_ACCENT := Color(0.95, 0.34, 0.28)
 const MUTED := Color(0.68, 0.66, 0.62)
@@ -23,6 +23,14 @@ var _p2_marks: Array[Label] = []
 var _status: Label
 
 func _ready() -> void:
+	if roster == null:
+		roster = MatchRoster.load_default()
+	if roster != null:
+		FIGHTERS = roster.fighters
+	if FIGHTERS.size() < 2:
+		push_error("CharacterSelect: roster needs at least two fighters")
+		return
+	p2_choice = 1
 	_build_ui()
 	_refresh()
 
@@ -90,6 +98,13 @@ func _build_ui() -> void:
 		Vector2(162, 135), Vector2(150, 12), 7, P2_ACCENT, HORIZONTAL_ALIGNMENT_CENTER)
 	_status = _add_label("BOTH PLAYERS CONFIRM TO START",
 		Vector2(10, 155), Vector2(300, 12), 8, Color(0.9, 0.88, 0.82),
+		HORIZONTAL_ALIGNMENT_CENTER)
+
+	# Stage comes from the same roster; the match builds it from StageData.
+	var stage_text := "STAGE: —"
+	if roster != null and not roster.stages.is_empty():
+		stage_text = "STAGE: " + roster.stages[0].display_name.to_upper()
+	_add_label(stage_text, Vector2(8, 163), Vector2(304, 10), 7, MUTED,
 		HORIZONTAL_ALIGNMENT_CENTER)
 
 func _add_label(text: String, at: Vector2, dimensions: Vector2, font_size: int,

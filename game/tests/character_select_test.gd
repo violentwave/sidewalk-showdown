@@ -41,6 +41,21 @@ func _run() -> void:
 		select.p1_choice == 0 and select.p2_choice == 1,
 		"choices=%d/%d" % [select.p1_choice, select.p2_choice])
 
+	var roster: MatchRoster = main_scene.roster
+	_check("the shared roster lists both slice fighters and the Bus Stop stage",
+		roster != null and roster.fighters.size() == 2 and roster.stages.size() == 1
+			and roster.stages[0].display_name == "Bus Stop (Night)"
+			and roster.stages[0].scene != null,
+		"fighters=%d stages=%d" % [
+			roster.fighters.size() if roster != null else -1,
+			roster.stages.size() if roster != null else -1])
+	var stage_label := ""
+	for child in select.get_children():
+		if child is Label and str(child.text).begins_with("STAGE:"):
+			stage_label = str(child.text)
+	_check("the select screen names the stage from the roster",
+		stage_label == "STAGE: BUS STOP (NIGHT)", "label=%s" % stage_label)
+
 	_press("p1_right")
 	_check("P1 can move the cursor with its own horizontal controls",
 		select.p1_choice == 1,
@@ -73,6 +88,11 @@ func _run() -> void:
 				and main_scene.match_root.p2.data.display_name == "Peg Leg Peggy",
 			"fighters=%s / %s" % [main_scene.match_root.p1.data.display_name,
 				main_scene.match_root.p2.data.display_name])
+		_check("the match instantiates the roster's stage",
+			main_scene.match_root.selected_stage == roster.stages[0]
+				and main_scene.match_root.stage.scene_file_path
+					== roster.stages[0].scene.resource_path,
+			"stage=%s" % main_scene.match_root.stage.scene_file_path)
 		_check("the match switches from intro music to the existing match track",
 			main_scene.audio_manager.music_player.playing,
 			"match music is not playing")

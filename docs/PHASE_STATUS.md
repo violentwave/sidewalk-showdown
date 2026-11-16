@@ -156,8 +156,11 @@ phase exit criteria:
   cancel routes, counter-hit detection (+2 hitstop and HUD feedback), juggle/OTG
   rules, launcher/EX routes, command grabs, match/round flow, and debug tools are
   implemented. The text-only character-select mockup chooses between the two
-  slice fighters, but `MatchRoot.gd` still preloads the slice's two fighter
-  resources and one stage, so generic roster/stage loading is not demonstrated.
+  slice fighters. As of 2026-11-16 cast and stage come from
+  `resources/match_roster.tres` (`MatchRoster` → `Array[FighterData]` +
+  `Array[StageData]`); `MatchRoot` builds the stage from `selected_stage.scene`
+  and no longer preloads either fighter or the Bus Stop scene, so adding a
+  fighter or stage is a roster edit rather than a code edit.
   Input has no remapping UI; training is limited to debug controls; AI,
   save/unlock, a full audio manager/mixer, and an authored hitbox editor workflow
   are missing. A small Phase 2 audio service plays the temporary track and cues.
@@ -174,8 +177,9 @@ phase exit criteria:
   authored pose/limb frames remain deferred. The owner-approved directions in
   `docs/PROPOSALS.md` §§6–7
   are implemented where marked; additional systems listed above remain gaps.
-- **Exit verification:** not met; adding the current roster/stage still depends
-  on hard-coded match setup, and several listed systems do not exist.
+- **Exit verification:** partially met. Fighters and stages now load through the
+  roster, and frame data is resource-driven, but the remaining listed systems
+  (input remapping, training tools, AI, save/unlock, hitbox editor) do not exist.
 
 ### Phase 4 — Art Direction Lock
 

@@ -415,13 +415,15 @@ These are measured or first-pass limits, not phase-exit validation.
   builds compile successfully, then `actions/upload-artifact` fails with
   `Failed to CreateArtifact: Artifact storage quota has been hit`. Storage was
   pruned to **zero artifacts and zero caches** on 2026-11-16 and the upload
-  still fails while GitHub reports "All Systems Operational", so this is no
-  longer a repository-storage-size problem. It needs an owner check in
+  still failed while GitHub reported "All Systems Operational". A dedicated
+  probe workflow then uploaded a **40-byte text file** and was rejected with the
+  same message, which rules out artifact size, artifact count, repository
+  contents, and repository storage. It needs an owner check in
   **Settings → Billing and plans → Plans and usage → Actions** (included
-  storage, spending limit, payment method, or a stuck usage counter). Builds
-  remain reproducible locally with the presets in `game/export_presets.cfg`;
-  do not work around it by making the upload step non-fatal, which would hide
-  a missing deliverable.
+  storage, spending limit, payment method, or a stuck usage counter); GitHub
+  support is the next step if billing looks correct. Builds remain reproducible
+  locally with the presets in `game/export_presets.cfg`; do not work around it
+  by making the upload step non-fatal, which would hide a missing deliverable.
 - `game/tools/readme_capture.gd` is a display-only helper that captures the
   three screens used in `README.md` (intro panel, character select, posed
   match) to `/tmp/opencode/readme/`. Reviewed images are copied into

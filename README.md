@@ -110,8 +110,14 @@ godot --headless --path game --export-release windows build/windows/sidewalk_sho
 ```
 
 > The export workflow deliberately does **not** cache Godot's ~1 GB export
-> templates. The free Actions storage budget is 500 MB, so a template cache
+> templates: the free Actions storage budget is 500 MB, so a template cache
 > starves artifact uploads; downloading them per run keeps exports publishable.
+>
+> **Current status:** artifact uploads are rejected by an account-level Actions
+> storage check even with zero stored artifacts, so both export runs build but
+> publish nothing. That is a billing/account issue, not a code failure — see
+> [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md). Local exports work with the
+> commands above.
 
 ## Repository map
 

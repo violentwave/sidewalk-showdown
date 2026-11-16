@@ -87,9 +87,9 @@ const MOVE_CLIPS := {
 }
 
 # State -> clip keys (context resolved by FighterBase). Lists are tried in
-# order so the first valid/enabled clip wins. `crouch_down` is prepared but
-# has no dedicated crouch-entry state (crouch is instant), so it stays unmapped
-# exactly like the approved fallback path.
+# order so the first valid/enabled clip wins. `crouch_down` plays as a
+# transient on the crouch entry (see TRANSIENTS); the simulation's crouch is
+# instantaneous, so the clip is presentation only.
 const STATE_CLIPS := {
 	"walk_f": ["walk_forward"],
 	"walk_b": ["walk_backward"],
@@ -112,12 +112,21 @@ const STATE_CLIPS := {
 	"ko_ground": ["ko_ground"],
 	"win": ["win"],
 	"crouch_up_transient": ["crouch_up"],
+	"crouch_down_transient": ["crouch_down"],
 }
 
 # Presentation cadence (sim ticks per cel) for state clips whose length is not
 # bound to an authored duration. Holds loop; one-shots hold their last cel.
 const LOOP_CEL_TICKS := {"crouch": 12, "win": 9, "block_stand": 10, "block_crouch": 10, "blockstun_stand": 10, "blockstun_crouch": 10, "crouch_up": 5, "walk_f": 6, "walk_b": 6}
 const ONESHOT_CEL_TICKS := {"jump_start": 1, "jump_rise": 5, "jump_fall": 5, "ko_air": 10, "ko_ground": 12}
+
+# Transient one-shots played on a state transition. `ticks` is the per-cel
+# cadence; the length is the clip's cel count times this value. Presentation
+# only: the crouch transition itself stays instantaneous in the simulation.
+const TRANSIENTS := {
+	"crouch_up_transient": {"ticks": 5},
+	"crouch_down_transient": {"ticks": 4},
+}
 
 # Draft-strip playback order, applied by the renderer instead of the default
 # 0..frames-1 sequence. Two draft sheets are ordered for a previous pose (or

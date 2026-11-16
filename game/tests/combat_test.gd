@@ -2776,12 +2776,20 @@ func _run() -> void:
 	var wall_guard := p2.idle_sprite.texture == r_guard_stand
 	p2._force_state(FighterBase.State.CROUCH)
 	p2._sync_visuals()
+	# The crouch-down entry transient plays before the guard pose; clear it to
+	# observe the settled presentation (this path forces the state directly, so
+	# the normal expiry tick never runs).
+	var crouch_entry_plays := p2.idle_sprite.texture != r_guard_crouch
+	p2._transient_clip_key = ""
+	p2._sync_visuals()
 	var crouch_guard := p2.idle_sprite.texture == r_guard_crouch
 	Input.action_release("p2_right")
 	p2.input_enabled = false
 	_check("Richard shows the authored stand guard when pinned at the wall",
 		wall_guard and retreat_tex != r_guard_stand,
 		"wall_guard=%s retreat_guard=%s" % [str(wall_guard), str(retreat_tex == r_guard_stand)])
+	_check("Richard's crouch entry defers the guard pose to the transient",
+		crouch_entry_plays, "entry=%s" % str(crouch_entry_plays))
 	_check("Richard shows the authored crouch guard while holding down-back",
 		crouch_guard, "")
 	p2._force_state(FighterBase.State.IDLE)
@@ -2891,6 +2899,40 @@ func _run() -> void:
 	_check("Richard's hitstun one-shot clamps to its final cel without looping",
 		p2.idle_sprite.frame == 2, "frame=%d" % p2.idle_sprite.frame)
 
+	# Crouch entry plays Richard's authored crouch_down as a presentation
+	# transient. The simulation's crouch remains instantaneous and the hurtbox
+	# is the same 0.65 pushbox it used before the clip existed.
+	_reset_fighters(140, 200)
+	var p2_input_before := p2.input_enabled
+	p2.input_enabled = true
+	Input.action_press("p2_down")
+	await _step(1)
+	var crouch_down_tex: Texture2D = p2._clip_texture(
+		RichardClipLibrary.state_clip("crouch_down_transient"))
+	p2._sync_visuals()
+	_check("Richard's crouch entry plays the authored crouch-down transient",
+		p2.state == FighterBase.State.CROUCH
+			and p2._transient_clip_key == "crouch_down_transient"
+			and p2.idle_sprite.texture == crouch_down_tex,
+		"state=%s key=%s" % [str(p2.state), p2._transient_clip_key])
+	_check("the crouch-down transient does not delay the crouch or its hurtbox",
+		p2.state_frame == 0
+			and is_equal_approx(p2._pushbox_height(), p2.body_height * 0.65)
+			and p2.velocity == Vector2.ZERO,
+		"frame=%d h=%.1f" % [p2.state_frame, p2._pushbox_height()])
+	var entry_duration := p2._transient_clip_duration()
+	await _step(entry_duration + 1)
+	p2._sync_visuals()
+	_check("the crouch-down transient expires into the crouch hold",
+		p2._transient_clip_key == ""
+			and p2.state == FighterBase.State.CROUCH
+			and p2.idle_sprite.texture == p2._clip_texture(
+				RichardClipLibrary.state_clip("crouch")),
+		"key=%s state=%s" % [p2._transient_clip_key, str(p2.state)])
+	Input.action_release("p2_down")
+	p2.input_enabled = p2_input_before
+	await _step(2)
+
 	# Both fighters now carry authored sets: representative states and every
 	# move row resolve for each, with no cross-contamination of their tables.
 	var coverage_gaps := []
@@ -2900,7 +2942,7 @@ func _run() -> void:
 				"jump_fall", "land", "block_stand", "block_crouch", "hitstun_stand",
 				"hitstun_crouch", "hitstun_air", "blockstun_stand", "blockstun_crouch",
 				"knockdown", "wake_up", "tech", "ko_air", "ko_ground", "win",
-				"crouch_up_transient"]:
+				"crouch_up_transient", "crouch_down_transient"]:
 			var enabled_candidate := false
 			for cand in fighter._clip_lib.STATE_CLIPS.get(state_key, []):
 				var cdef: Dictionary = fighter._clip_lib.CLIPS.get(str(cand), {})
@@ -2919,7 +2961,7 @@ func _run() -> void:
 		"states=%d %s" % [states_checked, ", ".join(coverage_gaps)])
 
 	# Round reset clears all presentation-clip playback state.
-	p1._transient_clip_key = "crouch_up"
+	p1._transient_clip_key = "crouch_up_transient"
 	p1._transient_clip_tick = 3
 	p1._ko_grounded_frame = 9
 	p1.begin_round(Vector2(100, 150), 200.0)

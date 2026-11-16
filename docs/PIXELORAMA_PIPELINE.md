@@ -161,9 +161,72 @@ batch; this batch is idle-only.
    usage rights follow the same owner-supplied-asset policy as the rest of
    the project.
 
-## 8. Integration status — Peggy's full-animation batch (DONE, uncommitted)
+## 8a. Integration status — authored idle loops (DONE, superseded by §8)
 
-Branch `chore/pixelorama-idle-pipeline-setup`, uncommitted for owner review.
+Integrated and merged in PR #43 (the authored-idle pass later superseded by the
+full clip batches in §8/§9):
+
+- Native sources: the approved four cels were assembled into
+  `art/source/Characters/Animations/peg_leg_peggy.pxo` /
+  `whiskey_richard.pxo` (IdleArt layer cels now full-canvas 96×80, 0.15 s per
+  frame, `idle` tag frames 1–4; hidden locked `Reference` layer preserved).
+  Verified by headless reopen (96×80 / 4 frames) and CLI sheet export; the
+  exported Richard sheet is pixel-identical to the approved pack and Peggy's
+  differs only in cleared alpha-0 halo pixels (opaque content identical).
+- Runtime sheets: `game/art/characters/peg_leg_peggy/spr_peg_leg_peggy_idle.png`
+  and `game/art/characters/whiskey_richard/spr_whiskey_richard_idle.png`
+  (copies of the approved 384×80 sheets; no previews/ZIPs in runtime dirs).
+- `FighterBase.tscn`: new `VisualRoot/IdleSprite` (Sprite2D, hframes=4,
+  nearest filter, uncentered).
+- `fighter_base.gd`: the approved sheet is the fighter's artwork everywhere —
+  the four-cel loop plays in `State.IDLE`, and **cel 0 shows as the static
+  artwork in every other placeholder state** (walk, crouch, jumps, attacks,
+  block/reactions, knockdown, wake-up, KO, win), replacing the clashing legacy
+  cutout during normal play. Procedural `VisualRoot` motion for those states
+  is unchanged, the idle loop does not play outside IDLE, and hit/block
+  flashes modulate the sheet art the same way they modulated the cutout. The
+  cutout/silhouette path remains as the emergency fallback when the idle
+  sheet is missing or invalid. Exactly one character-art visual is visible at
+  a time; the sheet uses one scale (measured visible height →
+  `SILHOUETTE_HEIGHT`), the (48, 78) feet anchor, nearest filtering, and
+  `flip_h` facing for all states, so transitions never swap artwork, stack
+  sprites, jump size, or shift ground placement. Cel timing derives from
+  `state_frame` at 9 ticks per cel (0.15 s at 60 Hz sim; 36-tick loop), so
+  hitstop and match pause freeze it and idle re-entry restarts at cel 0. The
+  old whole-body idle bob is disabled while the authored idle is active, and
+  `VisualRoot` transforms are reset every sync, so feet never drift.
+- No MoveData, collision, hitstop, input, or state-rule changes.
+- Tests: `combat_test.gd` extended (sheet artwork in IDLE and static cel 0 in
+  non-idle states with identical scale/anchor; 9-tick cadence and wrap; no
+  per-tick restart; hitstop/pause freeze; re-entry reset; facing pivot; crouch
+  squash rule; missing-art fallback; unchanged pushbox) — the suite stood at
+  260 checks at that time;
+  `round_flow` 34, `character_select` 15, `the_clip` 23, all green.
+- Rendered verification: windowed capture script
+  `game/tests/idle_render_check.gd` (disposable, writes to /tmp) observed
+  idle → walk → crouch → jump → attack → hit/block flash → idle, plus both
+  facing directions, at gameplay scale against Bus Stop Night; captures under
+  `/tmp/opencode/idle_check/`. The sheet artwork holds through every
+  transition with no artwork swap, stacked sprites, size jump, or feet-anchor
+  shift; both fighters read correctly with planted feet and nearest filtering.
+
+Still placeholder and **procedural**: (historical, superseded by §8 — Peggy's
+non-idle states now play authored clips) every non-idle animation (walk, crouch,
+jumps, attacks, block/reactions, knockdown, wake-up, KO, win) now uses cel 0
+of the approved idle sheet as its static artwork with the existing procedural
+`VisualRoot` motion — the artwork is consistent with the approved idle
+sprites, but the non-idle states are not yet authored animations. The owner
+decision on facing-flip consequences (peg leg / bottle hand swap sides) is
+still deferred.
+2. Owner decision still deferred: whether flipping right-facing art for
+   left-facing play is acceptable given Peggy's peg leg and Richard's bottle
+   would swap apparent sides, or whether dedicated left-facing art is wanted.
+3. Standing-light attacks, AnimatedSprite2D runtime integration, and the
+   remaining inventory follow after owner review of the idle batch.
+
+## 8. Integration status — Peggy's full-animation batch (DONE, merged in PR #44)
+
+Landed on `main` via PR #44; the owner reviewed the batch before merge.
 §8's idle behavior is unchanged; Richard's visuals were untouched while only
 Peggy was wired (superseded by §9 below, which adds Richard's own table).
 The shared jump/landing/guard playback fixes in §9a apply to Peggy as well and
@@ -263,9 +326,9 @@ capture sequence (KO capture artifacts of the disposable script only).
 
 
 
-## 9. Integration status — Whiskey Richard's full-animation batch (DONE, uncommitted)
+## 9. Integration status — Whiskey Richard's full-animation batch (DONE, merged in PR #44)
 
-Branch `chore/pixelorama-idle-pipeline-setup`, uncommitted for owner review.
+Landed on `main` via PR #44 alongside Peggy's batch.
 Peggy's §8 integration is unchanged (same library, table, and tests); Richard
 gets his own generated table and dispatch. No gameplay data was touched.
 
@@ -274,17 +337,16 @@ under `art/source/Characters/Animations/generated/full_animation_batch_01/richar
 byte-for-byte preserved. All 40 map to the same 40 clip keys as Peggy (22 core
 states, 16 attack moves, 2 optional). Coverage by status:
 
-- **Integrated + enabled (38)**: 16 attack moves (all 16 MoveData rows in
+- **Integrated + enabled (39)**: 16 attack moves (all 16 MoveData rows in
   `whiskey_richard.tres` map 1:1), jumps (start/rise/fall), land, block/blockstun
   (stand+crouch), hitstun (stand+crouch+air), knockdown, wake-up, throw tech,
   ko_air, ko_ground, crouch_hold, crouch_up transient, win, **plus** walks and
-  crouch_down (side-facing PNGs, so they are live for Richard where Peggy's
-  front-facing JPEGs are gated).
+  `crouch_down` (side-facing PNGs, so they are live for Richard where Peggy's
+  front-facing JPEGs are gated). Since 2026-11-16 `crouch_down` plays as the
+  crouch-entry transient: the crouch transition stays instantaneous in the
+  simulation and the clip is presentation only.
 - **Prepared but gated OFF (2)**: `stage_intro` (no runtime hook),
   `throw_target` (no paired throw cinematic).
-- **Prepared + enabled but unmapped (1)**: `crouch_down` — the game has no
-  distinct crouch-entry state (crouch is instant), so entry still shows
-  `crouch_hold`. It is ready for a future crouch-transition state.
 
 Pipeline (`art/tools/prepare_richard_batch.py`, reproducible; shared
 slicing/masking/anchoring helpers still live in `prepare_peggy_batch.py`):
@@ -333,14 +395,15 @@ Runtime (`game/scripts/combat/richard_clip_library.gd`, new; `fighter_base.gd`):
   hold, and procedural-transform suppression are shared with Peggy and
   unchanged; the only per-fighter data is the table.
 
-Tests: `combat_test.gd` extended to **333 checks, 0 failures**. New Richard
-coverage: library integrity (cel geometry, 38 distinct enabled textures),
+Tests: `combat_test.gd` extended to **337 checks, 0 failures**. New Richard
+coverage: library integrity (cel geometry, 39 distinct enabled textures),
 all-16 move mapping incl. `richard_*` targets, gated optional clips, live
-walk/crouch-hold, exact light/heavy/meth phase boundaries, end-to-end attack
-display + no procedural transforms + h_ref scale, hitstop freeze, repeat-attack
-reset, hitstun interruption, both-fighter state+move coverage, and the §9a
-playback regressions (walk wrapping, jump-fall cel, landing order, guard
-poses, Peggy's jump/land order). The earlier "Peggy and Richard animate
+walk/crouch-hold/crouch-entry, exact light/heavy/meth phase boundaries,
+end-to-end attack display + no procedural transforms + h_ref scale, hitstop
+freeze, repeat-attack reset, hitstun interruption, both-fighter state+move
+coverage, and the §9a playback regressions (walk wrapping, jump-fall cel,
+landing order, guard poses, Peggy's jump/land order) plus the §9b crouch-entry
+transient. The earlier "Peggy and Richard animate
 differently" walk check now asserts Richard plays his authored `walk_forward`
 while Peggy keeps the gated idle fallback. `round_flow` 34,
 `character_select` 15, `the_clip` 23, all green.
@@ -391,7 +454,8 @@ cel selection, a cel cadence, or an `h_ref` scale value.
   each renders at the idle on-screen body height. `forward`/`forward_ex` now
   sit next to the idle/light/heavy captures at the same size.
 
-Verification: `combat_test.gd` grew to 333 checks (7 new: walk wrap, jump-fall
+Verification: `combat_test.gd` grew from 326 to 333 checks at the time of that
+pass (7 new: walk wrap, jump-fall
 cel hold, landing cel order, wall guard, crouch guard, plus Peggy's jump-fall
 and landing order), all green. New rendered harnesses
 `jump_block_render_check.gd` (18 ordered poses) and `attack_scale_check.gd`
@@ -400,70 +464,35 @@ and landing order), all green. New rendered harnesses
 (frozen walk, airborne landing cel) plus the fixed playback. Both 3,000-frame
 live-input soaks stayed clean after the change.
 
-Known limitations to state honestly: `crouch_down` is prepared but has no state
-hook; `stage_intro`/`throw_target` are intentionally unmapped; source sheets
+Known limitations to state honestly: `stage_intro`/`throw_target` are
+intentionally unmapped (the latter needs a throw cinematic); source sheets
 carry per-sheet art scales (measured, not uniform; the six worst action outliers
 were recalibrated in §9a, but a uniform re-export is still the cleaner fix);
 and no native `.pxo` projects exist for this batch (derived PNGs + manifest +
 reproducible script).
 
-## 8a. Integration status — authored idle loops (DONE, superseded by §8)
+## 9b. Crouch-entry transient (2026-11-16)
 
-Integrated (uncommitted, branch `chore/pixelorama-idle-pipeline-setup`):
+Presentation-only follow-up. `crouch_down` was the last enabled-but-unmapped
+Richard clip; the game has no separate crouch-entry state because crouch is
+instantaneous, so mapping it as a state would have changed timing. Instead the
+existing stand-up transient mechanism was generalised:
 
-- Native sources: the approved four cels were assembled into
-  `art/source/Characters/Animations/peg_leg_peggy.pxo` /
-  `whiskey_richard.pxo` (IdleArt layer cels now full-canvas 96×80, 0.15 s per
-  frame, `idle` tag frames 1–4; hidden locked `Reference` layer preserved).
-  Verified by headless reopen (96×80 / 4 frames) and CLI sheet export; the
-  exported Richard sheet is pixel-identical to the approved pack and Peggy's
-  differs only in cleared alpha-0 halo pixels (opaque content identical).
-- Runtime sheets: `game/art/characters/peg_leg_peggy/spr_peg_leg_peggy_idle.png`
-  and `game/art/characters/whiskey_richard/spr_whiskey_richard_idle.png`
-  (copies of the approved 384×80 sheets; no previews/ZIPs in runtime dirs).
-- `FighterBase.tscn`: new `VisualRoot/IdleSprite` (Sprite2D, hframes=4,
-  nearest filter, uncentered).
-- `fighter_base.gd`: the approved sheet is the fighter's artwork everywhere —
-  the four-cel loop plays in `State.IDLE`, and **cel 0 shows as the static
-  artwork in every other placeholder state** (walk, crouch, jumps, attacks,
-  block/reactions, knockdown, wake-up, KO, win), replacing the clashing legacy
-  cutout during normal play. Procedural `VisualRoot` motion for those states
-  is unchanged, the idle loop does not play outside IDLE, and hit/block
-  flashes modulate the sheet art the same way they modulated the cutout. The
-  cutout/silhouette path remains as the emergency fallback when the idle
-  sheet is missing or invalid. Exactly one character-art visual is visible at
-  a time; the sheet uses one scale (measured visible height →
-  `SILHOUETTE_HEIGHT`), the (48, 78) feet anchor, nearest filtering, and
-  `flip_h` facing for all states, so transitions never swap artwork, stack
-  sprites, jump size, or shift ground placement. Cel timing derives from
-  `state_frame` at 9 ticks per cel (0.15 s at 60 Hz sim; 36-tick loop), so
-  hitstop and match pause freeze it and idle re-entry restarts at cel 0. The
-  old whole-body idle bob is disabled while the authored idle is active, and
-  `VisualRoot` transforms are reset every sync, so feet never drift.
-- No MoveData, collision, hitstop, input, or state-rule changes.
-- Tests: `combat_test.gd` extended (sheet artwork in IDLE and static cel 0 in
-  non-idle states with identical scale/anchor; 9-tick cadence and wrap; no
-  per-tick restart; hitstop/pause freeze; re-entry reset; facing pivot; crouch
-  squash rule; missing-art fallback; unchanged pushbox) — 260 checks green;
-  `round_flow` 34, `character_select` 15, `the_clip` 23, all green.
-- Rendered verification: windowed capture script
-  `game/tests/idle_render_check.gd` (disposable, writes to /tmp) observed
-  idle → walk → crouch → jump → attack → hit/block flash → idle, plus both
-  facing directions, at gameplay scale against Bus Stop Night; captures under
-  `/tmp/opencode/idle_check/`. The sheet artwork holds through every
-  transition with no artwork swap, stacked sprites, size jump, or feet-anchor
-  shift; both fighters read correctly with planted feet and nearest filtering.
+- `FighterBase` now resolves the transient by key (`_transient_clip_key` →
+  `state_clip(key)`) instead of hard-coding `crouch_up_transient`. This also
+  fixes a latent bug: any transient other than stand-up would have displayed the
+  stand-up clip.
+- Each library declares `TRANSIENTS` (key → per-cel cadence) and maps
+  `crouch_down_transient` → `crouch_down`; duration is cel count × cadence.
+- Entry to `CROUCH` starts `crouch_down_transient`; a crouch that ends in IDLE
+  still starts `crouch_up_transient`. A gated transient (Peggy's front-facing
+  crouch-down art) falls through to normal state resolution rather than flashing
+  the idle sheet.
+- The guard pose takes over once the entry transient expires, so crouch-block
+  still shows the authored guard.
 
-Still placeholder and **procedural**: (historical, superseded by §8 — Peggy's
-non-idle states now play authored clips) every non-idle animation (walk, crouch,
-jumps, attacks, block/reactions, knockdown, wake-up, KO, win) now uses cel 0
-of the approved idle sheet as its static artwork with the existing procedural
-`VisualRoot` motion — the artwork is consistent with the approved idle
-sprites, but the non-idle states are not yet authored animations. The owner
-decision on facing-flip consequences (peg leg / bottle hand swap sides) is
-still deferred.
-2. Owner decision still deferred: whether flipping right-facing art for
-   left-facing play is acceptable given Peggy's peg leg and Richard's bottle
-   would swap apparent sides, or whether dedicated left-facing art is wanted.
-3. Standing-light attacks, AnimatedSprite2D runtime integration, and the
-   remaining inventory follow after owner review of the idle batch.
+No simulation state, frame timing, hurtbox, buffer, or collision value changed;
+the crouch hurtbox is still the 0.65 pushbox from the first crouch frame.
+Verification: `combat_test.gd` is at **337 checks, 0 failures**, including a new
+3-check crouch-entry group and an assertion that the entry transient defers the
+guard pose. `round_flow` 34, `character_select` 15, `the_clip` 23 all green.

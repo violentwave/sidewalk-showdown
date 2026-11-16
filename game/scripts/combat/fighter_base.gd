@@ -318,10 +318,7 @@ func _physics_process(_delta: float) -> void:
 	# clock past the hitstop early-return, so hitstop and pause freeze them.
 	if _transient_clip_key != "":
 		_transient_clip_tick += 1
-		var tclip: Dictionary = _clip_lib.state_clip("crouch_up_transient")
-		var tpf := int(_clip_lib.LOOP_CEL_TICKS.get("crouch_up", 5))
-		var dur := int(tclip.frames) * tpf if not tclip.is_empty() else 12
-		if _transient_clip_tick > dur:
+		if _transient_clip_tick > _transient_clip_duration():
 			_transient_clip_key = ""
 	if state == State.KO:
 		_ko_grounded_frame = _ko_grounded_frame + 1 if grounded else 0
@@ -1178,7 +1175,11 @@ func _resolve_visual_clip() -> Dictionary:
 	if not _clip_library_valid:
 		return {}
 	if _transient_clip_key != "":
-		return _clip_lib.state_clip("crouch_up_transient")
+		var transient: Dictionary = _clip_lib.state_clip(_transient_clip_key)
+		# A gated transient (e.g. Peggy's crouch-down art) falls through to the
+		# normal state resolution instead of flashing the idle sheet.
+		if not transient.is_empty():
+			return transient
 	# Authored guard presentation: holding back while stationary (pinned against
 	# a wall) or crouch-blocking shows the guard pose instead of a frozen walk
 	# cel. This is presentation only — blocking, movement, and pushback are
@@ -1232,6 +1233,16 @@ func _resolve_visual_clip() -> Dictionary:
 			return _clip_lib.state_clip("win")
 		_:
 			return {}
+
+# Length of the active transient one-shot in sim ticks: the clip's authored cel
+# count times the library's per-cel cadence. Purely a presentation counter, so a
+# transient never outlives its art and never delays a state transition.
+func _transient_clip_duration() -> int:
+	var tclip: Dictionary = _clip_lib.state_clip(_transient_clip_key)
+	if tclip.is_empty():
+		return 12
+	var ticks := int(_clip_lib.TRANSIENTS.get(_transient_clip_key, {}).get("ticks", 6))
+	return maxi(int(tclip.frames), 1) * maxi(ticks, 1)
 
 func _clip_texture(clip: Dictionary) -> Texture2D:
 	var path := str(clip.get("path", ""))
@@ -1449,12 +1460,16 @@ func _on_state_changed(new_state: State) -> void:
 		crouching = true
 	elif new_state in [State.IDLE, State.WALK_F, State.WALK_B]:
 		crouching = false
-	# Presentation-clip bookkeeping: the authored stand-up transient plays when
-	# a crouch ends into idle; every other entry clears any transient, and KO
-	# restarts its grounded counter.
+	# Presentation-clip bookkeeping: authored entry/exit transients play on the
+	# crouch transition; every other entry clears any transient, and KO restarts
+	# its grounded counter. These keys are presentation only — crouch is still
+	# instantaneous in the simulation.
 	if _clip_library_valid:
-		if was_crouch and new_state == State.IDLE:
-			_transient_clip_key = "crouch_up"
+		if new_state == State.CROUCH:
+			_transient_clip_key = "crouch_down_transient"
+			_transient_clip_tick = 0
+		elif was_crouch and new_state == State.IDLE:
+			_transient_clip_key = "crouch_up_transient"
 			_transient_clip_tick = 0
 		else:
 			_transient_clip_key = ""

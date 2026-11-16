@@ -110,12 +110,21 @@ const STATE_CLIPS := {
 	"ko_ground": ["ko_ground"],
 	"win": ["win"],
 	"crouch_up_transient": ["crouch_up"],
+	"crouch_down_transient": ["crouch_down"],
 }
 
 # Presentation cadence (sim ticks per cel) for state clips whose length is not
 # bound to an authored duration. Holds loop; one-shots hold their last cel.
 const LOOP_CEL_TICKS := {"crouch": 12, "win": 9, "block_stand": 10, "block_crouch": 10, "blockstun_stand": 10, "blockstun_crouch": 10, "crouch_up": 5, "walk_f": 6, "walk_b": 6}
 const ONESHOT_CEL_TICKS := {"jump_start": 1, "jump_rise": 5, "jump_fall": 5, "ko_air": 10, "ko_ground": 12}
+
+# Transient one-shots played on a state transition. `ticks` is the per-cel
+# cadence; the length is the clip's cel count times this value, so a gated clip
+# (Peggy's crouch-down) simply never plays. Presentation only.
+const TRANSIENTS := {
+	"crouch_up_transient": {"ticks": 5},
+	"crouch_down_transient": {"ticks": 4},
+}
 
 # Draft-strip playback order (see RichardClipLibrary for the rationale): the
 # airborne sheet's last cel is a touchdown crouch, and the land sheet starts

@@ -406,12 +406,22 @@ These are measured or first-pass limits, not phase-exit validation.
   no assertions.
 - `.github/workflows/export.yml` builds Linux/Windows artifacts on `main` and
   `v*` tags, can be dispatched by hand, cancels superseded runs on the same
-  ref, and keeps artifacts for 14 days. It downloads Godot's export templates
-  on every run instead of caching them: the ~1 GB template cache alone exceeds
-  the free plan's 500 MB Actions storage budget, which previously made both
-  artifact uploads fail with "Artifact storage quota has been hit" (first seen
-  with #42 on 2026-11-12, before the animation work). Per-run downloads are the
-  only cost; the builds themselves were never affected.
+  ref, caches nothing large, and keeps artifacts for 14 days. Both the explicit
+  template cache and setup-godot's own download cache were removed because the
+  ~1.27 GB engine+templates bundle exceeds the free plan's 500 MB Actions
+  storage budget; each run now downloads the bundle instead (~1 min).
+- **Open: Actions artifact uploads are rejected account-side.** First seen with
+  #42 on 2026-11-12, before the animation work: the Linux and Windows export
+  builds compile successfully, then `actions/upload-artifact` fails with
+  `Failed to CreateArtifact: Artifact storage quota has been hit`. Storage was
+  pruned to **zero artifacts and zero caches** on 2026-11-16 and the upload
+  still fails while GitHub reports "All Systems Operational", so this is no
+  longer a repository-storage-size problem. It needs an owner check in
+  **Settings → Billing and plans → Plans and usage → Actions** (included
+  storage, spending limit, payment method, or a stuck usage counter). Builds
+  remain reproducible locally with the presets in `game/export_presets.cfg`;
+  do not work around it by making the upload step non-fatal, which would hide
+  a missing deliverable.
 - `game/tools/readme_capture.gd` is a display-only helper that captures the
   three screens used in `README.md` (intro panel, character select, posed
   match) to `/tmp/opencode/readme/`. Reviewed images are copied into

@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="StageData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/stages/stage_data.gd" id="1_stage"]
+[ext_resource type="PackedScene" path="res://scenes/stages/bus_stop_night.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_stage")
+display_name = "Bus Stop (Night)"
+scene = ExtResource("2_scene")

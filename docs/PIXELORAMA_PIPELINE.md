@@ -495,4 +495,4 @@ No simulation state, frame timing, hurtbox, buffer, or collision value changed;
 the crouch hurtbox is still the 0.65 pushbox from the first crouch frame.
 Verification: `combat_test.gd` is at **337 checks, 0 failures**, including a new
 3-check crouch-entry group and an assertion that the entry transient defers the
-guard pose. `round_flow` 34, `character_select` 15, `the_clip` 23 all green.
+guard pose. `round_flow` 34, `character_select` 18, `the_clip` 23 all green.

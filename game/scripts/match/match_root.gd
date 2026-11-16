@@ -3,12 +3,9 @@ extends Node2D
 
 enum Phase { INTRO, FIGHT, KO, ROUND_END, MATCH_END }
 
-const STAGE_SCENE := preload("res://scenes/stages/bus_stop_night.tscn")
 const HUD_SCENE := preload("res://scenes/match/MatchHUD.tscn")
 const DEBUG_SCRIPT := preload("res://scripts/debug/debug_overlay.gd")
 const FIGHTER_SCENE := preload("res://scenes/fighters/FighterBase.tscn")
-const PEGGY_DATA := preload("res://resources/fighters/peg_leg_peggy.tres")
-const RICHARD_DATA := preload("res://resources/fighters/whiskey_richard.tres")
 
 const ROUND_SECONDS := 99
 const SUDDEN_DEATH_SECONDS := 30
@@ -26,8 +23,12 @@ var debug_overlay: DebugOverlay
 var p1: FighterBase
 var p2: FighterBase
 var audio_manager
-var selected_p1_data: FighterData = PEGGY_DATA
-var selected_p2_data: FighterData = RICHARD_DATA
+# Cast and stage come from the roster; the main flow overrides the selection,
+# while a directly instantiated match (tests, tools) falls back to its defaults.
+@export var roster: MatchRoster
+var selected_p1_data: FighterData
+var selected_p2_data: FighterData
+var selected_stage: StageData
 
 var phase: Phase = Phase.INTRO
 var phase_frame := 0
@@ -51,7 +52,9 @@ func _ready() -> void:
 	process_physics_priority = 100 # run after fighters update their state
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
-	stage = STAGE_SCENE.instantiate()
+	_resolve_selections()
+
+	stage = selected_stage.scene.instantiate()
 	add_child(stage)
 
 	hud = HUD_SCENE.instantiate()
@@ -73,6 +76,24 @@ func _ready() -> void:
 	debug_overlay.bind(p1, p2)
 
 	_begin_round()
+
+# Roster-driven setup: a caller may set any subset of the selections; anything
+# unset falls back to the roster's first entries. This is the only place the
+# match learns which fighters and stage exist.
+func _resolve_selections() -> void:
+	if roster == null:
+		roster = MatchRoster.load_default()
+	if roster != null:
+		if selected_p1_data == null and not roster.fighters.is_empty():
+			selected_p1_data = roster.fighters[0]
+		if selected_p2_data == null:
+			selected_p2_data = roster.fighters[1] \
+				if roster.fighters.size() > 1 else selected_p1_data
+		if selected_stage == null and not roster.stages.is_empty():
+			selected_stage = roster.stages[0]
+	if selected_p1_data == null or selected_p2_data == null \
+			or selected_stage == null or selected_stage.scene == null:
+		push_error("MatchRoot: roster has no usable fighters/stage")
 
 func _spawn_fighter(index: int, data: FighterData) -> FighterBase:
 	var f: FighterBase = FIGHTER_SCENE.instantiate()

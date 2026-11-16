@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MatchRoster" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/match/match_roster.gd" id="1_roster"]
+[ext_resource type="Script" path="res://scripts/combat/fighter_data.gd" id="2_fighter"]
+[ext_resource type="Script" path="res://scripts/stages/stage_data.gd" id="3_stage"]
+[ext_resource type="Resource" path="res://resources/fighters/peg_leg_peggy.tres" id="4_peggy"]
+[ext_resource type="Resource" path="res://resources/fighters/whiskey_richard.tres" id="5_richard"]
+[ext_resource type="Resource" path="res://resources/stages/bus_stop_night.tres" id="6_bus_stop"]
+
+[resource]
+script = ExtResource("1_roster")
+fighters = Array[ExtResource("2_fighter")]([ExtResource("4_peggy"), ExtResource("5_richard")])
+stages = Array[ExtResource("3_stage")]([ExtResource("6_bus_stop")])

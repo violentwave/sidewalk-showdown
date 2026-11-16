@@ -56,7 +56,7 @@ godot --headless --path game --script res://tests/character_select_test.gd
 godot --headless --path game --script res://tests/the_clip_test.gd
 ```
 
-Current suites: **combat 337 checks**, round flow 34, character select 15,
+Current suites: **combat 337 checks**, round flow 34, character select 18,
 The Clip 23 — all green in CI (`tests.yml`). `tests/air_probe.gd` prints balance
 metrics and asserts nothing.
 
@@ -125,7 +125,7 @@ godot --headless --path game --export-release windows build/windows/sidewalk_sho
 game/                  Godot 4.x project
   scenes/              match, fighters, stages, menus, HUD
   scripts/             combat, match, ui, debug, stages, audio
-  resources/fighters/  data-driven stats + moves (*.tres)
+  resources/           data resources: fighter stats/moves, stages, match roster
   tests/               headless suites + manual render/soak harnesses
   tools/               data generators, input setup, screenshot/README capture
   art/                 runtime art (idle sheets, authored clip libraries)
@@ -143,7 +143,7 @@ docs/                  supporting docs, audits, pipeline notes, screenshots
 |---|---|
 | [`docs/PHASE_STATUS.md`](docs/PHASE_STATUS.md) | GDD phase requirements vs evidence, decisions, blockers |
 | [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md) | Prototype gaps, test inventory, known limitations |
-| [`docs/PIXELORAMA_PIPELINE.md`](docs/PIXELORAMA_PIPELINE.md) | Idle-sheet + authored-clip pipeline for both fighters (§8–§9a) |
+| [`docs/PIXELORAMA_PIPELINE.md`](docs/PIXELORAMA_PIPELINE.md) | Idle-sheet + authored-clip pipeline for both fighters (§8–§9b) |
 | [`docs/PROPOSALS.md`](docs/PROPOSALS.md) | Combat system proposals and measured first passes |
 | [`docs/ART_CREDITS.md`](docs/ART_CREDITS.md) | Art provenance, font licenses, all-rights-reserved notes |
 | [`docs/MAIN_BRANCH_GUARD.md`](docs/MAIN_BRANCH_GUARD.md) | Why `main` only accepts squash-merged PRs |

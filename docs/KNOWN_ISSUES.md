@@ -48,9 +48,13 @@ finding is not considered fixed merely because an older suite passes.
 B5 (air momentum), B8 (implicit-scaling, partially addressed by authored
 cancel routes in PR 2), and B9 (hurt/push alias) remain
 source-confirmed audit observations; B5 was not re-probed at this baseline.
-B6 is partially addressed by the landing-recovery work: mid-move touchdown still
-skips the whiff-meter gain that a move finishing in air receives. See the
-reconciliation for the finding-by-finding dispositions.
+B6 (landing discards whiff meter) — FIXED. Commit e8a2e68 in the
+feat/pause-return branch now calls finish_move_whiff() in _landing_check() when
+a still-running air move is interrupted by touchdown, awarding the authored
+meter_gain_whiff (1.5) instead of dropping it. Covered by
+b6_landing_whiff_test.gd which verifies the meter is awarded (meter=1.5) and the
+move is cleared on mid-air landing for the current round (Peg Leg Peggy vs
+Whiskey Richard).
 
 ## Decisions and open choices
 

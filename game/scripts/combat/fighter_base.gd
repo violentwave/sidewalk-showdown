@@ -470,17 +470,15 @@ func _landing_check(floor_y: float) -> void:
 	if whiffed_air_move and landing_move != null:
 		landing_recovery_frames = landing_move.landing_recovery \
 			if landing_move.landing_recovery > 0 else DEFAULT_LANDING_FRAMES
+	finish_move_whiff()
 	current_move = null
 	move_hit_confirmed = false
 	move_already_hit = false
 	match state:
 		State.ATTACK, State.JUMP_START, State.JUMP_RISE, State.JUMP_FALL:
 			_set_state(State.LAND)
-		State.HITSTUN, State.KNOCKDOWN, State.KO:
-			# stay in the stun; land into idle when frames run out
-			pass
 		_:
-			_set_state(State.LAND)
+			pass  # Landing ends aerial attacks; all other states keep current state.
 
 # ---------------- Attacks ----------------
 func _try_start_attack() -> bool:

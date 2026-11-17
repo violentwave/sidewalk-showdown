@@ -1,0 +1,35 @@
+1. Gameplay & Design
+P1 — Add a usable solo opponent — Implement baseline CPU behavior for the P2 fighter spawned by solo mode; currently it stands idle, so solo is practice/testing rather than a real match.
+P1 — Playtest the combat feel and tune from results — Run human match tests on FighterBase’s movement, hitstop, blockstun, throw tech, and combo routes; docs/PHASE_STATUS.md says responsiveness and Phase 2 exit still need human validation.
+P2 — Add missing neutral movement options — Implement and tune forward/backdash in game/scripts/combat/fighter_base.gd; walk-only movement is a documented gap against the GDD’s movement plan.
+P2 — Validate aerial momentum and landing edge cases — Probe the air-move behavior in FighterBase and close the documented B5/B6 gaps; velocity.x is zeroed on move start, and mid-move touchdown can skip whiff meter gain.
+2. Content
+P1 — Finish the vertical-slice presentation — Replace placeholder stage/fighter visuals and add final VFX, crowd/voice, and combat audio; docs/PHASE_STATUS.md says the slice is not yet ready for a private showing.
+P1 — Give METHtalities a distinct payoff — Build the finish-prompt/cinematic presentation around the existing finisher rows; today activation spends full meter and uses a freeze/banner rather than choreography.
+P2 — Add stages and stage selection — Populate more StageData/stage scenes and expose selection in the menu; only Bus Stop Night is currently wired into the match flow.
+P2 — Expand the roster beyond the slice — Add the other 13 planned fighters through FighterData and game/resources/match_roster.tres; the 15-fighter roster is canon, but only Peggy and Richard currently have combat data.
+P3 — Build out campaign routes and extras — Add rival encounters, endings, and gallery content after the core modes and slice presentation are stable; campaign is currently absent.
+3. Performance
+P2 — Establish a repeatable target-PC performance baseline — Measure frame pacing, startup, and memory with both exports and representative gameplay before optimizing; docs/PHASE_STATUS.md lists profiling as unverified, not a known current bottleneck.
+P3 — Move idle-art validation work out of runtime setup — Precompute or store the visible-height scale used by _configure_idle_sprite() in game/scripts/combat/fighter_base.gd; this scans texture pixels at setup and may become unnecessary repeated work as the roster grows.
+P3 — Pool transient effects only if profiling warrants it — Revisit pooling when hit sparks or other frequent spawned effects are added; the current code does not show a poolable VFX workload.
+4. Code Quality
+P2 — Split match orchestration into focused components — game/scripts/match/match_root.gd currently handles phase flow, hit resolution, pushbox separation, pause, and tie-breaking; separating those responsibilities would make later modes and regression tests easier to manage.
+P2 — Separate fighter presentation data from combat control — game/scripts/combat/fighter_base.gd combines combat/state logic with character-specific art paths and clip playback; moving presentation lookup into data or dedicated presentation components would reduce coupling during roster expansion.
+P2 — Make hitbox, hurtbox, and pushbox distinct — FighterBase.hurtbox_rect() currently returns pushbox_rect(); separate authored geometry would let combat hurt area and physical spacing be tuned independently.
+P3 — Reconcile implementation-status documentation — Keep README.md, docs/KNOWN_ISSUES.md, docs/PHASE_STATUS.md, and docs/PIXELORAMA_PIPELINE.md aligned; some pipeline status text still describes older placeholder-animation status than the README and phase report.
+5. UX / Polish
+P1 — Add input remapping — Implement the documented remapping UI and persist player bindings; the current map is a fixed generated table in game/tools/setup_input.gd.
+P2 — Add onboarding for the first match — Explain movement, blocking, specials, EX, throws, and the METHtality meter in a tutorial or training flow; the current intro is narrative, and no training mode exists.
+P2 — Build a complete front end and match setup — Add the missing main-menu/mode flow and stage/round settings; current menus are text-only mode and character selection, while the match always uses the first roster stage.
+P3 — Add settings and accessibility controls — Provide audio levels, display options, and accessibility settings; these are planned for the full game, not present in the current slice.
+6. Bug Fixes
+P1 — Fix the documented mid-move landing meter omission — Ensure an aerial move that whiffs and lands before its final frame receives the same whiff-meter handling as one that finishes in the air; tracked in docs/KNOWN_ISSUES.md.
+P1 — Add regression coverage for separate combat boxes — Once hurtbox geometry is separated from pushbox geometry, cover overlap, crouch, and facing cases; the current alias means the debug overlay draws identical hurtbox and pushbox rectangles.
+P2 — Probe air-move momentum before changing it — Confirm whether _start_move() resetting horizontal velocity causes undesirable air control; B5 is documented as not re-probed, so treat this as a validation task rather than a confirmed defect.
+P2 — Guard against invalid roster selections at match startup — In MatchRoot._resolve_selections(), return safely after reporting missing fighter/stage data; it currently reports the error but _ready() proceeds to instantiate the stage and fighters.
+7. Tooling & Dev Experience
+P0 — Clear audio usage rights before public release — Confirm rights for the owner-supplied intro.mp3 and fight.mp3, and decide the project license; docs/KNOWN_ISSUES.md and docs/LICENSE_OPTIONS.md say these are unresolved release concerns.
+P1 — Turn key manual checks into repeatable gates — Add automated checks where practical for asset manifests and rendered/live-input regressions; the current render and soak harnesses are manual, while .github/workflows/tests.yml runs headless suites and a metrics-only air probe.
+P2 — Add balance thresholds to the air probe — game/tests/air_probe.gd reports measurements but asserts nothing; encode agreed limits only after the team decides which metrics are actual balance requirements.
+P3 — Reduce repeated export setup cost if it becomes material — .github/workflows/export.yml downloads Godot export templates on every run; caching could save roughly a minute, but the workflow currently favors avoiding stale cache risk.

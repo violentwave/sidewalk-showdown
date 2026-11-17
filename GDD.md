@@ -1864,8 +1864,9 @@ Possible updates:
 - keyboard/controller support
 - hitbox debug
 
-> **Implementation-status note (2026-11-11):** keyboard support exists and is
-> tested; gamepad support and the remap UI are missing. A text-only character
+> **Implementation-status note (2026-11-16):** keyboard and mouse support exist
+> and are tested, and a controller drives P2 (P1 is keyboard + mouse only, per
+> owner direction). The in-game remap UI is still missing. A text-only character
 > select mockup now precedes the match, but there is no full main-menu or stage
 > select flow. See `docs/PHASE_STATUS.md` for the gate status.
 

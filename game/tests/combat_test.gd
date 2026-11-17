@@ -412,12 +412,15 @@ func _run() -> void:
 	_check("KO state persists after landing", p2.state == FighterBase.State.KO,
 		"state=%d" % p2.state)
 
-	# --- 11. real keyboard events resolve through the input map ---
+	# --- 11. real device events resolve through the input map ---
 	# Input.action_press() bypasses the InputMap, so it cannot catch a binding
-	# that is stamped with the wrong device id. Replay each mapped key as the
-	# device-16 event a physical keyboard actually produces (real events seen via
-	# XTest carry device 16; bindings must be device -1 to accept them).
+	# that is stamped with the wrong device id or an event type the game never
+	# receives. Replay each mapped event as the device a real device reports: a
+	# physical keyboard (16), the mouse (-1), and the P2 pad (0). Device policy is
+	# P1 = keyboard + mouse only, P2 = controller only.
 	var unmapped: Array[String] = []
+	var p2_keyboard_bindings: Array[String] = []
+	var p1_joypad_bindings: Array[String] = []
 	for action in InputMap.get_actions():
 		var an := String(action)
 		if not (an.begins_with("p1_") or an.begins_with("p2_")):
@@ -426,14 +429,68 @@ func _run() -> void:
 		if mapped.is_empty():
 			unmapped.append("%s:none" % an)
 			continue
-		for e: InputEventKey in mapped:
-			var probe := InputEventKey.new()
-			probe.physical_keycode = e.physical_keycode
-			probe.keycode = e.keycode
-			probe.device = 16 # what a physical keyboard reports
-			if not InputMap.event_is_action(probe, action):
-				unmapped.append("%s:%s" % [an, OS.get_keycode_string(e.physical_keycode)])
-	_check("keyboard events match input map", unmapped.is_empty(), str(unmapped))
+		for e in mapped:
+			var probe: InputEvent = null
+			if e is InputEventKey:
+				if an.begins_with("p2_"):
+					p2_keyboard_bindings.append(an)
+				var key_probe := InputEventKey.new()
+				key_probe.physical_keycode = e.physical_keycode
+				key_probe.keycode = e.keycode
+				key_probe.device = 16 # what a physical keyboard reports
+				probe = key_probe
+			elif e is InputEventJoypadButton:
+				if an.begins_with("p1_"):
+					p1_joypad_bindings.append(an)
+				var pad_probe := InputEventJoypadButton.new()
+				pad_probe.button_index = e.button_index
+				pad_probe.pressed = true
+				pad_probe.device = 0
+				probe = pad_probe
+			elif e is InputEventJoypadMotion:
+				if an.begins_with("p1_"):
+					p1_joypad_bindings.append(an)
+				var axis_probe := InputEventJoypadMotion.new()
+				axis_probe.axis = e.axis
+				axis_probe.axis_value = e.axis_value
+				axis_probe.device = 0
+				probe = axis_probe
+			elif e is InputEventMouseButton:
+				if an.begins_with("p2_"):
+					p2_keyboard_bindings.append(an + ":mouse")
+				var mouse_probe := InputEventMouseButton.new()
+				mouse_probe.button_index = e.button_index
+				mouse_probe.pressed = true
+				mouse_probe.device = -1
+				probe = mouse_probe
+			if probe != null and not InputMap.event_is_action(probe, action):
+				unmapped.append("%s:%s" % [an, e.get_class()])
+	_check("keyboard, mouse, and controller events all match the input map",
+		unmapped.is_empty(), str(unmapped))
+	_check("P1 has no controller bindings", p1_joypad_bindings.is_empty(),
+		str(p1_joypad_bindings))
+	_check("P2 is controller-only (no keyboard or mouse bindings)",
+		p2_keyboard_bindings.is_empty(), str(p2_keyboard_bindings))
+
+	# A synthetic pad event must reach the p2_* action and nothing on P1.
+	var pad_press := InputEventJoypadButton.new()
+	pad_press.button_index = JOY_BUTTON_X
+	pad_press.pressed = true
+	pad_press.device = 0
+	Input.parse_input_event(pad_press)
+	await _step(1)
+	var pad_reached_p2 := Input.is_action_pressed("p2_light") \
+		and not Input.is_action_pressed("p1_light")
+	var pad_release := InputEventJoypadButton.new()
+	pad_release.button_index = JOY_BUTTON_X
+	pad_release.pressed = false
+	pad_release.device = 0
+	Input.parse_input_event(pad_release)
+	await _step(1)
+	_check("a controller button press reaches P2 and not P1",
+		pad_reached_p2 and not Input.is_action_pressed("p2_light"),
+		"reached=%s released=%s" % [str(pad_reached_p2),
+			str(not Input.is_action_pressed("p2_light"))])
 
 	# --- 12. chip damage cannot KO ---
 	# The KO round above ended the match and disabled fighter input; re-enable it

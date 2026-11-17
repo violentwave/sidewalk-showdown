@@ -92,19 +92,19 @@ func _build_ui() -> void:
 		_p1_marks.append(p1_mark)
 		_p2_marks.append(p2_mark)
 
-	_add_label("P1: A / D TO MOVE   -   J TO CONFIRM",
+	_add_label("P1: A/D MOVE   -   J OR CLICK CONFIRM",
 		Vector2(8, 135), Vector2(150, 12), 7, P1_ACCENT, HORIZONTAL_ALIGNMENT_CENTER)
-	_add_label("P2: ARROWS TO MOVE   -   NUM 1 TO CONFIRM",
+	_add_label("P2 PAD: D-PAD/STICK   -   X CONFIRM",
 		Vector2(162, 135), Vector2(150, 12), 7, P2_ACCENT, HORIZONTAL_ALIGNMENT_CENTER)
 	_status = _add_label("BOTH PLAYERS CONFIRM TO START",
-		Vector2(10, 155), Vector2(300, 12), 8, Color(0.9, 0.88, 0.82),
+		Vector2(10, 151), Vector2(300, 12), 8, Color(0.9, 0.88, 0.82),
 		HORIZONTAL_ALIGNMENT_CENTER)
 
 	# Stage comes from the same roster; the match builds it from StageData.
 	var stage_text := "STAGE: —"
 	if roster != null and not roster.stages.is_empty():
 		stage_text = "STAGE: " + roster.stages[0].display_name.to_upper()
-	_add_label(stage_text, Vector2(8, 163), Vector2(304, 10), 7, MUTED,
+	_add_label(stage_text, Vector2(8, 164), Vector2(304, 10), 7, MUTED,
 		HORIZONTAL_ALIGNMENT_CENTER)
 
 func _add_label(text: String, at: Vector2, dimensions: Vector2, font_size: int,

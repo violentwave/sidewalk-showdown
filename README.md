@@ -59,7 +59,7 @@ godot --headless --path game --script res://tests/character_select_test.gd
 godot --headless --path game --script res://tests/the_clip_test.gd
 ```
 
-Current suites: **combat 340 checks**, round flow 34, character select 35,
+Current suites: **combat 343 checks**, round flow 34, character select 43,
 The Clip 23 — all green in CI (`tests.yml`). `tests/air_probe.gd` prints balance
 metrics and asserts nothing.
 
@@ -100,7 +100,10 @@ keypress away (W/S or A/D to move, J or click to start):
   Current presentation is a freeze plus banner; the normal KO flow ends the round.
 - **Specials are directional:** neutral, forward, back, down, and air (GDD §4.4).
 - `Enter` restarts after a match ends. Pause menu drives with W/S, the d-pad or
-  stick, or arrows; J, X, or Enter picks.
+  stick, or arrows; J, X, or Enter picks. Options are **Resume**, **Restart
+  Match**, **Back to Character Select**, and **Quit to Desktop**. Back to
+  Character Select discards the in-progress match with no winner, keeps the
+  current mode, and restores the matchup you were just playing.
 
 Debug keys: **F1** boxes (on by default), **F2** frame state/advantage/invuln,
 **F3** input history, **F4** slow motion, **F5** frame-step, **F6** refill both

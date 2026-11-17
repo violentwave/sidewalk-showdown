@@ -73,7 +73,7 @@ phase exit criteria:
   blocking and round flow work, and the match can end/restart.
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
-  The current suites contain 340 combat, 34 round-flow, 35 mode/character-select
+  The current suites contain 343 combat, 34 round-flow, 43 mode/character-select
   integration, and 23 intro checks. K1, R1, corner separation, bounded hitstop
   buffer freeze, and the
   post-KO winner-state repair are covered. Non-METH strikes reject during
@@ -285,7 +285,7 @@ phase exit criteria:
 | Priority | Requirement | Current status / evidence |
 |---|---|---|
 | First playable | 2 fighters; 1 stage; movement; block; attacks/specials; health/timer; round flow | **Implemented** for the keyboard-controlled Peggy/Richard Bus Stop slice; edge-case findings remain. |
-| First playable | Basic menu | **Partial:** pause/resume/restart/quit, mode select, and a character-select mockup exist; no full front-end/main menu or stage flow. |
+| First playable | Basic menu | **Partial:** pause/resume/restart/character-select/quit, mode select, and a character-select mockup exist; no full front-end/main menu or stage flow. |
 | First playable | Keyboard/controller support | **Partial:** keyboard is device-agnostic and tested; no gamepad mappings, support UI, or controller test. This is a documented first-playable blocker unless the owner amends §14. |
 | First playable | Hitbox debug | **Implemented:** F1 boxes and other debug controls exist; box separation is incomplete (B9). |
 | Vertical slice | 2 polished fighters, 1 polished stage, real HUD, music/SFX, Tripp commentary, one METHtality, mini story route | **Partial:** official Peggy/Richard cast, Bus Stop stage, mode/character-select mockup, HUD, full-meter METHtality, 15-panel prologue, and one text-only Tripp commentary sample exist; polished runtime art, voiced/full commentary, broad SFX, and a fighter-specific route remain. |

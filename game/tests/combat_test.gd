@@ -542,9 +542,12 @@ func _run() -> void:
 	_press("p1_up")
 	_check("P1 moves the menu selection", scene.pause_index == 0, "index=%d" % scene.pause_index)
 	_press("p1_up")
-	_check("menu wraps to the last option", scene.pause_index == 2, "index=%d" % scene.pause_index)
+	_check("menu wraps to the last option", scene.pause_index == 3, "index=%d" % scene.pause_index)
 	_press("p1_down")
 	_check("menu wraps to the first option", scene.pause_index == 0, "index=%d" % scene.pause_index)
+	_check("pause menu offers resume, restart, character select, and quit",
+		scene.hud.pause_option_count() == 4,
+		"options=%d" % scene.hud.pause_option_count())
 
 	await _step(6)
 	_check("menu input does not advance sim",
@@ -569,6 +572,20 @@ func _run() -> void:
 	_check("restart match from the menu",
 		not paused and scene.round_number == 1 and scene.wins[0] == 0 and scene.wins[1] == 0,
 		"paused=%s round=%d wins=%s" % [str(paused), scene.round_number, str(scene.wins)])
+
+	# --- 15b. pause menu can request a return to character select ---
+	var return_requests := [0]
+	scene.return_to_select_requested.connect(func() -> void: return_requests[0] += 1)
+	_press("p1_pause")
+	_press("p1_down")
+	_press("p1_down")
+	_check("character-select option selected", scene.pause_index == 2,
+		"index=%d" % scene.pause_index)
+	_press("p1_light")
+	_check("character-select option requests a return and unpauses",
+		return_requests[0] == 1 and not paused and not scene.pause_menu_open,
+		"requests=%d paused=%s menu=%s" % [return_requests[0], str(paused),
+			str(scene.pause_menu_open)])
 
 	# --- 16. debug overlay: frame-step and frame advantage ---
 	var overlay: DebugOverlay = scene.debug_overlay

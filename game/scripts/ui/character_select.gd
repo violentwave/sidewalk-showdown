@@ -20,6 +20,10 @@ const MUTED := Color(0.68, 0.66, 0.62)
 # Set by Main from the mode-select screen. Solo means P1 picks both fighters and
 # the match spawns P2 with input disabled.
 @export var solo := false
+# Set by Main when returning from a match so the cursor restores the matchup
+# that was just played. -1 means "use the defaults".
+@export var initial_p1_choice := -1
+@export var initial_p2_choice := -1
 
 var p1_choice := 0
 var p2_choice := 1
@@ -41,6 +45,10 @@ func _ready() -> void:
 		push_error("CharacterSelect: roster needs at least two fighters")
 		return
 	p2_choice = 1
+	if initial_p1_choice >= 0 and initial_p1_choice < FIGHTERS.size():
+		p1_choice = initial_p1_choice
+	if initial_p2_choice >= 0 and initial_p2_choice < FIGHTERS.size():
+		p2_choice = initial_p2_choice
 	_build_ui()
 	_refresh()
 

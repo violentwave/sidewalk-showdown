@@ -10,7 +10,7 @@ const BAR_H := 8.0
 const METER_Y := 168.0
 const METER_H := 5.0
 const PIP_GAP := 7.0
-const PAUSE_OPTIONS := ["RESUME", "RESTART MATCH", "QUIT TO DESKTOP"]
+const PAUSE_OPTIONS := ["RESUME", "RESTART MATCH", "BACK TO CHARACTER SELECT", "QUIT TO DESKTOP"]
 
 var p1_fill: ColorRect
 var p2_fill: ColorRect

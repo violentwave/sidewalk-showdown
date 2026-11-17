@@ -1194,7 +1194,7 @@ Visual ingredients:
 | Versus Screen | Fighter matchup presentation |
 | Loading Screen | Tips, fake ads, lore jokes |
 | Match HUD | Health, timer, round count, meter |
-| Pause Menu | Resume, controls, restart, quit |
+| Pause Menu | Resume, restart, back to character select, quit |
 | Options | video, audio, controls, accessibility |
 | Training Menu | dummy settings, meters, reset, display toggles |
 | Story Dialogue | campaign text, portraits, Tripp commentary |

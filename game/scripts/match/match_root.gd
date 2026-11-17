@@ -3,6 +3,10 @@ extends Node2D
 
 enum Phase { INTRO, FIGHT, KO, ROUND_END, MATCH_END }
 
+# Emitted when the pause menu asks to leave the match; Main owns the flow back
+# to character select.
+signal return_to_select_requested
+
 const HUD_SCENE := preload("res://scenes/match/MatchHUD.tscn")
 const DEBUG_SCRIPT := preload("res://scripts/debug/debug_overlay.gd")
 const FIGHTER_SCENE := preload("res://scenes/fighters/FighterBase.tscn")
@@ -378,6 +382,11 @@ func _confirm_pause_selection() -> void:
 			_unpause()
 			_reset_match()
 		2:
+			# Leave the match to Main: it frees this node and restores character
+			# select. Unpause first so the menu screen is not left paused.
+			_unpause()
+			return_to_select_requested.emit()
+		3:
 			_unpause()
 			get_tree().quit()
 		_:

@@ -37,7 +37,7 @@ who turns sidewalk chaos into a rigged tournament.**
 - **Match structure** — rounds, timer, sudden death after repeated timeouts,
   KO flow, pause menu, and a text-only Tripp commentary sample.
 
-Not in yet: gamepad and remapping, stage select, CPU AI, campaign, final
+Not in yet: input remapping, stage select, CPU AI, campaign, final
 audio/voice/VFX, and final art/cleaning for some clips. Online play is deferred
 beyond v0.1 per GDD §2.4/§16.
 
@@ -56,25 +56,28 @@ godot --headless --path game --script res://tests/character_select_test.gd
 godot --headless --path game --script res://tests/the_clip_test.gd
 ```
 
-Current suites: **combat 337 checks**, round flow 34, character select 18,
+Current suites: **combat 340 checks**, round flow 34, character select 18,
 The Clip 23 — all green in CI (`tests.yml`). `tests/air_probe.gd` prints balance
 metrics and asserts nothing.
 
 ## Controls
 
-Both players share one keyboard: **P1 is WASD only**, the arrow keys belong to P2.
+**P1 plays on keyboard + mouse; P2 plays on a controller.** Any connected pad
+drives P2, using either the d-pad or the left stick to move. The pad layout is
+GDD §4.2's: X light, Y heavy, B special, A grab, right shoulder for the
+METHtality finisher.
 
-| Action | P1 (Peg Leg Peggy) | P2 (Whiskey Richard) |
+| Action | P1 keyboard / mouse | P2 controller |
 |---|---|---|
-| Move | A / D | ← / → (or Numpad 4 / 6) |
-| Jump | W | ↑ (or Numpad 8) |
-| Crouch | S | ↓ (or Numpad 2) |
-| Light attack | J | Numpad 1 or `,` |
-| Heavy attack | K | Numpad 3 or `.` |
-| Special | L | Numpad 5 or `/` |
-| Grab / throw | U | Numpad 7 or `;` |
-| METHtality | I | Numpad 9 or `'` |
-| Pause | Esc | Numpad 0 |
+| Move | A / D | D-pad or left stick |
+| Jump | W | D-pad up or stick up |
+| Crouch | S | D-pad down or stick down |
+| Light attack | J or left click | X |
+| Heavy attack | K or right click | Y |
+| Special | L or middle click | B |
+| Grab / throw | U | A |
+| METHtality | I | Right shoulder (RB/R1) |
+| Pause | Esc | Start / Menu |
 
 - **Block** by holding away from the opponent (down-away blocks lows), including
   during blockstun. Chip damage cannot KO — a blocked hit always leaves 1 HP.
@@ -83,14 +86,15 @@ Both players share one keyboard: **P1 is WASD only**, the arrow keys belong to P
 - **METHtality:** with a full meter, press METHtality to spend the whole bar.
   Current presentation is a freeze plus banner; the normal KO flow ends the round.
 - **Specials are directional:** neutral, forward, back, down, and air (GDD §4.4).
-- `Enter` restarts after a match ends. Pause menu drives with W/S, arrows, or
-  Numpad 8/2; J, Numpad 1, or Enter picks.
+- `Enter` restarts after a match ends. Pause menu drives with W/S, the d-pad or
+  stick, or arrows; J, X, or Enter picks.
 
 Debug keys: **F1** boxes (on by default), **F2** frame state/advantage/invuln,
 **F3** input history, **F4** slow motion, **F5** frame-step, **F6** refill both
-fighters. Regenerate the input map with
-`godot --headless --path game --script res://tools/setup_input.gd` after editing
-the table above.
+fighters. The input map is generated, not hand-edited: change the tables in
+`game/tools/setup_input.gd` and run
+`godot --headless --path game --script res://tools/setup_input.gd`, then restore
+the `[physics] 60 Hz` entry that `ProjectSettings.save()` drops (the tool says so).
 
 ## Builds
 

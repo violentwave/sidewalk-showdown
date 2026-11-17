@@ -76,9 +76,10 @@ reconciliation for the finding-by-finding dispositions.
   Peggy/Richard-only vertical-slice scope. Per owner direction (2026-11-12), an
   initial procedural silhouette-animation pass is underway; authored sprite
   frames remain deferred.
-- Gamepad support and in-game input remapping are GDD §4.1/§4.6/§14
-  requirements but are not implemented; the current input map is generated from
-  a fixed keyboard table.
+- Gamepad support is implemented (2026-11-16): P1 uses keyboard + mouse and P2
+  uses a controller, per owner direction. In-game input remapping is still a GDD
+  §4.1/§4.6/§14 requirement and is not implemented; the input map is generated
+  from a fixed table in `game/tools/setup_input.gd`.
 - METHtality activation requires full meter only; opponent health, state, and
   invulnerability do not gate starting the finisher. GDD §5.9's final-round
   finish prompt and cinematic remain future design/implementation.
@@ -173,13 +174,28 @@ the generator and regenerate:
 godot --headless --path game --script res://tools/setup_input.gd
 ```
 
-Every event is written with `device = -1` (matches any device). In Godot 4.7 a
-new `InputEventKey` reports the local keyboard's concrete device id (`16` on the
-dev machine), and the serializer writes whatever it holds; a concrete stamp
-therefore makes the map depend on the machine that generated it. Physical
+**Device policy (owner decision, 2026-11-16):** P1 is keyboard + mouse only; P2
+is controller only.
+
+- `p1_*` gets `InputEventKey` bindings plus mouse alternates for light (left
+  click), heavy (right click), and special (middle click). No joypad events.
+- `p2_*` gets only `InputEventJoypadButton` / `InputEventJoypadMotion` events:
+  d-pad or left stick to move, X light, Y heavy, B special, A grab, right
+  shoulder METHtality, Start pause (GDD §4.2). Any arrow/numpad binding from the
+  old shared keyboard map was removed. `ui_confirm`/`ui_back` keep their keyboard
+  events and gain pad south/east.
+- Joypad events use `device = -1`, so whichever pad is connected drives P2
+  regardless of port. Two-player local play is therefore keyboard/mouse vs pad.
+
+Every keyboard event is written with `device = -1` (matches any device). In Godot
+4.7 a new `InputEventKey` reports the local keyboard's concrete device id (`16`
+on the dev machine), and the serializer writes whatever it holds; a concrete
+stamp therefore makes the map depend on the machine that generated it. Physical
 keyboard events observed through XTest carry device `16`, so
-`game/tests/combat_test.gd` replays each mapped key with device `16` and fails if
-any of them stops resolving.
+`game/tests/combat_test.gd` replays each mapped key with device `16`, each pad
+event with device `0`, and each mouse event with device `-1`, and fails if any of
+them stops resolving. It also asserts that P2 has no keyboard/mouse bindings and
+P1 has no controller bindings.
 
 Regeneration caveat: `ProjectSettings.save()` omits settings whose value equals
 the engine default, and `physics/common/physics_ticks_per_second = 60` *is* the
@@ -267,7 +283,9 @@ that section by hand afterward — the simulation step comes from
   numbers and the reward/whiff-punish ratios (0.80 Peggy / 0.97 Richard) are
   informational; owner decision (2026-11-07): confirmed provisional, revisit in
   Phase 9.
-- **No character/stage select.** Fixed matchup + Bus Stop (Night).
+- **No stage select.** Character select exists and reads the shared roster, but
+  the match always starts on the roster's first stage (Bus Stop (Night)); there
+  is no stage picker or stage rotation yet.
 - **Debug overlay is dev-only.** Boxes, frame state, frame advantage, input
   history, slow motion, frame-step and refill exist; there is no AI state view
   (there is no AI yet) and no hitbox-invariant assertions.
@@ -323,7 +341,7 @@ These are measured or first-pass limits, not phase-exit validation.
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **337 checks**: distinct Peggy/Richard sheet
+- `game/tests/combat_test.gd` — **340 checks**: distinct Peggy/Richard sheet
   artwork in walk states, the authored idle sheet (selection, visibility, cel
   cadence, wrap, hitstop/pause freeze, re-entry reset, facing pivot, and the
   missing-art fallback), unchanged combat boxes, clean hits and

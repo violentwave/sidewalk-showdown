@@ -73,7 +73,7 @@ phase exit criteria:
   blocking and round flow work, and the match can end/restart.
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
-  The current suites contain 337 combat, 34 round-flow, 15 audio/select
+  The current suites contain 340 combat, 34 round-flow, 18 audio/select
   integration, and 23 intro checks. K1, R1, corner separation, bounded hitstop
   buffer freeze, and the
   post-KO winner-state repair are covered. Non-METH strikes reject during
@@ -161,7 +161,9 @@ phase exit criteria:
   `Array[StageData]`); `MatchRoot` builds the stage from `selected_stage.scene`
   and no longer preloads either fighter or the Bus Stop scene, so adding a
   fighter or stage is a roster edit rather than a code edit.
-  Input has no remapping UI; training is limited to debug controls; AI,
+  Gamepad play is implemented (2026-11-16): P1 keyboard + mouse, P2 controller,
+  with the standard pad attack layout. There is no remapping UI; training is
+  limited to debug controls; AI,
   save/unlock, a full audio manager/mixer, and an authored hitbox editor workflow
   are missing. A small Phase 2 audio service plays the temporary track and cues.
   Dash/backdash states are absent.

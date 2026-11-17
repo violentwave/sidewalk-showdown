@@ -395,7 +395,7 @@ Runtime (`game/scripts/combat/richard_clip_library.gd`, new; `fighter_base.gd`):
   hold, and procedural-transform suppression are shared with Peggy and
   unchanged; the only per-fighter data is the table.
 
-Tests: `combat_test.gd` extended to **337 checks, 0 failures**. New Richard
+Tests: `combat_test.gd` extended to **340 checks, 0 failures**. New Richard
 coverage: library integrity (cel geometry, 39 distinct enabled textures),
 all-16 move mapping incl. `richard_*` targets, gated optional clips, live
 walk/crouch-hold/crouch-entry, exact light/heavy/meth phase boundaries,
@@ -493,6 +493,6 @@ existing stand-up transient mechanism was generalised:
 
 No simulation state, frame timing, hurtbox, buffer, or collision value changed;
 the crouch hurtbox is still the 0.65 pushbox from the first crouch frame.
-Verification: `combat_test.gd` is at **337 checks, 0 failures**, including a new
+Verification: `combat_test.gd` is at **340 checks, 0 failures**, including a new
 3-check crouch-entry group and an assertion that the entry transient defers the
 guard pose. `round_flow` 34, `character_select` 18, `the_clip` 23 all green.

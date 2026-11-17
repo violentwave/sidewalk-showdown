@@ -97,8 +97,9 @@ func _run() -> void:
 	split_probe.free()
 
 	var advance_main: Node = await _start_main()
-	_check("boot starts in The Clip before character select",
-		advance_main.intro != null and advance_main.character_select == null
+	_check("boot starts in The Clip before mode select",
+		advance_main.intro != null and advance_main.mode_select == null
+			and advance_main.character_select == null
 			and advance_main.match_root == null,
 		"boot did not start on intro")
 	if advance_main.intro != null:
@@ -117,15 +118,16 @@ func _run() -> void:
 				break
 			_press_space(intro)
 		await process_frame
-		_check("Space on the final panel reaches character select",
-			advance_main.intro == null and advance_main.character_select != null
+		_check("Space on the final panel reaches mode select",
+			advance_main.intro == null and advance_main.mode_select != null
+				and advance_main.character_select == null
 				and advance_main.match_root == null,
 			"15 Space presses did not hand off to select")
 	else:
 		_check("non-Space confirm does not advance a panel", false,
 			"intro scene unavailable")
 		_check("one Space press advances exactly one panel", false, "intro scene unavailable")
-		_check("Space on the final panel reaches character select", false, "intro scene unavailable")
+		_check("Space on the final panel reaches mode select", false, "intro scene unavailable")
 	await _dispose_main(advance_main)
 
 	for panel_index in [0, 7, 14]:
@@ -138,8 +140,9 @@ func _run() -> void:
 				guard += 1
 			_press_escape(skip_intro)
 		await process_frame
-		_check("Esc from panel %02d reaches character select" % (panel_index + 1),
-			skip_main.intro == null and skip_main.character_select != null
+		_check("Esc from panel %02d reaches mode select" % (panel_index + 1),
+			skip_main.intro == null and skip_main.mode_select != null
+				and skip_main.character_select == null
 				and skip_main.match_root == null,
 			"Esc did not skip from panel %d" % (panel_index + 1))
 		await _dispose_main(skip_main)

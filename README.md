@@ -10,9 +10,9 @@ who turns sidewalk chaos into a rigged tournament.**
   <img src="docs/assets/screenshot-match.png" alt="Peg Leg Peggy vs Whiskey Richard on the Bus Stop at night, mid-round HUD" width="860">
 </p>
 
-| The Clip — intro | Choose your fighter |
-|---|---|
-| <img src="docs/assets/screenshot-the-clip.png" alt="The Clip comic intro, panel 1" width="430"> | <img src="docs/assets/screenshot-character-select.png" alt="Character select with Peggy and Richard" width="430"> |
+| The Clip — intro | Select mode | Choose your fighter |
+|---|---|---|
+| <img src="docs/assets/screenshot-the-clip.png" alt="The Clip comic intro, panel 1" width="280"> | <img src="docs/assets/screenshot-mode-select.png" alt="Mode select with 1 Player and 2 Players options" width="280"> | <img src="docs/assets/screenshot-character-select.png" alt="Character select with Peggy and Richard" width="280"> |
 
 | | |
 |---|---|
@@ -23,10 +23,11 @@ who turns sidewalk chaos into a rigged tournament.**
 
 ## What's playable today
 
-- **The Clip** — a 15-panel comic intro that leads into character select, with
+- **The Clip** — a 15-panel comic intro that leads into mode select, with
   Space-only advancement and a complete skip path.
-- **Two-player local versus** — Peg Leg Peggy vs Whiskey Richard on the Bus
-  Stop at night, one keyboard.
+- **Solo and local versus** — pick `1 PLAYER` to choose both fighters and test
+  P1 against an idle P2, or `2 PLAYERS` for Peg Leg Peggy vs Whiskey Richard on
+  the Bus Stop at night. P1 uses keyboard + mouse; P2 uses a controller.
 - **Authored sprite animation** — both fighters play per-state and per-move
   clips from the owner's PixelLab batch: jumps, walks, guard, hit reactions,
   knockdown/wake-up, and all 16 attack rows per fighter
@@ -38,8 +39,10 @@ who turns sidewalk chaos into a rigged tournament.**
   KO flow, pause menu, and a text-only Tripp commentary sample.
 
 Not in yet: input remapping, stage select, CPU AI, campaign, final
-audio/voice/VFX, and final art/cleaning for some clips. Online play is deferred
-beyond v0.1 per GDD §2.4/§16.
+audio/voice/VFX, and final art/cleaning for some clips. Because there is no CPU
+AI yet, the 1-player opponent stands idle: solo is for practice and testing P1,
+not a real single-player match. Online play is deferred beyond v0.1 per GDD
+§2.4/§16.
 
 ## Quick start
 
@@ -56,7 +59,7 @@ godot --headless --path game --script res://tests/character_select_test.gd
 godot --headless --path game --script res://tests/the_clip_test.gd
 ```
 
-Current suites: **combat 340 checks**, round flow 34, character select 18,
+Current suites: **combat 340 checks**, round flow 34, character select 35,
 The Clip 23 — all green in CI (`tests.yml`). `tests/air_probe.gd` prints balance
 metrics and asserts nothing.
 
@@ -66,6 +69,16 @@ metrics and asserts nothing.
 drives P2, using either the d-pad or the left stick to move. The pad layout is
 GDD §4.2's: X light, Y heavy, B special, A grab, right shoulder for the
 METHtality finisher.
+
+After The Clip, **mode select** opens on `1 PLAYER` (solo) with `2 PLAYERS` one
+keypress away (W/S or A/D to move, J or click to start):
+
+- **1 PLAYER:** P1 picks their fighter, confirms, then picks the opponent with
+  the same keys; the match starts on the second confirm. P2 spawns but stands
+  idle — there is no CPU AI yet. Backspace steps back one pick, then back to
+  mode select.
+- **2 PLAYERS:** each player confirms their own fighter (P1 with J/click, P2 with
+  pad X). Backspace on the P1 keyboard returns to mode select.
 
 | Action | P1 keyboard / mouse | P2 controller |
 |---|---|---|

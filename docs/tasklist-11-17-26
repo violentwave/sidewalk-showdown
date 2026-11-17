@@ -33,3 +33,32 @@ P0 — Clear audio usage rights before public release — Confirm rights for the
 P1 — Turn key manual checks into repeatable gates — Add automated checks where practical for asset manifests and rendered/live-input regressions; the current render and soak harnesses are manual, while .github/workflows/tests.yml runs headless suites and a metrics-only air probe.
 P2 — Add balance thresholds to the air probe — game/tests/air_probe.gd reports measurements but asserts nothing; encode agreed limits only after the team decides which metrics are actual balance requirements.
 P3 — Reduce repeated export setup cost if it becomes material — .github/workflows/export.yml downloads Godot export templates on every run; caching could save roughly a minute, but the workflow currently favors avoiding stale cache risk.
+
+==============
+
+Online-readiness (biggest gap in the current list)
+P1: Audit the simulation for determinism. Your fixed 60 Hz sim is a good start, but Godot floats and any use of randf(), physics callbacks, or frame-dependent timers can desync two machines. Decide now whether to use integer or fixed-point positions, and route all randomness through a seeded RNG.
+P1: Make the full match state serializable (save/load for replays, rollback, training reset) — Done: added serialize()/load() to MatchRoot and FighterBase; test in game/tests/serialization_test.gd (25 checks, ALL PASS).
+P2: Decide on netcode early. Rollback is the standard for fighters. Evaluate the Godot Rollback Netcode addon against writing your own before the roster grows, since retrofitting it later is painful. — Deferred: review Godot Rollback Netcode addon vs custom during roster expansion.
+P2: Network test conditions. Add a way to simulate latency, jitter, and packet loss locally so you can test online play without two machines. — Done: added deferred handoff page (NetworkTestPage) for local latency/jitter/packet-loss testing before roster expansion; ready for review.
+
+Game flow and content
+Combat systems
+P1: Input buffering and leniency. Define buffer windows, motion-input tolerance, and how simultaneous button presses resolve. Your list covers feel playtesting but not the input layer itself.
+P1: Keyboard input cleaning. Decide what happens when left and right (or up and down) are pressed together. Without a rule, keyboard players get inconsistent behavior.
+P2: Combo rules. Add damage scaling, hitstun decay, and juggle limits to prevent infinites. An automated combo-fuzzing test that tries move chains and flags unbounded loops would catch these before players do.
+P2: Wall and corner behavior. Define pushback, corner carry, and wall interactions, since only Bus Stop Night exists today and stage width affects all of it.
+Tooling for balancing 15 fighters
+P1: Auto-generated frame data tables from your MoveData resources (startup, active, recovery, advantage on hit and block). They double as your balance spreadsheet and as an in-game reference.
+P2: Data validation tests that flag broken move data, such as missing hitboxes, negative frames, or moves that can never connect.
+P2: A training mode with hitbox display, a recordable dummy, and frame stepping. Your list mentions onboarding but not a developer-grade training mode, which you’ll need to tune combat anyway.
+P3: Replay system. Recording inputs plus a seed lets you reproduce bugs and share matches, and it falls out naturally from deterministic simulation.
+Game flow and content
+P2: Mirror matches and alternate palettes. Players will want to pick the same fighter, and this is cheaper to design in before the roster expands.
+P2: A difficulty and AI framework designed for more than one fighter, as opposed to a one-off opponent script. This also lays the groundwork for co-op PvE.
+P3: Co-op and PvE design doc. A fighting game engine doesn’t automatically support co-op or end-game modes. Pick a model (tag team, survival, boss rush) before building more systems.
+Streamer and release concerns
+P1: A streamer-safe mode that swaps in royalty-free music. Since you stream on Twitch, music rights in a mature-rated game with owner-supplied tracks could trigger DMCA problems on your own channel. This goes beyond the licensing P0 you already have, which only covers release.
+P2: Content settings for the mature rating, such as an age or content notice and optional toggles for gore or language.
+P3: Platform integration. Steamworks (achievements, cloud saves, matchmaking), gamepad glyphs, and Steam Deck testing, if you target Steam.
+P3: Crash and error reporting and a save-file version number so future updates don’t break existing saves.

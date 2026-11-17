@@ -1,13 +1,14 @@
-# Dev tool: capture README/documentation screenshots of the three main screens.
+# Dev tool: capture README/documentation screenshots of the main screens.
 # Captures go to /tmp/opencode/readme/ so nothing lands in the repo until the
 # image is reviewed and copied deliberately.
 #
 # Usage:
 #   DISPLAY=:0 godot --path game --resolution 1280x720 \
-#       --script res://tools/readme_capture.gd -- <theclip|select|match>
+#       --script res://tools/readme_capture.gd -- <mode|theclip|select|match>
 #
-# `match` poses a readable mid-round moment with debug boxes off; `theclip` and
-# `select` capture the intro panel and the character-select screen.
+# `match` poses a readable mid-round moment with debug boxes off; `mode`,
+# `theclip`, and `select` capture the mode-select, intro, and character-select
+# screens.
 extends SceneTree
 
 const OUT := "/tmp/opencode/readme"
@@ -21,10 +22,15 @@ func _initialize() -> void:
 	if args.size() > 0:
 		_mode = str(args[0])
 	match _mode:
+		"mode":
+			_scene = load("res://scenes/menus/ModeSelect.tscn").instantiate()
 		"theclip":
 			_scene = load("res://scenes/menus/TheClip.tscn").instantiate()
 		"select":
 			_scene = load("res://scenes/menus/CharacterSelect.tscn").instantiate()
+		"select_solo":
+			_scene = load("res://scenes/menus/CharacterSelect.tscn").instantiate()
+			_scene.solo = true
 		_:
 			_scene = load("res://scenes/match/MatchRoot.tscn").instantiate()
 	root.add_child(_scene)
@@ -37,6 +43,10 @@ func _grab(tag: String) -> void:
 
 func _run() -> void:
 	match _mode:
+		"mode":
+			for i in 30:
+				await physics_frame
+			await _grab("mode")
 		"theclip":
 			# First comic panel: needs a few frames for text/art layout.
 			for i in 30:
@@ -46,6 +56,10 @@ func _run() -> void:
 			for i in 30:
 				await physics_frame
 			await _grab("select")
+		"select_solo":
+			for i in 30:
+				await physics_frame
+			await _grab("select_solo")
 		_:
 			await _run_match()
 	quit()

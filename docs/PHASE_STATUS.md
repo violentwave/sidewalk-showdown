@@ -73,7 +73,7 @@ phase exit criteria:
   blocking and round flow work, and the match can end/restart.
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
-  The current suites contain 340 combat, 34 round-flow, 18 audio/select
+  The current suites contain 340 combat, 34 round-flow, 35 mode/character-select
   integration, and 23 intro checks. K1, R1, corner separation, bounded hitstop
   buffer freeze, and the
   post-KO winner-state repair are covered. Non-METH strikes reject during
@@ -99,14 +99,17 @@ phase exit criteria:
   suitable for a private showing.
 - **Status:** **In progress; exit not met.** The official cast is Peggy and
   Richard on the Bus Stop stage; the HUD and METHtality engine prototype exist.
-  The Clip now plays before character select; it is a 15-panel, owner-editable
+  The Clip now plays before mode select; it is a 15-panel, owner-editable
   comic intro with all 15 pixel-art panels and the approved Peggy/Richard origin.
   Space advances the current beat or panel (dense copy may take extra presses),
   Esc skips, and no timer advances the story. Procedural
-  newsprint/halftone and bundled OFL comic fonts are used throughout. The
-  text-only local character-select mockup (added 2026-11-11) lets P1/P2 pick
-  from the approved cast and routes both choices into the match. METHtality
-  activates at full meter regardless of opponent health/state, drains the bar,
+  newsprint/halftone and bundled OFL comic fonts are used throughout. Mode
+  select (added 2026-11-17) offers 1 PLAYER or 2 PLAYERS: solo lets P1 pick both
+  fighters and spawns P2 with input disabled (no CPU AI yet), while versus keeps
+  the two-player rules. The text-only character select (added 2026-11-11) lets
+  each player pick from the approved cast and routes both choices into the
+  match. METHtality activates at full meter regardless of opponent health/state,
+  drains the bar,
   and uses a 30-frame freeze, banner, and normal KO flow. A text-only Tripp
   commentary sample appears at the first fight start. The intro/menu and fight
   MP3 tracks loop in their respective screens; hit/block/UI/KO/METHtality cues
@@ -155,8 +158,9 @@ phase exit criteria:
   `FighterData`/`MoveData`, `.tres` resources, and the generator exist. Authored
   cancel routes, counter-hit detection (+2 hitstop and HUD feedback), juggle/OTG
   rules, launcher/EX routes, command grabs, match/round flow, and debug tools are
-  implemented. The text-only character-select mockup chooses between the two
-  slice fighters. As of 2026-11-16 cast and stage come from
+  implemented. Mode select and character select choose the matchup (solo is
+  P1-picks-both with an idle P2 until CPU AI lands). As of 2026-11-16 cast and
+  stage come from
   `resources/match_roster.tres` (`MatchRoster` → `Array[FighterData]` +
   `Array[StageData]`); `MatchRoot` builds the stage from `selected_stage.scene`
   and no longer preloads either fighter or the Bus Stop scene, so adding a
@@ -281,10 +285,10 @@ phase exit criteria:
 | Priority | Requirement | Current status / evidence |
 |---|---|---|
 | First playable | 2 fighters; 1 stage; movement; block; attacks/specials; health/timer; round flow | **Implemented** for the keyboard-controlled Peggy/Richard Bus Stop slice; edge-case findings remain. |
-| First playable | Basic menu | **Partial:** pause/resume/restart/quit and a two-player character-select mockup exist; no full front-end/main menu or stage flow. |
+| First playable | Basic menu | **Partial:** pause/resume/restart/quit, mode select, and a character-select mockup exist; no full front-end/main menu or stage flow. |
 | First playable | Keyboard/controller support | **Partial:** keyboard is device-agnostic and tested; no gamepad mappings, support UI, or controller test. This is a documented first-playable blocker unless the owner amends §14. |
 | First playable | Hitbox debug | **Implemented:** F1 boxes and other debug controls exist; box separation is incomplete (B9). |
-| Vertical slice | 2 polished fighters, 1 polished stage, real HUD, music/SFX, Tripp commentary, one METHtality, mini story route | **Partial:** official Peggy/Richard cast, Bus Stop stage, character-select mockup, HUD, full-meter METHtality, 15-panel prologue, and one text-only Tripp commentary sample exist; polished runtime art, voiced/full commentary, broad SFX, and a fighter-specific route remain. |
+| Vertical slice | 2 polished fighters, 1 polished stage, real HUD, music/SFX, Tripp commentary, one METHtality, mini story route | **Partial:** official Peggy/Richard cast, Bus Stop stage, mode/character-select mockup, HUD, full-meter METHtality, 15-panel prologue, and one text-only Tripp commentary sample exist; polished runtime art, voiced/full commentary, broad SFX, and a fighter-specific route remain. |
 | Full v1.0 | 15 fighters, hidden Tripp boss, stages, campaign/arcade/versus/training, METHtalities, endings, options/accessibility, credits/licenses | **Not met; later GDD priorities.** |
 
 The companion reconciliation preserves the audit’s historical `d523ed0` claims

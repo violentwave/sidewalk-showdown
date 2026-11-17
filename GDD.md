@@ -1137,12 +1137,13 @@ The winner reaches the end. Tripp refuses to pay, reveals the hidden commissione
 - Sprite-confirmed looks: Richard wears a red bandana-style cap and carries a green bottle. Peggy wears a green beanie with a white stripe and has a slim tan peg leg. Tripp wears a blue tee reading "THOUGHTS & PRAYERS" (owner to confirm), blue jeans, and white sneakers with cyan soles, and holds a smartphone.
 
 > **Implementation-status note (2026-11-12):** boot runs the 15-panel `TheClip`
-> scene before the existing character select. Space advances the current beat or
-> panel (dense copy may take extra presses); Esc skips directly to select, and
-> the story never advances on a timer. Panel copy and deprecated `hold_seconds`
-> values live in `game/data/story/the_clip.panels`; all 15 pixel-art slots are
-> installed per `docs/story/the_clip_art_manifest.md`. The printed-page styling,
-> bundled fonts, and art attribution are documented in `docs/ART_CREDITS.md`.
+> scene before the existing mode/character select. Space advances the current
+> beat or panel (dense copy may take extra presses); Esc skips directly to mode
+> select, and the story never advances on a timer. Panel copy and deprecated
+> `hold_seconds` values live in `game/data/story/the_clip.panels`; all 15
+> pixel-art slots are installed per `docs/story/the_clip_art_manifest.md`. The
+> printed-page styling, bundled fonts, and art attribution are documented in
+> `docs/ART_CREDITS.md`.
 
 #### Ending
 
@@ -1864,11 +1865,13 @@ Possible updates:
 - keyboard/controller support
 - hitbox debug
 
-> **Implementation-status note (2026-11-16):** keyboard and mouse support exist
-> and are tested, and a controller drives P2 (P1 is keyboard + mouse only, per
-> owner direction). The in-game remap UI is still missing. A text-only character
-> select mockup now precedes the match, but there is no full main-menu or stage
-> select flow. See `docs/PHASE_STATUS.md` for the gate status.
+> **Implementation-status note (2026-11-17):** keyboard, mouse, and controller
+> support exist and are tested (P1 is keyboard + mouse only, P2 controller, per
+> owner direction). The in-game remap UI is still missing. A text-only mode
+> select (1 PLAYER / 2 PLAYERS) and character select now precede the match. Solo
+> lets P1 pick both fighters but P2 stands idle because CPU AI is not
+> implemented; there is no full main-menu or stage select flow. See
+> `docs/PHASE_STATUS.md` for the gate status.
 
 ### Must-Have for Vertical Slice
 

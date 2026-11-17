@@ -244,14 +244,17 @@ that section by hand afterward — the simulation step comes from
   basic hit/block/UI/round/KO/METHtality cues are wired; confirm MP3 usage rights
   before public release. Tripp voice, crowd, hit sparks, screen shake,
   spatial/priority mixing, and the full GDD §12 SFX list remain.
-- **No CPU AI.** Both fighters are human-controlled (GDD Phase 3 baseline).
+- **No CPU AI.** A 1-player match exists (P1 picks both fighters) but the P2
+  fighter spawns with input disabled and simply stands there, so solo is a
+  practice/test mode rather than a real single-player match. GDD Phase 3 lists
+  CPU AI as the remaining opponent work.
 - **METHtality presentation is minimal.** The trigger, spend and KO win are
   real, but the finisher is a single point-blank hit with a long freeze and a
   banner — no cinematic, camera, or choreography yet. The 30f freeze is a
   first-pass balance value, and a whiffed finisher still spends the full bar.
 - **No dash/backdash.** GDD §5.2/§5.11 list them; neutral movement is walk-only.
-- **No gamepad support or input-remap UI.** Current inputs are a generated
-  keyboard table; GDD §4.1/§4.6/§14 require both.
+- **No input-remap UI.** Gamepad play is implemented (P1 keyboard + mouse, P2
+  controller), but in-game remapping is still a GDD §4.1/§4.6/§14 requirement.
 - **Launcher category (owner decision, 2026-11-07; implemented).** The forward
   special and its EX variant launch for both fighters with authored vertical
   knockback (base 228 Peggy / 200 Richard = 80% of jump; EX 360 / 340); crouch
@@ -392,10 +395,14 @@ These are measured or first-pass limits, not phase-exit validation.
   sudden-death tie resolving by damage dealt (with the announced tiebreak), the
   deterministic P1 fallback, a clean win in sudden death ending the match, the
   clock frozen during hitstop, and a hit on the timer's final frame counting.
-- `game/tests/character_select_test.gd` — **18 checks**: intro MP3 playback on
-  The Clip and character select, default selections,
-  independent P1/P2 movement/confirmation, unlock-on-move, selected fighter data
-  reaching the match, temporary music/SFX playback, and impact/block cue routing.
+- `game/tests/character_select_test.gd` — **35 checks**: intro MP3 playback on
+  The Clip and character select, mode select defaulting to 1 PLAYER and moving
+  to 2 PLAYERS, Backspace back-out, default selections,
+  independent P1/P2 movement/confirmation, unlock-on-move, the solo two-pick
+  flow (opponent cursor hidden until P1 locks, pad input ignored, Backspace
+  undoes a pick), P2 staying input-disabled in solo while versus enables both,
+  selected fighter data reaching the match, temporary music/SFX playback, and
+  impact/block cue routing.
 - `game/tests/the_clip_test.gd` — **23 checks**: installed art slots, lossless
   split text, panel-10 art visibility/aspect fit, deprecated hold values/copy,
   owner-script canon guards, panel ordering, boot-to-intro, Space-only
@@ -418,8 +425,9 @@ These are measured or first-pass limits, not phase-exit validation.
   actionability. Prints a report and exits 0 on success; `docs/PROPOSALS.md` §3
   documents the coarse grid, before/after metrics, and target limitations. Its
   numbers are informational measurements, not passing balance assertions.
-- `.github/workflows/tests.yml` runs the combat, round-flow, character-select,
-  and intro suites plus the air probe on push, pull request and manual dispatch.
+- `.github/workflows/tests.yml` runs the combat, round-flow,
+  mode/character-select, and intro suites plus the air probe on push, pull
+  request and manual dispatch.
   They are separate jobs in one workflow; parallel
   execution does not make a job non-gating. A non-zero command or job failure in
   the air-probe job can still fail the workflow even though the script contains
@@ -441,6 +449,7 @@ These are measured or first-pass limits, not phase-exit validation.
   by the same failure. The upload step stays fatal on failure, so a missing
   deliverable is still visible.
 - `game/tools/readme_capture.gd` is a display-only helper that captures the
-  three screens used in `README.md` (intro panel, character select, posed
-  match) to `/tmp/opencode/readme/`. Reviewed images are copied into
-  `docs/assets/` deliberately; the tool never writes into the repo.
+  menu and match screens used in `README.md` (mode select, intro panel,
+  character select, posed match) plus a solo-select review variant to
+  `/tmp/opencode/readme/`. Reviewed images are copied into `docs/assets/`
+  deliberately; the tool never writes into the repo.

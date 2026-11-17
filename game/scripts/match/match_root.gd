@@ -29,6 +29,8 @@ var audio_manager
 var selected_p1_data: FighterData
 var selected_p2_data: FighterData
 var selected_stage: StageData
+# False in solo mode: P2 still spawns and can be hit, but never reads input.
+@export var p2_human := true
 
 var phase: Phase = Phase.INTRO
 var phase_frame := 0
@@ -132,7 +134,7 @@ func _start_fight() -> void:
 	phase = Phase.FIGHT
 	phase_frame = 0
 	p1.input_enabled = true
-	p2.input_enabled = true
+	p2.input_enabled = p2_human
 	hud.clear_message()
 	if not commentary_sample_shown:
 		hud.show_commentary("TRIPP: The crowd is going insane!")
@@ -321,18 +323,19 @@ func _physics_process(_delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_echo():
 		return
-	if event.is_action_pressed("p1_pause") or event.is_action_pressed("p2_pause"):
+	if event.is_action_pressed("p1_pause") or (p2_human and event.is_action_pressed("p2_pause")):
 		_toggle_pause()
 		return
 	if not get_tree().paused:
 		return
 	# Menu navigation uses the players' own actions rather than ui_up/ui_down,
 	# which also match the arrow keys and would step the selection twice.
-	if event.is_action_pressed("p1_up") or event.is_action_pressed("p2_up"):
+	if event.is_action_pressed("p1_up") or (p2_human and event.is_action_pressed("p2_up")):
 		_move_pause_selection(-1)
-	elif event.is_action_pressed("p1_down") or event.is_action_pressed("p2_down"):
+	elif event.is_action_pressed("p1_down") or (p2_human and event.is_action_pressed("p2_down")):
 		_move_pause_selection(1)
-	elif (event.is_action_pressed("p1_light") or event.is_action_pressed("p2_light")
+	elif (event.is_action_pressed("p1_light")
+			or (p2_human and event.is_action_pressed("p2_light"))
 			or event.is_action_pressed("ui_confirm")):
 		_confirm_pause_selection()
 

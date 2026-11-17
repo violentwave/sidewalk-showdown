@@ -45,11 +45,10 @@ jobs:
         id: sha
         run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
-      # The ~1 GB export templates do not fit this repository's Actions storage
-      # budget: on the free plan the total is 500 MB, so caching the templates
-      # consumes the quota the build artifacts need and both upload steps fail
-      # with "Artifact storage quota has been hit". Download the full
-      # engine+templates bundle per run instead and cache nothing.
+      # Godot's ~1 GB export templates are downloaded per run rather than
+      # cached. Actions minutes and storage are free for this public repo, but a
+      # per-run download keeps each job independent of a stale cache and costs
+      # about a minute.
       - uses: chickensoft-games/setup-godot@v2
         with:
           version: ${{ env.GODOT_VERSION }}
@@ -74,7 +73,7 @@ jobs:
           name: ${{ matrix.artifact }}-${{ steps.sha.outputs.short }}
           path: ${{ matrix.dir }}
           if-no-files-found: error
-          # Builds are ~50-60 MB per platform. A shorter window keeps the free
-          # Actions storage budget below its 500 MB cap; anything older is
-          # reproducible from its commit.
+          # Builds are ~50-60 MB per platform. A shorter window still keeps only
+          # current builds downloadable; anything older is reproducible from its
+          # commit.
           retention-days: 14

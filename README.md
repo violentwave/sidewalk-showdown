@@ -113,15 +113,12 @@ godot --headless --path game --export-release linux build/linux/sidewalk_showdow
 godot --headless --path game --export-release windows build/windows/sidewalk_showdown.exe
 ```
 
-> The export workflow deliberately does **not** cache Godot's ~1 GB export
-> templates: the free Actions storage budget is 500 MB, so a template cache
-> starves artifact uploads; downloading them per run keeps exports publishable.
->
-> **Current status:** artifact uploads are rejected by an account-level Actions
-> storage check even with zero stored artifacts, so both export runs build but
-> publish nothing. That is a billing/account issue, not a code failure — see
-> [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md). Local exports work with the
-> commands above.
+> The repo is public, so Actions minutes and artifact storage are not billed.
+> Both targets build and both artifacts upload successfully on every `main`
+> push; the last verified run published a ~54 MB Linux binary and a ~64 MB
+> Windows `.exe`. The workflow still downloads Godot's export templates per run
+> instead of caching the ~1 GB bundle, which keeps each job independent of a
+> stale cache at a cost of about a minute.
 
 ## Repository map
 

@@ -426,24 +426,20 @@ These are measured or first-pass limits, not phase-exit validation.
   no assertions.
 - `.github/workflows/export.yml` builds Linux/Windows artifacts on `main` and
   `v*` tags, can be dispatched by hand, cancels superseded runs on the same
-  ref, caches nothing large, and keeps artifacts for 14 days. Both the explicit
-  template cache and setup-godot's own download cache were removed because the
-  ~1.27 GB engine+templates bundle exceeds the free plan's 500 MB Actions
-  storage budget; each run now downloads the bundle instead (~1 min).
-- **Open: Actions artifact uploads are rejected account-side.** First seen with
-  #42 on 2026-11-12, before the animation work: the Linux and Windows export
-  builds compile successfully, then `actions/upload-artifact` fails with
-  `Failed to CreateArtifact: Artifact storage quota has been hit`. Storage was
-  pruned to **zero artifacts and zero caches** on 2026-11-16 and the upload
-  still failed while GitHub reported "All Systems Operational". A dedicated
-  probe workflow then uploaded a **40-byte text file** and was rejected with the
-  same message, which rules out artifact size, artifact count, repository
-  contents, and repository storage. It needs an owner check in
-  **Settings → Billing and plans → Plans and usage → Actions** (included
-  storage, spending limit, payment method, or a stuck usage counter); GitHub
-  support is the next step if billing looks correct. Builds remain reproducible
-  locally with the presets in `game/export_presets.cfg`; do not work around it
-  by making the upload step non-fatal, which would hide a missing deliverable.
+  ref, caches nothing large, and keeps artifacts for 14 days. Godot's
+  ~1.27 GB engine+templates bundle is downloaded per run (~1 min) rather than
+  cached.
+- **Resolved 2026-11-16: Actions budget and artifact uploads.** The repository
+  was private and the free plan's included Actions minutes were exhausted, so
+  jobs were not started at all (`The job was not started because an Actions
+  budget is preventing further use`). Artifact uploads had been rejected with
+  `Failed to CreateArtifact: Artifact storage quota has been hit` since #42,
+  including a 40-byte probe, which pointed at the same account-level limit
+  rather than artifact size or repository contents. Making the repository
+  public fixed both: all jobs start, and the next `main` export published both
+  platform artifacts. Recorded here so a future private fork is not surprised
+  by the same failure. The upload step stays fatal on failure, so a missing
+  deliverable is still visible.
 - `game/tools/readme_capture.gd` is a display-only helper that captures the
   three screens used in `README.md` (intro panel, character select, posed
   match) to `/tmp/opencode/readme/`. Reviewed images are copied into

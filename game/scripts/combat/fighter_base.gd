@@ -1065,6 +1065,71 @@ func clamp_to_stage() -> void:
 		return
 	position.x = clampf(position.x, stage.left_bound, stage.right_bound)
 
+# Serialize the full fighter state. Non-serializable internals (scene nodes,
+# opponent reference, audio components, visual clip cache) are intentionally
+# excluded. current_move references the authored MoveData resource; the
+# reference is preserved so the move definition (hitboxes, frames, etc.) stays
+# intact.
+func serialize() -> Dictionary:
+	var data := {
+		"state": state,
+		"state_frame": state_frame,
+		"facing": facing,
+		"grounded": grounded,
+		"crouching": crouching,
+		"health": health,
+		"max_health": max_health,
+		"meter": meter,
+		"max_meter": max_meter,
+		"hitstop_frames": hitstop_frames,
+		"hitstop_buffer_freeze_frames": hitstop_buffer_freeze_frames,
+		"current_move": current_move,
+		"move_hit_confirmed": move_hit_confirmed,
+		"move_already_hit": move_already_hit,
+		"move_counter_hit": move_counter_hit,
+		"hitstun_frames": hitstun_frames,
+		"blockstun_frames": blockstun_frames,
+		"knockdown_frames": knockdown_frames,
+		"wakeup_frames": wakeup_frames,
+		"tech_frames": tech_frames,
+		"landing_recovery_frames": landing_recovery_frames,
+		"combo_hits": combo_hits,
+		"juggle_hits": juggle_hits,
+		"frames_since_hit": frames_since_hit,
+		"input_buffer": input_buffer,
+		"input_history": input_history,
+	}
+	return data
+
+# Load the fighter state from a dictionary produced by serialize().
+func load(data: Dictionary) -> void:
+	state = data["state"]
+	state_frame = data["state_frame"]
+	facing = data["facing"]
+	grounded = data["grounded"]
+	crouching = data["crouching"]
+	health = data["health"]
+	max_health = data["max_health"]
+	meter = data["meter"]
+	max_meter = data["max_meter"]
+	hitstop_frames = data["hitstop_frames"]
+	hitstop_buffer_freeze_frames = data["hitstop_buffer_freeze_frames"]
+	current_move = data["current_move"]
+	move_hit_confirmed = data["move_hit_confirmed"]
+	move_already_hit = data["move_already_hit"]
+	move_counter_hit = data["move_counter_hit"]
+	hitstun_frames = data["hitstun_frames"]
+	blockstun_frames = data["blockstun_frames"]
+	knockdown_frames = data["knockdown_frames"]
+	wakeup_frames = data["wakeup_frames"]
+	tech_frames = data["tech_frames"]
+	landing_recovery_frames = data["landing_recovery_frames"]
+	combo_hits = data["combo_hits"]
+	juggle_hits = data["juggle_hits"]
+	frames_since_hit = data["frames_since_hit"]
+	input_buffer = data["input_buffer"]
+	input_history = data["input_history"]
+
 func _pushbox_height() -> float:
 	return body_height * (0.65 if (crouching or state == State.CROUCH) else 1.0)
 

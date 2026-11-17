@@ -497,3 +497,53 @@ func _separate_pushboxes() -> void:
 	right_fighter.position.x += right_move
 	p1.clamp_to_stage()
 	p2.clamp_to_stage()
+
+# ---------------- Save/Load (replays, rollback, training reset) ----------------
+
+# Serialize the full match state. Non-serializable internals (scene nodes,
+# audio_manager, resource references) are intentionally excluded.
+func serialize() -> Dictionary:
+	var data := {
+		"phase": phase,
+		"phase_frame": phase_frame,
+		"round_number": round_number,
+		"wins": wins,
+		"timer_frames": timer_frames,
+		"ko_loser": ko_loser,
+		"ko_draw": ko_draw,
+		"ko_frame": ko_frame,
+		"sim_frame": sim_frame,
+		"timeout_ties": timeout_ties,
+		"sudden_death": sudden_death,
+		"round_damage": round_damage,
+		"pause_index": pause_index,
+		"pause_menu_open": pause_menu_open,
+		"commentary_sample_shown": commentary_sample_shown,
+		"p2_human": p2_human,
+		"p1": p1.serialize(),
+		"p2": p2.serialize(),
+	}
+	return data
+
+# Load the full match state from a dictionary produced by serialize().
+func load(data: Dictionary) -> void:
+	phase = data["phase"]
+	phase_frame = data["phase_frame"]
+	round_number = data["round_number"]
+	wins = data["wins"]
+	timer_frames = data["timer_frames"]
+	ko_loser = data["ko_loser"]
+	ko_draw = data["ko_draw"]
+	ko_frame = data["ko_frame"]
+	sim_frame = data["sim_frame"]
+	timeout_ties = data["timeout_ties"]
+	sudden_death = data["sudden_death"]
+	round_damage = data["round_damage"]
+	pause_index = data["pause_index"]
+	pause_menu_open = data["pause_menu_open"]
+	commentary_sample_shown = data["commentary_sample_shown"]
+	p2_human = data["p2_human"]
+	p1.load(data["p1"])
+	p2.load(data["p2"])
+
+# ---------------- Simulation ----------------

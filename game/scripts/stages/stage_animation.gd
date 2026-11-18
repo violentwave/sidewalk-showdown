@@ -28,6 +28,13 @@ const GATOR_FRAMES := [
 	preload("res://art/stages/gas_n_go/gas_n_go_gator_f2.png"),
 	preload("res://art/stages/gas_n_go/gas_n_go_gator_f3.png"),
 ]
+const FIRE_FRAME_SECONDS := 1.0 / 8.0
+const FIRE_FRAMES := [
+	preload("res://art/stages/bus_stop/bus_stop_fire_f1.png"),
+	preload("res://art/stages/bus_stop/bus_stop_fire_f2.png"),
+	preload("res://art/stages/bus_stop/bus_stop_fire_f3.png"),
+	preload("res://art/stages/bus_stop/bus_stop_fire_f4.png"),
+]
 
 @export var freeze_ambient := false
 # Seen at 320x180, 4-6 px/s is a readable drift rather than a slideshow.
@@ -37,10 +44,14 @@ const GATOR_FRAMES := [
 @export_range(0.5, 30.0, 0.1) var gator_blink_min_seconds := 2.5
 @export_range(0.5, 30.0, 0.1) var gator_blink_max_seconds := 6.0
 @export_range(0.02, 1.0, 0.01) var gator_blink_seconds := 0.12
+# The fire loop runs at a readable 8 fps; each full four-frame loop re-rolls a
+# small timing wobble so the flame does not tick like a metronome.
+@export_range(0.0, 0.4, 0.01) var fire_jitter_ratio := 0.12
 
 @onready var _cloud_a: Sprite2D = get_parent().get_node_or_null("Clouds/CloudA") as Sprite2D
 @onready var _cloud_b: Sprite2D = get_parent().get_node_or_null("Clouds/CloudB") as Sprite2D
 @onready var _gator: Sprite2D = get_parent().get_node_or_null("Gator") as Sprite2D
+@onready var _fire: Sprite2D = get_parent().get_node_or_null("Fire") as Sprite2D
 
 var _mosquitoes: Array[Sprite2D] = []
 var _elapsed := 0.0
@@ -52,6 +63,9 @@ var _gator_breath_frame := 0
 var _gator_frame := 0
 var _gator_blink_timer := 0.0
 var _gator_blink_remaining := 0.0
+var _fire_clock := 0.0
+var _fire_frame := 0
+var _fire_interval := FIRE_FRAME_SECONDS
 var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
@@ -63,6 +77,10 @@ func _ready() -> void:
 		var mosquito := get_parent().get_node_or_null(node_name) as Sprite2D
 		if mosquito != null:
 			_mosquitoes.append(mosquito)
+	if _fire != null:
+		_fire_frame = 0
+		_fire.texture = FIRE_FRAMES[0]
+		_fire_interval = _next_fire_interval()
 
 func _process(delta: float) -> void:
 	if freeze_ambient:
@@ -71,6 +89,7 @@ func _process(delta: float) -> void:
 	_advance_clouds(delta)
 	_advance_mosquitoes(delta)
 	_advance_gator(delta)
+	_advance_fire(delta)
 
 # Two copies of the 640 px cloud strip sit one texture-width apart and slide
 # left together; wrapping the shared offset keeps the seam outside the 320 px
@@ -129,6 +148,25 @@ func _advance_gator(delta: float) -> void:
 		_gator_blink_timer = _rng.randf_range(
 			gator_blink_min_seconds, gator_blink_max_seconds)
 
+# Four flame poses at 8 fps. The interval is re-rolled when the loop wraps, so
+# the jitter never changes the frame order, only the pace, and positions stay
+# untouched and pixel-snapped.
+func _advance_fire(delta: float) -> void:
+	if _fire == null:
+		return
+	_fire_clock += delta
+	if _fire_clock < _fire_interval:
+		return
+	_fire_clock = fmod(_fire_clock, _fire_interval)
+	_fire_frame = (_fire_frame + 1) % FIRE_FRAMES.size()
+	_fire.texture = FIRE_FRAMES[_fire_frame]
+	if _fire_frame == 0:
+		_fire_interval = _next_fire_interval()
+
+func _next_fire_interval() -> float:
+	return maxf(0.01, FIRE_FRAME_SECONDS * (1.0
+		+ _rng.randf_range(-fire_jitter_ratio, fire_jitter_ratio)))
+
 func _apply_gator_frame(frame: int) -> void:
 	if frame == _gator_frame:
 		return
@@ -145,3 +183,6 @@ func mosquito_frame() -> int:
 
 func gator_frame() -> int:
 	return _gator_frame
+
+func fire_frame() -> int:
+	return _fire_frame

@@ -2351,7 +2351,10 @@ func _run() -> void:
 		if not rich_started and rich_atk.state in [FighterBase.State.IDLE, FighterBase.State.WALK_F,
 				FighterBase.State.WALK_B]:
 			rich_atk.input_enabled = true
-			if rich_light.hitbox_rect(rich_atk.position, rich_atk.facing).intersects(
+			# Require a clear pixel of overlap rather than a hairline touch: the
+			# launcher route is timing-sensitive, and firing on the first
+			# tangent frame can start the light a frame too early to connect.
+			if rich_light.hitbox_rect(rich_atk.position, rich_atk.facing).grow(-1.0).intersects(
 					rich_dfd.hurtbox_rect()):
 				rich_atk._start_move(rich_light)
 				rich_started = true
@@ -3047,6 +3050,322 @@ func _run() -> void:
 			and p1._ko_grounded_frame == 0 and p1._active_clip.is_empty(),
 		"")
 
+	# --- 48. side switching: facing is derived from the opponent's position ---
+	p1.input_enabled = true
+	p2.input_enabled = true
+	for action in ["p1_left", "p1_right", "p1_up", "p1_down",
+			"p2_left", "p2_right", "p2_up", "p2_down"]:
+		Input.action_release(action)
+
+	# 48a. Auto-turn: a grounded neutral fighter flips to face the opponent the
+	# first neutral frame after the opponent ends up on the other side.
+	_reset_fighters(100, 200)
+	await _step(2)
+	_check("grounded neutral fighters face each other",
+			p1.facing == 1 and p2.facing == -1,
+			"p1=%d p2=%d" % [p1.facing, p2.facing])
+	p2.position.x = 60.0 # P2 jumps over P1 without touching the floor: teleport.
+	await _step(2)
+	_check("auto-turn follows the opponent to the new side",
+			p1.facing == -1 and p2.facing == 1,
+			"p1=%d p2=%d" % [p1.facing, p2.facing])
+	# Crouching is a turning-allowed state too.
+	p2.position.x = 200.0
+	Input.action_press("p1_down")
+	await _step(3)
+	_check("crouch state reached", p1.state == FighterBase.State.CROUCH, "")
+	p2.position.x = 60.0
+	await _step(2)
+	_check("crouching fighter auto-turns", p1.facing == -1,
+			"p1=%d" % p1.facing)
+	Input.action_release("p1_down")
+	await _step(1)
+
+	# 48b. No turning during attack, hitstun, or blockstun: facing is frozen.
+	_reset_fighters(100, 200)
+	p1.input_enabled = false
+	_prime_cancel(p1, light, 6, false)
+	_check("attack state primed", p1.state == FighterBase.State.ATTACK, "")
+	p2.position.x = 60.0
+	await _step(3)
+	_check("facing frozen during an attack", p1.facing == 1, "p1=%d" % p1.facing)
+	_reset_fighters(100, 200)
+	p1._force_state(FighterBase.State.HITSTUN)
+	p1.hitstun_frames = 20
+	p2.position.x = 60.0
+	await _step(3)
+	_check("facing frozen during hitstun", p1.facing == 1, "p1=%d" % p1.facing)
+	_reset_fighters(100, 200)
+	p1._force_state(FighterBase.State.BLOCKSTUN)
+	p1.blockstun_frames = 20
+	p2.position.x = 60.0
+	await _step(3)
+	_check("facing frozen during blockstun", p1.facing == 1, "p1=%d" % p1.facing)
+	p1.input_enabled = true
+
+	# 48c. Equal x is a tie: keep the current facing; pushbox separation uses
+	# the fixed lower-slot rule instead of node order.
+	_reset_fighters(100, 200)
+	p1.position.x = 100.0
+	p2.position.x = 100.0 # both idle, mutually overlapping
+	await _step(2)
+	_check("equal x keeps each fighter's current facing",
+			p1.facing == 1 and p2.facing == -1,
+			"p1=%d p2=%d" % [p1.facing, p2.facing])
+	_check("equal x separates with P1 fixed as the left body",
+			p1.position.x < p2.position.x
+			and not p1.pushbox_rect().intersects(p2.pushbox_rect())
+			and is_equal_approx(p2.position.x - p1.position.x,
+					(p1.body_width + p2.body_width) * 0.5),
+			"p1=%.1f p2=%.1f" % [p1.position.x, p2.position.x])
+
+	# 48d. Jump-over crossover: airborne fighters pass through the pushbox,
+	# landing separation resolves the overlap, facing flips after the swap.
+	_reset_fighters(90, 126)
+	await _step(2)
+	var crossed := false
+	var overlapped_airborne := false
+	var was_airborne := false
+	Input.action_press("p1_right")
+	Input.action_press("p1_up")
+	await _step(2)
+	Input.action_release("p1_up")
+	for i in 60:
+		await _step(1)
+		if not p1.grounded:
+			was_airborne = true
+			if absf(p1.position.x - p2.position.x) < 28.0:
+				overlapped_airborne = true # pushbox overlap while one is airborne
+		if p1.grounded and was_airborne \
+				and signf(p1.position.x - p2.position.x) != signf(90.0 - 126.0):
+			crossed = true
+		if p1.grounded and was_airborne:
+			break # one full arc, from takeoff to touchdown
+	Input.action_release("p1_right")
+	await _step(3)
+	_check("airborne fighter passes through the grounded pushbox",
+			overlapped_airborne and crossed, "crossed=%s" % crossed)
+	_check("crossover lands P1 on P2's other side, cleanly separated",
+			p1.position.x > p2.position.x
+			and not p1.pushbox_rect().intersects(p2.pushbox_rect())
+			and p1.position.x >= scene.stage.left_bound
+			and p1.position.x <= scene.stage.right_bound,
+			"p1=%.1f p2=%.1f" % [p1.position.x, p2.position.x])
+	_check("both fighters auto-turned after the crossover",
+			p1.facing == -1 and p2.facing == 1,
+			"p1=%d p2=%d" % [p1.facing, p2.facing])
+
+	# 48e. Directional inputs mirror: after the swap, the physical key toward
+	# the opponent is forward and the key away is back, with matching speeds.
+	_reset_fighters(100, 200)
+	p2.position.x = 40.0
+	await _step(2)
+	_check("swapped fighters re-faced", p1.facing == -1 and p2.facing == 1, "")
+	var p1_x_before := p1.position.x
+	Input.action_press("p1_right") # away from the opponent on the left
+	await _step(6)
+	Input.action_release("p1_right")
+	_check("pressing away from the swapped opponent walks backward",
+			p1.state == FighterBase.State.WALK_B
+			and p1.position.x > p1_x_before,
+			"state=%s" % FighterBase.State.keys()[p1.state])
+	Input.action_press("p1_left") # toward the opponent on the left
+	await _step(6)
+	Input.action_release("p1_left")
+	_check("pressing toward the swapped opponent walks forward",
+			p1.state == FighterBase.State.WALK_F
+			and p1.position.x < p1_x_before + 35.0,
+			"state=%s x_gap=%.1f" % [FighterBase.State.keys()[p1.state],
+			p1.position.x - p1_x_before])
+
+	# 48f. Back-hold blocks on the correct side after a cross-up: the defender
+	# auto-faced the swapped attacker, so the back key flips with the facing.
+	# The stand light is a LOW, so the block here is a crouch block.
+	_reset_fighters(76, 230)
+	p2.position.x = 40.0
+	await _step(2)
+	Input.action_press("p2_down")
+	Input.action_press("p2_left") # back relative to P2's new right-facing
+	var blocked := not p2.receive_hit(p1, light)
+	Input.action_release("p2_left")
+	Input.action_release("p2_down")
+	_check("back-hold (new side) blocks the cross-up hit", blocked
+			and p2.state == FighterBase.State.BLOCKSTUN
+			and p2.velocity.x < 0.0, # pushed away from the attacker on the right
+			"blocked=%s vel=%.1f" % [blocked, p2.velocity.x])
+	p2.reset_state()
+	Input.action_press("p2_down")
+	Input.action_press("p2_right") # now forward, no longer a block hold
+	var old_side_blocked := not p2.receive_hit(p1, light)
+	Input.action_release("p2_right")
+	Input.action_release("p2_down")
+	_check("the old back key no longer blocks after the swap",
+			not old_side_blocked and p2.state == FighterBase.State.HITSTUN
+			and p2.health < 1000.0, "blocked=%s" % old_side_blocked)
+
+	# 48g. Knockback direction after a swap: positional, away from the attacker.
+	_reset_fighters(240, 150)
+	await _step(2)
+	p2.receive_hit(p1, light)
+	_check("knockback pushes the defender away from the attacker",
+			p2.velocity.x < 0.0 and p2.state == FighterBase.State.HITSTUN,
+			"vel=%.1f" % p2.velocity.x)
+	_reset_fighters(150, 240)
+	await _step(2)
+	p1.receive_hit(p2, light)
+	_check("knockback direction is symmetric on the original sides",
+			p1.velocity.x < 0.0 and p1.state == FighterBase.State.HITSTUN,
+			"vel=%.1f" % p1.velocity.x)
+
+	# 48h. Hitboxes mirror around the fighter with identical extents, so a
+	# swapped fighter attacks symmetrically.
+	_reset_fighters(150, 260)
+	p1.input_enabled = false
+	_prime_cancel(p1, light, light.startup, false)
+	p1.position = Vector2(150.0, 150.0)
+	p1.facing = 1
+	var box_right := p1.get_hitbox_rect()
+	p1.facing = -1
+	var box_left := p1.get_hitbox_rect()
+	_check("hitbox mirrors with identical extents on both sides",
+			is_equal_approx(box_right.size.x, box_left.size.x)
+			and is_equal_approx(box_right.size.y, box_left.size.y)
+			and is_equal_approx(box_right.position.y, box_left.position.y)
+			and is_equal_approx((box_right.position.x + box_right.size.x * 0.5) - 150.0,
+					150.0 - (box_left.position.x + box_left.size.x * 0.5)),
+			"right=%s left=%s" % [box_right, box_left])
+	p1.input_enabled = true
+
+	# 48i. Landing on the opponent: the airborne body is not separated, then
+	# the pushboxes resolve deterministically the frame both are grounded.
+	scene.fighters_can_pass_through = false
+	_reset_fighters(200, 236)
+	await _step(2)
+	p1.position = Vector2(p2.position.x, scene.stage.floor_y - 30.0)
+	p1.velocity = Vector2.ZERO
+	p1.grounded = false
+	p1._force_state(FighterBase.State.JUMP_FALL)
+	await _step(24)
+	_check("landing overlap resolves by pushbox separation",
+			not p1.pushbox_rect().intersects(p2.pushbox_rect())
+			and p1.position.x < p2.position.x
+			and is_equal_approx(p2.position.x - p1.position.x,
+					(p1.body_width + p2.body_width) * 0.5),
+			"p1=%.1f p2=%.1f" % [p1.position.x, p2.position.x])
+
+	# 48j. The pass-through flag: off (default) grounds still repel; on, they
+	# walk through each other, both grounded and airborne.
+	scene.fighters_can_pass_through = true
+	_reset_fighters(100, 116)
+	await _step(2)
+	_check("pass-through flag: grounded bodies are not separated",
+			p1.pushbox_rect().intersects(p2.pushbox_rect()),
+			"p1=%.1f p2=%.1f" % [p1.position.x, p2.position.x])
+	Input.action_press("p1_right") # walk forward through the opponent
+	await _step(20)
+	Input.action_release("p1_right")
+	_check("pass-through flag: a grounded fighter walks through the other",
+			p1.position.x > p2.position.x, "p1=%.1f p2=%.1f"
+			% [p1.position.x, p2.position.x])
+	scene.fighters_can_pass_through = false
+	_reset_fighters(100, 116)
+	scene._separate_pushboxes()
+	await _step(2)
+	_check("flag off: grounded bodies separate again",
+			not p1.pushbox_rect().intersects(p2.pushbox_rect())
+			and p1.position.x < p2.position.x,
+			"p1=%.1f p2=%.1f" % [p1.position.x, p2.position.x])
+
+	# 48k. Seeded random soak: a full match with random crossovers terminates
+	# with finite, in-bounds positions everywhere (test-local RNG only; the
+	# gameplay RNG stays absent by design).
+	_reset_fighters(110, 210)
+	var soak_rng := RandomNumberGenerator.new()
+	soak_rng.seed = 20261117
+	# Directions are held ~15 frames on average so jump arcs actually carry a
+	# fighter over the opponent; buttons are one-frame taps.
+	var soak_tap_actions := ["_light", "_heavy", "_special", "_grab", "_up", "_up"]
+	var soak_held := ["", ""]
+	var soak_tap_release: Array[String] = []
+	var soak_crossovers := 0
+	var soak_side := signf(p1.position.x - p2.position.x)
+	var soak_sane := true
+	var soak_terminated := false
+	for i in 7200:
+		if scene.phase == 4: # Phase.MATCH_END — decisive match won
+			soak_terminated = true
+			break
+		# Keep rounds short so determinism of the whole loop is exercised
+		# without a six-minute headless bath: 10s clocks, normal resolution.
+		if scene.phase == 1 and scene.timer_frames > 600:
+			scene.timer_frames = 600
+		for act in soak_tap_release:
+			Input.action_release(act)
+		soak_tap_release.clear()
+		for pl in 2:
+			var f: FighterBase = p1 if pl == 0 else p2
+			var prefix := "p%d" % (pl + 1)
+			# Direction is committed for the whole jump arc: random walks
+			# cannot finish a forward arc, crossovers can. Changes only land
+			# while grounded, biased toward closing with the opponent.
+			if f.grounded and soak_rng.randf() < 0.05:
+				if soak_held[pl] != "":
+					Input.action_release(soak_held[pl])
+					soak_held[pl] = ""
+				var toward := prefix + \
+						("_left" if f.position.x > f.opponent.position.x else "_right")
+				match soak_rng.randi_range(0, 3):
+					0, 1:
+						soak_held[pl] = toward
+						Input.action_press(soak_held[pl])
+					2:
+						soak_held[pl] = prefix + \
+								("_right" if toward.ends_with("_left") else "_left")
+						Input.action_press(soak_held[pl])
+					# 3: neutral, no held direction
+			# Jump taps, weighted up when within a hop of the opponent.
+			var near := f.opponent != null \
+					and absf(f.position.x - f.opponent.position.x) < 44.0
+			if f.grounded and soak_rng.randf() < (0.14 if near else 0.04):
+				var tap: String = prefix + "_up"
+				Input.action_press(tap)
+				soak_tap_release.append(tap)
+			# Occasional one-frame button taps keep the combat systems live.
+			if soak_rng.randf() < 0.10:
+				var btn: String = prefix + soak_tap_actions[soak_rng.randi_range(
+						0, soak_tap_actions.size() - 1)]
+				Input.action_press(btn)
+				soak_tap_release.append(btn)
+		var side_now := signf(p1.position.x - p2.position.x)
+		if soak_side != 0.0 and side_now != 0.0 and side_now != soak_side:
+			soak_crossovers += 1
+		soak_side = side_now
+		for f in [p1, p2]:
+			if absf(f.position.x) > 1.0e6 or absf(f.position.y) > 1.0e6 \
+					or absf(f.velocity.x) > 1.0e6 or absf(f.velocity.y) > 1.0e6:
+				soak_sane = false
+			if f.position.x < scene.stage.left_bound - 1.0 \
+					or f.position.x > scene.stage.right_bound + 1.0 \
+					or f.position.y > scene.stage.floor_y + 0.1 \
+					or f.position.y < scene.stage.floor_y - 300.0:
+				soak_sane = false
+		if not soak_sane:
+			break
+		await _step(1)
+	for act in soak_tap_release:
+		Input.action_release(act)
+	for pl in 2:
+		if soak_held[pl] != "":
+			Input.action_release(soak_held[pl])
+	_check("random-crossover soak reached MATCH_END",
+			soak_terminated, "frames ran out at phase=%d" % scene.phase)
+	_check("random-crossover soak exercised real crossovers",
+			soak_crossovers > 0, "crossovers=%d" % soak_crossovers)
+	_check("random-crossover soak stayed finite and in bounds",
+			soak_sane and is_finite(p1.position.x) and is_finite(p2.position.x),
+			"crossovers=%d" % soak_crossovers)
+	_check("soak restored the pass-through default",
+			scene.fighters_can_pass_through == false, "")
 	# --- 49. meter economy (2026-11-18): meter comes from landed hits only ---
 	# Reuses `light` (P1 stand light), `air_light`, and `peggy_throw` declared
 	# in sections 1/39. Earlier sections leave P2's input disabled; blocking

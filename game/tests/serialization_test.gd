@@ -39,12 +39,13 @@ func _check_match_surface(match_root: Node) -> void:
 		"pause_menu_open": mroot.pause_menu_open,
 		"commentary_sample_shown": mroot.commentary_sample_shown,
 		"p2_human": mroot.p2_human,
+		"fighters_can_pass_through": mroot.fighters_can_pass_through,
 	}
 	var expected_keys: Array = [
 		"phase", "phase_frame", "round_number", "wins", "timer_frames",
 		"ko_loser", "ko_draw", "ko_frame", "sim_frame", "timeout_ties",
 		"sudden_death", "round_damage", "pause_index", "pause_menu_open",
-		"commentary_sample_shown", "p2_human",
+		"commentary_sample_shown", "p2_human", "fighters_can_pass_through",
 	]
 	_check("MatchRoot has all expected keys", surface is Dictionary, "surface is not a Dictionary")
 	if surface is Dictionary:

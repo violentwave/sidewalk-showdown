@@ -1,0 +1,24 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/stages/stage.gd" id="1_stage"]
+[ext_resource type="Texture2D" path="res://art/stages/gas_n_go/gas_n_go_sky.png" id="2_sky"]
+[ext_resource type="Texture2D" path="res://art/stages/gas_n_go/gas_n_go_foreground.png" id="3_foreground"]
+
+[node name="GasNGo" type="Node2D"]
+process_mode = 1
+script = ExtResource("1_stage")
+floor_y = 158.0
+left_bound = 24.0
+right_bound = 296.0
+spawn_p1_x = 110.0
+spawn_p2_x = 210.0
+
+[node name="Sky" type="Sprite2D" parent="."]
+position = Vector2(0, 0)
+centered = false
+texture = ExtResource("2_sky")
+
+[node name="Foreground" type="Sprite2D" parent="."]
+position = Vector2(0, 0)
+centered = false
+texture = ExtResource("3_foreground")

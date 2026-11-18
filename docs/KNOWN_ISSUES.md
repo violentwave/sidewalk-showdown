@@ -293,9 +293,9 @@ that section by hand afterward — the simulation step comes from
   numbers and the reward/whiff-punish ratios (0.80 Peggy / 0.97 Richard) are
   informational; owner decision (2026-11-07): confirmed provisional, revisit in
   Phase 9.
-- **No stage select.** Character select exists and reads the shared roster, but
-  the match always starts on the roster's first stage (Bus Stop (Night)); there
-  is no stage picker or stage rotation yet.
+- **Stage select is a single shared pick.** Both players choose one stage from
+  the current two-stage roster, with RANDOM last; there is no rotation,
+  tournament order, or per-stage music assignment yet.
 - **Debug overlay is dev-only.** Boxes, frame state, frame advantage, input
   history, slow motion, frame-step and refill exist; there is no AI state view
   (there is no AI yet) and no hitbox-invariant assertions.
@@ -403,16 +403,26 @@ These are measured or first-pass limits, not phase-exit validation.
   sudden-death tie resolving by damage dealt (with the announced tiebreak), the
   deterministic P1 fallback, a clean win in sudden death ending the match, the
   clock frozen during hitstop, and a hit on the timer's final frame counting.
-- `game/tests/character_select_test.gd` — **43 checks**: intro MP3 playback on
+- `game/tests/character_select_test.gd` — **49 checks**: intro MP3 playback on
   The Clip and character select, mode select defaulting to 1 PLAYER and moving
   to 2 PLAYERS, Backspace back-out, default selections,
   independent P1/P2 movement/confirmation, unlock-on-move, the solo two-pick
   flow (opponent cursor hidden until P1 locks, pad input ignored, Backspace
   undoes a pick), P2 staying input-disabled in solo while versus enables both,
-  selected fighter data reaching the match, pause-menu return to select
-  (match torn down, solo/mode and matchup restored, music switched back), a
-  fresh match from the restored screen, temporary music/SFX playback, and
-  impact/block cue routing.
+  both stages in the roster, fighter confirmations opening stage select,
+  keyboard/controller stage movement and confirmation, the solo hand-off,
+  selected fighter data reaching the match on the chosen stage, pause-menu
+  return to select (match torn down, solo/mode and matchup restored, music
+  switched back), stage restore on re-confirm, a fresh match from the restored
+  screen, temporary music/SFX playback, and impact/block cue routing.
+- `game/tests/stage_select_test.gd` — **43 checks**: stable stage ids,
+  descriptions, scenes, and 80x45 thumbnails; RANDOM last; restore by stage id;
+  wrap-around and controller navigation; Backspace back-out; RANDOM resolving to
+  a recorded concrete roster stage; Gas-N-Go arena geometry, pause mode, layer
+  order and native scales; mosquitoes above fighters but clear of the fight;
+  cloud speed/wrap, 8 fps wingbeat, gator breath/blink, debug freeze, and pixel
+  snapping; MatchRoot's `roster.stages[0]` fallback and its safe stop on an empty
+  roster or a stage with no scene.
 - `game/tests/the_clip_test.gd` — **23 checks**: installed art slots, lossless
   split text, panel-10 art visibility/aspect fit, deprecated hold values/copy,
   owner-script canon guards, panel ordering, boot-to-intro, Space-only

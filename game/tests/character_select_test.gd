@@ -100,10 +100,14 @@ func _run() -> void:
 		"choices=%d/%d" % [select.p1_choice, select.p2_choice])
 
 	var roster: MatchRoster = main_scene.roster
-	_check("the shared roster lists both slice fighters and the Bus Stop stage",
-		roster != null and roster.fighters.size() == 2 and roster.stages.size() == 1
-			and roster.stages[0].display_name == "Bus Stop (Night)"
-			and roster.stages[0].scene != null,
+	_check("the shared roster lists both slice fighters and both stages",
+		roster != null and roster.fighters.size() == 2 and roster.stages.size() == 2
+			and roster.stages[0].id == "gas_n_go"
+			and roster.stages[0].display_name == "Everglades Gas-N-Go"
+			and roster.stages[0].scene != null
+			and roster.stages[0].thumbnail != null
+			and roster.stages[1].id == "bus_stop_night"
+			and roster.stages[1].scene != null,
 		"fighters=%d stages=%d" % [
 			roster.fighters.size() if roster != null else -1,
 			roster.stages.size() if roster != null else -1])
@@ -111,8 +115,8 @@ func _run() -> void:
 	for child in select.get_children():
 		if child is Label and str(child.text).begins_with("STAGE:"):
 			stage_label = str(child.text)
-	_check("the select screen names the stage from the roster",
-		stage_label == "STAGE: BUS STOP (NIGHT)", "label=%s" % stage_label)
+	_check("character select hands the stage choice to the next screen",
+		stage_label == "STAGE: CHOOSE NEXT", "label=%s" % stage_label)
 
 	_press(select, "p1_right")
 	_check("P1 can move the cursor with its own horizontal controls",
@@ -137,9 +141,30 @@ func _run() -> void:
 		"locked=%s match=%s" % [str(select.p1_locked), str(main_scene.match_root != null)])
 	_press(select, "p2_light")
 	await process_frame
-	_check("the match starts after both players confirm",
-		main_scene.match_root != null,
-		"match root was not created")
+	_check("both fighter confirmations open stage select instead of the match",
+		main_scene.stage_select != null and main_scene.match_root == null,
+		"stage_select=%s match=%s" % [
+			str(main_scene.stage_select != null),
+			str(main_scene.match_root != null)])
+	var stage_select: Control = main_scene.stage_select
+	_check("stage select defaults to the roster's first stage",
+		stage_select != null and stage_select.index == 0
+			and stage_select.selected_stage().id == "gas_n_go",
+		"index=%d" % (stage_select.index if stage_select != null else -1))
+	_press(stage_select, "p1_right")
+	_check("the stage cursor moves to Bus Stop",
+		stage_select.index == 1
+			and stage_select.selected_stage().id == "bus_stop_night",
+		"index=%d" % stage_select.index)
+	_press(stage_select, "p2_left")
+	_check("the controller can move the shared stage cursor",
+		stage_select.index == 0, "index=%d" % stage_select.index)
+	_press(stage_select, "p2_light")
+	await process_frame
+	_check("confirming a stage starts the match and closes stage select",
+		main_scene.match_root != null and main_scene.stage_select == null,
+		"match=%s stage_select=%s" % [str(main_scene.match_root != null),
+			str(main_scene.stage_select != null)])
 	if main_scene.match_root != null:
 		_check("selected fighter data reaches the match in P1/P2 order",
 			main_scene.match_root.p1.data.display_name == "Whiskey Richard"
@@ -232,8 +257,15 @@ func _run() -> void:
 	_press(solo_select, "p1_left")
 	_press(solo_select, "p1_light")
 	await process_frame
-	_check("solo mode starts the match after P1 picks both fighters",
-		solo_main.match_root != null,
+	_check("solo mode opens stage select after P1 picks both fighters",
+		solo_main.stage_select != null and solo_main.match_root == null,
+		"stage_select=%s match=%s" % [
+			str(solo_main.stage_select != null),
+			str(solo_main.match_root != null)])
+	_press(solo_main.stage_select, "p1_light")
+	await process_frame
+	_check("solo mode starts the match on the confirmed stage",
+		solo_main.match_root != null and solo_main.stage_select == null,
 		"match root was not created")
 	if solo_main.match_root != null:
 		_check("solo picks reach the match in P1/P2 order",
@@ -288,6 +320,14 @@ func _run() -> void:
 			"stream=%s" % str(solo_main.audio_manager.music_player.stream))
 		_press(returned, "p1_light")
 		_press(returned, "p1_light")
+		await process_frame
+		_check("re-confirmed fighters reopen stage select with the last stage restored",
+			solo_main.stage_select != null and solo_main.stage_select.index == 0
+				and solo_main.match_root == null,
+			"stage_select=%s index=%s" % [
+				str(solo_main.stage_select != null),
+				str(solo_main.stage_select.index if solo_main.stage_select != null else -1)])
+		_press(solo_main.stage_select, "p1_light")
 		await process_frame
 		_check("a new match starts from the returned select screen",
 			solo_main.match_root != null and solo_main.character_select == null,

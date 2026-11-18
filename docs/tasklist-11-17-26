@@ -6,7 +6,7 @@ P2 — Validate aerial momentum and landing edge cases — Probe the air-move be
 2. Content
 P1 — Finish the vertical-slice presentation — Replace placeholder stage/fighter visuals and add final VFX, crowd/voice, and combat audio; docs/PHASE_STATUS.md says the slice is not yet ready for a private showing.
 P1 — Give METHtalities a distinct payoff — Build the finish-prompt/cinematic presentation around the existing finisher rows; today activation spends full meter and uses a freeze/banner rather than choreography.
-P2 — Add stages and stage selection — Populate more StageData/stage scenes and expose selection in the menu; only Bus Stop Night is currently wired into the match flow.
+P2 — Add stages and stage selection — Done: Gas-N-Go and Bus Stop Night are wired through stage select (thumbnails, descriptions, RANDOM last); more StageData/stage scenes remain content work.
 P2 — Expand the roster beyond the slice — Add the other 13 planned fighters through FighterData and game/resources/match_roster.tres; the 15-fighter roster is canon, but only Peggy and Richard currently have combat data.
 P3 — Build out campaign routes and extras — Add rival encounters, endings, and gallery content after the core modes and slice presentation are stable; campaign is currently absent.
 3. Performance
@@ -27,7 +27,7 @@ P3 — Add settings and accessibility controls — Provide audio levels, display
 P1 — Fix the documented mid-move landing meter omission — Ensure an aerial move that whiffs and lands before its final frame receives the same whiff-meter handling as one that finishes in the air; tracked in docs/KNOWN_ISSUES.md.
 P1 — Add regression coverage for separate combat boxes — Once hurtbox geometry is separated from pushbox geometry, cover overlap, crouch, and facing cases; the current alias means the debug overlay draws identical hurtbox and pushbox rectangles.
 P2 — Probe air-move momentum before changing it — Confirm whether _start_move() resetting horizontal velocity causes undesirable air control; B5 is documented as not re-probed, so treat this as a validation task rather than a confirmed defect.
-P2 — Guard against invalid roster selections at match startup — In MatchRoot._resolve_selections(), return safely after reporting missing fighter/stage data; it currently reports the error but _ready() proceeds to instantiate the stage and fighters.
+P2 — Guard against invalid roster selections at match startup — Done: `_resolve_selections()` now returns false on missing/invalid fighters or stage data, and `_ready()` stops before instantiating anything; covered by `stage_select_test.gd`.
 7. Tooling & Dev Experience
 P0 — Clear audio usage rights before public release — Confirm rights for the owner-supplied intro.mp3 and fight.mp3, and decide the project license; docs/KNOWN_ISSUES.md and docs/LICENSE_OPTIONS.md say these are unresolved release concerns.
 P1 — Turn key manual checks into repeatable gates — Add automated checks where practical for asset manifests and rendered/live-input regressions; the current render and soak harnesses are manual, while .github/workflows/tests.yml runs headless suites and a metrics-only air probe.

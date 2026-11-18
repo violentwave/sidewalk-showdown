@@ -24,6 +24,8 @@ jobs:
         run: godot --headless --path game --script res://tests/round_flow_test.gd
       - name: Mode and character select tests
         run: godot --headless --path game --script res://tests/character_select_test.gd
+      - name: Stage select and Gas-N-Go ambience tests
+        run: godot --headless --path game --script res://tests/stage_select_test.gd
       - name: The Clip intro tests
         run: godot --headless --path game --script res://tests/the_clip_test.gd
 

@@ -1,9 +1,13 @@
-[gd_resource type="Resource" script_class="StageData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="StageData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/stages/stage_data.gd" id="1_stage"]
-[ext_resource type="PackedScene" path="res://scenes/stages/bus_stop_night.tscn" id="2_scene"]
+[ext_resource type="Texture2D" path="res://art/stages/bus_stop/thumbnail.png" id="2_thumbnail"]
+[ext_resource type="PackedScene" path="res://scenes/stages/bus_stop_night.tscn" id="3_scene"]
 
 [resource]
 script = ExtResource("1_stage")
+id = "bus_stop_night"
 display_name = "Bus Stop (Night)"
-scene = ExtResource("2_scene")
+description = "Neon, night air, and a bus that is not coming."
+thumbnail = ExtResource("2_thumbnail")
+scene = ExtResource("3_scene")

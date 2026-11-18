@@ -14,6 +14,10 @@ who turns sidewalk chaos into a rigged tournament.**
 |---|---|---|
 | <img src="docs/assets/screenshot-the-clip.png" alt="The Clip comic intro, panel 1" width="280"> | <img src="docs/assets/screenshot-mode-select.png" alt="Mode select with 1 Player and 2 Players options" width="280"> | <img src="docs/assets/screenshot-character-select.png" alt="Character select with Peggy and Richard" width="280"> |
 
+| Choose your stage | Gas-N-Go, mid-round |
+|---|---|
+| <img src="docs/assets/screenshot-stage-select.png" alt="Stage select with Gas-N-Go, Bus Stop at night, and Random cards" width="430"> | <img src="docs/assets/screenshot-gas-n-go.png" alt="Peg Leg Peggy vs Whiskey Richard in front of the Everglades Gas-N-Go" width="430"> |
+
 | | |
 |---|---|
 | **Engine** | Godot 4.7 (`game/`) |
@@ -26,8 +30,14 @@ who turns sidewalk chaos into a rigged tournament.**
 - **The Clip** — a 15-panel comic intro that leads into mode select, with
   Space-only advancement and a complete skip path.
 - **Solo and local versus** — pick `1 PLAYER` to choose both fighters and test
-  P1 against an idle P2, or `2 PLAYERS` for Peg Leg Peggy vs Whiskey Richard on
-  the Bus Stop at night. P1 uses keyboard + mouse; P2 uses a controller.
+  P1 against an idle P2, or `2 PLAYERS` for Peg Leg Peggy vs Whiskey Richard.
+  After the fighters, a shared **stage select** offers Everglades Gas-N-Go, the
+  Bus Stop at night, and a RANDOM card that resolves before the match. P1 uses
+  keyboard + mouse; P2 uses a controller.
+- **Two stages with ambience** — Gas-N-Go scrolls clouds, loops mosquitoes in
+  the upper sky, and breathes/blinks a sunbathing gator; Bus Stop keeps its
+  night painting. Ambient motion freezes with the pause menu and keeps running
+  through hitstop ([`docs/STAGES.md`](docs/STAGES.md)).
 - **Authored sprite animation** — both fighters play per-state and per-move
   clips from the owner's PixelLab batch: jumps, walks, guard, hit reactions,
   knockdown/wake-up, and all 16 attack rows per fighter
@@ -38,11 +48,11 @@ who turns sidewalk chaos into a rigged tournament.**
 - **Match structure** — rounds, timer, sudden death after repeated timeouts,
   KO flow, pause menu, and a text-only Tripp commentary sample.
 
-Not in yet: input remapping, stage select, CPU AI, campaign, final
-audio/voice/VFX, and final art/cleaning for some clips. Because there is no CPU
-AI yet, the 1-player opponent stands idle: solo is for practice and testing P1,
-not a real single-player match. Online play is deferred beyond v0.1 per GDD
-§2.4/§16.
+Not in yet: input remapping, CPU AI, campaign, stage rotation/tournament order,
+final audio/voice/VFX, and final art/cleaning for some clips. Because there is
+no CPU AI yet, the 1-player opponent stands idle: solo is for practice and
+testing P1, not a real single-player match. Online play is deferred beyond v0.1
+per GDD §2.4/§16.
 
 ## Quick start
 
@@ -56,12 +66,13 @@ godot --headless --path game --import   # first run: build the import cache
 godot --headless --path game --script res://tests/combat_test.gd
 godot --headless --path game --script res://tests/round_flow_test.gd
 godot --headless --path game --script res://tests/character_select_test.gd
+godot --headless --path game --script res://tests/stage_select_test.gd
 godot --headless --path game --script res://tests/the_clip_test.gd
 ```
 
-Current suites: **combat 343 checks**, round flow 34, character select 43,
-The Clip 23 — all green in CI (`tests.yml`). `tests/air_probe.gd` prints balance
-metrics and asserts nothing.
+Current suites: **combat 343 checks**, round flow 34, character select 49,
+stage select 43, The Clip 23 — all green in CI (`tests.yml`). `tests/air_probe.gd`
+prints balance metrics and asserts nothing.
 
 ## Controls
 
@@ -74,11 +85,16 @@ After The Clip, **mode select** opens on `1 PLAYER` (solo) with `2 PLAYERS` one
 keypress away (W/S or A/D to move, J or click to start):
 
 - **1 PLAYER:** P1 picks their fighter, confirms, then picks the opponent with
-  the same keys; the match starts on the second confirm. P2 spawns but stands
-  idle — there is no CPU AI yet. Backspace steps back one pick, then back to
-  mode select.
+  the same keys. P2 spawns but stands idle — there is no CPU AI yet. Backspace
+  steps back one pick, then back to mode select.
 - **2 PLAYERS:** each player confirms their own fighter (P1 with J/click, P2 with
   pad X). Backspace on the P1 keyboard returns to mode select.
+
+After both fighters are confirmed, **stage select** opens with Gas-N-Go, Bus
+Stop (Night), and RANDOM last. W/S, A/D, the d-pad, or the stick move the shared
+cursor; J/click or pad X confirms; Backspace returns to character select with
+the same matchup. RANDOM resolves to a real stage before the match starts. The
+match then loads the chosen stage and starts the round.
 
 | Action | P1 keyboard / mouse | P2 controller |
 |---|---|---|
@@ -161,6 +177,7 @@ docs/                  supporting docs, audits, pipeline notes, screenshots
 | [`docs/PHASE_STATUS.md`](docs/PHASE_STATUS.md) | GDD phase requirements vs evidence, decisions, blockers |
 | [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md) | Prototype gaps, test inventory, known limitations |
 | [`docs/PIXELORAMA_PIPELINE.md`](docs/PIXELORAMA_PIPELINE.md) | Idle-sheet + authored-clip pipeline for both fighters (§8–§9b) |
+| [`docs/STAGES.md`](docs/STAGES.md) | Gas-N-Go layers/ambience, thumbnail regeneration, stage select, adding a stage |
 | [`docs/PROPOSALS.md`](docs/PROPOSALS.md) | Combat system proposals and measured first passes |
 | [`docs/ART_CREDITS.md`](docs/ART_CREDITS.md) | Art provenance, font licenses, all-rights-reserved notes |
 | [`docs/MAIN_BRANCH_GUARD.md`](docs/MAIN_BRANCH_GUARD.md) | Why `main` only accepts squash-merged PRs |
@@ -195,5 +212,5 @@ this is fictional "Sidewalk Florida".
 `main` is squash-merge-only. Branch from `origin/main`, open a PR, wait for
 `tests` to pass, then squash-merge
 ([`docs/MAIN_BRANCH_GUARD.md`](docs/MAIN_BRANCH_GUARD.md)). Keep gameplay data
-changes separate from presentation-only changes, and run the four test suites
+changes separate from presentation-only changes, and run the five test suites
 before pushing.

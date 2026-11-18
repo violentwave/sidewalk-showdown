@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="StageData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/stages/stage_data.gd" id="1_stage"]
+[ext_resource type="Texture2D" path="res://art/stages/gas_n_go/gas_n_go_thumbnail.png" id="2_thumbnail"]
+[ext_resource type="PackedScene" path="res://scenes/stages/gas_n_go.tscn" id="3_scene"]
+
+[resource]
+script = ExtResource("1_stage")
+id = "gas_n_go"
+display_name = "Everglades Gas-N-Go"
+description = "A sun-bleached Everglades forecourt. The pumps are dry, the gator is not."
+thumbnail = ExtResource("2_thumbnail")
+scene = ExtResource("3_scene")

@@ -53,12 +53,20 @@ var round_damage: Array[float] = [0.0, 0.0]
 var pause_index := 0
 var pause_menu_open := false
 var commentary_sample_shown := false
+# True when _ready() could not resolve usable roster data and stopped early.
+var setup_failed := false
 
 func _ready() -> void:
 	process_physics_priority = 100 # run after fighters update their state
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
-	_resolve_selections()
+	if not _resolve_selections():
+		# Missing/invalid roster data must not half-build a match: stop here so
+		# _physics_process and the pause handler never touch null fighters.
+		setup_failed = true
+		set_physics_process(false)
+		set_process_unhandled_input(false)
+		return
 
 	stage = selected_stage.scene.instantiate()
 	add_child(stage)
@@ -85,8 +93,9 @@ func _ready() -> void:
 
 # Roster-driven setup: a caller may set any subset of the selections; anything
 # unset falls back to the roster's first entries. This is the only place the
-# match learns which fighters and stage exist.
-func _resolve_selections() -> void:
+# match learns which fighters and stage exist. Returns false, without building
+# anything, when the roster cannot supply a usable fighter pair and stage.
+func _resolve_selections() -> bool:
 	if roster == null:
 		roster = MatchRoster.load_default()
 	if roster != null:
@@ -100,6 +109,8 @@ func _resolve_selections() -> void:
 	if selected_p1_data == null or selected_p2_data == null \
 			or selected_stage == null or selected_stage.scene == null:
 		push_error("MatchRoot: roster has no usable fighters/stage")
+		return false
+	return true
 
 func _spawn_fighter(index: int, data: FighterData) -> FighterBase:
 	var f: FighterBase = FIGHTER_SCENE.instantiate()

@@ -4,11 +4,13 @@
 #
 # Usage:
 #   DISPLAY=:0 godot --path game --resolution 1280x720 \
-#       --script res://tools/readme_capture.gd -- <mode|theclip|select|select_solo|match|pause>
+#       --script res://tools/readme_capture.gd -- <mode|theclip|select|select_solo|stage|match|gas|pause>
 #
 # `match` poses a readable mid-round moment with debug boxes off; `pause` poses
 # the pause menu with BACK TO CHARACTER SELECT selected; `mode`, `theclip`, and
 # `select` capture the mode-select, intro, and character-select screens.
+# `stage` shows stage select; `gas` poses the same mid-round moment on the
+# Gas-N-Go stage instead of the roster default.
 extends SceneTree
 
 const OUT := "/tmp/opencode/readme"
@@ -31,6 +33,15 @@ func _initialize() -> void:
 		"select_solo":
 			_scene = load("res://scenes/menus/CharacterSelect.tscn").instantiate()
 			_scene.solo = true
+		"stage":
+			_scene = load("res://scenes/menus/StageSelect.tscn").instantiate()
+		"gas":
+			_scene = load("res://scenes/match/MatchRoot.tscn").instantiate()
+			var roster: MatchRoster = MatchRoster.load_default()
+			for stage: StageData in roster.stages:
+				if stage.id == "gas_n_go":
+					_scene.selected_stage = stage
+					break
 		_:
 			_scene = load("res://scenes/match/MatchRoot.tscn").instantiate()
 	root.add_child(_scene)
@@ -60,6 +71,10 @@ func _run() -> void:
 			for i in 30:
 				await physics_frame
 			await _grab("select_solo")
+		"stage":
+			for i in 30:
+				await physics_frame
+			await _grab("stage")
 		"pause":
 			await _run_pause()
 		_:

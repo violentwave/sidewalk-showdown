@@ -10,6 +10,9 @@ var failures := 0
 
 func _initialize() -> void:
 	scene = load("res://scenes/match/MatchRoot.tscn").instantiate()
+	# These combat checks use Bus Stop's authored floor (150) and bounds; select
+	# it by resource path instead of relying on roster order.
+	scene.selected_stage = load("res://resources/stages/bus_stop_night.tres")
 	root.add_child(scene)
 	_run.call_deferred()
 

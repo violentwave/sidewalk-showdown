@@ -149,11 +149,9 @@ func _build_ui() -> void:
 		Vector2(10, 151), Vector2(300, 12), 8, Color(0.9, 0.88, 0.82),
 		HORIZONTAL_ALIGNMENT_CENTER)
 
-	# Stage comes from the same roster; the match builds it from StageData.
-	var stage_text := "STAGE: —"
-	if roster != null and not roster.stages.is_empty():
-		stage_text = "STAGE: " + roster.stages[0].display_name.to_upper()
-	_add_label(stage_text, Vector2(8, 164), Vector2(304, 10), 7, MUTED,
+	# The stage is picked on the next screen, so this label only advertises the
+	# hand-off; it never names a roster default.
+	_add_label("STAGE: CHOOSE NEXT", Vector2(8, 164), Vector2(304, 10), 7, MUTED,
 		HORIZONTAL_ALIGNMENT_CENTER)
 
 func _add_label(text: String, at: Vector2, dimensions: Vector2, font_size: int,

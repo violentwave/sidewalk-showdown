@@ -415,14 +415,18 @@ These are measured or first-pass limits, not phase-exit validation.
   return to select (match torn down, solo/mode and matchup restored, music
   switched back), stage restore on re-confirm, a fresh match from the restored
   screen, temporary music/SFX playback, and impact/block cue routing.
-- `game/tests/stage_select_test.gd` — **43 checks**: stable stage ids,
+- `game/tests/stage_select_test.gd` — **66 checks**: stable stage ids,
   descriptions, scenes, and 80x45 thumbnails; RANDOM last; restore by stage id;
   wrap-around and controller navigation; Backspace back-out; RANDOM resolving to
-  a recorded concrete roster stage; Gas-N-Go arena geometry, pause mode, layer
-  order and native scales; mosquitoes above fighters but clear of the fight;
-  cloud speed/wrap, 8 fps wingbeat, gator breath/blink, debug freeze, and pixel
-  snapping; MatchRoot's `roster.stages[0]` fallback and its safe stop on an empty
-  roster or a stage with no scene.
+  a recorded concrete roster stage; both stage thumbnails shown; Gas-N-Go arena
+  geometry, pause mode, layer order and native scales; mosquitoes above fighters
+  but clear of the fight; cloud speed/wrap, 8 fps wingbeat, gator breath/blink,
+  debug freeze, and pixel snapping; Bus Stop's unchanged id and new display
+  name, arena geometry, layer order/positions/native sizes, fire in the
+  foreground z-band, four 8 fps fire frames with jitter, lit/dead sign frames,
+  random dropout and relight, freeze, and pixel snapping; MatchRoot's
+  `roster.stages[0]` fallback and its safe stop on an empty roster or a stage
+  with no scene.
 - `game/tests/the_clip_test.gd` — **23 checks**: installed art slots, lossless
   split text, panel-10 art visibility/aspect fit, deprecated hold values/copy,
   owner-script canon guards, panel ordering, boot-to-intro, Space-only

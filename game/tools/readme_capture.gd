@@ -4,13 +4,13 @@
 #
 # Usage:
 #   DISPLAY=:0 godot --path game --resolution 1280x720 \
-#       --script res://tools/readme_capture.gd -- <mode|theclip|select|select_solo|stage|match|gas|pause>
+#       --script res://tools/readme_capture.gd -- <mode|theclip|select|select_solo|stage|match|gas|bus|pause>
 #
 # `match` poses a readable mid-round moment with debug boxes off; `pause` poses
 # the pause menu with BACK TO CHARACTER SELECT selected; `mode`, `theclip`, and
 # `select` capture the mode-select, intro, and character-select screens.
-# `stage` shows stage select; `gas` poses the same mid-round moment on the
-# Gas-N-Go stage instead of the roster default.
+# `stage` shows stage select; `gas`/`bus` pose the same mid-round moment on the
+# Gas-N-Go or Bus Stop stage instead of the roster default.
 extends SceneTree
 
 const OUT := "/tmp/opencode/readme"
@@ -35,11 +35,12 @@ func _initialize() -> void:
 			_scene.solo = true
 		"stage":
 			_scene = load("res://scenes/menus/StageSelect.tscn").instantiate()
-		"gas":
+		"gas", "bus":
 			_scene = load("res://scenes/match/MatchRoot.tscn").instantiate()
 			var roster: MatchRoster = MatchRoster.load_default()
+			var wanted := "gas_n_go" if _mode == "gas" else "bus_stop_night"
 			for stage: StageData in roster.stages:
-				if stage.id == "gas_n_go":
+				if stage.id == wanted:
 					_scene.selected_stage = stage
 					break
 		_:
@@ -90,6 +91,7 @@ func _run_pause() -> void:
 	await _grab("pause")
 
 func _run_match() -> void:
+	var suffix := "" if _mode == "match" else "_" + _mode
 	for i in 60:
 		await physics_frame
 	while _scene.phase != 1:
@@ -123,7 +125,7 @@ func _run_match() -> void:
 	p2.state_frame = 0
 	p1._sync_visuals()
 	p2._sync_visuals()
-	await _grab("gameplay")
+	await _grab("gameplay" + suffix)
 
 	# Action variant: Peggy's heavy active against Richard's raised stand guard.
 	var heavy: MoveData = p1.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.STAND)
@@ -136,7 +138,7 @@ func _run_match() -> void:
 	p2.velocity.x = p2.walk_speed_back
 	p2._force_state(FighterBase.State.WALK_B)
 	p2._sync_visuals()
-	await _grab("gameplay_action")
+	await _grab("gameplay_action" + suffix)
 	Input.action_release("p2_right")
 	p1.current_move = null
 	_scene.debug_overlay.show_boxes = true

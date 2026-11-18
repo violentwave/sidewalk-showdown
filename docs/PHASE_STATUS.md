@@ -74,7 +74,7 @@ phase exit criteria:
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
   The current suites contain 343 combat, 34 round-flow, 49 mode/character-select
-  integration, 43 stage-select/ambience, and 23 intro checks. K1, R1, corner separation, bounded hitstop
+  integration, 66 stage-select/ambience, and 23 intro checks. K1, R1, corner separation, bounded hitstop
   buffer freeze, and the
   post-KO winner-state repair are covered. Non-METH strikes reject during
   knockdown; METH remains the K1
@@ -98,7 +98,7 @@ phase exit criteria:
   feels like Sidewalk Showdown, a match looks/sounds close to target, and it is
   suitable for a private showing.
 - **Status:** **In progress; exit not met.** The official cast is Peggy and
-  Richard across two wired stages, Everglades Gas-N-Go and Bus Stop (Night);
+  Richard across two wired stages, Everglades Gas-N-Go and Bus Stop;
   the HUD and METHtality engine prototype exist.
   The Clip now plays before mode select; it is a 15-panel, owner-editable
   comic intro with all 15 pixel-art panels and the approved Peggy/Richard origin.
@@ -111,7 +111,9 @@ phase exit criteria:
   each player pick from the approved cast and now hands off to a shared stage
   select (added 2026-11-17) with thumbnails, descriptions, and RANDOM last;
   Gas-N-Go adds drifting clouds, 8 fps mosquitoes, and a breathing/blinking
-  gator, all visual-only and paused with the menu. METHtality activates at full
+  gator; Bus Stop is now a native layered scene with drifting clouds, an 8 fps
+  shelter fire, and a flickering liquor sign. All of it is visual-only and
+  paused with the menu. METHtality activates at full
   meter regardless of opponent health/state,
   drains the bar,
   and uses a 30-frame freeze, banner, and normal KO flow. A text-only Tripp
@@ -223,7 +225,7 @@ phase exit criteria:
 
 - **Requirements / exit (§13 Phase 6):** regular stages plus Tripp’s arena;
   each playable, bounded, with music placeholders and readable combat.
-- **Status:** **Partial.** Gas-N-Go and Bus Stop Night are both wired and
+- **Status:** **Partial.** Gas-N-Go and Bus Stop are both wired, layered, and
   selectable through the shared stage picker; the remaining GDD stages,
   per-stage music, stage-specific readability passes, and a rotation/tournament
   order are absent.

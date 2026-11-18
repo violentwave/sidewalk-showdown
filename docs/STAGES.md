@@ -1,9 +1,9 @@
 # Stages: assets, ambience, and stage select
 
 Two stages are wired into the shared roster: **Everglades Gas-N-Go** and
-**Bus Stop (Night)**. The match builds whichever `StageData.scene` the
-front-end passes in; adding a stage is a scene + resource + roster edit, not a
-`MatchRoot` code change.
+**Bus Stop**. The match builds whichever `StageData.scene` the front-end passes
+in; adding a stage is a scene + resource + roster edit, not a `MatchRoot` code
+change.
 
 ## Gas-N-Go
 
@@ -35,49 +35,98 @@ clouds, foreground, sign, and gator. The mosquito layer's positive `z_index`
 keeps the insects above the fighters while their anchors and sine loops stay in
 the upper sky (bottom edge under y = 100), clear of the fight area.
 
+## Bus Stop
+
+The old 1024x1024 night painting, its `0.3125` scale, and its night modulate are
+gone from the stage. Bus Stop is now the same kind of native 320x180 layered
+scene as Gas-N-Go. (`game/art/stages/bus_stop/BusStopNight.png` remains only as
+the `The Clip` comic fallback for a few panels; the match never loads it.)
+
+| Property | Value |
+|---|---|
+| Source art | `art/source/Stages/BusStop/` (read-only; `bus_stop_layout.json` is the source of truth) |
+| Runtime art | `game/art/stages/bus_stop/` |
+| Native canvas | 320x180, drawn at scale **1.0** (no resampling) |
+| Scene | `game/scenes/stages/bus_stop_night.tscn` |
+| Data | `game/resources/stages/bus_stop_night.tres` |
+| Stable id | `bus_stop_night` (unchanged; saved selections depend on it) |
+| Display name | `Bus Stop` |
+| Floor / bounds | `floor_y = 158`, `left_bound = 24`, `right_bound = 296` |
+| Spawns | P1 x = 110, P2 x = 210 |
+| Selector thumbnail | `game/art/stages/bus_stop/thumbnail.png`, 80x45 |
+
+The sidewalk art covers rows 148-180, so `floor_y = 158` puts the fighters'
+feet in the middle of the walkable strip, matching Gas-N-Go. The bounds and
+spawns are the same authored values as Gas-N-Go, so spacing and camera framing
+stay consistent between the stages.
+
+### Draw order
+
+Bottom to top in the stage scene:
+
+1. `Sky` — 320x180 opaque sky.
+2. `Clouds/CloudA` and `Clouds/CloudB` — the authored 640x40 transparent strip
+   at y = 6, two copies 640 px apart.
+3. `Foreground` — 320x180 street scene with a transparent sky.
+4. `Fire` — 74x55 animated flame at (166, 103), same `z_index` as the
+   foreground so fighters always draw in front of it.
+5. `LiquorSign` — 49x13 lit/dead overlay at (6, 91) on top of the painted sign.
+6. `StageAnimation` — logic-only node, no drawing.
+
+`Fire` is deliberately in the foreground's z-band rather than a raised layer.
+Fighters render after the whole stage, so they stay in front of the bright
+flame. If the fire hurts readability on a particular display, the stage root
+exposes `fire_modulate` (Color, default white); lower it to dim the flame
+without editing the texture.
+
 ### Ambient animation
 
-`game/scripts/stages/stage_animation.gd` runs in `_process`, not the 60 Hz
-simulation. The stage root is `PROCESS_MODE_PAUSABLE`, so the pause menu freezes
-ambience; hitstop is not a tree pause, so it keeps playing during hitstop. It
-never reads combat state, rotates or scales a sprite, or allocates per frame,
-and every position is snapped to a whole pixel.
+Both stages share `game/scripts/stages/stage_animation.gd`. It is data-light and
+optional-node based: each scene animates only the nodes it actually contains.
+The script runs in `_process`, not the 60 Hz simulation. The stage root is
+`PROCESS_MODE_PAUSABLE`, so the pause menu freezes ambience; hitstop is not a
+tree pause, so it keeps playing during hitstop. It never reads combat state,
+rotates or scales a sprite, or allocates per frame, and every position is
+snapped to a whole pixel.
 
-- **Clouds:** the shared 640 px offset advances at **5 px/s**, then wraps with
-  `fposmod`. The two copies are 640 px apart, so no visible cloud teleports.
-- **Mosquitoes:** wingbeat frames flip at **8 fps** (`0.125 s`). Each insect
-  traces a small, independent sine loop around its upper-sky anchor.
-- **Gator:** two breathing poses over a **one-second** cycle, plus a random f3
-  blink. The blink waits a random 2.5–6 s, holds f3 for 0.12 s, then restores
-  the current breath frame. Randomness is a visual-only `RandomNumberGenerator`;
-  it is never shared with the deterministic fight simulation.
+- **Clouds (both stages):** the shared 640 px offset advances at **5 px/s**, then
+  wraps with `fposmod`. The two copies are 640 px apart, so no visible cloud
+  teleports. Bus Stop places the strip at y = 6; Gas-N-Go at y = 4.
+- **Fire (Bus Stop):** four frames loop at **8 fps**. Each full loop re-rolls a
+  small `fire_jitter_ratio` timing wobble from the visual-only RNG, so the
+  flame never ticks like a metronome. Frames are texture swaps only.
+- **Liquor sign (Bus Stop):** the lit frame holds for a random 3-7 s, then drops
+  to the dead frame for 1-3 ambient frames (0.125 s each) before relighting.
+  The base foreground keeps its painted sign; the overlay replaces it.
+- **Mosquitoes (Gas-N-Go):** wingbeat frames flip at **8 fps** (`0.125 s`). Each
+  insect traces a small, independent sine loop around its upper-sky anchor.
+- **Gator (Gas-N-Go):** two breathing poses over a **one-second** cycle, plus a
+  random f3 blink. The blink waits a random 2.5-6 s, holds f3 for 0.12 s, then
+  restores the current breath frame.
 - **Debug freeze:** enable `freeze_ambient` on the `StageAnimation` node in the
   remote inspector to hold every layer on its current frame.
+
+All randomness here is a visual-only `RandomNumberGenerator`; it is never
+shared with the deterministic fight simulation or replays.
 
 ### Regenerating the runtime art
 
 ```bash
 python3 art/tools/prepare_gas_n_go.py
+python3 art/tools/prepare_bus_stop.py
 godot --headless --path game --import
 ```
 
-The prep script validates only sizes, opaque/binary alpha, and the per-layer
-palette budget — never picture content. It copies the source layers at native
-resolution and derives the 80x45 thumbnail with an exact 4x box downsample of
-the 320x180 preview. Rerunning it from unchanged sources is deterministic.
-
-The Bus Stop selector thumbnail is produced separately because the match shows
-a scaled, tinted region of a 1024x1024 night painting:
-
-```bash
-python3 art/tools/prepare_bus_stop_thumbnail.py
-godot --headless --path game --import
-```
-
-It crops the source region actually visible in the 320x180 viewport
-(`x 0..1024`, `y 224..800`), applies the scene's `(0.55, 0.55, 0.62)` modulate,
-box-downsamples to 320x180, then takes the same exact 4x box downsample to
-80x45.
+Both prep scripts validate only sizes, opaque/binary alpha, frame counts, and
+the per-layer palette budget — never picture content. They copy the source
+layers at native resolution. The Gas-N-Go script derives its 80x45 thumbnail
+with an exact 4x box downsample of the 320x180 preview. The Bus Stop script
+composes `Sky` over `Foreground`, then takes the same exact 4x box downsample to
+80x45; the menu card therefore shows the stage's actual base view without the
+animated fire/sign overlays. It also checks `bus_stop_layout.json` for the
+cloud/fire/sign positions and the four fire frames, and writes nine runtime
+layers plus the thumbnail. Rerunning either script from unchanged sources is
+deterministic.
 
 ## Stage select
 
@@ -109,14 +158,13 @@ description.
   a scene, `_resolve_selections()` returns false and `_ready()` stops without
   instantiating anything.
 
-See `game/tests/stage_select_test.gd` for the selector, ambience, and invalid
-roster coverage.
+See `game/tests/stage_select_test.gd` for the selector, both stages' ambience,
+and invalid-roster coverage.
 
 ## Adding another stage
 
-1. Export the layered 320x180 art into `game/art/stages/<stage_id>/` and derive
-   an 80x45 thumbnail. If the source is a single large painting, document the
-   visible crop and any in-scene tint, as the Bus Stop script does.
+1. Export the layered 320x180 art into `game/art/stages/<stage_id>/` at native
+   resolution and derive an 80x45 thumbnail with an exact 4x box downsample.
 2. Create `game/scenes/stages/<stage_id>.tscn` with `stage.gd` on the root and
    set `floor_y`, `left_bound`, `right_bound`, `spawn_p1_x`, `spawn_p2_x`.
    Use native scale (1.0) for 320x180 art; do not rescale source.

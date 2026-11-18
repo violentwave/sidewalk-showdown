@@ -4,11 +4,11 @@
 #
 # Usage:
 #   DISPLAY=:0 godot --path game --resolution 1280x720 \
-#       --script res://tools/readme_capture.gd -- <mode|theclip|select|match>
+#       --script res://tools/readme_capture.gd -- <mode|theclip|select|select_solo|match|pause>
 #
-# `match` poses a readable mid-round moment with debug boxes off; `mode`,
-# `theclip`, and `select` capture the mode-select, intro, and character-select
-# screens.
+# `match` poses a readable mid-round moment with debug boxes off; `pause` poses
+# the pause menu with BACK TO CHARACTER SELECT selected; `mode`, `theclip`, and
+# `select` capture the mode-select, intro, and character-select screens.
 extends SceneTree
 
 const OUT := "/tmp/opencode/readme"
@@ -60,9 +60,19 @@ func _run() -> void:
 			for i in 30:
 				await physics_frame
 			await _grab("select_solo")
+		"pause":
+			await _run_pause()
 		_:
 			await _run_match()
 	quit()
+
+func _run_pause() -> void:
+	for i in 120:
+		await physics_frame
+	_scene._toggle_pause()
+	_scene.pause_index = 2
+	_scene.hud.set_pause_selection(2)
+	await _grab("pause")
 
 func _run_match() -> void:
 	for i in 60:

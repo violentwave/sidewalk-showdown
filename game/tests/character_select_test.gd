@@ -18,13 +18,13 @@ func _check(label: String, condition: bool, detail: String = "") -> void:
 		failures += 1
 		print("FAIL: ", label, "  ", detail)
 
-func _press(target: Control, action: String) -> void:
+func _press(target: Node, action: String) -> void:
 	var event := InputEventAction.new()
 	event.action = action
 	event.pressed = true
 	target._unhandled_input(event)
 
-func _press_key(target: Control, code: int) -> void:
+func _press_key(target: Node, code: int) -> void:
 	var event := InputEventKey.new()
 	event.physical_keycode = code
 	event.keycode = code
@@ -250,6 +250,49 @@ func _run() -> void:
 				and not solo_main.match_root.p2.input_enabled,
 			"p1=%s p2=%s" % [str(solo_main.match_root.p1.input_enabled),
 				str(solo_main.match_root.p2.input_enabled)])
+
+		# --- pause -> BACK TO CHARACTER SELECT ends the match ---
+		var leaving: Node = solo_main.match_root
+		_press(leaving, "p1_pause")
+		_press(leaving, "p1_down")
+		_press(leaving, "p1_down")
+		_check("pause menu selects back to character select",
+			leaving.pause_index == 2, "index=%d" % leaving.pause_index)
+		_press(leaving, "p1_light")
+		await process_frame
+		await process_frame
+		var returned: Control = solo_main.character_select
+		_check("back to character select ends the match and restores select",
+			solo_main.match_root == null and returned != null,
+			"match=%s select=%s" % [str(solo_main.match_root != null),
+				str(returned != null)])
+		_check("returning to select unpauses the tree", not paused,
+			"paused=%s" % str(paused))
+		_check("returning to select keeps solo mode",
+			returned != null and returned.solo,
+			"solo=%s" % str(returned.solo if returned != null else false))
+		_check("returning to select restores the last matchup",
+			returned != null and returned.p1_choice == 1 and returned.p2_choice == 0,
+			"picks=%s/%s" % [
+				str(returned.p1_choice if returned != null else -1),
+				str(returned.p2_choice if returned != null else -1)])
+		_check("returning does not auto-confirm a fighter",
+			returned != null and not returned.p1_locked and not returned.p2_locked,
+			"locked=%s/%s" % [
+				str(returned.p1_locked if returned != null else true),
+				str(returned.p2_locked if returned != null else true)])
+		_check("returning restores the intro/menu track",
+			solo_main.audio_manager.music_player.playing
+				and solo_main.audio_manager.music_player.stream
+					== solo_main.audio_manager.intro_music_stream,
+			"stream=%s" % str(solo_main.audio_manager.music_player.stream))
+		_press(returned, "p1_light")
+		_press(returned, "p1_light")
+		await process_frame
+		_check("a new match starts from the returned select screen",
+			solo_main.match_root != null and solo_main.character_select == null,
+			"match=%s select=%s" % [str(solo_main.match_root != null),
+				str(solo_main.character_select != null)])
 
 	solo_main.audio_manager.stop_all()
 	solo_main.free()

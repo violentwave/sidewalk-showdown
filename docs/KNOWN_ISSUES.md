@@ -48,9 +48,13 @@ finding is not considered fixed merely because an older suite passes.
 B5 (air momentum), B8 (implicit-scaling, partially addressed by authored
 cancel routes in PR 2), and B9 (hurt/push alias) remain
 source-confirmed audit observations; B5 was not re-probed at this baseline.
-B6 is partially addressed by the landing-recovery work: mid-move touchdown still
-skips the whiff-meter gain that a move finishing in air receives. See the
-reconciliation for the finding-by-finding dispositions.
+B6 (landing discards whiff meter) — FIXED. Commit e8a2e68 in the
+feat/pause-return branch now calls finish_move_whiff() in _landing_check() when
+a still-running air move is interrupted by touchdown, awarding the authored
+meter_gain_whiff (1.5) instead of dropping it. Covered by
+b6_landing_whiff_test.gd which verifies the meter is awarded (meter=1.5) and the
+move is cleared on mid-air landing for the current round (Peg Leg Peggy vs
+Whiskey Richard).
 
 ## Decisions and open choices
 
@@ -106,10 +110,13 @@ Engine and feel:
 - The round clock holds while either fighter is in hitstop, and hits resolve
   before the timeout, so a hit on the clock's final frame counts and a KO there
   beats the timeout.
-- A real pause menu (RESUME / RESTART MATCH / QUIT TO DESKTOP) driven by either
-  player's up/down plus light attack or Enter. Toggling is keyed on menu open state
-  so pause opens cleanly when paused under debug frame-step. Pausing alters no simulation
-  state: hitstun frames, health and the clock resume exactly where they stopped.
+- A real pause menu (RESUME / RESTART MATCH / BACK TO CHARACTER SELECT / QUIT TO
+  DESKTOP) driven by either player's up/down plus light attack or Enter.
+  Back to character select discards the in-progress match with no winner and
+  keeps the mode and matchup; restart re-rolls the match. Toggling is keyed on
+  menu open state so pause opens cleanly when paused under debug frame-step.
+  Pausing alters no simulation state: hitstun frames, health and the clock
+  resume exactly where they stopped.
 - A grounded throw cannot grab an airborne defender. The brush does not consume
   the throw's active window, so the grab still lands if the defender touches down
   inside it.
@@ -344,7 +351,7 @@ These are measured or first-pass limits, not phase-exit validation.
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **340 checks**: distinct Peggy/Richard sheet
+- `game/tests/combat_test.gd` — **343 checks**: distinct Peggy/Richard sheet
   artwork in walk states, the authored idle sheet (selection, visibility, cel
   cadence, wrap, hitstop/pause freeze, re-entry reset, facing pivot, and the
   missing-art fallback), unchanged combat boxes, clean hits and
@@ -353,7 +360,8 @@ These are measured or first-pass limits, not phase-exit validation.
   blockstun blocking, shared hitstop, KO landing, real-key input-map resolution,
   the chip-cannot-KO floor, pause freezing fighters and opening the menu, menu
   navigation by both players, resume preserving mid-hitstun state, restart from
-  the menu, debug frame-step (one frame per press, gated while the menu is
+  the menu, the four-option menu and its character-select return request,
+  debug frame-step (one frame per press, gated while the menu is
   open), the frame-advantage readout, the F6 refill, grounded throws whiffing on
   an airborne defender while the active throw window survives the brush, and
   wake-up invulnerability: a frame-1 meaty whiffs, the invulnerable brush
@@ -395,13 +403,15 @@ These are measured or first-pass limits, not phase-exit validation.
   sudden-death tie resolving by damage dealt (with the announced tiebreak), the
   deterministic P1 fallback, a clean win in sudden death ending the match, the
   clock frozen during hitstop, and a hit on the timer's final frame counting.
-- `game/tests/character_select_test.gd` — **35 checks**: intro MP3 playback on
+- `game/tests/character_select_test.gd` — **43 checks**: intro MP3 playback on
   The Clip and character select, mode select defaulting to 1 PLAYER and moving
   to 2 PLAYERS, Backspace back-out, default selections,
   independent P1/P2 movement/confirmation, unlock-on-move, the solo two-pick
   flow (opponent cursor hidden until P1 locks, pad input ignored, Backspace
   undoes a pick), P2 staying input-disabled in solo while versus enables both,
-  selected fighter data reaching the match, temporary music/SFX playback, and
+  selected fighter data reaching the match, pause-menu return to select
+  (match torn down, solo/mode and matchup restored, music switched back), a
+  fresh match from the restored screen, temporary music/SFX playback, and
   impact/block cue routing.
 - `game/tests/the_clip_test.gd` — **23 checks**: installed art slots, lossless
   split text, panel-10 art visibility/aspect fit, deprecated hold values/copy,

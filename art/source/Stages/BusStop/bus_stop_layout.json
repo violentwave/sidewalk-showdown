@@ -1,0 +1,47 @@
+{
+ "viewport": [
+  320,
+  180
+ ],
+ "sky": "bus_stop_sky_320x180.png at (0,0)",
+ "clouds": {
+  "file": "bus_stop_clouds_640x40.png",
+  "size": [
+   640,
+   40
+  ],
+  "position": [
+   0,
+   6
+  ]
+ },
+ "foreground": "bus_stop_foreground_320x180.png at (0,0), sky transparent",
+ "fire": {
+  "files": [
+   "bus_stop_fire_f1.png",
+   "bus_stop_fire_f2.png",
+   "bus_stop_fire_f3.png",
+   "bus_stop_fire_f4.png"
+  ],
+  "size": [
+   74,
+   55
+  ],
+  "position": [
+   166,
+   103
+  ]
+ },
+ "liquor_sign": {
+  "on": "bus_stop_liquor_sign_on.png",
+  "off": "bus_stop_liquor_sign_off.png",
+  "size": [
+   49,
+   13
+  ],
+  "position": [
+   6,
+   91
+  ]
+ }
+}

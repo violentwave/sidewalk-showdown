@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/stages/stage.gd" id="1_stage"]
 [ext_resource type="Texture2D" path="res://art/stages/gas_n_go/gas_n_go_sky.png" id="2_sky"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/stages/stage_animation.gd" id="5_animation"]
 [ext_resource type="Texture2D" path="res://art/stages/gas_n_go/gas_n_go_mosquito_f1.png" id="6_mosquito_f1"]
 [ext_resource type="Texture2D" path="res://art/stages/gas_n_go/gas_n_go_gator_f1.png" id="7_gator_f1"]
+[ext_resource type="Texture2D" path="res://art/stages/gas_n_go/gas_n_go_sign_text.png" id="8_sign_text"]
 
 [node name="GasNGo" type="Node2D"]
 process_mode = 1
@@ -38,6 +39,11 @@ texture = ExtResource("3_clouds")
 position = Vector2(0, 0)
 centered = false
 texture = ExtResource("4_foreground")
+
+[node name="SignText" type="Sprite2D" parent="."]
+position = Vector2(145, 12)
+centered = false
+texture = ExtResource("8_sign_text")
 
 [node name="Gator" type="Sprite2D" parent="."]
 position = Vector2(140, 158)

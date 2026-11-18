@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("1_stage")
 id = "bus_stop_night"
-display_name = "Bus Stop (Night)"
+display_name = "Bus Stop"
 description = "Neon, night air, and a bus that is not coming."
 thumbnail = ExtResource("2_thumbnail")
 scene = ExtResource("3_scene")

@@ -349,6 +349,16 @@ These are measured or first-pass limits, not phase-exit validation.
   kills — a blocked hit floors the defender at 1 HP.
 - HUD uses the default Godot font at pixel-safe sizes; the final pixel font
   arrives with UI art direction (GDD Phase 4).
+- **Side switching (2026-11-18) — deliberate behavior, not a defect.** Fighters
+  auto-face the opponent in grounded neutral states and can cross over by
+  jumping: pushbox separation now runs only when both fighters are grounded.
+  Edge cases are specified in `docs/SIDE_SWITCHING.md`: equal-x tie-breaks are
+  deterministic and node-order-free (keep the current facing; lower player
+  slot is the left body on separation); facing stays frozen through blockstun,
+  so a held-back blockstring keeps blocking until the stun ends; and a jump
+  over a wall-cornered fighter lands at the bound beside them and settles by
+  the normal separation rather than leaving the arena. The
+  `fighters_can_pass_through` walk-through flag ships off by default.
 - **Licensing is undecided.** Treat the repo as all-rights-reserved until a
   LICENSE is added. The three realistic options (all-rights-reserved + NOTICE,
   CC BY-NC 4.0 for content with separate code licensing, proprietary
@@ -356,7 +366,7 @@ These are measured or first-pass limits, not phase-exit validation.
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **353 checks**: distinct Peggy/Richard sheet
+- `game/tests/combat_test.gd` — **382 checks**: distinct Peggy/Richard sheet
   artwork in walk states, the authored idle sheet (selection, visibility, cel
   cadence, wrap, hitstop/pause freeze, re-entry reset, facing pivot, and the
   missing-art fallback), unchanged combat boxes, clean hits and

@@ -373,6 +373,85 @@ func _run() -> void:
 	_check("Bus Stop ambient layers stay pixel-snapped", bus_snapped)
 	bus_stage.free()
 
+	# ---- roster guard: every StageData instantiates its real layered scene ----
+	# Armor against the class of bug where stage select showed one stage's art
+	# while the match loaded an older scene: nothing here trusts the .tres by
+	# name, every check walks the nodes (or reads the paths) the game would
+	# actually draw.
+	var expected_layers := {
+		"gas_n_go": ["Sky", "Clouds", "Foreground", "SignText", "Gator",
+			"Mosquitoes/Mosquito1", "Mosquitoes/Mosquito2", "StageAnimation"],
+		"bus_stop_night": ["Sky", "Clouds", "Foreground", "Fire", "LiquorSign",
+			"StageAnimation"],
+	}
+	for stage_data: StageData in roster.stages:
+		_check("'%s' has guard expectations registered" % stage_data.id,
+			expected_layers.has(stage_data.id), "unknown roster id")
+		var guarded: Node2D = stage_data.scene.instantiate()
+		root.add_child(guarded)
+		await process_frame
+		var stage_script: Script = guarded.get_script()
+		_check("'%s' root node runs stage.gd" % stage_data.id,
+			stage_script != null
+				and stage_script.resource_path.ends_with("scripts/stages/stage.gd"),
+			"root=%s" % (stage_script.resource_path if stage_script != null else "null"))
+		for layer_name: String in expected_layers.get(stage_data.id, []):
+			_check("'%s' has the '%s' layer" % [stage_data.id, layer_name],
+				guarded.get_node_or_null(layer_name) != null,
+				"missing=%s" % layer_name)
+		var anim_node := guarded.get_node_or_null("StageAnimation")
+		var anim_script: Script = anim_node.get_script() if anim_node != null else null
+		_check("'%s' attaches stage_animation.gd" % stage_data.id,
+			anim_script != null
+				and anim_script.resource_path.ends_with("scripts/stages/stage_animation.gd"),
+			"anim=%s" % (anim_script.resource_path if anim_script != null else "null"))
+		var scene_text := FileAccess.get_file_as_string(stage_data.scene.resource_path)
+		var textures: Array[Texture2D] = []
+		_collect_textures(guarded, textures)
+		var stale_found := ""
+		for texture in textures:
+			if texture.resource_path.contains("BusStopNight"):
+				stale_found = texture.resource_path
+				break
+		_check("'%s' draws no BusStopNight texture" % stage_data.id,
+			stale_found == "" and not scene_text.contains("BusStopNight"),
+			"found=%s" % stale_found)
+		# The scene and the thumbnail must draw from the same art set: the
+		# thumbnail's directory (ids and directories do not always match,
+		# e.g. bus_stop_night's art lives under bus_stop/).
+		var art_root := stage_data.thumbnail.resource_path.get_base_dir() + "/" \
+			if stage_data.thumbnail != null else ""
+		var foreign_found := ""
+		for texture in textures:
+			if not texture.resource_path.begins_with(art_root):
+				foreign_found = texture.resource_path
+				break
+		_check("'%s' scene textures all live under %s" % [stage_data.id, art_root],
+			foreign_found == "", "found=%s" % foreign_found)
+		_check("'%s' thumbnail shares the scene's art set" % stage_data.id,
+			stage_data.thumbnail != null
+				and stage_data.thumbnail.resource_path.begins_with(art_root),
+			"thumbnail=%s" % (stage_data.thumbnail.resource_path
+				if stage_data.thumbnail != null else "null"))
+		guarded.free()
+
+		# What a match actually instantiates for this id must be this
+		# StageData's scene, not an older PackedScene of the same stage.
+		var guarded_match: Node = MATCH_SCENE.instantiate()
+		guarded_match.roster = roster
+		guarded_match.selected_stage = stage_data
+		root.add_child(guarded_match)
+		await process_frame
+		_check("a match on '%s' instantiates the StageData scene" % stage_data.id,
+			guarded_match.stage != null
+				and guarded_match.stage.scene_file_path
+					== stage_data.scene.resource_path,
+			"match=%s scene=%s" % [
+				guarded_match.stage.scene_file_path
+					if guarded_match.stage != null else "null",
+				stage_data.scene.resource_path])
+		guarded_match.free()
+
 	# ---- MatchRoot: stage fallback and safe failure ----
 	var fallback: Node = MATCH_SCENE.instantiate()
 	fallback.roster = roster
@@ -414,6 +493,14 @@ func _run() -> void:
 	broken_stage_match.free()
 
 	await _finish()
+
+func _collect_textures(node: Node, out: Array[Texture2D]) -> void:
+	for property in node.get_property_list():
+		var value: Variant = node.get(property.name)
+		if value is Texture2D:
+			out.append(value as Texture2D)
+	for child in node.get_children():
+		_collect_textures(child, out)
 
 func _finish() -> void:
 	for _frame in 10:

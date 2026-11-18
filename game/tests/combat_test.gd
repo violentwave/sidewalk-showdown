@@ -3047,5 +3047,123 @@ func _run() -> void:
 			and p1._ko_grounded_frame == 0 and p1._active_clip.is_empty(),
 		"")
 
+	# --- 49. meter economy (2026-11-18): meter comes from landed hits only ---
+	# Reuses `light` (P1 stand light), `air_light`, and `peggy_throw` declared
+	# in sections 1/39. Earlier sections leave P2's input disabled; blocking
+	# asserts below read the held axis, so enable both.
+	p1.input_enabled = true
+	p2.input_enabled = true
+
+	# 49a. A whiffed ground move — the move runs to its end without connecting.
+	_reset_fighters(300, 60)
+	p1.meter = 0.0
+	p2.meter = 0.0
+	p1._start_move(light)
+	await _step(light.total_frames() + 2)
+	_check("a whiffed ground move gives 0 meter",
+			p1.meter == 0.0 and p2.meter == 0.0
+			and p1.state == FighterBase.State.IDLE,
+			"p1=%.1f p2=%.1f" % [p1.meter, p2.meter])
+
+	# 49b. A whiffed aerial interrupted by touchdown (the old B6 path) gives 0.
+	_reset_fighters(300, 60)
+	p1.grounded = false
+	p1.velocity = Vector2.ZERO
+	p1.position.y = scene.stage.floor_y + 10.0
+	p1.meter = 0.0
+	p1.reset_state()
+	p1.grounded = false
+	p1._force_state(FighterBase.State.JUMP_FALL)
+	p1.current_move = air_light
+	p1.move_already_hit = false
+	p1.move_hit_confirmed = false
+	var landed := false
+	for i in 30:
+		await _step(1)
+		if p1.grounded:
+			landed = true
+			break
+	_check("a whiffed aerial that lands early gives 0 meter",
+			landed and p1.meter == 0.0,
+			"landed=%s meter=%.1f" % [landed, p1.meter])
+
+	# 49c. A connecting hit awards the move's value exactly; the defender
+	# gains nothing for being hit.
+	_reset_fighters(100, 120)
+	p1.meter = 0.0
+	p2.meter = 0.0
+	p1._start_move(light)
+	await _step(light.total_frames() + 4)
+	_check("a landed hit awards meter_gain_hit and the defender gains 0",
+			is_equal_approx(p1.meter, light.meter_gain_hit) and p2.meter == 0.0,
+			"p1=%.1f p2=%.1f" % [p1.meter, p2.meter])
+
+	# 49d. Awarding is per connection: a second landed hit awards again. There
+	# are no multi-window moves today (MoveData has one active window and
+	# move_already_hit caps the award at one per connection), so a chain is how
+	# per-hit awarding shows up.
+	var meter_after_first := p1.meter
+	p2.reset_state()
+	await _step(2)
+	p1._start_move(light)
+	await _step(light.total_frames() + 4)
+	_check("each connecting hit awards once (two-hit chain, no doubling)",
+			is_equal_approx(p1.meter, meter_after_first + light.meter_gain_hit),
+			"meter=%.1f expected=%.1f" % [p1.meter, meter_after_first + light.meter_gain_hit])
+
+	# 49e. A throw that connects awards the clean-hit meter too.
+	_reset_fighters(100, 110)
+	p1.meter = 0.0
+	p2.meter = 0.0
+	await _step(2) # both grounded, idle; the throw is untechable without a buffer
+	p2.receive_hit(p1, peggy_throw)
+	_check("a connected throw awards the attacker meter",
+			is_equal_approx(p1.meter, peggy_throw.meter_gain_hit)
+			and p2.meter == 0.0,
+			"p1=%.1f p2=%.1f" % [p1.meter, p2.meter])
+
+	# 49f. A blocked hit awards 0 by default; the scale constant retunes it.
+	_reset_fighters(100, 120)
+	Input.action_press("p2_right") # p2 faces left, right = away = block
+	await _step(3)
+	p1.meter = 0.0
+	p2.meter = 0.0
+	var saw_blockstun := false
+	p1._start_move(light)
+	for i in light.total_frames() + 4:
+		await _step(1)
+		saw_blockstun = saw_blockstun or p2.state == FighterBase.State.BLOCKSTUN
+	_check("a blocked hit gives neither fighter meter (default scale 0.0)",
+			saw_blockstun and p1.meter == 0.0 and p2.meter == 0.0,
+			"blockstun=%s p1=%.1f p2=%.1f" % [saw_blockstun, p1.meter, p2.meter])
+	p2.reset_state()
+	await _step(1)
+	FighterBase.METER_GAIN_ON_BLOCK_SCALE = 0.5
+	p1._start_move(light)
+	await _step(light.total_frames() + 4)
+	var scaled := light.meter_gain_block * 0.5
+	_check("a blocked hit pays meter_gain_block * scale when tuned",
+			is_equal_approx(p1.meter, scaled) and p2.meter == 0.0,
+			"p1=%.1f expected=%.1f p2=%.1f"
+			% [p1.meter, scaled, p2.meter])
+	FighterBase.METER_GAIN_ON_BLOCK_SCALE = 0.0
+	Input.action_release("p2_right")
+
+	# 49g. The bar clamps both ways.
+	p1.meter = 5.0
+	p1.add_meter(-25.0)
+	_check("meter never goes below 0", p1.meter == 0.0, "meter=%.1f" % p1.meter)
+	p1.add_meter(1000.0)
+	_check("meter never exceeds max", p1.meter == p1.max_meter,
+			"meter=%.1f" % p1.meter)
+
+	# 49h. Spending is unchanged: a full bar drains to 0 for METHtality, and
+	# the exact EX cost floors at 0 (the full EX/METH suites are sections 37/38).
+	p1.meter = p1.max_meter
+	_check("METHtality still drains the full bar from landed-hit meter",
+			p1.spend_meter(p1.meter) and p1.meter == 0.0
+			and not p1.spend_meter(1.0),
+			"meter=%.1f" % p1.meter)
+
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

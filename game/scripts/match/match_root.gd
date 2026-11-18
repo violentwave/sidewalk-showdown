@@ -35,6 +35,10 @@ var selected_p2_data: FighterData
 var selected_stage: StageData
 # False in solo mode: P2 still spawns and can be hit, but never reads input.
 @export var p2_human := true
+# Smash-style walk-through: when true, grounded fighters are not separated by
+# their pushboxes. Airborne fighters always pass through, so a jump-over works
+# in either mode; when this is false, grounded bodies still block each other.
+@export var fighters_can_pass_through := false
 
 var phase: Phase = Phase.INTRO
 var phase_frame := 0
@@ -479,6 +483,12 @@ func _poll_hit(attacker: FighterBase, defender: FighterBase) -> MoveData:
 func _separate_pushboxes() -> void:
 	if p1.state == FighterBase.State.KO or p2.state == FighterBase.State.KO:
 		return
+	# Airborne bodies may cross over the opponent's pushbox; grounded bodies
+	# still separate on landing (unless walk-through mode is enabled).
+	if fighters_can_pass_through:
+		return
+	if not p1.grounded or not p2.grounded:
+		return
 	var r1 := p1.pushbox_rect()
 	var r2 := p2.pushbox_rect()
 	if not r1.intersects(r2):
@@ -488,8 +498,14 @@ func _separate_pushboxes() -> void:
 		return
 	# Separate by center order, initially sharing the correction evenly. If one
 	# fighter is pinned at a stage bound, transfer that fighter's unapplied share
-	# to the other fighter rather than leaving residual pushbox overlap.
-	var left_fighter: FighterBase = p1 if p1.position.x <= p2.position.x else p2
+	# to the other fighter rather than leaving residual pushbox overlap. At
+	# exactly equal x the lower player slot is fixed as the left body, so the
+	# result never depends on node order.
+	var left_fighter: FighterBase
+	if p1.position.x == p2.position.x:
+		left_fighter = p1 if p1.player_index <= p2.player_index else p2
+	else:
+		left_fighter = p1 if p1.position.x < p2.position.x else p2
 	var right_fighter: FighterBase = p2 if left_fighter == p1 else p1
 	var left_room := maxf(0.0, left_fighter.position.x - left_fighter.stage.left_bound)
 	var right_room := maxf(0.0, right_fighter.stage.right_bound - right_fighter.position.x)
@@ -531,6 +547,7 @@ func serialize() -> Dictionary:
 		"pause_menu_open": pause_menu_open,
 		"commentary_sample_shown": commentary_sample_shown,
 		"p2_human": p2_human,
+		"fighters_can_pass_through": fighters_can_pass_through,
 		"p1": p1.serialize(),
 		"p2": p2.serialize(),
 	}
@@ -554,6 +571,8 @@ func load(data: Dictionary) -> void:
 	pause_menu_open = data["pause_menu_open"]
 	commentary_sample_shown = data["commentary_sample_shown"]
 	p2_human = data["p2_human"]
+	fighters_can_pass_through = data.get(
+		"fighters_can_pass_through", fighters_can_pass_through)
 	p1.load(data["p1"])
 	p2.load(data["p2"])
 

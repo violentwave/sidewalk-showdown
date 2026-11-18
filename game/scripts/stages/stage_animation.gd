@@ -35,6 +35,10 @@ const FIRE_FRAMES := [
 	preload("res://art/stages/bus_stop/bus_stop_fire_f3.png"),
 	preload("res://art/stages/bus_stop/bus_stop_fire_f4.png"),
 ]
+const LIQUOR_SIGN_ON := preload("res://art/stages/bus_stop/bus_stop_liquor_sign_on.png")
+const LIQUOR_SIGN_OFF := preload("res://art/stages/bus_stop/bus_stop_liquor_sign_off.png")
+# The sign stays lit for seconds, then briefly drops out for 1-3 ambient frames.
+const SIGN_FLICKER_FRAME_SECONDS := 1.0 / 8.0
 
 @export var freeze_ambient := false
 # Seen at 320x180, 4-6 px/s is a readable drift rather than a slideshow.
@@ -47,11 +51,15 @@ const FIRE_FRAMES := [
 # The fire loop runs at a readable 8 fps; each full four-frame loop re-rolls a
 # small timing wobble so the flame does not tick like a metronome.
 @export_range(0.0, 0.4, 0.01) var fire_jitter_ratio := 0.12
+# A neon sign that mostly works: lit for a few seconds, then a short dropout.
+@export_range(0.5, 30.0, 0.1) var sign_flicker_min_seconds := 3.0
+@export_range(0.5, 60.0, 0.1) var sign_flicker_max_seconds := 7.0
 
 @onready var _cloud_a: Sprite2D = get_parent().get_node_or_null("Clouds/CloudA") as Sprite2D
 @onready var _cloud_b: Sprite2D = get_parent().get_node_or_null("Clouds/CloudB") as Sprite2D
 @onready var _gator: Sprite2D = get_parent().get_node_or_null("Gator") as Sprite2D
 @onready var _fire: Sprite2D = get_parent().get_node_or_null("Fire") as Sprite2D
+@onready var _liquor_sign: Sprite2D = get_parent().get_node_or_null("LiquorSign") as Sprite2D
 
 var _mosquitoes: Array[Sprite2D] = []
 var _elapsed := 0.0
@@ -66,6 +74,10 @@ var _gator_blink_remaining := 0.0
 var _fire_clock := 0.0
 var _fire_frame := 0
 var _fire_interval := FIRE_FRAME_SECONDS
+var _sign_on := true
+var _sign_off_frames := 0
+var _sign_off_clock := 0.0
+var _sign_flicker_timer := 0.0
 var _rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
@@ -81,6 +93,9 @@ func _ready() -> void:
 		_fire_frame = 0
 		_fire.texture = FIRE_FRAMES[0]
 		_fire_interval = _next_fire_interval()
+	if _liquor_sign != null:
+		_set_sign_on(true)
+		_sign_flicker_timer = _next_sign_interval()
 
 func _process(delta: float) -> void:
 	if freeze_ambient:
@@ -90,6 +105,7 @@ func _process(delta: float) -> void:
 	_advance_mosquitoes(delta)
 	_advance_gator(delta)
 	_advance_fire(delta)
+	_advance_sign(delta)
 
 # Two copies of the 640 px cloud strip sit one texture-width apart and slide
 # left together; wrapping the shared offset keeps the seam outside the 320 px
@@ -167,6 +183,36 @@ func _next_fire_interval() -> float:
 	return maxf(0.01, FIRE_FRAME_SECONDS * (1.0
 		+ _rng.randf_range(-fire_jitter_ratio, fire_jitter_ratio)))
 
+# The base foreground keeps the painted sign; this overlay replaces it with the
+# lit or dead tube art. A dropout lasts 1-3 ambient frames, then the sign stays
+# on for another random few seconds.
+func _advance_sign(delta: float) -> void:
+	if _liquor_sign == null:
+		return
+	if _sign_off_frames > 0:
+		_sign_off_clock += delta
+		if _sign_off_clock >= SIGN_FLICKER_FRAME_SECONDS:
+			_sign_off_clock = fmod(_sign_off_clock, SIGN_FLICKER_FRAME_SECONDS)
+			_sign_off_frames -= 1
+			if _sign_off_frames <= 0:
+				_set_sign_on(true)
+				_sign_flicker_timer = _next_sign_interval()
+		return
+	_sign_flicker_timer -= delta
+	if _sign_flicker_timer <= 0.0:
+		_set_sign_on(false)
+		_sign_off_frames = _rng.randi_range(1, 3)
+		_sign_off_clock = 0.0
+
+func _set_sign_on(is_on: bool) -> void:
+	if _sign_on == is_on and _liquor_sign.texture != null:
+		return
+	_sign_on = is_on
+	_liquor_sign.texture = LIQUOR_SIGN_ON if is_on else LIQUOR_SIGN_OFF
+
+func _next_sign_interval() -> float:
+	return _rng.randf_range(sign_flicker_min_seconds, sign_flicker_max_seconds)
+
 func _apply_gator_frame(frame: int) -> void:
 	if frame == _gator_frame:
 		return
@@ -186,3 +232,9 @@ func gator_frame() -> int:
 
 func fire_frame() -> int:
 	return _fire_frame
+
+func sign_is_on() -> bool:
+	return _sign_on
+
+func sign_off_frames() -> int:
+	return _sign_off_frames

@@ -1,8 +1,10 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/stages/stage.gd" id="1_stage"]
 [ext_resource type="Texture2D" path="res://art/stages/gas_n_go/gas_n_go_sky.png" id="2_sky"]
-[ext_resource type="Texture2D" path="res://art/stages/gas_n_go/gas_n_go_foreground.png" id="3_foreground"]
+[ext_resource type="Texture2D" path="res://art/stages/gas_n_go/gas_n_go_clouds.png" id="3_clouds"]
+[ext_resource type="Texture2D" path="res://art/stages/gas_n_go/gas_n_go_foreground.png" id="4_foreground"]
+[ext_resource type="Script" path="res://scripts/stages/stage_animation.gd" id="5_animation"]
 
 [node name="GasNGo" type="Node2D"]
 process_mode = 1
@@ -18,7 +20,22 @@ position = Vector2(0, 0)
 centered = false
 texture = ExtResource("2_sky")
 
+[node name="Clouds" type="Node2D" parent="."]
+
+[node name="CloudA" type="Sprite2D" parent="Clouds"]
+position = Vector2(0, 4)
+centered = false
+texture = ExtResource("3_clouds")
+
+[node name="CloudB" type="Sprite2D" parent="Clouds"]
+position = Vector2(640, 4)
+centered = false
+texture = ExtResource("3_clouds")
+
 [node name="Foreground" type="Sprite2D" parent="."]
 position = Vector2(0, 0)
 centered = false
-texture = ExtResource("3_foreground")
+texture = ExtResource("4_foreground")
+
+[node name="StageAnimation" type="Node" parent="."]
+script = ExtResource("5_animation")

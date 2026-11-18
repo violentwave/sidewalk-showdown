@@ -68,6 +68,14 @@ const JUGGLE_HIT_CAP := 3
 const JUGGLE_GRAVITY_MULT := 1.25
 const JUGGLE_KNOCKBACK_SCALE := 0.7
 
+# Meter economy (2026-11-18): the Hype Meter is earned ONLY when an attack
+# actually lands on the opponent — `meter_gain_hit` on every connecting hit
+# (throws included). Blocked hits pay the attacker `meter_gain_block` times
+# this scale, 0.0 by default ("meta builds only when hits land"), so a single
+# edit here retunes blocked-hit income without touching MoveData. There is no
+# whiff gain and no defender-side gain at all.
+static var METER_GAIN_ON_BLOCK_SCALE := 0.0
+
 # --- Match context ---
 var opponent: FighterBase
 var stage: Node2D
@@ -414,8 +422,6 @@ func _attack_logic() -> void:
 		if _try_cancel():
 			return
 	if state_frame >= _move_total(current_move):
-		if not move_already_hit:
-			finish_move_whiff()
 		if not grounded:
 			_set_state(State.JUMP_FALL)
 		else:
@@ -470,7 +476,6 @@ func _landing_check(floor_y: float) -> void:
 	if whiffed_air_move and landing_move != null:
 		landing_recovery_frames = landing_move.landing_recovery \
 			if landing_move.landing_recovery > 0 else DEFAULT_LANDING_FRAMES
-	finish_move_whiff()
 	current_move = null
 	move_hit_confirmed = false
 	move_already_hit = false
@@ -730,9 +735,9 @@ func is_invulnerable_to(move: MoveData) -> bool:
 					return move.level != MoveData.Level.THROW
 	return false
 
-func finish_move_whiff() -> void:
-	if current_move:
-		add_meter(current_move.meter_gain_whiff)
+# Whiffs earn nothing (2026-11-18 meter economy): meter_gain_whiff stays
+# authored data on MoveData but is never awarded anywhere, so the B6
+# landing-whiff repair that once awarded it here is obsolete by design.
 
 # Total frames of the move in play. Whiffed throws read FighterData's
 # throw_whiff_recovery instead of the grab's authored recovery (PROPOSALS §2):
@@ -812,8 +817,10 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 		block_flash_frames = BLOCK_FLASH_FRAMES
 		_update_silhouette_flash()
 		health = maxf(1.0, health - move.block_damage)
-		add_meter(move.meter_gain_receive)
-		attacker.add_meter(move.meter_gain_block)
+		# Meter is earned only by landed hits: a blocked hit pays the attacker
+		# meter_gain_block * METER_GAIN_ON_BLOCK_SCALE (0.0 by default), and the
+		# defender gains nothing for blocking or being blocked against.
+		attacker.add_meter(move.meter_gain_block * METER_GAIN_ON_BLOCK_SCALE)
 		blockstun_frames = move.blockstun
 		hitstop_frames = maxi(hitstop_frames, move.hitstop)
 		attacker.hitstop_frames = maxi(attacker.hitstop_frames, move.hitstop)
@@ -835,7 +842,8 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 	combo_hits += 1
 	frames_since_hit = 0
 	combo_changed.emit(combo_hits)
-	add_meter(move.meter_gain_receive)
+	# The clean-hit award: the only place meter is earned (attacker, landed hit,
+	# per connecting move — throws included). The defender gains nothing.
 	attacker.add_meter(move.meter_gain_hit)
 	var stop := move.hitstop + (COUNTER_HIT_HITSTOP if counter else 0)
 	hitstop_frames = maxi(hitstop_frames, stop)

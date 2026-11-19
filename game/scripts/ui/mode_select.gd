@@ -12,7 +12,7 @@ const MUTED := Color(0.68, 0.66, 0.62)
 const MODES := [
 	{
 		"name": "1 PLAYER",
-		"detail": "PICK BOTH FIGHTERS - P2 STANDS IDLE",
+		"detail": "PICK BOTH FIGHTERS - P2 IS THE CPU",
 	},
 	{
 		"name": "2 PLAYERS",

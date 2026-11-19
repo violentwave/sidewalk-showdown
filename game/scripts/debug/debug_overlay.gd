@@ -82,6 +82,10 @@ func _state_text() -> String:
 		_state_name(p2), p2.state_frame, _invuln_text(p2),
 		Engine.get_frames_per_second(),
 	]
+	# Screen side and facing, so a crossover is visible without reading art.
+	text += "\nSIDE P1 %s%s / P2 %s%s" % [
+		_side_label(p1), _facing_arrow(p1),
+		_side_label(p2), _facing_arrow(p2)]
 	var adv := _advantage_text()
 	if adv != "":
 		text += "\n" + adv
@@ -116,6 +120,19 @@ func _remaining_recovery(f: FighterBase) -> int:
 
 func _state_name(f: FighterBase) -> String:
 	return FighterBase.State.keys()[f.state]
+
+func _side_label(f: FighterBase) -> String:
+	if f == null or p1 == null or p2 == null:
+		return "?"
+	var other: FighterBase = p2 if f == p1 else p1
+	if f.position.x == other.position.x:
+		return "L" if f.player_index <= other.player_index else "R"
+	return "L" if f.position.x < other.position.x else "R"
+
+func _facing_arrow(f: FighterBase) -> String:
+	if f == null:
+		return ""
+	return ">" if f.facing > 0 else "<"
 
 # Invulnerability countdown for the fighter's frame-state line: " INV 4f" while
 # the universal wake-up window covers strikes (and throws), then " THROWINV 2f"

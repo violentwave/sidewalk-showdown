@@ -441,6 +441,15 @@ Prototype implementation can use Godot `Area2D` nodes for hit/hurt detection and
 > planned systems. See the [current-baseline audit](docs/audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md)
 > finding B9.
 
+> **Implementation-status note (2026-11-18):** fighters are no longer side-locked.
+> Facing is derived from the opponent's position on every grounded neutral frame
+> and freezes during attacks, stun, and the air, so jump-overs cross over the
+> pushbox (grounded bodies still repel) and fighters can switch sides mid-match;
+> the exported `fighters_can_pass_through` flag (default false) additionally
+> enables Smash-style grounded walk-through. Knockback, block evaluation, and
+> special-move motions are all facing-relative. Rules and edge cases:
+> [`docs/SIDE_SWITCHING.md`](docs/SIDE_SWITCHING.md).
+
 ### 5.5 Hit Resolution Priority
 
 When a move connects, resolve in this order:

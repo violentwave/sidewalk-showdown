@@ -4,13 +4,14 @@
 #
 # Usage:
 #   DISPLAY=:0 godot --path game --resolution 1280x720 \
-#       --script res://tools/readme_capture.gd -- <mode|theclip|select|select_solo|stage|match|gas|bus|pause>
+#       --script res://tools/readme_capture.gd -- <mode|theclip|select|select_solo|stage|match|swap|gas|bus|pause>
 #
-# `match` poses a readable mid-round moment with debug boxes off; `pause` poses
-# the pause menu with BACK TO CHARACTER SELECT selected; `mode`, `theclip`, and
-# `select` capture the mode-select, intro, and character-select screens.
-# `stage` shows stage select; `gas`/`bus` pose the same mid-round moment on the
-# Gas-N-Go or Bus Stop stage instead of the roster default.
+# `match` poses a readable mid-round moment with debug boxes off; `swap` poses
+# the same moment after a crossover, with P1 on the right and P2 on the left;
+# `pause` poses the pause menu with BACK TO CHARACTER SELECT selected; `mode`,
+# `theclip`, and `select` capture the mode-select, intro, and character-select
+# screens. `stage` shows stage select; `gas`/`bus` pose the same mid-round
+# moment on the Gas-N-Go or Bus Stop stage instead of the roster default.
 extends SceneTree
 
 const OUT := "/tmp/opencode/readme"
@@ -123,6 +124,12 @@ func _run_match() -> void:
 	p2._force_state(FighterBase.State.IDLE)
 	p1.state_frame = 0
 	p2.state_frame = 0
+	if _mode == "swap":
+		# Post-crossover pose: player slots do not move, only their screen sides.
+		p1.position.x = 264.0
+		p2.position.x = 176.0
+		p1.facing = -1
+		p2.facing = 1
 	p1._sync_visuals()
 	p2._sync_visuals()
 	await _grab("gameplay" + suffix)

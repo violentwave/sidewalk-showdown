@@ -45,7 +45,10 @@ who turns sidewalk chaos into a rigged tournament.**
   ([`docs/PIXELORAMA_PIPELINE.md`](docs/PIXELORAMA_PIPELINE.md) §8–§9a).
 - **Fighting-game systems** — 60 Hz deterministic simulation, frame data,
   blocking with chip that can't KO, hitstop, buffers, directional specials,
-  EX spenders, throws and throw techs, juggle cap, and a METHtality finisher.
+  EX spenders, throws and throw techs, juggle cap, a METHtality finisher, and
+  side switching: fighters auto-face each other and can cross over mid-match
+  (jump-overs pass the pushbox; grounded bodies still repel) —
+  [`docs/SIDE_SWITCHING.md`](docs/SIDE_SWITCHING.md).
 - **Match structure** — rounds, timer, sudden death after repeated timeouts,
   KO flow, pause menu, and a text-only Tripp commentary sample.
 
@@ -73,7 +76,7 @@ godot --headless --path game --script res://tests/stage_floor_test.gd
 godot --headless --path game --script res://tests/the_clip_test.gd
 ```
 
-Current suites: **combat 353 checks**, round flow 34, character select 49,
+Current suites: **combat 382 checks**, round flow 34, character select 49,
 locomotion speed 7, stage select 94, stage floor 9, The Clip 23 — all green in CI (`tests.yml`). `tests/air_probe.gd`
 prints balance metrics and asserts nothing.
 

@@ -397,6 +397,7 @@ func _grounded_movement(axis: float, down: bool) -> void:
 func _crouch_logic(down: bool) -> void:
 	if _try_start_attack():
 		return
+	_update_facing()
 	velocity.x = 0.0
 	if not down:
 		_set_state(State.IDLE)
@@ -824,12 +825,13 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 		blockstun_frames = move.blockstun
 		hitstop_frames = maxi(hitstop_frames, move.hitstop)
 		attacker.hitstop_frames = maxi(attacker.hitstop_frames, move.hitstop)
-		velocity.x = float(attacker.facing) * move.block_pushback
+		var block_dir := _direction_away_from(attacker)
+		velocity.x = block_dir * move.block_pushback
 		# §6 corner rule: a defender pinned against a stage bound cannot take
 		# the blocked pushback; the displacement transfers to the attacker,
 		# away from the defender, subject to the attacker's own bound.
 		if _pinned_at_stage_wall(velocity.x):
-			attacker.velocity.x = -float(attacker.facing) * move.block_pushback
+			attacker.velocity.x = -block_dir * move.block_pushback
 			velocity.x = 0.0
 		combo_hits = 0
 		combo_changed.emit(0)
@@ -854,7 +856,7 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 
 	hit_flash_frames = HIT_FLASH_FRAMES
 	_update_silhouette_flash()
-	var dir := 1.0 if position.x >= attacker.position.x else -1.0
+	var dir := _direction_away_from(attacker)
 	# PROPOSALS §6: repeated air hits return the arc to the floor. The first
 	# airborne hit of a combo keeps the authored knockback; each repeat scales
 	# horizontal pushback by JUGGLE_KNOCKBACK_SCALE per prior airborne hit.
@@ -1056,9 +1058,33 @@ func _tick_combo() -> void:
 		combo_changed.emit(0)
 
 # ---------------- Misc ----------------
+# Facing is derived from the opponent's position, never stored per player. It
+# may only change in a grounded neutral state: idle, walking, or crouching.
+# Attacks, stun, knockdown, wake-up, tech, landing recovery, and airborne states
+# freeze it so a move cannot flip halfway through. Equal x keeps the current
+# facing (deterministic, and independent of node/player order).
+func can_auto_turn() -> bool:
+	return grounded and state in [State.IDLE, State.WALK_F, State.WALK_B,
+		State.CROUCH]
+
 func _update_facing() -> void:
-	if opponent:
-		facing = 1 if opponent.position.x >= position.x else -1
+	if opponent == null or not can_auto_turn():
+		return
+	if opponent.position.x > position.x:
+		facing = 1
+	elif opponent.position.x < position.x:
+		facing = -1
+	# Equal x is a tie: keep the facing we already had.
+
+# Push the defender away from `other`. Positions decide the side; at exactly
+# equal x, the attacker's facing is the deterministic tie-break. This keeps hit
+# and block pushback correct when a cross-up lands, without using node order.
+func _direction_away_from(other: FighterBase) -> float:
+	if position.x > other.position.x:
+		return 1.0
+	if position.x < other.position.x:
+		return -1.0
+	return float(other.facing)
 
 # True when this fighter stands at a stage bound and `v` pushes into it.
 func _pinned_at_stage_wall(v: float) -> bool:

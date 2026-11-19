@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CpuDifficulty" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ai/cpu_difficulty.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+reaction_delay_frames = 14
+block_rate = 0.65
+anti_air_rate = 0.5
+tech_rate = 0.4
+throw_rate = 0.2
+poke_rate = 0.5
+heavy_mix = 0.35
+special_rate = 0.1
+ex_rate = 0.4
+meth_rate = 0.7
+combo_rate = 0.45
+reversal_rate = 0.3
+corner_jump_rate = 0.35
+preblock_rate = 0.01
+retreat_rate = 0.1
+idle_limit = 60

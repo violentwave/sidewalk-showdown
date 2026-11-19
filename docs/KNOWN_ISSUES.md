@@ -355,10 +355,12 @@ These are measured or first-pass limits, not phase-exit validation.
   Edge cases are specified in `docs/SIDE_SWITCHING.md`: equal-x tie-breaks are
   deterministic and node-order-free (keep the current facing; lower player
   slot is the left body on separation); facing stays frozen through blockstun,
-  so a held-back blockstring keeps blocking until the stun ends; and a jump
-  over a wall-cornered fighter lands at the bound beside them and settles by
-  the normal separation rather than leaving the arena. The
-  `fighters_can_pass_through` walk-through flag ships off by default.
+  and block side reads the attacker's position through the shared
+  `relative_side()` helper, so a cross-up needs the new away key held while
+  the old one fails; a jump over a wall-cornered fighter lands at the bound
+  beside them and settles by the normal separation rather than leaving the
+  arena. The `fighters_can_pass_through` walk-through flag ships ON by
+  default; setting it false restores the legacy grounded pushbox.
 - **Licensing is undecided.** Treat the repo as all-rights-reserved until a
   LICENSE is added. The three realistic options (all-rights-reserved + NOTICE,
   CC BY-NC 4.0 for content with separate code licensing, proprietary
@@ -366,7 +368,7 @@ These are measured or first-pass limits, not phase-exit validation.
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **382 checks**: distinct Peggy/Richard sheet
+- `game/tests/combat_test.gd` — **407 checks**: distinct Peggy/Richard sheet
   artwork in walk states, the authored idle sheet (selection, visibility, cel
   cadence, wrap, hitstop/pause freeze, re-entry reset, facing pivot, and the
   missing-art fallback), unchanged combat boxes, clean hits and

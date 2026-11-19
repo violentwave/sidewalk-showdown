@@ -21,6 +21,16 @@ func _step(frames: int = 1) -> void:
 	for i in frames:
 		await physics_frame
 
+# 49d fixture: the defender sits in blockstun with a facing frozen from before
+# the cross-up, while the attacker has crossed over to its right side.
+func _p2_frozen_blocking_setup() -> void:
+	_reset_fighters(120, 160)
+	p2._force_state(FighterBase.State.BLOCKSTUN)
+	p2.blockstun_frames = 40
+	p2.facing = -1 # frozen from before the cross-up
+	p1.position.x = 200.0
+	p1.facing = -1 # turned away by auto-turn after crossing
+
 
 func _check(label: String, condition: bool, detail: String = "") -> void:
 	if condition:
@@ -62,6 +72,10 @@ func _force_wakeup(f: FighterBase) -> void:
 
 func _check_corner_separation_case(label: String, p1_x: float, p2_x: float,
 		pinned_player: int, pinned_x: float, expected_unpinned_shift: float) -> void:
+	# Pushbox corner rules live behind the walk-through flag, so the case
+	# forces the legacy mode and restores the default afterwards.
+	var flag_restore: bool = scene.fighters_can_pass_through
+	scene.fighters_can_pass_through = false
 	_reset_fighters(p1_x, p2_x)
 	var p1_input_enabled := p1.input_enabled
 	var p2_input_enabled := p2.input_enabled
@@ -84,6 +98,7 @@ func _check_corner_separation_case(label: String, p1_x: float, p2_x: float,
 		"p1=%.2f p2=%.2f overlap=%.3f" % [p1.position.x, p2.position.x, overlap])
 	p1.input_enabled = p1_input_enabled
 	p2.input_enabled = p2_input_enabled
+	scene.fighters_can_pass_through = flag_restore
 
 
 func _run_hitstop_throw_exchange(with_lockout: bool) -> void:
@@ -3221,8 +3236,8 @@ func _run() -> void:
 	_check("facing frozen during blockstun", p1.facing == 1, "p1=%d" % p1.facing)
 	p1.input_enabled = true
 
-	# 49c. Equal x is a tie: keep the current facing; pushbox separation uses
-	# the fixed lower-slot rule instead of node order.
+	# 49c. Equal x is a tie: keep the current facing; pushbox separation (flag
+	# off) uses the fixed lower-slot rule instead of node order.
 	_reset_fighters(100, 200)
 	p1.position.x = 100.0
 	p2.position.x = 100.0 # both idle, mutually overlapping
@@ -3230,15 +3245,21 @@ func _run() -> void:
 	_check("equal x keeps each fighter's current facing",
 			p1.facing == 1 and p2.facing == -1,
 			"p1=%d p2=%d" % [p1.facing, p2.facing])
+	scene.fighters_can_pass_through = false
+	await _step(2)
 	_check("equal x separates with P1 fixed as the left body",
 			p1.position.x < p2.position.x
 			and not p1.pushbox_rect().intersects(p2.pushbox_rect())
 			and is_equal_approx(p2.position.x - p1.position.x,
 					(p1.body_width + p2.body_width) * 0.5),
 			"p1=%.1f p2=%.1f" % [p1.position.x, p2.position.x])
+	scene.fighters_can_pass_through = true
 
 	# 49d. Jump-over crossover: airborne fighters pass through the pushbox,
-	# landing separation resolves the overlap, facing flips after the swap.
+	# landing separation (legacy mode) resolves the overlap, facing flips
+	# after the swap. Runs with the walk-through flag off to pin the legacy
+	# landing-separation behavior; flag-on crossovers are covered at 49j.
+	scene.fighters_can_pass_through = false
 	_reset_fighters(90, 126)
 	await _step(2)
 	var crossed := false
@@ -3272,6 +3293,7 @@ func _run() -> void:
 	_check("both fighters auto-turned after the crossover",
 			p1.facing == -1 and p2.facing == 1,
 			"p1=%d p2=%d" % [p1.facing, p2.facing])
+	scene.fighters_can_pass_through = true
 
 	# 49e. Directional inputs mirror: after the swap, the physical key toward
 	# the opponent is forward and the key away is back, with matching speeds.
@@ -3393,6 +3415,7 @@ func _run() -> void:
 			not p1.pushbox_rect().intersects(p2.pushbox_rect())
 			and p1.position.x < p2.position.x,
 			"p1=%.1f p2=%.1f" % [p1.position.x, p2.position.x])
+	scene.fighters_can_pass_through = true
 
 	# 49k. Seeded random soak: a full match with random crossovers terminates
 	# with finite, in-bounds positions everywhere (test-local RNG only; the
@@ -3483,6 +3506,231 @@ func _run() -> void:
 			soak_sane and is_finite(p1.position.x) and is_finite(p2.position.x),
 			"crossovers=%d" % soak_crossovers)
 	_check("soak restored the pass-through default",
-			scene.fighters_can_pass_through == false, "")
+			scene.fighters_can_pass_through == true, "")
+
+	# --- 50. pass-through side rules (docs/SIDE_SWITCHING.md) ---
+	# With fighters_can_pass_through on (the default), fighters share space, so
+	# every side decision must come from FighterBase.relative_side() and its
+	# derived helpers, never from facing or node order.
+	var pass_light: MoveData = p1.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+	var p2_light: MoveData = p2.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+	var p1_grab: MoveData = p1.data.find_move(MoveData.InputType.GRAB, MoveData.Stance.STAND)
+	Input.action_release("p1_grab")
+	Input.action_release("p2_grab")
+
+	# 50a. The shared helper: equal x defers to the attacker's facing.
+	_reset_fighters(100, 100) # both idle, mutually overlapping, frozen facings
+	_check("equal x: the away direction is the attacker's facing",
+			is_equal_approx(FighterBase.direction_away_from(p2, p1), float(p2.facing))
+			and is_equal_approx(FighterBase.direction_away_from(p1, p2), float(p1.facing)),
+			"p2away=%.1f p1away=%.1f" % [
+				FighterBase.direction_away_from(p2, p1),
+				FighterBase.direction_away_from(p1, p2)])
+	_check("equal x counts as in front of the attacker, either facing",
+			FighterBase.is_in_front_of(p1, p2) and FighterBase.is_in_front_of(p2, p1))
+	p1.facing = -1
+	_check("equal x sits in front even when the attacker faces the other way",
+			FighterBase.is_in_front_of(p1, p2))
+	p1.facing = 1
+
+	# 50b. Facing hysteresis: overlap does not flicker; the band gates the flip.
+	p1.input_enabled = true
+	p2.input_enabled = true
+	_reset_fighters(100, 102) # inside the default 4 px deadzone
+	var p1_faces_before := p1.facing
+	var p2_faces_before := p2.facing
+	for i in 30:
+		await _step(1)
+	_check("overlapped fighters hold their facing inside the deadzone",
+			p1.facing == p1_faces_before and p2.facing == p2_faces_before,
+			"p1=%d p2=%d" % [p1.facing, p2.facing])
+	p2.position.x = 106.0 # beyond the band: exactly one deterministic flip
+	await _step(1)
+	_check("beyond the deadzone both fighters turn to face each other",
+			p1.facing == 1 and p2.facing == -1,
+			"p1=%d p2=%d" % [p1.facing, p2.facing])
+	var steady := true
+	for i in 30:
+		await _step(1)
+		if p1.facing != 1 or p2.facing != -1:
+			steady = false
+	_check("facing is stable after the flip (no per-frame flicker)", steady)
+	p2.position.x = 120.0
+
+	# 50c. Facing never changes outside neutral states; it lands on the first
+	# neutral frame after the state ends.
+	p1.input_enabled = false
+	_reset_fighters(100, 200)
+	p1._start_move(pass_light)
+	p2.position.x = 60.0 # was at p1's right the whole time
+	await _step(6)
+	_check("facing frozen mid-attack despite the opponent switching sides",
+			p1.state == FighterBase.State.ATTACK and p1.facing == 1,
+			"state=%d facing=%d" % [p1.state, p1.facing])
+	while p1.state == FighterBase.State.ATTACK:
+		await _step(1)
+	await _step(1)
+	_check("facing updates on the first neutral frame after the attack",
+			p1.facing == -1, "facing=%d" % p1.facing)
+	p2.position.x = 200.0
+	await _step(1)
+
+	# 50d. Cross-up blocking: the back-hold is the direction away from the
+	# attacker's side, not the defender's (possibly stale) facing. The defender
+	# sits in blockstun with a frozen facing while P1 has crossed to its right.
+	_p2_frozen_blocking_setup()
+	Input.action_press("p2_left")
+	var p2_health_before := p2.health
+	p1._start_move(pass_light)
+	p1.state_frame = pass_light.startup
+	scene._resolve_hits()
+	_check("cross-up is blocked by holding the new away direction",
+			p2.health == maxf(1.0, p2_health_before - pass_light.block_damage)
+			and p2.state == FighterBase.State.BLOCKSTUN,
+			"hp=%.1f state=%d" % [p2.health, p2.state])
+	_check("cross-up block pushback moves away from the attacker",
+			p2.velocity.x < 0.0, "vx=%.1f" % p2.velocity.x)
+	# 49d-2: holding the OLD back (into the cross-up attacker's chest? no —
+	# toward the side the attacker now occupies) does NOT block; the hit lands
+	# and knockback again runs away from the attacker.
+	Input.action_release("p2_left")
+	_p2_frozen_blocking_setup()
+	Input.action_press("p2_right")
+	p1._start_move(pass_light)
+	p1.state_frame = pass_light.startup
+	scene._resolve_hits()
+	_check("holding toward the cross-up attacker's side fails to block",
+			p2.health < 999.0 and p2.state != FighterBase.State.BLOCKSTUN,
+			"hp=%.1f state=%d" % [p2.health, p2.state])
+	_check("post-cross knockback also runs away from the attacker",
+			p2.velocity.x < 0.0, "vx=%.1f" % p2.velocity.x)
+	Input.action_release("p2_right")
+
+	# 50e. Control: a front hit is still blocked by holding away, and the
+	# pushback keeps its classic direction.
+	_reset_fighters(100, 120)
+	Input.action_press("p2_right")
+	p1._start_move(pass_light)
+	p1.state_frame = pass_light.startup
+	scene._resolve_hits()
+	_check("front hit blocked by holding away from the attacker",
+			p2.health == maxf(1.0, 1000.0 - pass_light.block_damage)
+			and p2.state == FighterBase.State.BLOCKSTUN,
+			"hp=%.1f state=%d" % [p2.health, p2.state])
+	_check("front block pushback pushes the defender to the right",
+			p2.velocity.x > 0.0, "vx=%.1f" % p2.velocity.x)
+	Input.action_release("p2_right")
+
+	# 50f. Throws: connect in front (equal x included), whiff behind, and the
+	# tech separation follows the same side helper. Each case re-arms the
+	# defender's grab buffer AFTER the reset, since reset_state() clears it.
+	Input.action_press("p2_grab")
+	_reset_fighters(100, 120)
+	p2.input_buffer["grab"] = 0
+	p1._start_move(p1_grab)
+	p1.state_frame = p1_grab.startup
+	scene._resolve_hits()
+	_check("a throw in front techs as before",
+			p2.state == FighterBase.State.TECH and p1.state == FighterBase.State.TECH,
+			"p1=%d p2=%d" % [p1.state, p2.state])
+	_check("tech separation pushes both fighters away from the attacker",
+			p2.velocity.x > 0.0 and p1.velocity.x < 0.0,
+			"p1vx=%.1f p2vx=%.1f" % [p1.velocity.x, p2.velocity.x])
+	p2.input_buffer["grab"] = 0
+	_reset_fighters(100, 100) # exactly equal x: still in front
+	p2.input_buffer["grab"] = 0
+	p1._start_move(p1_grab)
+	p1.state_frame = p1_grab.startup
+	scene._resolve_hits()
+	_check("a throw at exactly equal x still connects (techs)",
+			p2.state == FighterBase.State.TECH and p2.velocity.x > 0.0,
+			"state=%d vx=%.1f" % [p2.state, p2.velocity.x])
+	p2.input_buffer["grab"] = 0
+	_reset_fighters(140, 120)
+	p1.facing = 1 # frozen facing away: the thrower's back is to the opponent
+	p1._start_move(p1_grab)
+	p1.state_frame = p1_grab.startup
+	scene._resolve_hits()
+	_check("a throw against someone behind the thrower whiffs",
+			p2.health == 1000.0 and not p1.move_hit_confirmed,
+			"hp=%.1f confirmed=%s" % [p2.health, p1.move_hit_confirmed])
+	Input.action_release("p2_grab")
+	p2.input_buffer.erase("grab")
+
+	# 50g. A walk-through gives a clean cross-up: after P1 passes P2, a jab
+	# from behind still hits in front of P1's new facing.
+	_reset_fighters(100, 120)
+	p1.input_enabled = true
+	p2.input_enabled = true
+	Input.action_press("p1_right")
+	for i in 60:
+		await _step(1)
+		if p1.position.x > p2.position.x + 24.0:
+			break
+	Input.action_release("p1_right")
+	_check("P1 walked through P2 with pass-through on",
+			p1.position.x > p2.position.x, "p1=%.1f p2=%.1f"
+			% [p1.position.x, p2.position.x])
+	_check("both fighters auto-turned after walking through",
+			p1.facing == -1 and p2.facing == 1,
+			"p1=%d p2=%d" % [p1.facing, p2.facing])
+	p1._start_move(pass_light)
+	p1.state_frame = pass_light.startup
+	scene._resolve_hits() # P1 jabs: resolve on the first active frame
+	_check("post-pass jab connects in front of P1's new facing",
+			p1.state == FighterBase.State.ATTACK and p2.health < 1000.0,
+			"p2hp=%.1f" % p2.health)
+	_check("knockback after passing through runs away from the attacker",
+			p2.velocity.x < 0.0, "vx=%.1f" % p2.velocity.x)
+
+	# 50h. Counter-hits and trades are state facts, not side or slot facts:
+	# a counter hit carries the same damage/hitstop/flag pattern whoever owns
+	# which slot, and a same-frame trade damages both fighters.
+	# First: P1 (Peggy) attacks into P2's startup.
+	_reset_fighters(100, 120)
+	p1._start_move(pass_light)
+	p1.state_frame = pass_light.startup
+	p2._start_move(p2_light)
+	p2.state_frame = 0
+	scene._resolve_hits()
+	_check("counter into P2's startup deals P1's light damage",
+			is_equal_approx(p2.health, 1000.0 - pass_light.damage)
+			and p2.hitstop_frames == pass_light.hitstop
+				+ FighterBase.COUNTER_HIT_HITSTOP
+			and p1.hitstop_frames == pass_light.hitstop
+				+ FighterBase.COUNTER_HIT_HITSTOP
+			and p1.move_counter_hit,
+			"hp=%.1f stop=%d counter=%s" % [p2.health, p2.hitstop_frames,
+			p1.move_counter_hit])
+	# Same exchange, P2 (Richard) as the attacking side and P1 in startup:
+	# every metric keeps its role, never its player slot.
+	_reset_fighters(100, 120)
+	p2._start_move(p2_light)
+	p2.state_frame = p2_light.startup
+	p1._start_move(pass_light)
+	p1.state_frame = 0
+	scene._resolve_hits()
+	_check("counter hit hits identically whoever owns the slot",
+			is_equal_approx(p1.health, 1000.0 - p2_light.damage)
+			and p1.hitstop_frames == p2_light.hitstop
+				+ FighterBase.COUNTER_HIT_HITSTOP
+			and p2.hitstop_frames == p2_light.hitstop
+				+ FighterBase.COUNTER_HIT_HITSTOP
+			and p2.move_counter_hit,
+			"hp=%.1f stop=%d counter=%s" % [p1.health, p1.hitstop_frames,
+			p2.move_counter_hit])
+	# Same-frame trade: both hits collected before either is applied.
+	_reset_fighters(100, 120)
+	p1._start_move(pass_light)
+	p1.state_frame = pass_light.startup
+	p2._start_move(p2_light)
+	p2.state_frame = p2_light.startup
+	scene._resolve_hits()
+	_check("a same-frame trade damages both fighters",
+			p1.health < 1000.0 and p2.health < 1000.0
+			and p1.health == 1000.0 - p2_light.damage
+			and p2.health == 1000.0 - pass_light.damage,
+			"p1=%.1f p2=%.1f" % [p1.health, p2.health])
+
 	print("\n%d failure(s)" % failures)
 	quit(1 if failures > 0 else 0)

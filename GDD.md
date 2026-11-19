@@ -443,12 +443,13 @@ Prototype implementation can use Godot `Area2D` nodes for hit/hurt detection and
 
 > **Implementation-status note (2026-11-18):** fighters are no longer side-locked.
 > Facing is derived from the opponent's position on every grounded neutral frame
-> and freezes during attacks, stun, and the air, so jump-overs cross over the
-> pushbox (grounded bodies still repel) and fighters can switch sides mid-match;
-> the exported `fighters_can_pass_through` flag (default false) additionally
-> enables Smash-style grounded walk-through. Knockback, block evaluation, and
-> special-move motions are all facing-relative. Rules and edge cases:
-> [`docs/SIDE_SWITCHING.md`](docs/SIDE_SWITCHING.md).
+> (inside a small hysteresis deadzone) and freezes during attacks, stun, and the
+> air. Smash-style pass-through ships ON: fighters do not collide on the ground
+> or in the air, and the exported `fighters_can_pass_through` flag turns the
+> legacy grounded pushbox back on. Block evaluation, knockback, pushback, and
+> throws all read the attacker's side from the shared `relative_side()` helper,
+> not the defender's facing; throws connect only in front of the thrower.
+> Rules and edge cases: [`docs/SIDE_SWITCHING.md`](docs/SIDE_SWITCHING.md).
 
 ### 5.5 Hit Resolution Priority
 

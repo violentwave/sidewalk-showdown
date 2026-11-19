@@ -756,24 +756,32 @@ func _move_total(move: MoveData) -> int:
 	return move.total_frames()
 
 # ---------------- Damage ----------------
-func is_holding_back() -> bool:
+# Back-hold for blocking is measured against the ATTACKER's side at the
+# moment of impact (direction_away_from), never against the defender's own
+# facing: a cross-up that lands behind the defender is blocked by holding the
+# other way, regardless of which way the defender is currently facing. With
+# no attacker supplied this falls back to the opponent.
+func is_holding_away_from(attacker: FighterBase = null) -> bool:
 	if not input_enabled:
 		return false
+	var other := attacker if attacker != null else opponent
+	if other == null:
+		return false
 	var axis := _axis("left", "right")
-	return axis != 0.0 and signf(axis) != float(facing)
+	return axis != 0.0 and signf(axis) == FighterBase.direction_away_from(other, self)
 
-func is_blocking() -> bool:
+func is_blocking(attacker: FighterBase = null) -> bool:
 	if not grounded:
 		return false
 	# Authored extended LAND is a whiff-recovery commitment: unlike the legacy
 	# 2-frame landing state, it cannot be cancelled into block by holding back.
 	if state == State.LAND and landing_recovery_frames > DEFAULT_LANDING_FRAMES:
 		return false
-	# BLOCKSTUN is intentionally allowed: holding back must keep blocking
-	# successive hits in a blockstring.
+	# BLOCKSTUN is intentionally allowed: holding away must keep blocking
+	# successive hits in a blockstring, measured against each attacker's side.
 	if state in [State.ATTACK, State.HITSTUN, State.KNOCKDOWN, State.WAKE_UP, State.TECH, State.KO]:
 		return false
-	return is_holding_back()
+	return is_holding_away_from(attacker)
 
 func can_block(move: MoveData) -> bool:
 	if move.level == MoveData.Level.THROW:
@@ -798,6 +806,11 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 	if move.level == MoveData.Level.THROW:
 		# Airborne defenders can't be thrown: the grab whiffs (bug-fix guard).
 		if not grounded:
+			return false
+		# Rule F: a throw connects only in front of the thrower (equal x
+		# counts as in front). Behind the thrower it whiffs outright — and a
+		# whiff cannot be tech'd, so this check runs before the tech gate.
+		if not is_in_front_of(attacker, self):
 			return false
 		# PROPOSALS §2: the tech check runs before damage and consumes both grab
 		# buffers, so a defender who pressed grab in the window resolves the
@@ -825,7 +838,7 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 		blockstun_frames = move.blockstun
 		hitstop_frames = maxi(hitstop_frames, move.hitstop)
 		attacker.hitstop_frames = maxi(attacker.hitstop_frames, move.hitstop)
-		var block_dir := _direction_away_from(attacker)
+		var block_dir := FighterBase.direction_away_from(attacker, self)
 		velocity.x = block_dir * move.block_pushback
 		# §6 corner rule: a defender pinned against a stage bound cannot take
 		# the blocked pushback; the displacement transfers to the attacker,
@@ -856,7 +869,7 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 
 	hit_flash_frames = HIT_FLASH_FRAMES
 	_update_silhouette_flash()
-	var dir := _direction_away_from(attacker)
+	var dir := FighterBase.direction_away_from(attacker, self)
 	# PROPOSALS §6: repeated air hits return the arc to the floor. The first
 	# airborne hit of a combo keeps the authored knockback; each repeat scales
 	# horizontal pushback by JUGGLE_KNOCKBACK_SCALE per prior airborne hit.
@@ -936,9 +949,10 @@ func _start_tech(other: FighterBase) -> void:
 		other.tech_frames = dur
 		other.current_move = null
 		other._force_state(State.TECH)
-	var dir := signf(position.x - other.position.x) if other else -float(facing)
-	if dir == 0.0:
-		dir = -float(facing)
+	# Separate the tech pair away from the attacker through the shared side
+	# helper: positions decide, and at exactly equal x the defender (standing
+	# in front of the attacker) is pushed out the attacker's facing.
+	var dir := direction_away_from(other, self) if other else -float(facing)
 	var push := dir * (20.0 / float(dur)) / delta_fixed()
 	velocity = Vector2(push, 0.0)
 	if other and other != self:
@@ -1061,30 +1075,59 @@ func _tick_combo() -> void:
 # Facing is derived from the opponent's position, never stored per player. It
 # may only change in a grounded neutral state: idle, walking, or crouching.
 # Attacks, stun, knockdown, wake-up, tech, landing recovery, and airborne states
-# freeze it so a move cannot flip halfway through. Equal x keeps the current
-# facing (deterministic, and independent of node/player order).
+# freeze it so a move cannot flip halfway through; the flip lands on the first
+# neutral frame. A deadzone with hysteresis (see facing_deadzone_px below)
+# keeps two fighters standing inside each other from flickering left and
+# right every frame: inside the band the current facing is kept.
 func can_auto_turn() -> bool:
 	return grounded and state in [State.IDLE, State.WALK_F, State.WALK_B,
 		State.CROUCH]
 
+# How far past the opponent's center (px) a fighter must be before it turns.
+# Symmetric band = hysteresis: once facing right, a fighter keeps facing right
+# until the opponent is more than this far to the left. Set to 0 for the
+# deadzon-free legacy behavior.
+@export var facing_deadzone_px := 4.0
+
 func _update_facing() -> void:
 	if opponent == null or not can_auto_turn():
 		return
-	if opponent.position.x > position.x:
-		facing = 1
-	elif opponent.position.x < position.x:
-		facing = -1
-	# Equal x is a tie: keep the facing we already had.
+	var delta := opponent.position.x - position.x
+	if absf(delta) <= facing_deadzone_px:
+		return
+	facing = 1 if delta > 0.0 else -1
 
-# Push the defender away from `other`. Positions decide the side; at exactly
-# equal x, the attacker's facing is the deterministic tie-break. This keeps hit
-# and block pushback correct when a cross-up lands, without using node order.
-func _direction_away_from(other: FighterBase) -> float:
-	if position.x > other.position.x:
+# ====================== shared side helper ======================
+# relative_side() is the ONE side primitive; every system that needs to know
+# where the attacker stands relative to the defender (block axis, knockback,
+# pushback, throw side, tech separation) derives from it. Positions decide;
+# at exactly equal x the defender is treated as standing in front of the
+# attacker, which makes the attacker's relative side the negation of its
+# facing. Deterministic: no RNG, no per-frame delta, no node/player order.
+# Returns +1 when the attacker stands to the defender's right, -1 when to
+# the defender's left.
+static func relative_side(attacker: FighterBase, defender: FighterBase) -> float:
+	if attacker == null or defender == null:
+		return 0.0
+	if attacker.position.x > defender.position.x:
 		return 1.0
-	if position.x < other.position.x:
+	if attacker.position.x < defender.position.x:
 		return -1.0
-	return float(other.facing)
+	return -float(attacker.facing)
+
+# Direction the defender moves to get away from the attacker (+1 right,
+# -1 left). At equal x this is the attacker's facing: the defender, standing
+# in front of the attacker, is pushed out the front.
+static func direction_away_from(attacker: FighterBase, defender: FighterBase) -> float:
+	return -relative_side(attacker, defender)
+
+# True when `target` stands in front of `attacker` (on the side `attacker`
+# faces). At exactly equal x the target counts as in front.
+static func is_in_front_of(attacker: FighterBase, target: FighterBase) -> bool:
+	if attacker == null or target == null:
+		return false
+	return target.position.x == attacker.position.x \
+		or relative_side(target, attacker) == float(attacker.facing)
 
 # True when this fighter stands at a stage bound and `v` pushes into it.
 func _pinned_at_stage_wall(v: float) -> bool:
@@ -1281,7 +1324,7 @@ func _resolve_visual_clip() -> Dictionary:
 	# a wall) or crouch-blocking shows the guard pose instead of a frozen walk
 	# cel. This is presentation only — blocking, movement, and pushback are
 	# decided by the simulation exactly as before.
-	if bool(_clip_lib.GUARD_POSE) and grounded and is_holding_back() \
+	if bool(_clip_lib.GUARD_POSE) and grounded and is_holding_away_from() \
 			and state in [State.IDLE, State.WALK_B, State.CROUCH]:
 		if _down() or state == State.CROUCH:
 			return _clip_lib.state_clip("block_crouch")

@@ -10,9 +10,9 @@ var failures := 0
 
 func _initialize() -> void:
 	scene = load("res://scenes/match/MatchRoot.tscn").instantiate()
-	# These combat checks use Bus Stop's authored floor (150) and bounds; select
+	# These combat checks use Gas-N-Go's authored floor (158) and bounds; select
 	# it by resource path instead of relying on roster order.
-	scene.selected_stage = load("res://resources/stages/bus_stop_night.tres")
+	scene.selected_stage = load("res://resources/stages/gas_n_go.tres")
 	root.add_child(scene)
 	_run.call_deferred()
 
@@ -38,8 +38,8 @@ func _press(action: String) -> void:
 
 
 func _reset_fighters(p1_x: float, p2_x: float) -> void:
-	p1.position = Vector2(p1_x, 150)
-	p2.position = Vector2(p2_x, 150)
+	p1.position = Vector2(p1_x, 158)
+	p2.position = Vector2(p2_x, 158)
 	p1.velocity = Vector2.ZERO
 	p2.velocity = Vector2.ZERO
 	p1.facing = 1
@@ -180,7 +180,7 @@ func _run() -> void:
 			and p2.idle_sprite.texture == richard_walk_tex and p2.idle_sprite.frame == 0
 			and p1.visual_root.position != Vector2.ZERO
 			and p2.visual_root.position == Vector2.ZERO
-			and p1.position == Vector2(100, 150) and p2.position == Vector2(200, 150)
+			and p1.position == Vector2(100, 158) and p2.position == Vector2(200, 158)
 			and p1.pushbox_rect().position == p1_box_before.position
 			and p1.pushbox_rect().size == p1_box_before.size
 			and p2.pushbox_rect().position == p2_box_before.position
@@ -215,7 +215,7 @@ func _run() -> void:
 		"idle=%s cutout=%s" % [str(p1.idle_sprite.visible), str(p1.character_sprite.visible)])
 	var idle_box := p1.pushbox_rect()
 	_check("idle does not move combat boxes",
-		idle_box.position == Vector2(100 - p1.body_width * 0.5, 150 - p1.body_height)
+		idle_box.position == Vector2(100 - p1.body_width * 0.5, 158 - p1.body_height)
 			and idle_box.size == Vector2(p1.body_width, p1.body_height),
 		str(idle_box))
 	var sync_frame := p1.idle_sprite.frame
@@ -349,7 +349,7 @@ func _run() -> void:
 	await _step(1)
 	Input.action_release("p1_up")
 	await _step(6)
-	_check("jump leaves the ground", p1.position.y < 150.0, "y=%.1f" % p1.position.y)
+	_check("jump leaves the ground", p1.position.y < 158.0, "y=%.1f" % p1.position.y)
 	await _step(40)
 
 	# --- 6. P2 input map ---
@@ -410,7 +410,7 @@ func _run() -> void:
 	p2.health = 1.0
 	p1._start_move(light)
 	await _step(60)
-	_check("KO loser lands on stage", is_equal_approx(p2.position.y, 150.0) and p2.grounded,
+	_check("KO loser lands on stage", is_equal_approx(p2.position.y, 158.0) and p2.grounded,
 		"y=%.1f grounded=%s" % [p2.position.y, p2.grounded])
 	_check("KO state persists after landing", p2.state == FighterBase.State.KO,
 		"state=%d" % p2.state)
@@ -690,7 +690,7 @@ func _run() -> void:
 	# the descent 1.25/1.5/1.75/2.0/2.25 px over five frames, then 2.5 on the
 	# sixth, so the throw's first active frame (5) brushes an airborne defender
 	# and the second (6) sees them land.
-	p2.position = Vector2(120, 150.0 - 11.25)
+	p2.position = Vector2(120, 158.0 - 11.25)
 	p2.velocity = Vector2(0, 60.0)
 	p2.grounded = false
 	p2._force_state(FighterBase.State.JUMP_FALL)
@@ -787,7 +787,7 @@ func _run() -> void:
 	scene._start_fight()
 	_reset_fighters(100, 120)
 	# Same descent as test 20: frame 5 brushes an airborne defender, frame 6 lands.
-	p2.position = Vector2(120, 150.0 - 11.25)
+	p2.position = Vector2(120, 158.0 - 11.25)
 	p2.velocity = Vector2(0, 60.0)
 	p2.grounded = false
 	p2._force_state(FighterBase.State.JUMP_FALL)
@@ -1115,7 +1115,7 @@ func _run() -> void:
 	_reset_fighters(100, 120)
 	p2.input_enabled = false
 	p2.input_buffer["grab"] = 1
-	p2.position = Vector2(120, 150.0 - 11.25)
+	p2.position = Vector2(120, 158.0 - 11.25)
 	p2.velocity = Vector2(0, 60.0)
 	p2.grounded = false
 	p2._force_state(FighterBase.State.JUMP_FALL)
@@ -2335,8 +2335,8 @@ func _run() -> void:
 	var rich_dfd: FighterBase = p1
 	rich_atk.input_enabled = false
 	rich_dfd.input_enabled = false
-	rich_atk.position = Vector2(100.0, 150.0)
-	rich_dfd.position = Vector2(128.0, 150.0)
+	rich_atk.position = Vector2(100.0, 158.0)
+	rich_dfd.position = Vector2(128.0, 158.0)
 	rich_atk.facing = 1
 	rich_dfd.facing = -1
 	var rich_base: MoveData = rich_atk.data.find_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
@@ -3041,7 +3041,7 @@ func _run() -> void:
 	p1._transient_clip_key = "crouch_up_transient"
 	p1._transient_clip_tick = 3
 	p1._ko_grounded_frame = 9
-	p1.begin_round(Vector2(100, 150), 200.0)
+	p1.begin_round(Vector2(100, 158), 200.0)
 	_check("round reset clears presentation-clip playback state",
 		p1._transient_clip_key == "" and p1._transient_clip_tick == 0
 			and p1._ko_grounded_frame == 0 and p1._active_clip.is_empty(),

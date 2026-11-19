@@ -7,16 +7,16 @@ who turns sidewalk chaos into a rigged tournament.**
 [![export](https://github.com/violentwave/sidewalk-showdown/actions/workflows/export.yml/badge.svg)](https://github.com/violentwave/sidewalk-showdown/actions/workflows/export.yml)
 
 <p align="center">
-  <img src="docs/assets/screenshot-match.png" alt="Peg Leg Peggy vs Whiskey Richard on the Bus Stop at night, mid-round HUD" width="860">
+  <img src="docs/assets/screenshot-match.png" alt="Peg Leg Peggy vs Whiskey Richard on the Bus Stop, mid-round HUD" width="860">
 </p>
 
 | The Clip — intro | Select mode | Choose your fighter |
 |---|---|---|
 | <img src="docs/assets/screenshot-the-clip.png" alt="The Clip comic intro, panel 1" width="280"> | <img src="docs/assets/screenshot-mode-select.png" alt="Mode select with 1 Player and 2 Players options" width="280"> | <img src="docs/assets/screenshot-character-select.png" alt="Character select with Peggy and Richard" width="280"> |
 
-| Choose your stage | Gas-N-Go, mid-round |
-|---|---|
-| <img src="docs/assets/screenshot-stage-select.png" alt="Stage select with Gas-N-Go, Bus Stop at night, and Random cards" width="430"> | <img src="docs/assets/screenshot-gas-n-go.png" alt="Peg Leg Peggy vs Whiskey Richard in front of the Everglades Gas-N-Go" width="430"> |
+| Choose your stage | Gas-N-Go, mid-round | Bus Stop, mid-round |
+|---|---|---|
+| <img src="docs/assets/screenshot-stage-select.png" alt="Stage select with Gas-N-Go, Bus Stop, and Random cards" width="280"> | <img src="docs/assets/screenshot-gas-n-go.png" alt="Peg Leg Peggy vs Whiskey Richard in front of the Everglades Gas-N-Go" width="280"> | <img src="docs/assets/screenshot-bus-stop.png" alt="Peg Leg Peggy vs Whiskey Richard in front of the lit Bus Stop liquor store and shelter fire" width="280"> |
 
 | | |
 |---|---|
@@ -32,11 +32,12 @@ who turns sidewalk chaos into a rigged tournament.**
 - **Solo and local versus** — pick `1 PLAYER` to choose both fighters and test
   P1 against an idle P2, or `2 PLAYERS` for Peg Leg Peggy vs Whiskey Richard.
   After the fighters, a shared **stage select** offers Everglades Gas-N-Go, the
-  Bus Stop at night, and a RANDOM card that resolves before the match. P1 uses
+  Bus Stop, and a RANDOM card that resolves before the match. P1 uses
   keyboard + mouse; P2 uses a controller.
-- **Two stages with ambience** — Gas-N-Go scrolls clouds, loops mosquitoes in
-  the upper sky, and breathes/blinks a sunbathing gator; Bus Stop keeps its
-  night painting. Ambient motion freezes with the pause menu and keeps running
+- **Two layered stages with ambience** — Gas-N-Go scrolls clouds, loops
+  mosquitoes in the upper sky, and breathes/blinks a sunbathing gator; Bus Stop
+  scrolls its own clouds, loops a four-frame shelter fire, and flickers the
+  liquor sign. Ambient motion freezes with the pause menu and keeps running
   through hitstop ([`docs/STAGES.md`](docs/STAGES.md)).
 - **Authored sprite animation** — both fighters play per-state and per-move
   clips from the owner's PixelLab batch: jumps, walks, guard, hit reactions,
@@ -67,11 +68,12 @@ godot --headless --path game --script res://tests/combat_test.gd
 godot --headless --path game --script res://tests/round_flow_test.gd
 godot --headless --path game --script res://tests/character_select_test.gd
 godot --headless --path game --script res://tests/stage_select_test.gd
+godot --headless --path game --script res://tests/stage_floor_test.gd
 godot --headless --path game --script res://tests/the_clip_test.gd
 ```
 
 Current suites: **combat 343 checks**, round flow 34, character select 49,
-stage select 43, The Clip 23 — all green in CI (`tests.yml`). `tests/air_probe.gd`
+stage select 94, stage floor 9, The Clip 23 — all green in CI (`tests.yml`). `tests/air_probe.gd`
 prints balance metrics and asserts nothing.
 
 ## Controls

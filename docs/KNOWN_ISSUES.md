@@ -48,8 +48,8 @@ finding is not considered fixed merely because an older suite passes.
 B5 (air momentum), B8 (implicit-scaling, partially addressed by authored
 cancel routes in PR 2), and B9 (hurt/push alias) remain
 source-confirmed audit observations; B5 was not re-probed at this baseline.
-B6 (landing discards whiff meter) — FIXED. Commit e8a2e68 in the
-feat/pause-return branch now calls finish_move_whiff() in _landing_check() when
+B6 (landing discards whiff meter) — FIXED. Landed on main in PR #57
+(`03f55b7`): finish_move_whiff() now runs in _landing_check() when
 a still-running air move is interrupted by touchdown, awarding the authored
 meter_gain_whiff (1.5) instead of dropping it. Covered by
 b6_landing_whiff_test.gd which verifies the meter is awarded (meter=1.5) and the
@@ -415,14 +415,24 @@ These are measured or first-pass limits, not phase-exit validation.
   return to select (match torn down, solo/mode and matchup restored, music
   switched back), stage restore on re-confirm, a fresh match from the restored
   screen, temporary music/SFX playback, and impact/block cue routing.
-- `game/tests/stage_select_test.gd` — **43 checks**: stable stage ids,
+- `game/tests/stage_select_test.gd` — **94 checks**: stable stage ids,
   descriptions, scenes, and 80x45 thumbnails; RANDOM last; restore by stage id;
   wrap-around and controller navigation; Backspace back-out; RANDOM resolving to
-  a recorded concrete roster stage; Gas-N-Go arena geometry, pause mode, layer
-  order and native scales; mosquitoes above fighters but clear of the fight;
-  cloud speed/wrap, 8 fps wingbeat, gator breath/blink, debug freeze, and pixel
-  snapping; MatchRoot's `roster.stages[0]` fallback and its safe stop on an empty
-  roster or a stage with no scene.
+  a recorded concrete roster stage; both stage thumbnails shown; Gas-N-Go arena
+  geometry, pause mode, layer order and native scales; mosquitoes above fighters
+  but clear of the fight; cloud speed/wrap, 8 fps wingbeat, gator breath/blink,
+  debug freeze, and pixel snapping; Bus Stop's unchanged id and new display
+  name, arena geometry, layer order/positions/native sizes, fire in the
+  foreground z-band, four 8 fps fire frames with jitter, lit/dead sign frames,
+  random dropout and relight, freeze, and pixel snapping; MatchRoot's
+  `roster.stages[0]` fallback and its safe stop on an empty roster or a stage
+  with no scene.
+- `game/tests/stage_floor_test.gd` — **9 checks**: every roster stage's
+  `floor_y` sits inside its measured walkable ground band and is pinned to the
+  art-verified contact value (Gas-N-Go 158, Bus Stop 170), with bounds and
+  spawns coherent around it. The pins exist because floor_y must match where
+  the stage art's objects meet the ground, not a shared convention (see the
+  "Choosing floor_y" section of `docs/STAGES.md`).
 - `game/tests/the_clip_test.gd` — **23 checks**: installed art slots, lossless
   split text, panel-10 art visibility/aspect fit, deprecated hold values/copy,
   owner-script canon guards, panel ordering, boot-to-intro, Space-only
@@ -446,7 +456,8 @@ These are measured or first-pass limits, not phase-exit validation.
   documents the coarse grid, before/after metrics, and target limitations. Its
   numbers are informational measurements, not passing balance assertions.
 - `.github/workflows/tests.yml` runs the combat, round-flow,
-  mode/character-select, and intro suites plus the air probe on push, pull
+  mode/character-select, stage-select/ambience, stage-floor-guard, and intro
+  suites plus the air probe on push, pull
   request and manual dispatch.
   They are separate jobs in one workflow; parallel
   execution does not make a job non-gating. A non-zero command or job failure in

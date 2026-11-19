@@ -51,13 +51,21 @@ func _build_match(p1_path: String, p2_path: String, stage_path: String,
 	mroot.p2_cpu = p2_cpu
 	mroot.cpu_level = level
 	mroot.cpu_seed = seed
+	# Disable engine ticking BEFORE the match enters the tree: the number of
+	# engine physics ticks between add_child and the awaits below is machine
+	# timing, and any of them advancing the match would make builds (and so
+	# cross-run comparisons) nondeterministic. The match only ever steps
+	# manually from here on.
+	mroot.set_physics_process(false)
 	root.add_child(mroot)
 	# _ready (stage, fighters, CPUs) lands on the next frame tick.
 	await process_frame
 	await process_frame
-	mroot.set_physics_process(false)
 	mroot.p1.set_physics_process(false)
 	mroot.p2.set_physics_process(false)
+	# Erase any engine ticks the fighters may have taken during the awaits.
+	mroot.p1.reset_state()
+	mroot.p2.reset_state()
 	if mroot.cpu_p1 != null:
 		mroot.cpu_p1.manual_mode = true
 	if mroot.cpu_p2 != null:
@@ -332,16 +340,17 @@ func _scripted_jumpover(mroot: Node) -> Array:
 	return script
 
 func _blocking_order() -> void:
+	# Seeds fixed so the ordering assertion is stable rather than lucky.
 	var scenarios: Array = [
-		["frontal", _scripted_frontal],
-		["pass-through", _scripted_passthrough],
-		["jump-over cross-up", _scripted_jumpover],
+		["frontal", _scripted_frontal, 31337],
+		["pass-through", _scripted_passthrough, 31337],
+		["jump-over cross-up", _scripted_jumpover, 4711],
 	]
 	for entry in scenarios:
 		var name: String = entry[0]
 		var scripted: Callable = entry[1]
-		var easy: int = await _block_count(0, 31337, scripted)
-		var hard: int = await _block_count(2, 31337, scripted)
+		var easy: int = await _block_count(0, entry[2], scripted)
+		var hard: int = await _block_count(2, entry[2], scripted)
 		_check("HARD defends more than EASY against %s attacks" % name,
 			hard > easy + 1, "easy=%d hard=%d" % [easy, hard])
 

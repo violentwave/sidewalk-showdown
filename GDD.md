@@ -726,7 +726,10 @@ Local 1v1 mode.
 Features:
 
 - player vs player
-- player vs CPU
+- player vs CPU *(implemented in the slice: deterministic CPU opponent with
+  EASY/NORMAL/HARD data tuning, selected on a solo difficulty screen after
+  1 PLAYER — see [`docs/CPU_OPPONENT.md`](docs/CPU_OPPONENT.md); a debug
+  flag can CPU-control both fighters for AI-vs-AI soak tests)*
 - stage select
 - round settings
 - timer settings

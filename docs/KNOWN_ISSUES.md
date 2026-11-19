@@ -256,10 +256,12 @@ that section by hand afterward — the simulation step comes from
   basic hit/block/UI/round/KO/METHtality cues are wired; confirm MP3 usage rights
   before public release. Tripp voice, crowd, hit sparks, screen shake,
   spatial/priority mixing, and the full GDD §12 SFX list remain.
-- **No CPU AI.** A 1-player match exists (P1 picks both fighters) but the P2
-  fighter spawns with input disabled and simply stands there, so solo is a
-  practice/test mode rather than a real single-player match. GDD Phase 3 lists
-  CPU AI as the remaining opponent work.
+- **CPU depth is v0.1-level.** The solo P2 is now a real CPU opponent with
+  three difficulty levels ([`docs/CPU_OPPONENT.md`](CPU_OPPONENT.md)), but its
+  toolkit is deliberately simple: no fuzzy guard logic, no spacing
+  neutral-game, no character-specific gameplans, and difficulty is data-tuned
+  rates rather than distinct strategies. It plays a fair, readable match; it
+  is not a tournament opponent.
 - **METHtality presentation is minimal.** The trigger, spend and KO win are
   real, but the finisher is a single point-blank hit with a long freeze and a
   banner — no cinematic, camera, or choreography yet. The 30f freeze is a

@@ -80,7 +80,7 @@ phase exit criteria:
   blocking and round flow work, and the match can end/restart.
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
-  The current suites contain 382 combat, 34 round-flow, 49 mode/character-select
+  The current suites contain 407 combat, 34 round-flow, 49 mode/character-select
   integration, 7 locomotion-speed, 94 stage-select/ambience, 9 stage-floor, and
   23 intro checks. K1, R1, corner separation, bounded hitstop
   buffer freeze, and the
@@ -155,7 +155,7 @@ phase exit criteria:
   the opponent and freezes outside grounded neutral states, airborne fighters
   cross over the pushbox (jump-over), knockback/blocking/motion inputs are
   facing-relative, and the Smash-style walk-through `fighters_can_pass_through`
-  flag exists shipped off (`docs/SIDE_SWITCHING.md`).
+  flag ships ON (legacy pushbox via `false`; `docs/SIDE_SWITCHING.md`).
   Remaining work: a throw cinematic (for `throw_target`), polished
   stage/fighter art, voiced/full commentary, a broader SFX pass,
   and the fighter-specific mini route. The final-round finish prompt,

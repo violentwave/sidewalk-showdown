@@ -30,43 +30,80 @@ All directional logic is facing-relative; physical bindings and the pad policy
 
 - Walking: the axis multiplied by `facing` decides WALK_F vs WALK_B and the
   walk speed. Pressing toward the opponent walks forward.
-- Blocking: back-hold relative to the **defender's facing at the moment of the
-  hit**. Block is evaluated live in `receive_hit()` via `is_holding_back()`.
+- Blocking: back-hold relative to the **attacker's side at the moment of the
+  hit**, evaluated live in `receive_hit()` via
+  `is_holding_away_from(attacker)` through the shared
+  `FighterBase.relative_side()` helper — **not** the defender's facing. A
+  cross-up that lands behind a defender whose facing is frozen (any stun, or
+  the same frame as the cross) is blocked by holding the position axis that
+  points away from the attacker now: holding the old back direction fails.
 - Specials: `SPECIAL_FWD` / `SPECIAL_BACK` / `SPECIAL_DOWN` motions mirror with
   facing; the forward-EX punish route is a forward-held command relative to
   facing. Grab's forward/neutral selection is facing-relative too.
 
 Cross-up consequence: a grounded defender in a neutral state auto-faces the
-airborne attacker as they cross overhead, so the old back key is now *forward* —
-a cross-up must be blocked by re-holding the key that is back on the new side.
-If the defender is already in blockstun, facing is frozen, so the same held key
-keeps blocking until the stun ends; the block direction never flips early.
+attacker, so while they are free to turn, "away from the attacker" and "back on
+my facing" agree. The two disagree exactly when the defender cannot re-face —
+stun states, or the attacker crossing on the impact frame itself — and that is
+when the side helper, not facing, decides the block.
+
+## Facing hysteresis
+
+A fighter turns to face the opponent only once the opponent is more than
+`FighterBase.facing_deadzone_px` (default **4 px**, exported, settable)
+orthogonal of center away. Inside the band the current facing is kept, so two
+fighters standing inside each other under pass-through cannot flicker left and
+right every frame (`§49b`). Beyond the band the flip is immediate and lands on
+the first neutral frame (`§49c`).
 
 ## Knockback and throws
 
 Hits, blocks, throws, and KO launches push the defender **positionally away
-from the attacker** (`_direction_away_from()`), using the attacker's position at
-the moment of the hit. At exactly equal x, the attacker's facing is the
-tie-break. Tech pushes are positional too. This stays correct after a swap
-without any special-casing.
+from the attacker** (`FighterBase.direction_away_from()`), using the attacker's
+position at the moment of the hit. At exactly equal x the defender is treated
+as standing in front of the attacker, so the away direction **is the attacker's
+facing**. Tech pushes are positional too, from the same helper. This stays
+correct after a swap without any special-casing.
+
+Throws connect only **in front of the thrower** and only within the authored
+throw range (`FighterBase.is_in_front_of()`): at exactly equal x a throw counts
+as in front and connects. A throw against someone behind the thrower whiffs
+without consuming the active window, and cannot be tech'd (the side gate runs
+before the tech gate in both `_poll_hit` and `receive_hit`).
 
 ## Crossover
 
-- **Default (`fighters_can_pass_through = false`):** pushbox separation in
-  `MatchRoot._separate_pushboxes()` runs only when **both** fighters are
-  grounded. Airborne fighters pass through the grounded opponent's pushbox, so
-  the classic jump-over works; on the ground the bodies still repel and a
-  fighter cannot walk through the other. When a fighter lands overlapping the
-  opponent, the first frame both are grounded separates them along x using the
-  existing pushbox resolution (shared correction, corner transfer at the wall):
-  no teleporting, at most one body-width of settling.
-- **Walk-through (`fighters_can_pass_through = true`, exported on MatchRoot,
-  shipped off):** Smash-style bodies. Grounded fighters walk straight through
-  each other; silhouettes overlap instead of bumping. Combat is otherwise
-  identical — hits, throws, and knockback still resolve positionally, so two
-  fighters stacked on one spot push each other away on the next connection.
+- **Walk-through default (`fighters_can_pass_through = true`, exported on
+  MatchRoot):** Smash-style bodies. Fighters do not collide at all — no
+  pushbox separation on the ground or in the air, and no auto-shove when they
+  overlap; silhouettes overlap instead of bumping. Combat is otherwise
+  identical — hits, throws, and knockback still resolve positionally from the
+  shared side helper, so two fighters stacked on one spot push each other away
+  on the next connection.
+- **Legacy mode (`fighters_can_pass_through = false`):** pushbox separation in
+  `MatchRoot._separate_pushboxes()` runs when **both** fighters are grounded.
+  Airborne fighters pass through the grounded opponent's pushbox, so the
+  classic jump-over works either way; on the ground the bodies repel and a
+  fighter cannot walk through the other. A fighter landing overlapping the
+  opponent is separated on the first frame both are grounded along x (shared
+  correction, corner transfer at the wall): no teleporting, at most one
+  body-width of settling.
 - **Equal x on separation:** the lower player slot is the left body (fixed
   rule, independent of node order), matching the overlay's equal-x label.
+
+## Counter-hits, trades, and draw order
+
+Counter hits and trades are **state facts**, never position or slot facts:
+`MatchRoot._resolve_hits()` polls both fighters' moves first and applies them
+together, and a counter is credited when the defender is in its own startup
+while the exchange is not a trade. Neither depends on which fighter is P1.
+
+Draw order when bodies overlap is deterministic (`MatchRoot._update_draw_order()`,
+recomputed every frame from state alone): an attacker in active or recovery
+frames draws above the other fighter; otherwise the fixed P1-under-P2 slot
+order stands, so overlapping fighters never flicker. The HUD is unaffected.
+
+## Walls, bounds, and state storage
 - **Walls and bounds are unchanged.** A cornered fighter can be crossed over
   by a jump; the crossing fighter lands at the stage bound *beside* the
   cornered body and separation then pushes them apart rather than beyond the

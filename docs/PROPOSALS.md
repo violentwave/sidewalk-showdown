@@ -406,8 +406,9 @@ it looked:
 2. **Landing cancels the move.** `_landing_check()` clears `current_move` and drops
    `ATTACK → LAND` (2 frames) on touchdown. Air moves therefore have *no* landing
    recovery — the authored 13–16 recovery frames only matter if the move finishes
-   in the air, which at these speeds it usually does not. With `jump_speed` 285 and
-   `gravity` 900, Peggy's jump lasts ~38 frames (apex ~19, ~45 px high), so an air
+   in the air, which at these speeds it usually does not. With `jump_speed` 285
+   (now shared by Richard for equal locomotion) and `gravity` 900, Peggy's jump
+   lasts ~38 frames (apex ~19, ~45 px high), so an air
    special started near the apex finishes well before landing and a whiffed one
    costs only the 2-frame LAND.
 

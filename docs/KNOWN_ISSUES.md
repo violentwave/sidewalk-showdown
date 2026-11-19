@@ -433,6 +433,10 @@ These are measured or first-pass limits, not phase-exit validation.
   spawns coherent around it. The pins exist because floor_y must match where
   the stage art's objects meet the ground, not a shared convention (see the
   "Choosing floor_y" section of `docs/STAGES.md`).
+- `game/tests/locomotion_speed_test.gd` — **7 checks**: Richard's
+  locomotion parity with Peggy — both walk directions match and pin the
+  authored values (95 forward, 72 back), jump speed matches with 285 pinned,
+  and a fixed-length walk covers the same distance.
 - `game/tests/the_clip_test.gd` — **23 checks**: installed art slots, lossless
   split text, panel-10 art visibility/aspect fit, deprecated hold values/copy,
   owner-script canon guards, panel ordering, boot-to-intro, Space-only

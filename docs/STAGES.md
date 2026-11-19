@@ -51,14 +51,34 @@ the `The Clip` comic fallback for a few panels; the match never loads it.)
 | Data | `game/resources/stages/bus_stop_night.tres` |
 | Stable id | `bus_stop_night` (unchanged; saved selections depend on it) |
 | Display name | `Bus Stop` |
-| Floor / bounds | `floor_y = 158`, `left_bound = 24`, `right_bound = 296` |
+| Floor / bounds | `floor_y = 170`, `left_bound = 24`, `right_bound = 296` |
 | Spawns | P1 x = 110, P2 x = 210 |
 | Selector thumbnail | `game/art/stages/bus_stop/thumbnail.png`, 80x45 |
 
-The sidewalk art covers rows 148-180, so `floor_y = 158` puts the fighters'
-feet in the middle of the walkable strip, matching Gas-N-Go. The bounds and
-spawns are the same authored values as Gas-N-Go, so spacing and camera framing
-stay consistent between the stages.
+The sidewalk art covers rows 148-180, but the art's contact line is *not* the
+strip's top edge: the shelter posts bottom out at about row 171, the liquor
+sign's pole base at about row 172, and the bench legs at about row 173. So
+Bus Stop runs `floor_y = 170` — fighters' feet rest on the sidewalk at the same
+level where the shelter's posts, the sign pole, and the bench meet the ground.
+Gas-N-Go keeps its own `floor_y = 158` because its storefront/dirt contact sits
+higher; floor_y is per-stage art measurement, not a shared convention. Bounds
+and spawns are the same authored values as Gas-N-Go, so spacing and camera
+framing stay consistent between the stages.
+
+### Choosing floor_y
+
+Never copy floor_y from another stage. Choose it per stage:
+
+1. Measure where the art's objects actually meet the ground on the **foreground
+   layer**: the bottom rows of sign poles, shelter posts, bench legs, and
+   storefront bases (Bus Stop's contact line is rows 168-173; its walkable
+   sidewalk band starts at row 148).
+2. Remember the fighters' sprite origin is their feet (`FighterBase.IDLE_ANCHOR`
+   maps the in-sheet feet pixel onto the origin), so `floor_y` is the feet row.
+3. Pick the value that puts the feet exactly on that contact line (Bus Stop:
+   170), verify with a 320x180 capture (see `docs/assets/bus-stop-floor-*.png`),
+   and pin it in `game/tests/stage_floor_test.gd`, which guards every roster
+   stage's floor_y against its measured walkable band.
 
 ### Draw order
 

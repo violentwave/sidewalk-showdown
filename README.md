@@ -76,7 +76,7 @@ godot --headless --path game --script res://tests/stage_floor_test.gd
 godot --headless --path game --script res://tests/the_clip_test.gd
 ```
 
-Current suites: **combat 378 checks**, round flow 34, character select 49,
+Current suites: **combat 382 checks**, round flow 34, character select 49,
 locomotion speed 7, stage select 94, stage floor 9, The Clip 23 — all green in CI (`tests.yml`). `tests/air_probe.gd`
 prints balance metrics and asserts nothing.
 

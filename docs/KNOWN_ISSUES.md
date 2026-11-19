@@ -366,7 +366,7 @@ These are measured or first-pass limits, not phase-exit validation.
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **378 checks**: distinct Peggy/Richard sheet
+- `game/tests/combat_test.gd` — **382 checks**: distinct Peggy/Richard sheet
   artwork in walk states, the authored idle sheet (selection, visibility, cel
   cadence, wrap, hitstop/pause freeze, re-entry reset, facing pivot, and the
   missing-art fallback), unchanged combat boxes, clean hits and

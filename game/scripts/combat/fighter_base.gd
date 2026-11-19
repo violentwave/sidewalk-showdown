@@ -1086,7 +1086,7 @@ func can_auto_turn() -> bool:
 # How far past the opponent's center (px) a fighter must be before it turns.
 # Symmetric band = hysteresis: once facing right, a fighter keeps facing right
 # until the opponent is more than this far to the left. Set to 0 for the
-# deadzon-free legacy behavior.
+# deadzone-free legacy behavior.
 @export var facing_deadzone_px := 4.0
 
 func _update_facing() -> void:

@@ -39,8 +39,7 @@ the upper sky (bottom edge under y = 100), clear of the fight area.
 
 The old 1024x1024 night painting, its `0.3125` scale, and its night modulate are
 gone from the stage. Bus Stop is now the same kind of native 320x180 layered
-scene as Gas-N-Go. (`game/art/stages/bus_stop/BusStopNight.png` remains only as
-the `The Clip` comic fallback for a few panels; the match never loads it.)
+scene as Gas-N-Go.
 
 | Property | Value |
 |---|---|

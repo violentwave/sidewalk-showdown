@@ -698,16 +698,15 @@ numbers, read from `MoveData` and verified as **not overridden** in either
 
 | Event | Gain | Notes |
 |---|---|---|
-| Attacker lands a hit | **+6** | `meter_gain_hit` default on every move |
-| Attacker gets a hit blocked | **+3** | `meter_gain_block` |
-| Attacker's move whiffs | **+1.5** | `meter_gain_whiff`, paid at the move's end |
-| Defender is hit or blocks | **+4** | `meter_gain_receive` |
+| Attacker lands a hit | **+6** | `meter_gain_hit` default on every move (throws included) |
+| Attacker gets a hit blocked | **+0** | `meter_gain_block` scaled by `METER_GAIN_ON_BLOCK_SCALE`, 0.0 by default |
+| Attacker's move whiffs | **+0** | `meter_gain_whiff` is authored data but never awarded |
+| Defender is hit or blocks | **+0** | `meter_gain_receive` is authored data but never awarded |
 
-`max_meter = 100` (`FighterBase`), so a full bar is about **17 clean hits**, or a
-typical round: roughly 10 hits landed and 10 taken per fighter gives 60 + 40 =
-**one full bar per round**, before whiff income. That makes a 50-cost spender
-land about twice per match — strong enough to matter, rare enough to read as a
-moment.
+`max_meter = 100` (`FighterBase`), so a full bar is about **17 clean hits**.
+With the landed-hits-only economy (2026-11-18) there is no defender-side or
+whiff income, so a 50-cost spender needs a genuinely dominant round — strong
+enough to matter, rare enough to read as a moment.
 
 ### Design
 

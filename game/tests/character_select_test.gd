@@ -224,8 +224,15 @@ func _run() -> void:
 		"index=%d" % (solo_main.mode_select.index if solo_main.mode_select != null else -1))
 	_press(solo_main.mode_select, "p1_light")
 	await process_frame
+	_check("solo mode opens the CPU difficulty screen after 1 PLAYER",
+		solo_main.difficulty_select != null
+			and solo_main.difficulty_select.index == 1,
+		"difficulty=%s index=%d" % [str(solo_main.difficulty_select != null),
+			solo_main.difficulty_select.index if solo_main.difficulty_select != null else -1])
+	_press(solo_main.difficulty_select, "p1_light")
+	await process_frame
 	var solo_select: Control = solo_main.character_select
-	_check("confirming 1 PLAYER reaches character select in solo mode",
+	_check("confirming the difficulty reaches character select in solo mode",
 		solo_select != null and solo_select.solo and solo_main.mode_select == null,
 		"select=%s solo=%s" % [str(solo_select != null),
 			str(solo_select.solo if solo_select != null else false)])
@@ -273,15 +280,19 @@ func _run() -> void:
 				and solo_main.match_root.p2.data.display_name == "Peg Leg Peggy",
 			"fighters=%s / %s" % [solo_main.match_root.p1.data.display_name,
 				solo_main.match_root.p2.data.display_name])
-		_check("solo mode marks P2 as non-human",
-			solo_main.match_root.p2_human == false,
-			"p2_human=%s" % str(solo_main.match_root.p2_human))
+		_check("solo mode marks P2 as non-human and hands it to the CPU",
+			solo_main.match_root.p2_human == false
+				and solo_main.match_root.p2_cpu == true,
+			"p2_human=%s p2_cpu=%s" % [str(solo_main.match_root.p2_human),
+				str(solo_main.match_root.p2_cpu)])
 		await _step(65) # let the round intro finish
-		_check("solo mode enables P1 input and leaves P2 input disabled",
+		_check("solo mode enables P1 input and routes P2 input to the CPU",
 			solo_main.match_root.p1.input_enabled
-				and not solo_main.match_root.p2.input_enabled,
-			"p1=%s p2=%s" % [str(solo_main.match_root.p1.input_enabled),
-				str(solo_main.match_root.p2.input_enabled)])
+				and solo_main.match_root.p2.input_enabled
+				and solo_main.match_root.cpu_p2 != null,
+			"p1=%s p2=%s cpu=%s" % [str(solo_main.match_root.p1.input_enabled),
+				str(solo_main.match_root.p2.input_enabled),
+				str(solo_main.match_root.cpu_p2 != null)])
 
 		# --- pause -> BACK TO CHARACTER SELECT ends the match ---
 		var leaving: Node = solo_main.match_root

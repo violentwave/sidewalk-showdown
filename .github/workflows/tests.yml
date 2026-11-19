@@ -30,6 +30,8 @@ jobs:
         run: godot --headless --path game --script res://tests/stage_floor_test.gd
       - name: Locomotion speed-parity tests
         run: godot --headless --path game --script res://tests/locomotion_speed_test.gd
+      - name: CPU opponent tests
+        run: godot --headless --path game --script res://tests/cpu_test.gd
       - name: The Clip intro tests
         run: godot --headless --path game --script res://tests/the_clip_test.gd
 

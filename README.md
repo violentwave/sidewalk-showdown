@@ -29,11 +29,14 @@ who turns sidewalk chaos into a rigged tournament.**
 
 - **The Clip** — a 15-panel comic intro that leads into mode select, with
   Space-only advancement and a complete skip path.
-- **Solo and local versus** — pick `1 PLAYER` to choose both fighters and test
-  P1 against an idle P2, or `2 PLAYERS` for Peg Leg Peggy vs Whiskey Richard.
+- **Solo and local versus** — pick `1 PLAYER`, choose the CPU difficulty
+  (EASY / NORMAL / HARD), then pick both fighters and fight the CPU as P2, or
+  `2 PLAYERS` for Peg Leg Peggy vs Whiskey Richard.
   After the fighters, a shared **stage select** offers Everglades Gas-N-Go, the
   Bus Stop, and a RANDOM card that resolves before the match. P1 uses
-  keyboard + mouse; P2 uses a controller.
+  keyboard + mouse; P2 uses a controller in versus. The CPU opponent is
+  deterministic and plays by the exact same input rules as a human — see
+  [`docs/CPU_OPPONENT.md`](docs/CPU_OPPONENT.md).
 - **Two layered stages with ambience** — Gas-N-Go scrolls clouds, loops
   mosquitoes in the upper sky, and breathes/blinks a sunbathing gator; Bus Stop
   scrolls its own clouds, loops a four-frame shelter fire, and flickers the
@@ -53,10 +56,11 @@ who turns sidewalk chaos into a rigged tournament.**
 - **Match structure** — rounds, timer, sudden death after repeated timeouts,
   KO flow, pause menu, and a text-only Tripp commentary sample.
 
-Not in yet: input remapping, CPU AI, campaign, stage rotation/tournament order,
-final audio/voice/VFX, and final art/cleaning for some clips. Because there is
-no CPU AI yet, the 1-player opponent stands idle: solo is for practice and
-testing P1, not a real single-player match. Online play is deferred beyond v0.1
+Not in yet: input remapping, campaign, stage rotation/tournament order,
+final audio/voice/VFX, and final art/cleaning for some clips. The solo CPU
+opponent is real (deterministic, three difficulties) but deliberately
+simple — no fuzzy guard, no character-specific gameplans; it is a fair
+sparring partner, not a tournament opponent. Online play is deferred beyond v0.1
 per GDD §2.4/§16.
 
 ## Quick start
@@ -91,9 +95,10 @@ METHtality finisher.
 After The Clip, **mode select** opens on `1 PLAYER` (solo) with `2 PLAYERS` one
 keypress away (W/S or A/D to move, J or click to start):
 
-- **1 PLAYER:** P1 picks their fighter, confirms, then picks the opponent with
-  the same keys. P2 spawns but stands idle — there is no CPU AI yet. Backspace
-  steps back one pick, then back to mode select.
+- **1 PLAYER:** choose the CPU difficulty (EASY / NORMAL / HARD, W/S or A/D,
+  J confirms, Backspace goes back), then P1 picks their fighter, confirms, and
+  picks the opponent with the same keys. P2 is played by the CPU at the chosen
+  difficulty. Backspace steps back one pick, then back to mode select.
 - **2 PLAYERS:** each player confirms their own fighter (P1 with J/click, P2 with
   pad X). Backspace on the P1 keyboard returns to mode select.
 

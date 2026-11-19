@@ -80,9 +80,9 @@ phase exit criteria:
   blocking and round flow work, and the match can end/restart.
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
-  The current suites contain 407 combat, 34 round-flow, 49 mode/character-select
-  integration, 7 locomotion-speed, 94 stage-select/ambience, 9 stage-floor, and
-  23 intro checks. K1, R1, corner separation, bounded hitstop
+  The current suites contain 407 combat, 34 round-flow, 50 mode/character-select
+  integration, 7 locomotion-speed, 94 stage-select/ambience, 9 stage-floor, 23
+  intro, and 27 CPU-opponent checks. K1, R1, corner separation, bounded hitstop
   buffer freeze, and the
   post-KO winner-state repair are covered. Non-METH strikes reject during
   knockdown; METH remains the K1
@@ -113,8 +113,10 @@ phase exit criteria:
   Space advances the current beat or panel (dense copy may take extra presses),
   Esc skips, and no timer advances the story. Procedural
   newsprint/halftone and bundled OFL comic fonts are used throughout. Mode
-  select (added 2026-11-17) offers 1 PLAYER or 2 PLAYERS: solo lets P1 pick both
-  fighters and spawns P2 with input disabled (no CPU AI yet), while versus keeps
+  select (added 2026-11-17) offers 1 PLAYER or 2 PLAYERS: solo sends P1 to a
+  difficulty pick (added 2026-11-19) and then lets P1 pick both fighters, with
+  P2 driven by the deterministic CPU opponent ([`CPU_OPPONENT.md`](CPU_OPPONENT.md)),
+  while versus keeps
   the two-player rules. The text-only character select (added 2026-11-11) lets
   each player pick from the approved cast and now hands off to a shared stage
   select (added 2026-11-17) with thumbnails, descriptions, and RANDOM last;
@@ -176,8 +178,9 @@ phase exit criteria:
   `FighterData`/`MoveData`, `.tres` resources, and the generator exist. Authored
   cancel routes, counter-hit detection (+2 hitstop and HUD feedback), juggle/OTG
   rules, launcher/EX routes, command grabs, match/round flow, and debug tools are
-  implemented. Mode select and character select choose the matchup (solo is
-  P1-picks-both with an idle P2 until CPU AI lands). As of 2026-11-16 cast and
+  implemented. Mode select and character select choose the matchup; solo runs
+  P1-picks-both against the CPU (EASY/NORMAL/HARD, 2026-11-19, data-tuned in
+  `resources/ai/cpu_*.tres` with a deterministic, serializable controller). As of 2026-11-16 cast and
   stage come from
   `resources/match_roster.tres` (`MatchRoster` → `Array[FighterData]` +
   `Array[StageData]`); `MatchRoot` builds the stage from `selected_stage.scene`

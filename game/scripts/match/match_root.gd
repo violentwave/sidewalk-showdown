@@ -33,8 +33,21 @@ var audio_manager
 var selected_p1_data: FighterData
 var selected_p2_data: FighterData
 var selected_stage: StageData
-# False in solo mode: P2 still spawns and can be hit, but never reads input.
+# False in solo mode: P2 still spawns and can be hit. With p2_cpu set, P2's
+# input is instead fed by the deterministic CpuController (docs/CPU_OPPONENT.md).
 @export var p2_human := true
+# Solo AI: P2 is driven by a CPU at cpu_level. p1_cpu is the debug AI-vs-AI
+# toggle (soak tests, balance capture); neither changes any combat rule — the
+# controllers press the same p<index>_* actions a human would.
+@export var p2_cpu := false
+@export var p1_cpu := false
+# 0 EASY, 1 NORMAL, 2 HARD (resources/ai/cpu_*.tres).
+@export var cpu_level := 1
+# 0 = derive once here from the global (non-gameplay) RNG and record it in
+# serialize(); replays/rollback pin it explicitly.
+@export var cpu_seed := 0
+var cpu_p1: CpuController
+var cpu_p2: CpuController
 # Smash-style walk-through: when true, fighters do not collide at all — no
 # pushbox separation on the ground or in the air, and no auto-shove when they
 # overlap. Side, blocking, knockback, and throw rules come from the shared
@@ -96,6 +109,7 @@ func _ready() -> void:
 	add_child(debug_overlay)
 	debug_overlay.bind(p1, p2)
 
+	_setup_cpus()
 	_begin_round()
 
 # Roster-driven setup: a caller may set any subset of the selections; anything
@@ -130,6 +144,29 @@ func _spawn_fighter(index: int, data: FighterData) -> FighterBase:
 	add_child(f)
 	return f
 
+# Create the CPU controllers. They tick at process_physics_priority -100, so
+# they observe only the previous, completed simulation frame and issue inputs
+# before the fighters poll them — the same frame a human's keypress would land.
+func _setup_cpus() -> void:
+	if not p2_cpu and not p1_cpu:
+		return
+	if cpu_seed == 0:
+		# Chosen once, before gameplay, with the engine RNG — recorded via
+		# serialize() so a replay can pin it.
+		cpu_seed = randi()
+	if p2_cpu:
+		cpu_p2 = _make_cpu(p2, p1, cpu_seed)
+	if p1_cpu:
+		cpu_p1 = _make_cpu(p1, p2, cpu_seed ^ 0x9E3779B9)
+
+func _make_cpu(who: FighterBase, foe: FighterBase, seed: int) -> CpuController:
+	var cpu := CpuController.new()
+	cpu.process_physics_priority = -100
+	cpu.process_mode = Node.PROCESS_MODE_PAUSABLE
+	add_child(cpu)
+	cpu.setup(who, foe, self, CpuDifficulty.load_level(cpu_level), seed)
+	return cpu
+
 # ---------------- Round flow ----------------
 func _begin_round() -> void:
 	p1.begin_round(Vector2(stage.spawn_p1_x, stage.floor_y), stage.spawn_p2_x)
@@ -160,7 +197,7 @@ func _start_fight() -> void:
 	phase = Phase.FIGHT
 	phase_frame = 0
 	p1.input_enabled = true
-	p2.input_enabled = p2_human
+	p2.input_enabled = p2_human or p2_cpu
 	hud.clear_message()
 	if not commentary_sample_shown:
 		hud.show_commentary("TRIPP: The crowd is going insane!")
@@ -577,6 +614,12 @@ func serialize() -> Dictionary:
 		"pause_menu_open": pause_menu_open,
 		"commentary_sample_shown": commentary_sample_shown,
 		"p2_human": p2_human,
+		"p2_cpu": p2_cpu,
+		"p1_cpu": p1_cpu,
+		"cpu_level": cpu_level,
+		"cpu_seed": cpu_seed,
+		"cpu_p1": cpu_p1.serialize() if cpu_p1 != null else null,
+		"cpu_p2": cpu_p2.serialize() if cpu_p2 != null else null,
 		"fighters_can_pass_through": fighters_can_pass_through,
 		"p1": p1.serialize(),
 		"p2": p2.serialize(),
@@ -601,6 +644,14 @@ func load(data: Dictionary) -> void:
 	pause_menu_open = data["pause_menu_open"]
 	commentary_sample_shown = data["commentary_sample_shown"]
 	p2_human = data["p2_human"]
+	p2_cpu = data.get("p2_cpu", p2_cpu)
+	p1_cpu = data.get("p1_cpu", p1_cpu)
+	cpu_level = data.get("cpu_level", cpu_level)
+	cpu_seed = data.get("cpu_seed", cpu_seed)
+	if cpu_p1 != null and typeof(data.get("cpu_p1")) == TYPE_DICTIONARY:
+		cpu_p1.load_state(data["cpu_p1"])
+	if cpu_p2 != null and typeof(data.get("cpu_p2")) == TYPE_DICTIONARY:
+		cpu_p2.load_state(data["cpu_p2"])
 	fighters_can_pass_through = data.get(
 		"fighters_can_pass_through", fighters_can_pass_through)
 	p1.load(data["p1"])

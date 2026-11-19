@@ -2,6 +2,7 @@
 extends Node
 
 const MODE_SELECT_SCENE := preload("res://scenes/menus/ModeSelect.tscn")
+const DIFFICULTY_SELECT_SCENE := preload("res://scenes/menus/DifficultySelect.tscn")
 const CHARACTER_SELECT_SCENE := preload("res://scenes/menus/CharacterSelect.tscn")
 const STAGE_SELECT_SCENE := preload("res://scenes/menus/StageSelect.tscn")
 const THE_CLIP_SCENE := preload("res://scenes/menus/TheClip.tscn")
@@ -11,11 +12,15 @@ const ROSTER_PATH := "res://resources/match_roster.tres"
 
 var intro: Control
 var mode_select: Control
+var difficulty_select: Control
 var character_select: Control
 var stage_select: Control
 var match_root: Node
 var audio_manager
 var roster: MatchRoster
+# CPU level for solo mode (0 EASY / 1 NORMAL / 2 HARD), picked on the
+# difficulty screen; kept across matches like the other flow choices.
+var cpu_level := 1
 var solo_mode := false
 # Matchup of the last match, restored when returning to character select.
 var last_p1_choice := -1
@@ -57,7 +62,33 @@ func _on_mode_chosen(solo: bool) -> void:
 	if mode_select != null:
 		mode_select.queue_free()
 		mode_select = null
+	# Solo picks the CPU level right after the mode; versus goes straight
+	# to character select as before.
+	if solo_mode:
+		_show_difficulty_select()
+	else:
+		_show_character_select()
+
+func _show_difficulty_select() -> void:
+	difficulty_select = DIFFICULTY_SELECT_SCENE.instantiate()
+	difficulty_select.difficulty_chosen.connect(_on_difficulty_chosen)
+	difficulty_select.back_requested.connect(_on_difficulty_back)
+	difficulty_select.selection_moved.connect(audio_manager.play_ui_move)
+	difficulty_select.selection_confirmed.connect(audio_manager.play_ui_confirm)
+	add_child(difficulty_select)
+
+func _on_difficulty_chosen(level: int) -> void:
+	cpu_level = level
+	if difficulty_select != null:
+		difficulty_select.queue_free()
+		difficulty_select = null
 	_show_character_select()
+
+func _on_difficulty_back() -> void:
+	if difficulty_select != null:
+		difficulty_select.queue_free()
+		difficulty_select = null
+	_show_mode_select()
 
 func _show_character_select() -> void:
 	# On first entry this is already playing (no-op); after leaving a match it
@@ -138,6 +169,8 @@ func _start_match(p1_data: FighterData, p2_data: FighterData,
 	match_root.selected_p2_data = p2_data
 	match_root.selected_stage = stage
 	match_root.p2_human = not solo_mode
+	match_root.p2_cpu = solo_mode
+	match_root.cpu_level = cpu_level
 	match_root.audio_manager = audio_manager
 	match_root.return_to_select_requested.connect(_on_return_to_select)
 	add_child(match_root)

@@ -73,7 +73,7 @@ godot --headless --path game --script res://tests/stage_floor_test.gd
 godot --headless --path game --script res://tests/the_clip_test.gd
 ```
 
-Current suites: **combat 343 checks**, round flow 34, character select 49,
+Current suites: **combat 353 checks**, round flow 34, character select 49,
 locomotion speed 7, stage select 94, stage floor 9, The Clip 23 — all green in CI (`tests.yml`). `tests/air_probe.gd`
 prints balance metrics and asserts nothing.
 
@@ -114,7 +114,9 @@ match then loads the chosen stage and starts the round.
 - **Block** by holding away from the opponent (down-away blocks lows), including
   during blockstun. Chip damage cannot KO — a blocked hit always leaves 1 HP.
 - **EX specials:** hold Heavy while pressing Special to spend 50 meter on the
-  stronger version; without meter the base special comes out for free.
+  stronger version; without meter the base special comes out for free. The
+  meter builds **only when you land hits** (throws included): blocked hits,
+  whiffs, and taking damage award nothing.
 - **METHtality:** with a full meter, press METHtality to spend the whole bar.
   Current presentation is a freeze plus banner; the normal KO flow ends the round.
 - **Specials are directional:** neutral, forward, back, down, and air (GDD §4.4).

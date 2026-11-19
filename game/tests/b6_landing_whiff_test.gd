@@ -1,7 +1,9 @@
-# Headless B6 landing-whiff test.
-# Verifies that touchdown mid-air (interrupting a whiffed air move) awards the
-# authored whiff meter via finish_move_whiff(), closing the B6 gap documented in
-# docs/audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md.
+# Headless B6 landing-whiff test (rule superseded 2026-11-18).
+# B6 once verified that touchdown mid-air (interrupting a whiffed air move)
+# awarded the authored whiff meter via finish_move_whiff(). The meter economy
+# changed to "landed hits only": whiffs earn nothing anywhere, so this suite
+# now pins the superseding behavior — landing a whiffed air move awards 0
+# meter, the move still clears, and recovery still runs to IDLE.
 #   godot --headless --path game --script res://tests/b6_landing_whiff_test.gd
 extends SceneTree
 
@@ -69,8 +71,9 @@ func _run() -> void:
 
 	_check("B6: fighter lands mid-move", landed)
 
-	_check("B6: whiff meter awarded on landing", fighter.meter >= air_move.meter_gain_whiff - 0.01,
-		"meter=" + str(fighter.meter) + " expected=" + str(air_move.meter_gain_whiff))
+	_check("B6 superseded: landing a whiffed air move awards 0 meter",
+		fighter.meter <= 0.01,
+		"meter=" + str(fighter.meter) + " expected=0 (meter_gain_whiff=" + str(air_move.meter_gain_whiff) + " is no longer awarded)")
 
 	_check("B6: move cleared on landing", fighter.current_move == null,
 		"current_move=" + str(fighter.current_move.id) if fighter.current_move != null else "null")

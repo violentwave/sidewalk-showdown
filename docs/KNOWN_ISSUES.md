@@ -48,13 +48,14 @@ finding is not considered fixed merely because an older suite passes.
 B5 (air momentum), B8 (implicit-scaling, partially addressed by authored
 cancel routes in PR 2), and B9 (hurt/push alias) remain
 source-confirmed audit observations; B5 was not re-probed at this baseline.
-B6 (landing discards whiff meter) — FIXED. Landed on main in PR #57
-(`03f55b7`): finish_move_whiff() now runs in _landing_check() when
-a still-running air move is interrupted by touchdown, awarding the authored
-meter_gain_whiff (1.5) instead of dropping it. Covered by
-b6_landing_whiff_test.gd which verifies the meter is awarded (meter=1.5) and the
-move is cleared on mid-air landing for the current round (Peg Leg Peggy vs
-Whiskey Richard).
+B6 (landing discards whiff meter) — **OBSOLETE (2026-11-18), superseded by the
+meter-economy change.** The fix (PR #57, commit `03f55b7`) was real for the old
+rules: finish_move_whiff() in _landing_check() restored the dropped
+meter_gain_whiff. But the meter economy was then changed to "landed hits only" —
+whiffs award nothing anywhere, aerial or grounded — so a discarded whiff meter
+no longer exists to be dropped. `b6_landing_whiff_test.gd` now pins the
+superseding behavior (landing a whiffed air move awards 0 meter, the move
+still clears, and landing recovery still runs to IDLE).
 
 ## Decisions and open choices
 
@@ -142,9 +143,13 @@ Engine and feel:
   gained `meter_cost` / `ex`; `FighterData.find_move()` skips EX rows and
   `find_ex_move()` returns them. Meter is paid in `_try_start_attack()` /
   `_try_cancel()` before the move starts, floors at 0, and a short bar falls back
-  to the base special with no meter spent. Current economy (all defaults, no
-  `.tres` overrides): +6 hit, +3 block, +1.5 whiff, +4 receive, max 100 — about
-  one bar per round, two EX per bar.
+  to the base special with no meter spent. Current economy (2026-11-18,
+  all defaults, no `.tres` overrides): the attacker earns `meter_gain_hit` (6.0)
+  **only when a hit lands** — throws and command grabs included, one award per
+  connection; blocked hits pay `meter_gain_block` ×
+  `FighterBase.METER_GAIN_ON_BLOCK_SCALE` (scale default **0.0**, so blocked,
+  whiffed, and received-nothing hits award 0; `meter_gain_whiff` and
+  `meter_gain_receive` stay authored data but are never awarded). Max 100.
 - METHtality engine core (PROPOSALS §4), data-driven: buffered `p1_meth` /
   `p2_meth` fires when the hype meter is **full**, regardless of opponent health,
   state, or invulnerability. Meter drains fully on activation; the finisher
@@ -351,7 +356,7 @@ These are measured or first-pass limits, not phase-exit validation.
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **343 checks**: distinct Peggy/Richard sheet
+- `game/tests/combat_test.gd` — **353 checks**: distinct Peggy/Richard sheet
   artwork in walk states, the authored idle sheet (selection, visibility, cel
   cadence, wrap, hitstop/pause freeze, re-entry reset, facing pivot, and the
   missing-art fallback), unchanged combat boxes, clean hits and

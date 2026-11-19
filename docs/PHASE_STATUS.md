@@ -25,6 +25,13 @@ playtesting. Phase 2's presentation and private-show exit criteria are not met.
 - METHtality (2026-11-09) — full meter plus the METH input is sufficient;
   opponent health, state, and invulnerability do not gate activation. The full
   bar is still spent and the authored 30-frame hitstop is unchanged.
+- Meter builds only on landed hits (2026-11-30) — the special/METHtality meter
+  is awarded to the attacker only when a hit or throw connects. Whiff gain,
+  defender receive-gain, and passive/time-based gain were removed; blocked hits
+  award `METER_GAIN_ON_BLOCK_SCALE * meter_gain_block` with the constant
+  defaulting to 0.0. Per-move meter values, EX costs, and METHtality spending
+  are unchanged. The old B6 whiff-meter issue is recorded as obsolete in
+  `docs/KNOWN_ISSUES.md`.
 - Vertical-slice cast (2026-11-09) — Peggy and Richard officially; Burnout Bubba
   and Raccoon Randy remain later-roster canon.
 - The Clip (owner-confirmed, 2026-11-12):
@@ -73,7 +80,7 @@ phase exit criteria:
   blocking and round flow work, and the match can end/restart.
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
-  The current suites contain 343 combat, 34 round-flow, 49 mode/character-select
+  The current suites contain 353 combat, 34 round-flow, 49 mode/character-select
   integration, 7 locomotion-speed, 94 stage-select/ambience, 9 stage-floor, and
   23 intro checks. K1, R1, corner separation, bounded hitstop
   buffer freeze, and the

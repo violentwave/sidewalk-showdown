@@ -510,11 +510,15 @@ The Hype Meter represents crowd energy, livestream attention, and fighter moment
 Meter builds from:
 
 - landing hits
-- blocking attacks
-- taking damage
-- whiffing risky specials slightly
-- crowd-favorable actions
-- taunts, if added later
+
+Meter does not build from anything else (2026-11-18 implementation): blocked
+hits, taking damage, and whiffing award nothing. Blocked hits pay the attacker
+`MoveData.meter_gain_block` × `FighterBase.METER_GAIN_ON_BLOCK_SCALE`, a single
+tuning knob defaulting to **0.0** — a blocked hit gives no meter unless the
+owner retunes the scale. Defense gains meter nowhere: `meter_gain_block`,
+`meter_gain_whiff`, and `meter_gain_receive` remain authored data on `MoveData`
+(per-row values unchanged) but are never awarded; future sources
+(crowd-favorable actions, taunts) would be new award sites, not revivals.
 
 Meter can be spent on:
 

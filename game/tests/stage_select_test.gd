@@ -268,8 +268,8 @@ func _run() -> void:
 	var bus_stage: Node2D = bus.scene.instantiate()
 	root.add_child(bus_stage)
 	await process_frame
-	_check("Bus Stop uses the same authored arena as Gas-N-Go",
-		bus_stage.floor_y == 158.0 and bus_stage.left_bound == 24.0
+	_check("Bus Stop keeps its measured floor and the shared arena extents",
+		bus_stage.floor_y == 170.0 and bus_stage.left_bound == 24.0
 			and bus_stage.right_bound == 296.0
 			and bus_stage.spawn_p1_x == 110.0 and bus_stage.spawn_p2_x == 210.0,
 		"floor=%s bounds=%s..%s spawns=%s/%s" % [bus_stage.floor_y,

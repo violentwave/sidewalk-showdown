@@ -11,7 +11,7 @@
 [node name="BusStop" type="Node2D"]
 process_mode = 1
 script = ExtResource("1_stage")
-floor_y = 158.0
+floor_y = 170.0
 left_bound = 24.0
 right_bound = 296.0
 spawn_p1_x = 110.0

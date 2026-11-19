@@ -2,8 +2,9 @@
 
 ## How to use
 - Attach as reference images in every generation: TrippVlogz,
-  PegLegPeg, WhiskeyRichard (character sprites) and BusStopNight.png
-  (environment palette).
+  PegLegPeg, WhiskeyRichard (character sprites).
+- Use the Bus Stop layered art (`game/art/stages/bus_stop/`) as the
+  environment palette reference.
 - Paste GLOBAL STYLE + CHARACTER SHEET + RECURRING PROPS into every
   prompt.
 - Export panel_01.png ... panel_15.png at 16:9. Native 320x180, or

@@ -22,8 +22,8 @@ the slots. No scene or script edits should be needed.
 - Use pixel-art forms with bold comic silhouettes and keep faces/action readable
   at 320 × 180. Do not include legible flyer's fine print: panel 10 gets only an
   illegible smudge/squiggle there.
-- Panels 3–8 may use the existing `game/art/stages/bus_stop/BusStopNight.png`
-  as the temporary backdrop. Panel artwork, when supplied, takes precedence.
+- Panels 3–8 use their own supplied panel art; the temporary
+  `BusStopNight.png` backdrop fallback is gone now that every slot is populated.
 - All fifteen art slots are populated. If a slot is missing at runtime, the intro
   retains its halftone placeholder, ink-framed panel number, and panel art note.
 

@@ -35,10 +35,13 @@ var selected_p2_data: FighterData
 var selected_stage: StageData
 # False in solo mode: P2 still spawns and can be hit, but never reads input.
 @export var p2_human := true
-# Smash-style walk-through: when true, grounded fighters are not separated by
-# their pushboxes. Airborne fighters always pass through, so a jump-over works
-# in either mode; when this is false, grounded bodies still block each other.
-@export var fighters_can_pass_through := false
+# Smash-style walk-through: when true, fighters do not collide at all — no
+# pushbox separation on the ground or in the air, and no auto-shove when they
+# overlap. Side, blocking, knockback, and throw rules come from the shared
+# FighterBase.relative_side() helper instead (see docs/SIDE_SWITCHING.md).
+# When false, grounded bodies separate by pushbox as before; airborne fighters
+# pass through either way so a jump-over still works.
+@export var fighters_can_pass_through := true
 
 var phase: Phase = Phase.INTRO
 var phase_frame := 0
@@ -131,6 +134,10 @@ func _spawn_fighter(index: int, data: FighterData) -> FighterBase:
 func _begin_round() -> void:
 	p1.begin_round(Vector2(stage.spawn_p1_x, stage.floor_y), stage.spawn_p2_x)
 	p2.begin_round(Vector2(stage.spawn_p2_x, stage.floor_y), stage.spawn_p1_x)
+	# Deterministic base draw order for the new round (rule I): P1 under P2
+	# until an attacker in active/recovery frames claims the top slot.
+	p1.z_index = 0
+	p2.z_index = 0
 	p1.input_enabled = false
 	p2.input_enabled = false
 	timer_frames = (SUDDEN_DEATH_SECONDS if sudden_death else ROUND_SECONDS) * 60
@@ -314,6 +321,7 @@ func _physics_process(_delta: float) -> void:
 			# before the clock so a hit on the timer's final frame still counts
 			# and a KO there beats the timeout (timer-hitstop).
 			_resolve_hits()
+			_update_draw_order()
 			if phase != Phase.FIGHT:
 				return
 			# Hitstop freezes the whole exchange, so it must not burn the clock.
@@ -325,6 +333,7 @@ func _physics_process(_delta: float) -> void:
 				_timeout_round()
 		Phase.KO:
 			_separate_pushboxes()
+			_update_draw_order()
 			if phase_frame >= KO_FRAMES:
 				if ko_draw:
 					_finish_round(-1, true)
@@ -478,6 +487,13 @@ func _poll_hit(attacker: FighterBase, defender: FighterBase) -> MoveData:
 	# defender touches down inside it.
 	if attacker.current_move.level == MoveData.Level.THROW and not defender.grounded:
 		return null
+	# Rule F: a throw connects only in front of the thrower, equal x counting
+	# as in front (FighterBase.is_in_front_of). Rejected here rather than in
+	# receive_hit() for the same reason as the invuln/airborne guards above:
+	# the brush does not consume the throw's active window.
+	if attacker.current_move.level == MoveData.Level.THROW \
+			and not FighterBase.is_in_front_of(attacker, defender):
+		return null
 	return attacker.current_move
 
 func _separate_pushboxes() -> void:
@@ -524,6 +540,20 @@ func _separate_pushboxes() -> void:
 	right_fighter.position.x += right_move
 	p1.clamp_to_stage()
 	p2.clamp_to_stage()
+
+# Rule I: overlap draw order. An attacker in active/recovery frames draws
+# above the other fighter; otherwise the fixed P1-under-P2 slot order stands.
+# Recomputed from state alone every frame, so overlapping fighters can't
+# flicker. Both attacking (a trade frame) falls back to the slot order.
+func _update_draw_order() -> void:
+	var p1_on_top := _is_active_or_recovery(p1) and not _is_active_or_recovery(p2)
+	var p2_on_top := _is_active_or_recovery(p2) and not _is_active_or_recovery(p1)
+	p1.z_index = 1 if p1_on_top else 0
+	p2.z_index = 1 if p2_on_top else 0
+
+func _is_active_or_recovery(f: FighterBase) -> bool:
+	return f.state == FighterBase.State.ATTACK and f.current_move != null \
+		and f.state_frame >= f.current_move.startup
 
 # ---------------- Save/Load (replays, rollback, training reset) ----------------
 

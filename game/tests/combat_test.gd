@@ -1572,6 +1572,23 @@ func _run() -> void:
 	var matrix_ok := true
 	var matrix_detail := ""
 	var rule_rows := 0
+	# Phase 1 (COMBO_SYSTEM_DESIGN): authored combo extensions add BLOCK and
+	# COUNTER_HIT rules on four rows, fighter-specific. HIT rules keep the
+	# legacy window [startup+1 .. total]; BLOCK/COUNTER rules must be valid
+	# and inside the move's span, with the exact authored target/kind below.
+	var expected_block: Dictionary = {
+		"peg_leg_peggy:light": [
+			[CancelRule.Target.LIGHT, CancelRule.Kind.CHAIN],
+			[CancelRule.Target.SPECIAL, CancelRule.Kind.CANCEL]],
+		"whiskey_richard:heavy": [
+			[CancelRule.Target.SPECIAL, CancelRule.Kind.CANCEL]],
+	}
+	var expected_counter: Dictionary = {
+		"peg_leg_peggy:heavy": [
+			[CancelRule.Target.EX, CancelRule.Kind.CANCEL]],
+		"whiskey_richard:crouch_heavy": [
+			[CancelRule.Target.SPECIAL, CancelRule.Kind.CANCEL]],
+	}
 	for fighter_data in [p1.data, p2.data]:
 		for m in fighter_data.moves:
 			var expected: Array = []
@@ -1590,18 +1607,54 @@ func _run() -> void:
 					[CancelRule.Target.LIGHT, CancelRule.Kind.CHAIN],
 					[CancelRule.Target.HEAVY, CancelRule.Kind.CHAIN]]
 			var actual: Array = []
+			var block_rows: Array = []
+			var counter_rows: Array = []
 			for r in m.cancels:
-				actual.append([r.target, r.kind])
+				if r.condition == CancelRule.Condition.HIT:
+					# The legacy matrix: HIT rules only; BLOCK/COUNTER combo
+					# edges are checked separately below.
+					actual.append([r.target, r.kind])
 				rule_rows += 1
-				if r.condition != CancelRule.Condition.HIT or r.from_frame != m.startup + 1 \
-						or r.to_frame != m.total_frames() or r.validate() != "":
+				if r.condition == CancelRule.Condition.HIT:
+					if r.from_frame != m.startup + 1 \
+							or r.to_frame != m.total_frames() or r.validate() != "":
+						matrix_ok = false
+						matrix_detail = "%s rule %s" % [m.id, r.validate()]
+				elif r.condition == CancelRule.Condition.BLOCK:
+					block_rows.append([r.target, r.kind])
+					if r.validate() != "" or r.from_frame < m.startup + 1 \
+							or r.to_frame > m.total_frames():
+						matrix_ok = false
+						matrix_detail = "%s block rule invalid" % m.id
+				elif r.condition == CancelRule.Condition.COUNTER_HIT:
+					counter_rows.append([r.target, r.kind])
+					if r.validate() != "" or r.from_frame < m.startup + 1 \
+							or r.to_frame > m.total_frames():
+						matrix_ok = false
+						matrix_detail = "%s counter rule invalid" % m.id
+				else:
 					matrix_ok = false
-					matrix_detail = "%s rule %s" % [m.id, r.validate()]
+					matrix_detail = "%s unexpected WHIFF rule" % m.id
 			if str(actual) != str(expected):
 				matrix_ok = false
 				matrix_detail = "%s actual=%s expected=%s" % [m.id, str(actual), str(expected)]
-	_check("every light/heavy row carries its legacy cancel routes, valid and hit-only",
-		matrix_ok and rule_rows == 32, "rules=%d %s" % [rule_rows, matrix_detail])
+			var row_key: String = "%s:%s" % [fighter_data.id, m.id]
+			if expected_block.has(row_key) and str(block_rows) != str(expected_block[row_key]):
+				matrix_ok = false
+				matrix_detail = "%s block=%s expected=%s" % [row_key, str(block_rows),
+					str(expected_block[row_key])]
+			elif not expected_block.has(row_key) and not block_rows.is_empty():
+				matrix_ok = false
+				matrix_detail = "%s unexpected block rows" % row_key
+			if expected_counter.has(row_key) and str(counter_rows) != str(expected_counter[row_key]):
+				matrix_ok = false
+				matrix_detail = "%s counter=%s expected=%s" % [row_key, str(counter_rows),
+					str(expected_counter[row_key])]
+			elif not expected_counter.has(row_key) and not counter_rows.is_empty():
+				matrix_ok = false
+				matrix_detail = "%s unexpected counter rows" % row_key
+	_check("every light/heavy row carries its legacy cancel routes plus the authored combo edges",
+		matrix_ok and rule_rows == 37, "rules=%d %s" % [rule_rows, matrix_detail])
 	_check("specials and grabs author no cancel routes",
 		p1.data.find_move(MoveData.InputType.SPECIAL_NEUTRAL, MoveData.Stance.STAND).cancels.is_empty()
 			and p1.data.find_move(MoveData.InputType.GRAB, MoveData.Stance.STAND).cancels.is_empty(),

@@ -16,9 +16,13 @@ capture, and where it lives today.
   `commentary_sample_shown`.
 - Match rules: `p2_human`, `p2_cpu`, `p1_cpu`, `cpu_level`, `cpu_seed`,
   `fighters_can_pass_through`.
-- Both fighters via `FighterBase.serialize()` (positions, velocities, state,
+- Both fighters via `FighterBase.serialize()`: positions, velocities, state,
   state frames, health, meter, facing, buffers, stun/knockdown/wake-up
-  timers, hitstop, combo/juggle counters).
+  timers, hitstop, combo/juggle counters, plus the Phase 1 combo state:
+  the per-defender `ComboTracker` record (hits, total damage, move-id
+  history, active flag), the dial-a-combo macro ring (active macro, step
+  index, held steps, gap clock), the Clip Cancel budget flag, and the
+  BLOCK/WHIFF outcome flags.
 
 Covered by `game/tests/serialization_test.gd` (key inventory + round trip).
 

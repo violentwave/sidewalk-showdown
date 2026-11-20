@@ -1,12 +1,33 @@
 # Combo System Design — Sidewalk Showdown
 
-**Version:** v0.1 (design, not implemented)
-**Date:** 2026-11-19
-**Status:** Proposal awaiting owner sign-off on the Open Decisions (§12)
+**Version:** v0.2 — **Phase 1 implemented** (2026-11-20)
+**Status:** Phase 1 shipped (§14: cancel graph, strings, macros, scaling,
+combo tracker, Clip Cancel). Phase 2 (juggle points), Phase 3 (stuns,
+breaker), Phase 4 (combo HUD, CPU usage) remain design.
 **Goal:** A Mortal Kombat-style combo system, made our own: dial-a-combo
 macros, chain strings into specials, launchers and juggles, and themed
 stuns — deterministic, data-driven, rollback/replay-ready, on the fixed
 60 Hz sim.
+
+**What Phase 1 changed in the engine (implemented vs designed):**
+- BLOCK and WHIFF cancel conditions are live: the resolver reports
+  `move_was_blocked` / `move_whiffed` on the attacker, `validate()`
+  accepts both, and `_try_outcome_cancel()` evaluates them through the
+  same starters as hit-confirm routes.
+- `ComboTuning` (resources/combat/combo_tuning_default.tres) replaces the
+  hardcoded ladder with the approved numbers as data; `ComboTracker`
+  lives per defender, serializes with the fighter, and feeds scaling,
+  repeat penalty, variety bonus, caps, and meter-in-combo.
+- Clip Cancel (special+grab during recovery, 25 meter, once per combo) is
+  implemented as designed.
+- Macros: `MacroData` resources + a dial-ahead ring in FighterBase that
+  replays held steps into the buffer after hit-confirms; dies on block,
+  whiff, move end, or dial gap. BENCH WARMER / LAST CALL authored.
+- Authored edges: Peggy light BLOCK chain + BLOCK special-cancel, Peggy
+  heavy COUNTER_HIT EX, Richard heavy BLOCK special-cancel, Richard
+  crouch_heavy COUNTER_HIT special.
+- Not yet (per the phase plan): juggle points (flat cap still rules),
+  stuns, breaker, combo HUD, CPU combo usage.
 
 This doc has two halves: an audit of what the combat core does today
 (§§1–7), and the design built on top of it (§§8–13). Everything proposed

@@ -80,9 +80,10 @@ phase exit criteria:
   blocking and round flow work, and the match can end/restart.
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
-  The current suites contain 407 combat, 34 round-flow, 50 mode/character-select
-  integration, 7 locomotion-speed, 94 stage-select/ambience, 9 stage-floor, 23
-  intro, and 27 CPU-opponent checks. K1, R1, corner separation, bounded hitstop
+  The current suites contain 407 combat, 42 combo-system, 34 round-flow,
+  50 mode/character-select integration, 7 locomotion-speed,
+  94 stage-select/ambience, 9 stage-floor, 23 intro, and 26 CPU-opponent
+  checks. K1, R1, corner separation, bounded hitstop
   buffer freeze, and the
   post-KO winner-state repair are covered. Non-METH strikes reject during
   knockdown; METH remains the K1

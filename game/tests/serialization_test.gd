@@ -74,6 +74,9 @@ func _run() -> void:
 		print("ALL PASS")
 	else:
 		print(failures, "FAILURE(S)")
+	# SceneTree scripts must terminate themselves: without quit() the headless
+	# run keeps the (empty) main loop alive forever and CI has to kill it.
+	quit(1 if failures > 0 else 0)
 
 func _initialize() -> void:
 	# Run the test immediately.

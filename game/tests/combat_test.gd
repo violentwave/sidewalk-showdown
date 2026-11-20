@@ -1681,10 +1681,14 @@ func _run() -> void:
 		counter_first and ordinary_first,
 		"counter=%s ordinary=%s" % [str(counter_first), str(ordinary_first)])
 
-	var reserved := CancelRule.new()
-	reserved.condition = CancelRule.Condition.BLOCK
-	reserved.from_frame = 1
-	reserved.to_frame = 2
+	var block_rule := CancelRule.new()
+	block_rule.condition = CancelRule.Condition.BLOCK
+	block_rule.from_frame = 1
+	block_rule.to_frame = 2
+	var whiff_rule := CancelRule.new()
+	whiff_rule.condition = CancelRule.Condition.WHIFF
+	whiff_rule.from_frame = 1
+	whiff_rule.to_frame = 2
 	var backwards := CancelRule.new()
 	backwards.from_frame = 5
 	backwards.to_frame = 2
@@ -1693,10 +1697,12 @@ func _run() -> void:
 	wrong_target.target = CancelRule.Target.SPECIAL
 	wrong_target.from_frame = 1
 	wrong_target.to_frame = 2
-	_check("cancel validation rejects reserved conditions, empty windows, and kind/target mismatch",
-		reserved.validate() != "" and backwards.validate() != ""
-			and wrong_target.validate() != "" and counter_rule.validate() == "",
-		"%s | %s | %s" % [reserved.validate(), backwards.validate(), wrong_target.validate()])
+	_check("cancel validation accepts the reported BLOCK/WHIFF outcomes and still rejects empty windows and kind/target mismatch",
+		block_rule.validate() == "" and whiff_rule.validate() == ""
+			and backwards.validate() != "" and wrong_target.validate() != ""
+			and counter_rule.validate() == "",
+		"%s | %s | %s | %s" % [block_rule.validate(), whiff_rule.validate(),
+			backwards.validate(), wrong_target.validate()])
 
 	# --- 42. juggle/OTG rules (PROPOSALS 6): cap, reset, repeat-hit scaling ---
 	# Airborne juggle sequence driven through the real receive_hit path: three

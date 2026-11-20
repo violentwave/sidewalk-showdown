@@ -99,6 +99,11 @@ var move_hit_confirmed := false
 var move_already_hit := false
 # Set on the attacker when its current move's hit was a counter hit (GDD §5.6).
 var move_counter_hit := false
+# COMBO_SYSTEM_DESIGN §9.1 outcome flags: the resolver reports what the move
+# actually did, so BLOCK/WHIFF-condition cancel routes can be authored. Both
+# are cleared on every _start_move() and serialized.
+var move_was_blocked := false
+var move_whiffed := false
 var hitstun_frames := 0
 var blockstun_frames := 0
 var knockdown_frames := 0
@@ -419,8 +424,21 @@ func _attack_logic() -> void:
 		return
 	velocity.x = move_toward(velocity.x, 0.0, 400.0 * delta_fixed())
 
+	# A whiff becomes knowable only once the active window has closed without
+	# any contact: until then the move can still hit, so WHIFF rules must not
+	# fire early. One flag, set once per move.
+	if not move_already_hit and state_frame \
+			>= current_move.startup + current_move.active:
+		move_whiffed = true
+
 	if move_hit_confirmed:
 		if _try_cancel():
+			return
+	elif move_was_blocked or move_whiffed:
+		# COMBO_SYSTEM_DESIGN §9.1: BLOCK/WHIFF-condition routes evaluated on
+		# the outcome the resolver already reported. Same starter, same buffer,
+		# same validation as hit-confirm cancels.
+		if _try_outcome_cancel():
 			return
 	if state_frame >= _move_total(current_move):
 		if not grounded:
@@ -556,6 +574,24 @@ func _cancel_rule_matches(rule: CancelRule, counter_pass: bool) -> bool:
 		return not counter_pass and move_hit_confirmed
 	return false
 
+# COMBO_SYSTEM_DESIGN §9.1: BLOCK/WHIFF routes for the non-hit outcome. The
+# counter pass is meaningless here (a blocked or whiffed move cannot counter),
+# so evaluation is a single ordered pass. Whiff requires the active window to
+# be over (the flag is only set then), which the window bounds control anyway.
+func _try_outcome_cancel() -> bool:
+	if current_move == null or not input_enabled:
+		return false
+	for rule: CancelRule in current_move.cancels:
+		if not rule.window_open(state_frame):
+			continue
+		if rule.condition == CancelRule.Condition.BLOCK and move_was_blocked:
+			if _run_cancel(rule):
+				return true
+		elif rule.condition == CancelRule.Condition.WHIFF and move_whiffed:
+			if _run_cancel(rule):
+				return true
+	return false
+
 # Consumes the buffer exactly as the legacy routes did: a buffered input is spent
 # even when no matching move exists, and the evaluation falls through to the next rule.
 func _run_cancel(rule: CancelRule) -> bool:
@@ -655,6 +691,8 @@ func _start_move(move: MoveData) -> void:
 	move_hit_confirmed = false
 	move_already_hit = false
 	move_counter_hit = false
+	move_was_blocked = false
+	move_whiffed = false
 	velocity.x = 0.0
 	_force_state(State.ATTACK)
 
@@ -834,6 +872,10 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 		# Meter is earned only by landed hits: a blocked hit pays the attacker
 		# meter_gain_block * METER_GAIN_ON_BLOCK_SCALE (0.0 by default), and the
 		# defender gains nothing for blocking or being blocked against.
+		# The resolver reports the blocked contact on the attacker (§9.1):
+		# BLOCK-condition cancel routes read this, exactly as hit-confirm
+		# routes read move_hit_confirmed.
+		attacker.move_was_blocked = true
 		attacker.add_meter(move.meter_gain_block * METER_GAIN_ON_BLOCK_SCALE)
 		blockstun_frames = move.blockstun
 		hitstop_frames = maxi(hitstop_frames, move.hitstop)
@@ -1164,6 +1206,8 @@ func serialize() -> Dictionary:
 		"move_hit_confirmed": move_hit_confirmed,
 		"move_already_hit": move_already_hit,
 		"move_counter_hit": move_counter_hit,
+		"move_was_blocked": move_was_blocked,
+		"move_whiffed": move_whiffed,
 		"hitstun_frames": hitstun_frames,
 		"blockstun_frames": blockstun_frames,
 		"knockdown_frames": knockdown_frames,
@@ -1195,6 +1239,8 @@ func load(data: Dictionary) -> void:
 	move_hit_confirmed = data["move_hit_confirmed"]
 	move_already_hit = data["move_already_hit"]
 	move_counter_hit = data["move_counter_hit"]
+	move_was_blocked = data.get("move_was_blocked", false)
+	move_whiffed = data.get("move_whiffed", false)
 	hitstun_frames = data["hitstun_frames"]
 	blockstun_frames = data["blockstun_frames"]
 	knockdown_frames = data["knockdown_frames"]

@@ -257,6 +257,7 @@ Release blockers / decisions pending:
 | `docs/PROPOSALS.md` | Historical combat-system proposals with measured results (§§1-7) | **Partly stale**: §§1/7 still describe the removed whiff-meter path (`finish_move_whiff()`, "1.5 on whiff"); §5 documents the current landed-hits economy |
 | `docs/PIXELORAMA_PIPELINE.md` | Idle-sheet + authored-clip pipeline for both fighters (§8-§9b) | Current (integration status matches the clip libraries) |
 | `docs/PIXELLAB_ASSET_ORG.md` | PixelLab MCP project rules, style anchors, generation locks, walk-test proposal | Current (subscription counters will drift) |
+| `docs/UI_ASSETS.md` | UI art pipeline (generated -> approved -> runtime folders), Figma layout file link, per-asset manifest with native sizes | Current (planning; no UI art wired yet) |
 | `docs/ART_CREDITS.md` | Art provenance, font licenses, all-rights-reserved notes | Current |
 | `docs/LICENSE_OPTIONS.md` | License decision document (A/B/C), AI-art caveats | Current (decision pending) |
 | `docs/MAIN_BRANCH_GUARD.md` | Why `main` is squash-merge-only and how the guard works | **Minor staleness**: calls the repo "private"; it was made public 2026-11-16 to fix the Actions/artifact budget |

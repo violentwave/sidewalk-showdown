@@ -27,6 +27,14 @@ who turns sidewalk chaos into a rigged tournament.**
 
 ## What's playable today
 
+- **Combos, Phase 1** — light chains into lights/heavies and cancels into
+  specials on hit; Peggy has a blockstring (light chains on block), both
+  fighters have counter-hit extensions; dial `L, L, H` quickly for a macro
+  (BENCH WARMER / LAST CALL); press **special + grab during your move's
+  recovery to Clip Cancel** for 25 meter (once per combo). Damage scaling,
+  repeat-move penalties, and variety bonuses are all data-tuned
+  ([`docs/COMBO_SYSTEM_DESIGN.md`](docs/COMBO_SYSTEM_DESIGN.md)).
+
 - **The Clip** — a 15-panel comic intro that leads into mode select, with
   Space-only advancement and a complete skip path.
 - **Solo and local versus** — pick `1 PLAYER`, choose the CPU difficulty

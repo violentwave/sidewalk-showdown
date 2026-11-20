@@ -79,6 +79,13 @@ Fairness mistakes are built in: every reaction waits the delay, and each
 opportunity rolls a level-tuned probability — the CPU sometimes simply fails
 to block, anti-air, tech, or punish.
 
+**Phase 1 combo note:** the CPU does not dial macros, walk the new
+BLOCK/COUNTER edges, or use the Clip Cancel yet — that is Phase 4 per
+`COMBO_SYSTEM_DESIGN.md` §12. Its existing `combo_rate` light offer after a
+hit-confirm automatically rides the new authored cancel graph (it only ever
+offers inputs the engine validates), and the determinism and soak suites
+verify it unchanged.
+
 ## 4. Difficulty tuning (data, not code)
 
 `game/scripts/ai/cpu_difficulty.gd` defines the knobs;

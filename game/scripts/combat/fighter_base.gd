@@ -24,6 +24,9 @@ signal ko
 signal teched
 signal meth_started(move_name: String)
 signal counter_hit_landed
+# COMBO_SYSTEM_DESIGN §10.3: emitted when a Clip Cancel resolves, for the
+# future HUD flash.
+signal clip_cancelled
 
 # --- Identity (FighterData overrides these) ---
 @export var player_index: int = 1
@@ -99,6 +102,11 @@ var move_hit_confirmed := false
 var move_already_hit := false
 # Set on the attacker when its current move's hit was a counter hit (GDD §5.6).
 var move_counter_hit := false
+# COMBO_SYSTEM_DESIGN §9.1 outcome flags: the resolver reports what the move
+# actually did, so BLOCK/WHIFF-condition cancel routes can be authored. Both
+# are cleared on every _start_move() and serialized.
+var move_was_blocked := false
+var move_whiffed := false
 var hitstun_frames := 0
 var blockstun_frames := 0
 var knockdown_frames := 0
@@ -107,6 +115,30 @@ var tech_frames := 0
 var landing_recovery_frames := DEFAULT_LANDING_FRAMES
 
 var combo_hits := 0
+# Clip Cancel budget (§10.3): the opponent's combo going inactive means a
+# new offensive sequence may begin, so the attacker's clip returns.
+var clip_cancel_used := false
+
+# Macro (dial-a-combo) state — COMBO_SYSTEM_DESIGN §10.1, decision #3.
+# The player dials a fast button sequence; the first press is a real input
+# that starts the opener through the normal path, and the remaining steps
+# are HELD here (with their own gap clock) and replayed into the input
+# buffer exactly when the current move's cancel window opens after a hit
+# confirm. No new states, no validation bypass: every replay resolves
+# through the authored CHAIN/CANCEL rules like any human press.
+# Serialized with the fighter; ages under the same hitstop freeze as the
+# input buffer so nothing outlives the 5-frame cap.
+var macro_active: StringName = &""
+var macro_next_press: int = 0
+var macro_pending: Array[StringName] = []
+var macro_gap_frames: int = 999
+var macro_replayed_this_move := false
+# Public, for a later HUD: fires when a held step is replayed into the buffer.
+signal macro_step_replayed(macro_name: String, step_index: int)
+# COMBO_SYSTEM_DESIGN §9.5: the defender-side combo record. combo_hits stays
+# in lockstep for HUD compatibility; the tracker is the source of truth for
+# scaling, repeat/variety, caps, and save/restore.
+var combo_tracker := ComboTracker.new()
 # Airborne hits this fighter has received in the current combo (PROPOSALS §6).
 var juggle_hits := 0
 var frames_since_hit := 0
@@ -114,6 +146,8 @@ var frames_since_hit := 0
 # --- Input buffer ---
 const BUFFER_NORMAL := 5
 const BUFFER_SPECIAL := 7
+# COMBO_SYSTEM_DESIGN decision #8: the Clip Cancel meter burn.
+const CLIP_CANCEL_COST := 25.0
 const BUFFER_GRAB := 5
 const BUFFER_METH := 7
 const BUFFER_MAX_AGE := 20
@@ -289,6 +323,9 @@ func begin_round(spawn_pos: Vector2, opponent_x: float) -> void:
 	hitstop_frames = 0
 	hitstop_buffer_freeze_frames = 0
 	combo_hits = 0
+	combo_tracker.reset()
+	clip_cancel_used = false
+	_macro_clear()
 	frames_since_hit = 0
 	knockdown_frames = 0
 	tech_frames = 0
@@ -419,9 +456,35 @@ func _attack_logic() -> void:
 		return
 	velocity.x = move_toward(velocity.x, 0.0, 400.0 * delta_fixed())
 
+	# A whiff becomes knowable only once the active window has closed without
+	# any contact: until then the move can still hit, so WHIFF rules must not
+	# fire early. One flag, set once per move.
+	if not move_already_hit and state_frame \
+			>= current_move.startup + current_move.active:
+		move_whiffed = true
+
 	if move_hit_confirmed:
+		# Macro replay first (§10.1): the held step enters the buffer so the
+		# authored route below can consume it like any human press.
+		if macro_active != &"" and _macro_window_open():
+			_macro_replay_into_buffer()
 		if _try_cancel():
 			return
+	elif move_was_blocked or move_whiffed:
+		# Decision #3: a macro dies on block (and on whiff). The attacker
+		# reads the outcome flags set by the resolver.
+		if move_was_blocked or move_whiffed:
+			_macro_clear()
+		# COMBO_SYSTEM_DESIGN §9.1: BLOCK/WHIFF-condition routes evaluated on
+		# the outcome the resolver already reported. Same starter, same buffer,
+		# same validation as hit-confirm cancels.
+		if _try_outcome_cancel():
+			return
+	# Clip Cancel (§10.3, decision #8): meter-burn out of recovery, after any
+	# authored route had its chance. Universal, not per-move data — the cost
+	# and limits are the approved decisions.
+	if _try_clip_cancel():
+		return
 	if state_frame >= _move_total(current_move):
 		if not grounded:
 			_set_state(State.JUMP_FALL)
@@ -556,6 +619,24 @@ func _cancel_rule_matches(rule: CancelRule, counter_pass: bool) -> bool:
 		return not counter_pass and move_hit_confirmed
 	return false
 
+# COMBO_SYSTEM_DESIGN §9.1: BLOCK/WHIFF routes for the non-hit outcome. The
+# counter pass is meaningless here (a blocked or whiffed move cannot counter),
+# so evaluation is a single ordered pass. Whiff requires the active window to
+# be over (the flag is only set then), which the window bounds control anyway.
+func _try_outcome_cancel() -> bool:
+	if current_move == null or not input_enabled:
+		return false
+	for rule: CancelRule in current_move.cancels:
+		if not rule.window_open(state_frame):
+			continue
+		if rule.condition == CancelRule.Condition.BLOCK and move_was_blocked:
+			if _run_cancel(rule):
+				return true
+		elif rule.condition == CancelRule.Condition.WHIFF and move_whiffed:
+			if _run_cancel(rule):
+				return true
+	return false
+
 # Consumes the buffer exactly as the legacy routes did: a buffered input is spent
 # even when no matching move exists, and the evaluation falls through to the next rule.
 func _run_cancel(rule: CancelRule) -> bool:
@@ -650,11 +731,46 @@ func _try_start_special(stance: MoveData.Stance) -> bool:
 		return true
 	return false
 
+# Clip Cancel (COMBO_SYSTEM_DESIGN §10.3, decision #8): spend 25 meter to
+# cancel out of the CURRENT move's recovery to neutral. Recovery-only —
+# never during startup or active frames. Input shape: special + grab
+# buffered together (the same two-button style as the EX modifier). Once
+# per combo. It is the first utility meter sink in the landed-hits
+# economy: make a blocked heavy safe, or shortcut recovery into pressure.
+func _try_clip_cancel() -> bool:
+	if current_move == null or state != State.ATTACK or not input_enabled:
+		return false
+	if clip_cancel_used:
+		return false
+	# Recovery-only: past the authored active window.
+	if state_frame < current_move.startup + current_move.active:
+		return false
+	if not (input_buffer.has("special") and input_buffer.has("grab")):
+		return false
+	if meter + 0.001 < CLIP_CANCEL_COST:
+		return false
+	_consume("special", BUFFER_SPECIAL)
+	_consume("grab", BUFFER_GRAB)
+	spend_meter(CLIP_CANCEL_COST)
+	clip_cancel_used = true
+	current_move = null
+	move_hit_confirmed = false
+	move_already_hit = false
+	move_was_blocked = false
+	move_whiffed = false
+	velocity.x = 0.0
+	_force_state(State.JUMP_FALL if not grounded else State.IDLE)
+	clip_cancelled.emit()
+	return true
+
 func _start_move(move: MoveData) -> void:
 	current_move = move
 	move_hit_confirmed = false
 	move_already_hit = false
 	move_counter_hit = false
+	move_was_blocked = false
+	move_whiffed = false
+	macro_replayed_this_move = false
 	velocity.x = 0.0
 	_force_state(State.ATTACK)
 
@@ -834,6 +950,10 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 		# Meter is earned only by landed hits: a blocked hit pays the attacker
 		# meter_gain_block * METER_GAIN_ON_BLOCK_SCALE (0.0 by default), and the
 		# defender gains nothing for blocking or being blocked against.
+		# The resolver reports the blocked contact on the attacker (§9.1):
+		# BLOCK-condition cancel routes read this, exactly as hit-confirm
+		# routes read move_hit_confirmed.
+		attacker.move_was_blocked = true
 		attacker.add_meter(move.meter_gain_block * METER_GAIN_ON_BLOCK_SCALE)
 		blockstun_frames = move.blockstun
 		hitstop_frames = maxi(hitstop_frames, move.hitstop)
@@ -847,19 +967,28 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 			attacker.velocity.x = -block_dir * move.block_pushback
 			velocity.x = 0.0
 		combo_hits = 0
+		combo_tracker.reset()
 		combo_changed.emit(0)
 		_force_state(State.BLOCKSTUN)
 		_emit_health()
 		return false
 
-	var scaled := move.damage * _damage_scale()
+	# COMBO_SYSTEM_DESIGN §9.3: damage is data. The scale is the defender's
+	# tuning ladder x repeat penalty x variety bonus (capped at 1.0), then the
+	# per-combo damage cap clamps the remaining budget; past the hit cap a hit
+	# still connects but pays nothing.
+	var scaled := _combo_damage_for(move)
 	health = maxf(0.0, health - scaled)
 	combo_hits += 1
 	frames_since_hit = 0
+	combo_tracker.record(move.id, scaled)
 	combo_changed.emit(combo_hits)
-	# The clean-hit award: the only place meter is earned (attacker, landed hit,
-	# per connecting move — throws included). The defender gains nothing.
-	attacker.add_meter(move.meter_gain_hit)
+	# The clean-hit award: the only place meter is earned (attacker, landed
+	# hit, per connecting move — throws included). The defender gains nothing.
+	# Decision #2: from the second hit of a combo on, the award is scaled
+	# (x0.5 by default, floored) so long strings trend toward the next EX
+	# without refunding their own extension.
+	attacker.add_meter(move.meter_gain_hit * _combo_meter_multiplier())
 	var stop := move.hitstop + (COUNTER_HIT_HITSTOP if counter else 0)
 	hitstop_frames = maxi(hitstop_frames, stop)
 	attacker.hitstop_frames = maxi(attacker.hitstop_frames, stop)
@@ -902,7 +1031,14 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 		knockdown_frames = 30
 		_force_state(State.KNOCKDOWN)
 	else:
-		hitstun_frames = move.hitstun
+		var stun: int = move.hitstun
+		# COMBO_SYSTEM_DESIGN §9.3: air hitstun decays per air hit taken, so
+		# late juggle hits cannot re-launch loops; floored at the tuning value.
+		if was_airborne:
+			var t: ComboTuning = _combo_tuning()
+			stun = maxi(t.air_hitstun_floor, int(round(move.hitstun
+				* pow(t.air_hitstun_decay, float(juggle_hits)))))
+		hitstun_frames = stun
 		_force_state(State.HITSTUN)
 	return true
 
@@ -961,17 +1097,125 @@ func _start_tech(other: FighterBase) -> void:
 	if other and other != self:
 		other.teched.emit()
 
-func _damage_scale() -> float:
-	var hits := combo_hits + 1
-	if hits <= 2:
+# The per-hit damage through the defender's ComboTuning and ComboTracker
+# record: ladder by hit position, repeat-move penalty beyond the freebies,
+# variety bonus for three distinct moves in a row, all capped at 1.0; the
+# per-combo damage cap clamps the remaining budget; the hit cap zeroes
+# damage past combo_hit_cap. Replaces the legacy hardcoded ladder with the
+# identical numbers as data (decision #4).
+func _combo_damage_for(move: MoveData) -> float:
+	# METHtalities are full-meter finishers, not combo parts: no scaling, no
+	# caps. The cap exists to bound authored strings; a finisher that leaves
+	# the opponent alive would be a design bug (and combat_test pins the KO).
+	if move.meth:
+		return move.damage
+	var t: ComboTuning = _combo_tuning()
+	var hit_index: int = combo_hits + 1
+	var scale: float = t.ladder_for(hit_index)
+	var used: int = combo_tracker.count_of(move.id)
+	if used > t.repeat_freebies:
+		scale *= pow(t.repeat_penalty, float(used - t.repeat_freebies))
+	if combo_tracker.last_three_distinct(move.id):
+		scale = minf(scale * (1.0 + t.variety_bonus), 1.0)
+	var dmg: float = move.damage * scale
+	if hit_index > t.combo_hit_cap:
+		return 0.0
+	return clampf(dmg, 0.0, maxf(0.0, t.combo_damage_cap - combo_tracker.total_damage))
+
+# Decision #2: full award on the combo opener, x0.5 from the second hit on,
+# the multiplier itself never below the floor. Called after the combo_hits
+# increment, so the opener is combo_hits == 1 and the ladder position of
+# this hit is combo_hits itself.
+func _combo_meter_multiplier() -> float:
+	var t: ComboTuning = _combo_tuning()
+	if combo_hits <= 1:
 		return 1.0
-	elif hits == 3:
-		return 0.85
-	elif hits == 4:
-		return 0.70
-	elif hits >= 5:
-		return 0.55
-	return 1.0
+	return maxf(t.meter_gain_floor,
+		t.meter_gain_in_combo * t.ladder_for(combo_hits))
+
+func _combo_tuning() -> ComboTuning:
+	if data != null and data.combo_tuning != null:
+		return data.combo_tuning
+	return _default_combo_tuning
+
+# ---------------- Macros (dial-a-combos, §10.1) --------------------
+
+# Called from _poll_input for every freshly pressed action. A press that
+# extends (or starts) an authored macro sequence is captured here; the
+# press itself still enters the normal input buffer exactly as any human
+# press would.
+func _macro_on_press(action: String) -> void:
+	if data == null or data.macros.is_empty():
+		return
+	if macro_active == &"":
+		for macro: MacroData in data.macros:
+			if macro.steps.size() >= 2 and StringName(action) == macro.steps[0]:
+				macro_active = macro.id
+				macro_next_press = 1
+				macro_gap_frames = 0
+				return
+	else:
+		for macro: MacroData in data.macros:
+			if macro.id == macro_active:
+				if macro_next_press < macro.steps.size() \
+						and StringName(action) == macro.steps[macro_next_press] \
+						and macro_pending.size() < macro.steps.size():
+					macro_pending.append(macro.steps[macro_next_press])
+					macro_next_press += 1
+					macro_gap_frames = 0
+				return
+
+# Ages the dial-ahead ring under the same hitstop freeze as the input
+# buffer, so held steps can never outlive the buffered-input window rules.
+func _macro_tick_ages(frozen: bool) -> void:
+	if macro_active == &"":
+		return
+	if frozen:
+		return
+	macro_gap_frames += 1
+	for macro: MacroData in data.macros:
+		if macro.id == macro_active:
+			if macro_gap_frames > macro.max_gap_frames:
+				_macro_clear()
+			return
+
+# A dial press was captured; the only way it becomes gameplay is a later
+# replay into the buffer after a hit confirm inside the authored cancel
+# window. One replay per move.
+func _macro_replay_into_buffer() -> void:
+	if macro_pending.is_empty() or macro_replayed_this_move:
+		return
+	macro_replayed_this_move = true
+	var action: StringName = macro_pending.pop_front()
+	input_buffer[action] = 0
+	var display := ""
+	for macro: MacroData in data.macros:
+		if macro.id == macro_active:
+			display = macro.display_name
+			break
+	macro_step_replayed.emit(display, macro_next_press - macro_pending.size() - 1)
+	if macro_pending.is_empty():
+		_macro_clear()
+
+func _macro_clear() -> void:
+	macro_active = &""
+	macro_next_press = 0
+	macro_pending.clear()
+	macro_gap_frames = 999
+
+# True when any authored cancel window of the current move is open — the
+# replay target. Macros ride authored routes only.
+func _macro_window_open() -> bool:
+	if current_move == null:
+		return false
+	for rule: CancelRule in current_move.cancels:
+		if rule.window_open(state_frame):
+			return true
+	return false
+
+# Shared fallback so a fighter without an authored .tres still uses the
+# approved defaults rather than engine literals.
+static var _default_combo_tuning := ComboTuning.new()
 
 func reset_state() -> void:
 	_force_state(State.IDLE)
@@ -987,6 +1231,9 @@ func reset_state() -> void:
 	tech_frames = 0
 	landing_recovery_frames = DEFAULT_LANDING_FRAMES
 	combo_hits = 0
+	combo_tracker.reset()
+	clip_cancel_used = false
+	_macro_clear()
 	juggle_hits = 0
 	frames_since_hit = 0
 	input_buffer.clear()
@@ -1039,8 +1286,13 @@ func _poll_input() -> void:
 			input_history.append(action)
 			if input_history.size() > 60:
 				input_history.pop_front()
+			# Macro dial capture: a fresh press can start or extend an
+			# authored sequence (§10.1). The press itself stays in the buffer.
+			_macro_on_press(action)
 	if freeze_buffer_ages:
+		_macro_tick_ages(true)
 		return
+	_macro_tick_ages(false)
 	for key in input_buffer.keys():
 		input_buffer[key] += 1
 		if input_buffer[key] > BUFFER_MAX_AGE:
@@ -1065,9 +1317,14 @@ func _down() -> bool:
 
 func _tick_combo() -> void:
 	frames_since_hit += 1
+	# Clip Cancel budget (§10.3): the opponent's combo going inactive means a
+	# new offensive sequence may begin, so the attacker's clip returns.
+	if opponent != null and clip_cancel_used and not opponent.combo_tracker.active:
+		clip_cancel_used = false
 	if combo_hits > 0 and frames_since_hit > 40 and state not in [State.HITSTUN, State.KNOCKDOWN]:
 		# Combo end: the §6 juggle counter only resets with the combo.
 		combo_hits = 0
+		combo_tracker.reset()
 		juggle_hits = 0
 		combo_changed.emit(0)
 
@@ -1164,6 +1421,8 @@ func serialize() -> Dictionary:
 		"move_hit_confirmed": move_hit_confirmed,
 		"move_already_hit": move_already_hit,
 		"move_counter_hit": move_counter_hit,
+		"move_was_blocked": move_was_blocked,
+		"move_whiffed": move_whiffed,
 		"hitstun_frames": hitstun_frames,
 		"blockstun_frames": blockstun_frames,
 		"knockdown_frames": knockdown_frames,
@@ -1171,6 +1430,13 @@ func serialize() -> Dictionary:
 		"tech_frames": tech_frames,
 		"landing_recovery_frames": landing_recovery_frames,
 		"combo_hits": combo_hits,
+		"combo_tracker": combo_tracker.serialize(),
+		"clip_cancel_used": clip_cancel_used,
+		"macro_active": String(macro_active),
+		"macro_next_press": macro_next_press,
+		"macro_pending": macro_pending,
+		"macro_gap_frames": macro_gap_frames,
+		"macro_replayed_this_move": macro_replayed_this_move,
 		"juggle_hits": juggle_hits,
 		"frames_since_hit": frames_since_hit,
 		"input_buffer": input_buffer,
@@ -1195,6 +1461,8 @@ func load(data: Dictionary) -> void:
 	move_hit_confirmed = data["move_hit_confirmed"]
 	move_already_hit = data["move_already_hit"]
 	move_counter_hit = data["move_counter_hit"]
+	move_was_blocked = data.get("move_was_blocked", false)
+	move_whiffed = data.get("move_whiffed", false)
 	hitstun_frames = data["hitstun_frames"]
 	blockstun_frames = data["blockstun_frames"]
 	knockdown_frames = data["knockdown_frames"]
@@ -1203,6 +1471,16 @@ func load(data: Dictionary) -> void:
 	landing_recovery_frames = data["landing_recovery_frames"]
 	combo_hits = data["combo_hits"]
 	juggle_hits = data["juggle_hits"]
+	if typeof(data.get("combo_tracker")) == TYPE_DICTIONARY:
+		combo_tracker.load_state(data["combo_tracker"])
+	clip_cancel_used = data.get("clip_cancel_used", false)
+	macro_active = StringName(data.get("macro_active", ""))
+	macro_next_press = data.get("macro_next_press", 0)
+	macro_pending.clear()
+	for entry in data.get("macro_pending", []):
+		macro_pending.append(StringName(entry))
+	macro_gap_frames = data.get("macro_gap_frames", 999)
+	macro_replayed_this_move = data.get("macro_replayed_this_move", false)
 	frames_since_hit = data["frames_since_hit"]
 	input_buffer = data["input_buffer"]
 	input_history = data["input_history"]

@@ -1,12 +1,33 @@
 # Combo System Design — Sidewalk Showdown
 
-**Version:** v0.1 (design, not implemented)
-**Date:** 2026-11-19
-**Status:** Proposal awaiting owner sign-off on the Open Decisions (§12)
+**Version:** v0.2 — **Phase 1 implemented** (2026-11-20)
+**Status:** Phase 1 shipped (§14: cancel graph, strings, macros, scaling,
+combo tracker, Clip Cancel). Phase 2 (juggle points), Phase 3 (stuns,
+breaker), Phase 4 (combo HUD, CPU usage) remain design.
 **Goal:** A Mortal Kombat-style combo system, made our own: dial-a-combo
 macros, chain strings into specials, launchers and juggles, and themed
 stuns — deterministic, data-driven, rollback/replay-ready, on the fixed
 60 Hz sim.
+
+**What Phase 1 changed in the engine (implemented vs designed):**
+- BLOCK and WHIFF cancel conditions are live: the resolver reports
+  `move_was_blocked` / `move_whiffed` on the attacker, `validate()`
+  accepts both, and `_try_outcome_cancel()` evaluates them through the
+  same starters as hit-confirm routes.
+- `ComboTuning` (resources/combat/combo_tuning_default.tres) replaces the
+  hardcoded ladder with the approved numbers as data; `ComboTracker`
+  lives per defender, serializes with the fighter, and feeds scaling,
+  repeat penalty, variety bonus, caps, and meter-in-combo.
+- Clip Cancel (special+grab during recovery, 25 meter, once per combo) is
+  implemented as designed.
+- Macros: `MacroData` resources + a dial-ahead ring in FighterBase that
+  replays held steps into the buffer after hit-confirms; dies on block,
+  whiff, move end, or dial gap. BENCH WARMER / LAST CALL authored.
+- Authored edges: Peggy light BLOCK chain + BLOCK special-cancel, Peggy
+  heavy COUNTER_HIT EX, Richard heavy BLOCK special-cancel, Richard
+  crouch_heavy COUNTER_HIT special.
+- Not yet (per the phase plan): juggle points (flat cap still rules),
+  stuns, breaker, combo HUD, CPU combo usage.
 
 This doc has two halves: an audit of what the combat core does today
 (§§1–7), and the design built on top of it (§§8–13). Everything proposed
@@ -532,21 +553,25 @@ data):
 - Tests: HUD label correctness headlessly; CPU legality unchanged (no
   inputs a human could not make); soak win-rate sanity.
 
-## 15. Open decisions (defaults recommended — owner confirms or changes)
+## 15. Open decisions — RESOLVED (owner-approved 2026-11-20)
 
-| # | Decision | Options | Default | Why |
-|---|---|---|---|---|
-| 1 | Breaker model | A free/round + 40 meter; B meter-only; C none+strict scaling | **A** | The landed-hits economy can leave the defender broke; A guarantees one honest out per round |
-| 2 | Meter in combos | unscaled; ×0.5 floor 0.25; zero in combos | **×0.5, floor 0.25** | Keeps EX pacing without refunding breakers mid-loop |
-| 3 | Macro on block | dies (default); continues if authored | **dies** | "Continues only while hits connect" is the identity of our macros |
-| 4 | Scaling curve | keep 1.0/1.0/.85/.70/.55; steeper after launchers land | **keep, revisit after Phase 2 balance soak** | Launchers change the math; retune with data, not guesses |
-| 5 | Juggle budget | flat cap 3 (today); points 5 with costs 2/3 | **points** | Readable, per-move economics; the flat cap is already a silent reject |
-| 6 | Stun on airborne targets | never; only for dedicated anti-air stuns | **never (`launcher_safe` false)** | Kills stun→juggle loops at the schema level |
-| 7 | Stun damage | full special damage + stun; reduced damage + stun | **reduced (Richard 105→40; Peggy keeps 95 but 60f cooldown via immunity)** | A stun plus full damage is two rewards for one hit |
-| 8 | Clip Cancel cost/limits | 25 meter, recovery-only, 1/combo; 15 meter 2/combo; 40 meter | **25, recovery-only, 1/combo** | Strong enough for safety, too dear to spam |
-| 9 | Breaker during juggles | allowed; juggle-only; ground-only | **allowed (same input window)** | Simpler; juggle points already bound juggles |
-| 10 | New anti-air launcher normals | now (Phase 2); clip-reuse backlog; never | **backlog** | Zero new art keeps every phase shippable; revisit after playtest |
-| 11 | Where the doc rules live | fold into PROPOSALS.md per-section on implementation; keep this doc as the umbrella | **umbrella + PROPOSALS cross-refs** | PROPOSALS is the historical record; this is the design home |
+All eleven decisions are confirmed as follows; the defaults below are now
+the spec of record for implementation. Phase 1 (this repo state) implements
+the cancel graph, macros, data-driven scaling, and the combo tracker.
+
+| # | Decision | Approved choice |
+|---|---|---|
+| 1 | Breaker model | **Free once per round + 40-meter extras, 5 s cooldown** (Phase 3) |
+| 2 | Meter in combos | **×0.5, floored at 0.25** (implemented Phase 1) |
+| 3 | Macro on block | **Dies** — macros continue only while hits connect (implemented Phase 1) |
+| 4 | Scaling curve | **Keep 1.0/1.0/0.85/0.70/0.55**, retune after Phase 2 balance data (implemented Phase 1 as data) |
+| 5 | Juggle budget | **Points: 5 start, normals 2, air specials 3** (Phase 2; flat cap stays until then) |
+| 6 | Stun on airborne | **Never** — `launcher_safe = false` at schema level (Phase 3) |
+| 7 | Stun damage | **Reduced** — Richard's stun special 105 → 40 (Phase 3) |
+| 8 | Clip Cancel | **25 meter, recovery-only, once per combo** (implemented Phase 1) |
+| 9 | Breaker during juggles | **Allowed, same input window** (Phase 3) |
+| 10 | Anti-air launcher normals | **Backlog item**, not Phase 2 core |
+| 11 | Doc home | **This doc is the umbrella**; PROPOSALS.md cross-referenced per phase |
 
 ## 16. Risks in the current code (combo-readiness)
 

@@ -36,6 +36,13 @@ extends Resource
 # The finisher move itself (MoveData.meth = true). Not part of `moves`.
 @export var meth_move: MoveData
 
+# COMBO_SYSTEM_DESIGN §9.3: the combo economics as data. Null falls back to
+# the ComboTuning class defaults (identical to the legacy ladder).
+@export var combo_tuning: ComboTuning
+
+# Dial-a-combos owned by this fighter (§9.2). Empty = none authored.
+@export var macros: Array[MacroData] = []
+
 @export var moves: Array[MoveData] = []
 
 # PROPOSALS §7: the per-fighter command grab row (input COMMAND_GRAB). Distinct

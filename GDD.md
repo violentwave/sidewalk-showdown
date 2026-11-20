@@ -730,6 +730,11 @@ Features:
   EASY/NORMAL/HARD data tuning, selected on a solo difficulty screen after
   1 PLAYER — see [`docs/CPU_OPPONENT.md`](docs/CPU_OPPONENT.md); a debug
   flag can CPU-control both fighters for AI-vs-AI soak tests)*
+- combo system, Phase 1 *(implemented: authored cancel graph with BLOCK and
+  counter-hit extensions, dial-a-combo macros, Clip Cancel meter-burn,
+  data-driven damage scaling with repeat/variety/caps — see
+  [`docs/COMBO_SYSTEM_DESIGN.md`](docs/COMBO_SYSTEM_DESIGN.md); launchers
+  exist as authored knockback with juggle points planned for Phase 2)*
 - stage select
 - round settings
 - timer settings

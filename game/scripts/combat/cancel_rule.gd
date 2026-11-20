@@ -18,11 +18,11 @@ enum Condition { HIT, COUNTER_HIT, BLOCK, WHIFF }
 func window_open(frame: int) -> bool:
 	return frame >= from_frame and frame <= to_frame
 
-# Returns "" when the rule is legal to author. BLOCK and WHIFF are reserved until
-# the resolver reports those outcomes; they are rejected rather than inferred.
+# Returns "" when the rule is legal to author. BLOCK and WHIFF conditions
+# are legal since the Phase 1 combo work: the resolver reports both outcomes
+# (FighterBase.move_was_blocked / move_whiffed), so blockstrings and
+# whiff-punish routes are authored data like HIT routes.
 func validate() -> String:
-	if condition == Condition.BLOCK or condition == Condition.WHIFF:
-		return "condition %s is reserved until the resolver reports it" % Condition.keys()[condition]
 	if from_frame > to_frame:
 		return "empty cancel window %d..%d" % [from_frame, to_frame]
 	if kind == Kind.CHAIN and target != Target.LIGHT and target != Target.HEAVY:

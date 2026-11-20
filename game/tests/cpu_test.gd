@@ -356,31 +356,36 @@ func _blocking_order() -> void:
 
 # ---------------- 5. difficulty ordering (damage) --------------------
 
-# Frames the CPU needs to KO a passive dummy (cap 3000 = never). HARD's
-# higher aggression and punish usage should close it out faster than EASY.
-func _cpu_damage(level: int, seed: int) -> int:
+# Damage the CPU deals to a passive dummy inside a fixed window. Note the
+# Phase 1 combo caps: a never-resetting string is ONE combo, so the 550
+# damage cap bounds the total — HARD cannot mash a KO out of a static
+# dummy anymore, by design. The ordering signal is therefore damage dealt
+# per unit time, with the cap itself asserted separately.
+func _cpu_damage(level: int, seed: int) -> float:
 	var mroot: Node = await _build_match(PEGGY, RICHARD, BUS_STOP,
 		false, true, level, seed)
 	await _to_fight(mroot)
 	var human: FighterBase = mroot.p1
 	# The human does nothing: measure what the CPU can do to a static dummy.
 	var frame := 0
-	while frame < 3000 and mroot.phase == mroot.Phase.FIGHT:
+	while frame < 900 and mroot.phase == mroot.Phase.FIGHT:
 		await _step(mroot, 1)
 		frame += 1
 	_release_p1()
-	var ko_frames: int = 3000 if human.health > 0.0 else frame
+	var damage: float = 1000.0 - human.health
 	await _free_match(mroot)
-	return ko_frames
+	return damage
 
 func _difficulty_order() -> void:
-	var easy: int = 0
-	var hard: int = 0
+	var easy: float = 0.0
+	var hard: float = 0.0
 	for seed in [7, 21]:
-		easy += mini(await _cpu_damage(0, seed), 3000)
-		hard += mini(await _cpu_damage(2, seed), 3000)
-	_check("HARD KOs a passive opponent faster than EASY",
-		hard < easy, "easy=%d frames hard=%d frames (2 seeds, capped at 3000 each)"
+		easy += await _cpu_damage(0, seed)
+		hard += await _cpu_damage(2, seed)
+	easy /= 2.0
+	hard /= 2.0
+	_check("HARD out-damages EASY against a passive opponent within the window",
+		hard > easy, "easy=%.0f hard=%.0f (900-frame windows, 2 seeds)"
 			% [easy, hard])
 
 # ---------------- 6. AI-vs-AI soak --------------------

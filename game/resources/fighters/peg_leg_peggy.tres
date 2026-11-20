@@ -3,6 +3,38 @@
 [ext_resource type="Script" path="res://scripts/combat/cancel_rule.gd" id="1_3bfml"]
 [ext_resource type="Script" path="res://scripts/combat/move_data.gd" id="2_y6umg"]
 [ext_resource type="Script" path="res://scripts/combat/fighter_data.gd" id="3_uih6c"]
+[ext_resource type="Script" path="res://scripts/combat/macro_data.gd" id="4_macro"]
+[ext_resource type="Resource" path="res://resources/combat/combo_tuning_default.tres" id="5_tuning"]
+
+[sub_resource type="Resource" id="Resource_pglk1"]
+script = ExtResource("1_3bfml")
+target = 0
+condition = 2
+from_frame = 4
+to_frame = 12
+
+[sub_resource type="Resource" id="Resource_pglk2"]
+script = ExtResource("1_3bfml")
+target = 2
+kind = 1
+condition = 2
+from_frame = 4
+to_frame = 12
+
+[sub_resource type="Resource" id="Resource_pgcnt"]
+script = ExtResource("1_3bfml")
+target = 3
+kind = 1
+condition = 1
+from_frame = 8
+to_frame = 25
+
+[sub_resource type="Resource" id="MacroData_pgbench"]
+script = ExtResource("4_macro")
+id = &"bench_warmer"
+display_name = "BENCH WARMER"
+steps = Array[StringName]([&"light", &"light", &"heavy"])
+max_gap_frames = 18
 
 [sub_resource type="Resource" id="Resource_6j227"]
 script = ExtResource("2_y6umg")
@@ -47,7 +79,7 @@ hitstun = 13
 knockback = Vector2(55, 0)
 hitbox_offset = Vector2(22, -44)
 hitbox_size = Vector2(28, 16)
-cancels = Array[ExtResource("1_3bfml")]([SubResource("Resource_ppeoy"), SubResource("Resource_hhveu"), SubResource("Resource_w4klc")])
+cancels = Array[ExtResource("1_3bfml")]([SubResource("Resource_ppeoy"), SubResource("Resource_hhveu"), SubResource("Resource_w4klc"), SubResource("Resource_pglk1"), SubResource("Resource_pglk2")])
 
 [sub_resource type="Resource" id="Resource_6cwq4"]
 script = ExtResource("1_3bfml")
@@ -78,7 +110,7 @@ knockback = Vector2(90, 0)
 hitbox_offset = Vector2(26, -42)
 hitbox_size = Vector2(34, 22)
 hitstop = 6
-cancels = Array[ExtResource("1_3bfml")]([SubResource("Resource_6cwq4"), SubResource("Resource_7xrol")])
+cancels = Array[ExtResource("1_3bfml")]([SubResource("Resource_6cwq4"), SubResource("Resource_7xrol"), SubResource("Resource_pgcnt")])
 
 [sub_resource type="Resource" id="Resource_cd7l2"]
 script = ExtResource("1_3bfml")
@@ -385,4 +417,6 @@ body_width = 26.0
 body_height = 54.0
 meth_name = "Walk the Plank"
 meth_move = SubResource("Resource_6j227")
+combo_tuning = ExtResource("5_tuning")
+macros = Array[ExtResource("4_macro")]([SubResource("MacroData_pgbench")])
 moves = Array[ExtResource("2_y6umg")]([SubResource("Resource_r5ltk"), SubResource("Resource_ntf5t"), SubResource("Resource_08v1d"), SubResource("Resource_5olep"), SubResource("Resource_6f1g6"), SubResource("Resource_2fi8q"), SubResource("Resource_msgkc"), SubResource("Resource_wgyqa"), SubResource("Resource_curls"), SubResource("Resource_tvf1o"), SubResource("Resource_1ijmj"), SubResource("Resource_qa18f"), SubResource("Resource_fo7wj"), SubResource("Resource_3ydin"), SubResource("Resource_wcdfq")])

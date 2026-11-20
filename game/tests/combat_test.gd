@@ -1572,6 +1572,23 @@ func _run() -> void:
 	var matrix_ok := true
 	var matrix_detail := ""
 	var rule_rows := 0
+	# Phase 1 (COMBO_SYSTEM_DESIGN): authored combo extensions add BLOCK and
+	# COUNTER_HIT rules on four rows, fighter-specific. HIT rules keep the
+	# legacy window [startup+1 .. total]; BLOCK/COUNTER rules must be valid
+	# and inside the move's span, with the exact authored target/kind below.
+	var expected_block: Dictionary = {
+		"peg_leg_peggy:light": [
+			[CancelRule.Target.LIGHT, CancelRule.Kind.CHAIN],
+			[CancelRule.Target.SPECIAL, CancelRule.Kind.CANCEL]],
+		"whiskey_richard:heavy": [
+			[CancelRule.Target.SPECIAL, CancelRule.Kind.CANCEL]],
+	}
+	var expected_counter: Dictionary = {
+		"peg_leg_peggy:heavy": [
+			[CancelRule.Target.EX, CancelRule.Kind.CANCEL]],
+		"whiskey_richard:crouch_heavy": [
+			[CancelRule.Target.SPECIAL, CancelRule.Kind.CANCEL]],
+	}
 	for fighter_data in [p1.data, p2.data]:
 		for m in fighter_data.moves:
 			var expected: Array = []
@@ -1590,18 +1607,54 @@ func _run() -> void:
 					[CancelRule.Target.LIGHT, CancelRule.Kind.CHAIN],
 					[CancelRule.Target.HEAVY, CancelRule.Kind.CHAIN]]
 			var actual: Array = []
+			var block_rows: Array = []
+			var counter_rows: Array = []
 			for r in m.cancels:
-				actual.append([r.target, r.kind])
+				if r.condition == CancelRule.Condition.HIT:
+					# The legacy matrix: HIT rules only; BLOCK/COUNTER combo
+					# edges are checked separately below.
+					actual.append([r.target, r.kind])
 				rule_rows += 1
-				if r.condition != CancelRule.Condition.HIT or r.from_frame != m.startup + 1 \
-						or r.to_frame != m.total_frames() or r.validate() != "":
+				if r.condition == CancelRule.Condition.HIT:
+					if r.from_frame != m.startup + 1 \
+							or r.to_frame != m.total_frames() or r.validate() != "":
+						matrix_ok = false
+						matrix_detail = "%s rule %s" % [m.id, r.validate()]
+				elif r.condition == CancelRule.Condition.BLOCK:
+					block_rows.append([r.target, r.kind])
+					if r.validate() != "" or r.from_frame < m.startup + 1 \
+							or r.to_frame > m.total_frames():
+						matrix_ok = false
+						matrix_detail = "%s block rule invalid" % m.id
+				elif r.condition == CancelRule.Condition.COUNTER_HIT:
+					counter_rows.append([r.target, r.kind])
+					if r.validate() != "" or r.from_frame < m.startup + 1 \
+							or r.to_frame > m.total_frames():
+						matrix_ok = false
+						matrix_detail = "%s counter rule invalid" % m.id
+				else:
 					matrix_ok = false
-					matrix_detail = "%s rule %s" % [m.id, r.validate()]
+					matrix_detail = "%s unexpected WHIFF rule" % m.id
 			if str(actual) != str(expected):
 				matrix_ok = false
 				matrix_detail = "%s actual=%s expected=%s" % [m.id, str(actual), str(expected)]
-	_check("every light/heavy row carries its legacy cancel routes, valid and hit-only",
-		matrix_ok and rule_rows == 32, "rules=%d %s" % [rule_rows, matrix_detail])
+			var row_key: String = "%s:%s" % [fighter_data.id, m.id]
+			if expected_block.has(row_key) and str(block_rows) != str(expected_block[row_key]):
+				matrix_ok = false
+				matrix_detail = "%s block=%s expected=%s" % [row_key, str(block_rows),
+					str(expected_block[row_key])]
+			elif not expected_block.has(row_key) and not block_rows.is_empty():
+				matrix_ok = false
+				matrix_detail = "%s unexpected block rows" % row_key
+			if expected_counter.has(row_key) and str(counter_rows) != str(expected_counter[row_key]):
+				matrix_ok = false
+				matrix_detail = "%s counter=%s expected=%s" % [row_key, str(counter_rows),
+					str(expected_counter[row_key])]
+			elif not expected_counter.has(row_key) and not counter_rows.is_empty():
+				matrix_ok = false
+				matrix_detail = "%s unexpected counter rows" % row_key
+	_check("every light/heavy row carries its legacy cancel routes plus the authored combo edges",
+		matrix_ok and rule_rows == 37, "rules=%d %s" % [rule_rows, matrix_detail])
 	_check("specials and grabs author no cancel routes",
 		p1.data.find_move(MoveData.InputType.SPECIAL_NEUTRAL, MoveData.Stance.STAND).cancels.is_empty()
 			and p1.data.find_move(MoveData.InputType.GRAB, MoveData.Stance.STAND).cancels.is_empty(),
@@ -1681,10 +1734,14 @@ func _run() -> void:
 		counter_first and ordinary_first,
 		"counter=%s ordinary=%s" % [str(counter_first), str(ordinary_first)])
 
-	var reserved := CancelRule.new()
-	reserved.condition = CancelRule.Condition.BLOCK
-	reserved.from_frame = 1
-	reserved.to_frame = 2
+	var block_rule := CancelRule.new()
+	block_rule.condition = CancelRule.Condition.BLOCK
+	block_rule.from_frame = 1
+	block_rule.to_frame = 2
+	var whiff_rule := CancelRule.new()
+	whiff_rule.condition = CancelRule.Condition.WHIFF
+	whiff_rule.from_frame = 1
+	whiff_rule.to_frame = 2
 	var backwards := CancelRule.new()
 	backwards.from_frame = 5
 	backwards.to_frame = 2
@@ -1693,10 +1750,12 @@ func _run() -> void:
 	wrong_target.target = CancelRule.Target.SPECIAL
 	wrong_target.from_frame = 1
 	wrong_target.to_frame = 2
-	_check("cancel validation rejects reserved conditions, empty windows, and kind/target mismatch",
-		reserved.validate() != "" and backwards.validate() != ""
-			and wrong_target.validate() != "" and counter_rule.validate() == "",
-		"%s | %s | %s" % [reserved.validate(), backwards.validate(), wrong_target.validate()])
+	_check("cancel validation accepts the reported BLOCK/WHIFF outcomes and still rejects empty windows and kind/target mismatch",
+		block_rule.validate() == "" and whiff_rule.validate() == ""
+			and backwards.validate() != "" and wrong_target.validate() != ""
+			and counter_rule.validate() == "",
+		"%s | %s | %s | %s" % [block_rule.validate(), whiff_rule.validate(),
+			backwards.validate(), wrong_target.validate()])
 
 	# --- 42. juggle/OTG rules (PROPOSALS 6): cap, reset, repeat-hit scaling ---
 	# Airborne juggle sequence driven through the real receive_hit path: three
@@ -2417,10 +2476,13 @@ func _run() -> void:
 			and not is_zero_approx(cap_dmg[2]),
 		"juggle=%d dmg=%s" % [cap_dfd.juggle_hits, str(cap_dmg)])
 	var juggle_heavy: MoveData = cap_atk.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.AIR)
-	_check("the 85% third-hit damage step fires in the airborne chain",
+	# COMBO_SYSTEM_DESIGN: ladder 1.0/0.85/0.70 by hit position, and the
+	# third repeated heavy also pays the repeat-move penalty (0.9 per reuse
+	# beyond one freebie), so 80 x 0.85 = 68, then 80 x 0.70 x 0.9 = 50.4.
+	_check("the airborne chain pays the ladder plus the repeat-move penalty",
 		is_equal_approx(cap_dmg[0], juggle_heavy.damage)
 			and is_equal_approx(cap_dmg[1], juggle_heavy.damage * 0.85)
-			and is_equal_approx(cap_dmg[2], juggle_heavy.damage * 0.70),
+			and is_equal_approx(cap_dmg[2], juggle_heavy.damage * 0.70 * 0.9),
 		"dmg=%s authored=%.1f" % [str(cap_dmg), juggle_heavy.damage])
 	_check("the cap rejects the next airborne hit and keeps the window live",
 		not fourth and cap_dfd.health == fourth_hp
@@ -3125,7 +3187,9 @@ func _run() -> void:
 	await _step(2)
 	p1._start_move(light)
 	await _step(light.total_frames() + 4)
-	_check("each connecting hit awards once (two-hit chain, no doubling)",
+	# The reset cleared the defender's combo, so this is a fresh opener: the
+	# award is unscaled (the x0.5 in-combo rule only applies within one combo).
+	_check("each connecting hit awards once (two openers, no doubling)",
 			is_equal_approx(p1.meter, meter_after_first + light.meter_gain_hit),
 			"meter=%.1f expected=%.1f" % [p1.meter, meter_after_first + light.meter_gain_hit])
 

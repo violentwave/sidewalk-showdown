@@ -262,6 +262,12 @@ that section by hand afterward — the simulation step comes from
   neutral-game, no character-specific gameplans, and difficulty is data-tuned
   rates rather than distinct strategies. It plays a fair, readable match; it
   is not a tournament opponent.
+- **Combo depth is Phase 1.** Blockstrings, counter-hit extensions,
+  dial-a-combo macros (BENCH WARMER / LAST CALL), the Clip Cancel, and
+  data-driven scaling with repeat/variety/caps are in
+  ([`COMBO_SYSTEM_DESIGN.md`](COMBO_SYSTEM_DESIGN.md)) — but there is no
+  combo HUD readout yet, the CPU does not use the new routes, and juggle
+  points, stuns, and the breaker are still Phase 2/3.
 - **METHtality presentation is minimal.** The trigger, spend and KO win are
   real, but the finisher is a single point-blank hit with a long freeze and a
   banner — no cinematic, camera, or choreography yet. The 30f freeze is a

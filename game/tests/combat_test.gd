@@ -2423,10 +2423,13 @@ func _run() -> void:
 			and not is_zero_approx(cap_dmg[2]),
 		"juggle=%d dmg=%s" % [cap_dfd.juggle_hits, str(cap_dmg)])
 	var juggle_heavy: MoveData = cap_atk.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.AIR)
-	_check("the 85% third-hit damage step fires in the airborne chain",
+	# COMBO_SYSTEM_DESIGN: ladder 1.0/0.85/0.70 by hit position, and the
+	# third repeated heavy also pays the repeat-move penalty (0.9 per reuse
+	# beyond one freebie), so 80 x 0.85 = 68, then 80 x 0.70 x 0.9 = 50.4.
+	_check("the airborne chain pays the ladder plus the repeat-move penalty",
 		is_equal_approx(cap_dmg[0], juggle_heavy.damage)
 			and is_equal_approx(cap_dmg[1], juggle_heavy.damage * 0.85)
-			and is_equal_approx(cap_dmg[2], juggle_heavy.damage * 0.70),
+			and is_equal_approx(cap_dmg[2], juggle_heavy.damage * 0.70 * 0.9),
 		"dmg=%s authored=%.1f" % [str(cap_dmg), juggle_heavy.damage])
 	_check("the cap rejects the next airborne hit and keeps the window live",
 		not fourth and cap_dfd.health == fourth_hp
@@ -3131,7 +3134,9 @@ func _run() -> void:
 	await _step(2)
 	p1._start_move(light)
 	await _step(light.total_frames() + 4)
-	_check("each connecting hit awards once (two-hit chain, no doubling)",
+	# The reset cleared the defender's combo, so this is a fresh opener: the
+	# award is unscaled (the x0.5 in-combo rule only applies within one combo).
+	_check("each connecting hit awards once (two openers, no doubling)",
 			is_equal_approx(p1.meter, meter_after_first + light.meter_gain_hit),
 			"meter=%.1f expected=%.1f" % [p1.meter, meter_after_first + light.meter_gain_hit])
 

@@ -112,6 +112,10 @@ var tech_frames := 0
 var landing_recovery_frames := DEFAULT_LANDING_FRAMES
 
 var combo_hits := 0
+# COMBO_SYSTEM_DESIGN §9.5: the defender-side combo record. combo_hits stays
+# in lockstep for HUD compatibility; the tracker is the source of truth for
+# scaling, repeat/variety, caps, and save/restore.
+var combo_tracker := ComboTracker.new()
 # Airborne hits this fighter has received in the current combo (PROPOSALS §6).
 var juggle_hits := 0
 var frames_since_hit := 0
@@ -294,6 +298,7 @@ func begin_round(spawn_pos: Vector2, opponent_x: float) -> void:
 	hitstop_frames = 0
 	hitstop_buffer_freeze_frames = 0
 	combo_hits = 0
+	combo_tracker.reset()
 	frames_since_hit = 0
 	knockdown_frames = 0
 	tech_frames = 0
@@ -889,19 +894,28 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 			attacker.velocity.x = -block_dir * move.block_pushback
 			velocity.x = 0.0
 		combo_hits = 0
+		combo_tracker.reset()
 		combo_changed.emit(0)
 		_force_state(State.BLOCKSTUN)
 		_emit_health()
 		return false
 
-	var scaled := move.damage * _damage_scale()
+	# COMBO_SYSTEM_DESIGN §9.3: damage is data. The scale is the defender's
+	# tuning ladder x repeat penalty x variety bonus (capped at 1.0), then the
+	# per-combo damage cap clamps the remaining budget; past the hit cap a hit
+	# still connects but pays nothing.
+	var scaled := _combo_damage_for(move)
 	health = maxf(0.0, health - scaled)
 	combo_hits += 1
 	frames_since_hit = 0
+	combo_tracker.record(move.id, scaled)
 	combo_changed.emit(combo_hits)
-	# The clean-hit award: the only place meter is earned (attacker, landed hit,
-	# per connecting move — throws included). The defender gains nothing.
-	attacker.add_meter(move.meter_gain_hit)
+	# The clean-hit award: the only place meter is earned (attacker, landed
+	# hit, per connecting move — throws included). The defender gains nothing.
+	# Decision #2: from the second hit of a combo on, the award is scaled
+	# (x0.5 by default, floored) so long strings trend toward the next EX
+	# without refunding their own extension.
+	attacker.add_meter(move.meter_gain_hit * _combo_meter_multiplier())
 	var stop := move.hitstop + (COUNTER_HIT_HITSTOP if counter else 0)
 	hitstop_frames = maxi(hitstop_frames, stop)
 	attacker.hitstop_frames = maxi(attacker.hitstop_frames, stop)
@@ -944,7 +958,14 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 		knockdown_frames = 30
 		_force_state(State.KNOCKDOWN)
 	else:
-		hitstun_frames = move.hitstun
+		var stun: int = move.hitstun
+		# COMBO_SYSTEM_DESIGN §9.3: air hitstun decays per air hit taken, so
+		# late juggle hits cannot re-launch loops; floored at the tuning value.
+		if was_airborne:
+			var t: ComboTuning = _combo_tuning()
+			stun = maxi(t.air_hitstun_floor, int(round(move.hitstun
+				* pow(t.air_hitstun_decay, float(juggle_hits)))))
+		hitstun_frames = stun
 		_force_state(State.HITSTUN)
 	return true
 
@@ -1003,17 +1024,50 @@ func _start_tech(other: FighterBase) -> void:
 	if other and other != self:
 		other.teched.emit()
 
-func _damage_scale() -> float:
-	var hits := combo_hits + 1
-	if hits <= 2:
+# The per-hit damage through the defender's ComboTuning and ComboTracker
+# record: ladder by hit position, repeat-move penalty beyond the freebies,
+# variety bonus for three distinct moves in a row, all capped at 1.0; the
+# per-combo damage cap clamps the remaining budget; the hit cap zeroes
+# damage past combo_hit_cap. Replaces the legacy hardcoded ladder with the
+# identical numbers as data (decision #4).
+func _combo_damage_for(move: MoveData) -> float:
+	# METHtalities are full-meter finishers, not combo parts: no scaling, no
+	# caps. The cap exists to bound authored strings; a finisher that leaves
+	# the opponent alive would be a design bug (and combat_test pins the KO).
+	if move.meth:
+		return move.damage
+	var t: ComboTuning = _combo_tuning()
+	var hit_index: int = combo_hits + 1
+	var scale: float = t.ladder_for(hit_index)
+	var used: int = combo_tracker.count_of(move.id)
+	if used > t.repeat_freebies:
+		scale *= pow(t.repeat_penalty, float(used - t.repeat_freebies))
+	if combo_tracker.last_three_distinct(move.id):
+		scale = minf(scale * (1.0 + t.variety_bonus), 1.0)
+	var dmg: float = move.damage * scale
+	if hit_index > t.combo_hit_cap:
+		return 0.0
+	return clampf(dmg, 0.0, maxf(0.0, t.combo_damage_cap - combo_tracker.total_damage))
+
+# Decision #2: full award on the combo opener, x0.5 from the second hit on,
+# the multiplier itself never below the floor. Called after the combo_hits
+# increment, so the opener is combo_hits == 1 and the ladder position of
+# this hit is combo_hits itself.
+func _combo_meter_multiplier() -> float:
+	var t: ComboTuning = _combo_tuning()
+	if combo_hits <= 1:
 		return 1.0
-	elif hits == 3:
-		return 0.85
-	elif hits == 4:
-		return 0.70
-	elif hits >= 5:
-		return 0.55
-	return 1.0
+	return maxf(t.meter_gain_floor,
+		t.meter_gain_in_combo * t.ladder_for(combo_hits))
+
+func _combo_tuning() -> ComboTuning:
+	if data != null and data.combo_tuning != null:
+		return data.combo_tuning
+	return _default_combo_tuning
+
+# Shared fallback so a fighter without an authored .tres still uses the
+# approved defaults rather than engine literals.
+static var _default_combo_tuning := ComboTuning.new()
 
 func reset_state() -> void:
 	_force_state(State.IDLE)
@@ -1029,6 +1083,7 @@ func reset_state() -> void:
 	tech_frames = 0
 	landing_recovery_frames = DEFAULT_LANDING_FRAMES
 	combo_hits = 0
+	combo_tracker.reset()
 	juggle_hits = 0
 	frames_since_hit = 0
 	input_buffer.clear()
@@ -1110,6 +1165,7 @@ func _tick_combo() -> void:
 	if combo_hits > 0 and frames_since_hit > 40 and state not in [State.HITSTUN, State.KNOCKDOWN]:
 		# Combo end: the §6 juggle counter only resets with the combo.
 		combo_hits = 0
+		combo_tracker.reset()
 		juggle_hits = 0
 		combo_changed.emit(0)
 
@@ -1215,6 +1271,7 @@ func serialize() -> Dictionary:
 		"tech_frames": tech_frames,
 		"landing_recovery_frames": landing_recovery_frames,
 		"combo_hits": combo_hits,
+		"combo_tracker": combo_tracker.serialize(),
 		"juggle_hits": juggle_hits,
 		"frames_since_hit": frames_since_hit,
 		"input_buffer": input_buffer,
@@ -1249,6 +1306,8 @@ func load(data: Dictionary) -> void:
 	landing_recovery_frames = data["landing_recovery_frames"]
 	combo_hits = data["combo_hits"]
 	juggle_hits = data["juggle_hits"]
+	if typeof(data.get("combo_tracker")) == TYPE_DICTIONARY:
+		combo_tracker.load_state(data["combo_tracker"])
 	frames_since_hit = data["frames_since_hit"]
 	input_buffer = data["input_buffer"]
 	input_history = data["input_history"]

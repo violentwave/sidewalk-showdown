@@ -20,8 +20,9 @@ Every coding agent working in this repo follows these rules. Read
    capture tools):
    `godot --headless --path game --script res://tests/combat_test.gd` (and
    round_flow, character_select, locomotion_speed, stage_select, stage_floor,
-   cpu, the_clip). `air_probe.gd` is metrics-only. `serialization_test.gd`
-   hangs after printing ALL PASS — run it under a timeout.
+   cpu, combo, the_clip, serialization, b6_landing_whiff).
+   `air_probe.gd` is metrics-only. Every CI step has a `timeout-minutes`,
+   but still run hanging-prone tooling under a shell timeout locally.
 5. Paste **real output** in the PR (checks + failures per suite), not claims.
    If your change alters a suite's check count, update the count **everywhere**
    it is written: `README.md`, `docs/PHASE_STATUS.md`, `docs/KNOWN_ISSUES.md`,

@@ -55,7 +55,8 @@ meter_gain_whiff. But the meter economy was then changed to "landed hits only" â
 whiffs award nothing anywhere, aerial or grounded â€” so a discarded whiff meter
 no longer exists to be dropped. `b6_landing_whiff_test.gd` now pins the
 superseding behavior (landing a whiffed air move awards 0 meter, the move
-still clears, and landing recovery still runs to IDLE).
+still clears, and landing recovery still runs to IDLE) and gates CI
+(added 2026-11-20 with the test-reliability pass).
 
 ## Decisions and open choices
 

@@ -51,16 +51,24 @@ func _build_match(p1_path: String, p2_path: String, stage_path: String,
 	mroot.p2_cpu = p2_cpu
 	mroot.cpu_level = level
 	mroot.cpu_seed = seed
-	# Disable engine ticking BEFORE the match enters the tree: the number of
-	# engine physics ticks between add_child and the awaits below is machine
-	# timing, and any of them advancing the match would make builds (and so
-	# cross-run comparisons) nondeterministic. The match only ever steps
-	# manually from here on.
+	# The engine must NEVER tick this match: any engine physics tick during
+	# the build awaits (or between manual steps) advances phase/timer/state
+	# by machine timing and desynchronizes the runs this suite compares.
+	# Godot re-enables scene processing on entry in some paths, so the
+	# disable is applied pre-add, post-add, and re-asserted after the ready
+	# awaits, where an is_physics_processing() guard pins it (verified to
+	# hold: 0 spontaneous flips over rate-toggled stepping).
 	mroot.set_physics_process(false)
 	root.add_child(mroot)
-	# _ready (stage, fighters, CPUs) lands on the next frame tick.
+	mroot.set_physics_process(false)
+	# _ready (stage, fighters, CPUs) lands on the next frame tick. The
+	# engine may tick the match a wall-dependent 0..N times during these
+	# awaits before the next disable lands; that build drift is absorbed by
+	# driving the intro by phase (_to_fight), never by frame counts.
 	await process_frame
 	await process_frame
+	mroot.set_physics_process(false)
+	assert(not mroot.is_physics_processing())
 	mroot.p1.set_physics_process(false)
 	mroot.p2.set_physics_process(false)
 	# Erase any engine ticks the fighters may have taken during the awaits.
@@ -100,9 +108,14 @@ func _step(mroot: Node, frames: int) -> void:
 		mroot.p2._physics_process(dt)
 		mroot._physics_process(dt)
 
-# Fast-forward through the intro so the fighters are live.
+# Fast-forward through the intro so the fighters are live. Driven by phase,
+# not a fixed step count: any 1-frame drift in when the build's engine
+# iterations landed must not shift the whole script (the #69 lesson).
 func _to_fight(mroot: Node) -> void:
-	await _step(mroot, 61)
+	for i in 120:
+		await _step(mroot, 1)
+		if mroot.phase == mroot.Phase.FIGHT:
+			return
 
 func _reset_pair(mroot: Node, p1_x: float, p2_x: float) -> void:
 	var stage: Node = mroot.stage
@@ -141,13 +154,16 @@ func _scripted_p1(mroot: Node, frame: int) -> void:
 	else:
 		Input.action_release("p1_left")
 	if frame % 120 == 0:
-		Input.action_press("p1_light")
-	else:
-		Input.action_release("p1_light")
+		# Inject the tap at the exact point _poll_input writes. The Input
+		# singleton's just_pressed latch is wall-timing coupled (the #67/#69
+		# flake class): a press issued between engine ticks may register one
+		# tick early or late, which desynchronizes the two runs this suite
+		# compares. A direction hold stays on Input (axis reads are not
+		# counter-gated).
+		mroot.p1.input_buffer["light"] = 0
 
 func _release_p1() -> void:
 	Input.action_release("p1_left")
-	Input.action_release("p1_light")
 
 # ---------------- 1. legality --------------------
 
@@ -294,9 +310,18 @@ func _block_count(level: int, seed: int, scripted: Callable) -> int:
 		var saw_blockstun: bool = false
 		for i in attack["frames"]:
 			if attack["press"] != "":
-				Input.action_press(attack["press"])
+				# Button taps inject at the buffer (the exact point
+				# _poll_input writes). "up", "_right", "_left" are read as
+				# HELD states (jump / axis) so they route through Input;
+				# held axis reads are not counter-gated.
+				if attack["press"].ends_with("_right") or attack["press"].ends_with("_left") \
+						or attack["press"].ends_with("_up"):
+					Input.action_press(attack["press"])
+				else:
+					mroot.p1.input_buffer[attack["press"].trim_prefix("p1_")] = 0
 			await _step(mroot, 1)
-			if attack["press"] != "":
+			if attack["press"] != "" and (attack["press"].ends_with("_right") \
+					or attack["press"].ends_with("_left") or attack["press"].ends_with("_up")):
 				Input.action_release(attack["press"])
 			if cpu.state in [FighterBase.State.BLOCKSTUN,
 					FighterBase.State.BLOCK_STAND, FighterBase.State.BLOCK_CROUCH]:

@@ -18,24 +18,40 @@ jobs:
           include-templates: false
       - name: Import project
         run: godot --headless --path game --import
+        timeout-minutes: 5
       - name: Combat tests
         run: godot --headless --path game --script res://tests/combat_test.gd
+        timeout-minutes: 10
       - name: Round flow tests
         run: godot --headless --path game --script res://tests/round_flow_test.gd
+        timeout-minutes: 5
       - name: Mode and character select tests
         run: godot --headless --path game --script res://tests/character_select_test.gd
+        timeout-minutes: 5
       - name: Stage select and Gas-N-Go ambience tests
         run: godot --headless --path game --script res://tests/stage_select_test.gd
+        timeout-minutes: 5
       - name: Stage floor guard tests
         run: godot --headless --path game --script res://tests/stage_floor_test.gd
+        timeout-minutes: 5
       - name: Locomotion speed-parity tests
         run: godot --headless --path game --script res://tests/locomotion_speed_test.gd
+        timeout-minutes: 5
       - name: CPU opponent tests
         run: godot --headless --path game --script res://tests/cpu_test.gd
+        timeout-minutes: 10
       - name: Combo system tests
         run: godot --headless --path game --script res://tests/combo_test.gd
+        timeout-minutes: 10
       - name: The Clip intro tests
         run: godot --headless --path game --script res://tests/the_clip_test.gd
+        timeout-minutes: 5
+      - name: Serialization tests
+        run: godot --headless --path game --script res://tests/serialization_test.gd
+        timeout-minutes: 5
+      - name: B6 landing-whiff (superseded rule) tests
+        run: godot --headless --path game --script res://tests/b6_landing_whiff_test.gd
+        timeout-minutes: 5
 
   air-probe:
     # Metrics only (docs/PROPOSALS.md section 3): the probe asserts nothing and
@@ -52,5 +68,7 @@ jobs:
           include-templates: false
       - name: Import project
         run: godot --headless --path game --import
+        timeout-minutes: 5
       - name: Air balance probe
         run: godot --headless --path game --script res://tests/air_probe.gd
+        timeout-minutes: 20

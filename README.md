@@ -234,5 +234,8 @@ this is fictional "Sidewalk Florida".
 `main` is squash-merge-only. Branch from `origin/main`, open a PR, wait for
 `tests` to pass, then squash-merge
 ([`docs/MAIN_BRANCH_GUARD.md`](docs/MAIN_BRANCH_GUARD.md)). Keep gameplay data
-changes separate from presentation-only changes, and run the five test suites
-before pushing.
+changes separate from presentation-only changes, and run the headless suites
+before pushing: `combat`, `round_flow`, `character_select`, `stage_select`,
+`stage_floor`, `locomotion_speed`, `cpu`, `combo`, `the_clip`,
+`serialization`, `b6_landing_whiff` (see `docs/PM_BRIEF.md` §5 for the exact
+commands; every CI step has a `timeout-minutes`).

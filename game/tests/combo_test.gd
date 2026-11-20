@@ -45,10 +45,17 @@ func _build_match(p1_path: String, p2_path: String, stage_path: String) -> Node:
 	mroot.selected_p1_data = load(p1_path)
 	mroot.selected_p2_data = load(p2_path)
 	mroot.selected_stage = load(stage_path)
+	# The engine must NEVER tick this match (see cpu_test's _build_match for
+	# the full story: Godot re-enables scene processing on entry in some
+	# paths). Disable pre-add, post-add, and re-assert after the ready
+	# awaits; the residual build drift is absorbed by phase-driven _to_fight.
 	mroot.set_physics_process(false)
 	root.add_child(mroot)
+	mroot.set_physics_process(false)
 	await process_frame
 	await process_frame
+	mroot.set_physics_process(false)
+	assert(not mroot.is_physics_processing())
 	mroot.p1.set_physics_process(false)
 	mroot.p2.set_physics_process(false)
 	mroot.p1.reset_state()

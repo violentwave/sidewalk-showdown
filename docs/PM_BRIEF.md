@@ -3,11 +3,12 @@
 > **Keep this file current: every PR that changes features, tests, commands, or
 > rules must update PM_BRIEF.md.**
 >
-> Last verified: **2026-11-20**, against `origin/main` at `ba0906feeb`
-> (2026-11-19, "docs: combo system design — audit, data model, four components,
-> phased plan (#68)"). All claims below were checked against the code, resources,
-> workflows, and a full local test run on this branch — not copied from other
-> docs. Stale claims found elsewhere are called out in §9.
+> Last verified: **2026-11-20**, against `origin/main` at `49dca36`
+> (2026-11-20, "docs: PM brief and agent rules (new files only) (#70)") plus
+> the test-reliability fixes on this branch. All claims below were checked
+> against the code, resources, workflows, and a full local test run on this
+> branch — not copied from other docs. Stale claims found elsewhere are
+> called out in §9.
 
 ## 1. What this game is (verified stack)
 
@@ -86,17 +87,19 @@ Counts are PASS+FAIL lines observed in real headless runs, not doc claims.
 | `stage_select_test.gd` | Stage ids/thumbnails/scenes, RANDOM, ambience of both stages, invalid-roster guards, no stale `BusStopNight` art | **94**, 0 fail | yes |
 | `stage_floor_test.gd` | Every roster stage's `floor_y` inside its measured band, pinned (158/170), bounds + spawns | **9**, 0 fail | yes |
 | `locomotion_speed_test.gd` | Peggy/Richard walk + jump parity (95/72/285 pinned) | **7**, 0 fail | yes |
-| `cpu_test.gd` | CPU legality, determinism (same seed -> same hash), save/restore, difficulty ordering, 8-match AI-vs-AI soak | **27** | yes — **FLAKY** (see §7) |
+| `cpu_test.gd` | CPU legality, determinism (same seed -> same hash), save/restore, difficulty ordering, 8-match AI-vs-AI soak | **27** | yes — fixed 2026-11-20 (engine was ticking the manually-stepped match; see §7 history) |
 | `the_clip_test.gd` | Panel art slots, canon guards, Space-only flow, skips, fonts | **23**, 0 fail | yes |
-| `serialization_test.gd` | Match serializable-surface keys + round trip | **24**, 0 fail | no — **hangs after ALL PASS** (never calls `quit()`; run under a timeout) |
-| `b6_landing_whiff_test.gd` | Superseded B6 rule: landing a whiffed air move awards 0 meter, move clears, recovery runs | **5**, 0 fail | no |
+| `serialization_test.gd` | Match serializable-surface keys + round trip | **24**, 0 fail | yes — fixed 2026-11-20 (exits with `quit()`, correct exit code) |
+| `b6_landing_whiff_test.gd` | Superseded B6 rule: landing a whiffed air move awards 0 meter, move clears, recovery runs | **5**, 0 fail | yes — added 2026-11-20 (asserts current behavior; exits cleanly) |
 | `air_probe.gd` | Balance metrics only, asserts nothing, always exits 0 | 0 (metrics) | yes (separate job) |
 | `idle_render_check`, `peggy/richard_clip_render_check`, `jump_block_render_check`, `jump_block_trace`, `attack_scale_check`, `peggy/richard_jump_check`, `peggy/richard_live_soak` | Manual rendered/soak review tools; need a display, write to `/tmp/opencode/` | n/a | no |
 
-CI (`.github/workflows/tests.yml`) runs import + the eight "yes" suites plus
-the air-probe job on push, PR, and manual dispatch. `export.yml` builds both
-desktop targets on `main`/`v*`; `main_guard.yml` reverts unauthorized direct
-pushes to `main`.
+CI (`.github/workflows/tests.yml`) runs import + the eleven suites (combat,
+round_flow, character_select, stage_select, stage_floor, locomotion_speed,
+cpu, combo, the_clip, serialization, b6) plus the air-probe job on push, PR,
+and manual dispatch; every step carries a `timeout-minutes` so a hang fails
+fast. `export.yml` builds both desktop targets on `main`/`v*`;
+`main_guard.yml` reverts unauthorized direct pushes to `main`.
 
 ## 5. Commands
 
@@ -113,7 +116,9 @@ godot --headless --path game --script res://tests/stage_select_test.gd
 godot --headless --path game --script res://tests/stage_floor_test.gd
 godot --headless --path game --script res://tests/cpu_test.gd
 godot --headless --path game --script res://tests/the_clip_test.gd
-# not in CI: serialization_test.gd (hangs after ALL PASS), b6_landing_whiff_test.gd
+godot --headless --path game --script res://tests/serialization_test.gd
+godot --headless --path game --script res://tests/b6_landing_whiff_test.gd
+godot --headless --path game --script res://tests/combo_test.gd
 # metrics only: air_probe.gd (slow, always exits 0)
 
 # rendered captures and manual harnesses (need DISPLAY=:0)
@@ -175,13 +180,22 @@ it is owner-run — agent sessions do not use Python (see `docs/AGENT_RULES.md`)
 
 Bugs / defects:
 
-- **`cpu_test.gd` save/restore is flaky** (observed 2026-11-20): first run
-  failed "restoring a serialized AI state reproduces the same continuation —
-  tail sizes 77 vs 76"; an identical re-run passed (27/27). The determinism
-  contract itself is pinned by the other checks; this one needs a root cause.
-- **`serialization_test.gd` never exits** — it prints ALL PASS but omits
-  `quit()`, so a plain invocation hangs forever. Not CI-gating (trap for
-  agents). 
+- **`cpu_test.gd` flake — FIXED (2026-11-20, root-caused).** The engine was
+  still ticking the manually-stepped match: Godot re-enables a scene root's
+  physics processing on tree entry in some paths, so the pre-add
+  `set_physics_process(false)` from PR #67 did not reliably stick, and each
+  awaited engine tick advanced phase/timer/state by wall timing. Fixed by
+  disabling pre-add, post-add, and re-asserting after the ready awaits
+  (`assert(not is_physics_processing())`), plus phase-driven intro stepping
+  and buffer-injected scripted presses. Verified 20/20 consecutive runs
+  (previously ~15/20). The same belt-and-braces build was applied to
+  `combo_test.gd` (10/10).
+- **`serialization_test.gd` never exits — FIXED (2026-11-20).** It now calls
+  `quit(1 if failures > 0 else 0)` after the summary and gates CI.
+- **`b6_landing_whiff_test.gd` is in CI (2026-11-20).** It already asserts
+  the CURRENT meter economy (landing a whiffed air move awards 0 meter,
+  move clears, recovery runs) — the superseding behavior, not the removed
+  whiff-meter rule — and exits cleanly with 5/5.
 - Kept-by-decision defects: wake-up's no-block tail (B7/W2) and air attacks
   stopping on attack (B5/M2) are owner-approved behavior, not bugs.
 - Audit-era observations still open: B8 (implicit scaling, partially addressed
@@ -243,7 +257,7 @@ Release blockers / decisions pending:
 
 | Doc | One line | Status |
 |---|---|---|
-| `README.md` | Player/agent-facing overview: features, quick start, controls, builds, repo map, architecture rules | **Stale**: says character select 49 checks (actual 50); test list omits `cpu_test.gd`; "run the five test suites" (there are eight) |
+| `README.md` | Player/agent-facing overview: features, quick start, controls, builds, repo map, architecture rules | **Current** (2026-11-20: contributing section now lists all eleven suites; earlier staleness fixed with the test-reliability pass) |
 | `GDD.md` | Full design + production plan (§13 phases, §14 gates, §16 open questions) | Mostly current; **stale note in §14** (2026-11-17): claims solo P2 "stands idle because CPU AI is not implemented" and "no stage select flow" — both shipped 2026-11-17/19 |
 | `GAME_BIBLE.md` | Story/world canon: Tripp, 15-fighter roster, rivalries, stage canon, METHtalities, campaign acts | Current (canon, not implementation status) |
 | `CHARACTERS.md` | Roster bible: archetypes, five story layers, move kits, METHtalities for all 15 | Current (canon, design-only) |

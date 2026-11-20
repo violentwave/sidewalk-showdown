@@ -82,7 +82,7 @@ phase exit criteria:
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
   The current suites contain 407 combat, 42 combo-system, 34 round-flow,
   50 mode/character-select integration, 7 locomotion-speed,
-  94 stage-select/ambience, 9 stage-floor, 23 intro, and 26 CPU-opponent
+  94 stage-select/ambience, 9 stage-floor, 23 intro, and 27 CPU-opponent
   checks. K1, R1, corner separation, bounded hitstop
   buffer freeze, and the
   post-KO winner-state repair are covered. Non-METH strikes reject during
@@ -277,8 +277,11 @@ phase exit criteria:
   keyboard, hitbox accuracy, AI, progression/unlocks, performance, exports,
   content/accessibility review. Exit: no progression blockers/crashes, stable
   match flow, usable modes, and builds on target PC specs.
-- **Status:** **In progress; exit not met.** CI runs the combat/round suites and
-  air probe; Linux/Windows export builds pass. The air probe is informational and
+- **Status:** **In progress; exit not met.** CI runs the eleven headless suites
+  (combat, round_flow, character_select, stage_select, stage_floor,
+  locomotion_speed, cpu, combo, the_clip, serialization, b6) and the air
+  probe, every step under a `timeout-minutes`; Linux/Windows export builds
+  pass. The air probe is informational and
   has no balance assertions, but its separate CI job is still part of the
   workflow and can fail it. B1–B4 and B10 have regression-tested repairs; B7 is
   an explicit keep decision. B5/M2, B8/scaling, and B9/pushbox observations are

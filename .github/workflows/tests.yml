@@ -36,6 +36,8 @@ jobs:
         run: godot --headless --path game --script res://tests/combo_test.gd
       - name: The Clip intro tests
         run: godot --headless --path game --script res://tests/the_clip_test.gd
+      - name: Combo fuzz tests
+        run: godot --headless --path game --script res://tests/combo_fuzz_test.gd
 
   air-probe:
     # Metrics only (docs/PROPOSALS.md section 3): the probe asserts nothing and

@@ -25,7 +25,7 @@ server, reusing our approved fighter art as the primary visual references.
   remaining (Tier 1: Pixel Apprentice, resets 2026-12-13)**.
 - 2026-11-21: UI generation via the REST API (`docs/UI_ASSETS.md` §3 reference
   method) used 136 generations (1 bitforge test, 6 Tripp faces x 10, 5 UI
-  pieces x 15); balance after: **925/2000**. API calls bill the subscription
+  pieces x 15); balance after: **925/2000**. Street-junk pilot (3 x 15) on the same day: **880/2000**. API calls bill the subscription
   generations, not credits.
 - Known issue: the OpenCode background service was observed repeatedly
   restarting while the pixellab MCP connection cycled, crashing the user's

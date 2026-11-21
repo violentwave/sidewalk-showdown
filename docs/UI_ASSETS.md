@@ -81,6 +81,8 @@ save generations without reviewing them visually; the owner reviews.
 
 ## 4. Manifest
 
+**Art direction (owner, 2026-11-21): street junk.** Sun-faded cardboard, silver duct tape, black sharpie, rust. Simple and catchy, readable at 320x180. **S** = street-junk refs `art/source/UI/refs/ref_sign.png` + `ref_clip.png` (from `Items/SnakeSign.png`, `Items/Clipboard.png`).
+
 Style references: **A** = `art/source/UI/HealthFull.png`, **B** =
 `art/source/UI/MethtalityMeter.png`, **C** = `art/source/UI/Time.png`,
 **T** = `art/source/Characters/TrippVlogz.png`,
@@ -95,21 +97,21 @@ Style references: **A** = `art/source/UI/HealthFull.png`, **B** =
 | `hud_meter_frame` | 106x8 | Hand | B | 137 | `hud/meter_frame 106×8` | Empty interior 104x6 at (1,1); tick marks at 25 and 50 drawn in code. | todo |
 | `hud_timer_box` | 24x20 | Hand | C | 141 | `hud/timer_box 24×20` | Empty interior; digits are a separate strip. | todo |
 | `hud_timer_digits` | 8x12 per digit, strip 88x12 (0–9, ∞) | Hand | C | — | — | 11 glyphs in one strip, 8 px apart. | todo |
-| `hud_portrait_frame` | 24x24 | PixelLab | B, C | — | `hud/portrait 24×24` | Bevelled frame; face art goes inside (22x22). Generated set drifted in style (gold/ice/stone); v01 (grey) is closest, else hand-draw. | generated (review) |
+| `hud_portrait_frame` | 24x24 | PixelLab | S | — | `hud/portrait 24×24` | Holds a still of the fighter being played (not Tripp). Street-junk look: taped-down instant photo. | todo |
 | `hud_pip_square` | 5x5 | Hand | — | 139/140 | `hud/pip_square 5×5` | Empty + filled + K/T/M/D letter variants. | todo |
 | `hud_pip_diamond` | 5x5 | Hand | — | 139/140 | `hud/pip_diamond 5×5` | Same set as square, diamond shape (P2). | todo |
 | `hud_meth_skull` | 8x8, 2 frames | Hand | B | 144 | `hud/meth_skull 8×8` | Wobble loop for METH READY. | todo |
-| `hud_banner_plate` | 160x32 | PixelLab | B, C | 173 | `hud/banner 160×32` | Backing plate behind ROUND / FIGHT / K.O. lettering. | generated (review) |
-| `stream_tripp_cam` | 28x18 frame + 6 faces | PixelLab + hand cleanup | T | — | `stream/tripp_cam 28×18` | Faces: hype, smirk, shocked, mocking, bored, glitched; 64 on-model 28x28 variants each in the review folder (crop to the cam window). Frame still to draw. | generated (review) |
+| `hud_banner_plate` | 160x32 | PixelLab | S | 173 | `hud/banner 160×32` | Backing plate behind ROUND / FIGHT / K.O. lettering. | todo |
+| `stream_tripp_cam` | 6 faces, 28x28 | PixelLab + hand cleanup | T | — | — | **Dropped from the HUD (owner, 2026-11-21).** One face per expression kept for commentary/results screens. | generated (review) |
 | `stream_live_tag` | 24x7 | Hand | — | 155 | `stream/live_tag 24×7` | "LIVE" in 5 px letters on red. | todo |
 
 ### Batch 2 — stream layer + shared UI kit
 
 | asset_id | Native size | Method | Ref | Pack # | Figma component | Notes | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `stream_chat_panel` | 80x100 | PixelLab | B, C | 154 | `stream/chat_panel 80×100` | 9-slice-friendly border, empty interior. | generated (review) |
-| `stream_sponsor_bug` | 40x12 | PixelLab | B, C | 156 | `stream/sponsor_bug 40×12` | Blank plate; fake brand names hand-pixeled later. | generated (review) |
-| `stream_commentary_box` | 240x16 | PixelLab | B, C | 153 | (HUD between-rounds frame) | Between-rounds only. | generated (review) |
+| `stream_chat_panel` | 80x100 | PixelLab | S | 154 | `stream/chat_panel 80×100` | 9-slice-friendly border, empty interior. | todo |
+| `stream_sponsor_bug` | 40x12 | PixelLab | S | 156 | `stream/sponsor_bug 40×12` | Blank plate; fake brand names hand-pixeled later. | todo |
+| `stream_commentary_box` | 240x16 | PixelLab | S | 153 | (HUD between-rounds frame) | Between-rounds only. | todo |
 | `ui_panel` | 24x24 (8 px corners) | Hand | A | 146 | `panel/9slice 24×24` | 9-slice for every menu panel. | todo |
 | `ui_button` | 48x16 x4 states | Hand | A | — | `ui/button 48×16` | normal / focus / pressed / disabled, 9-slice-friendly. | todo |
 | `ui_glyphs` | 9x9 each | Hand | — | 148/149 | `ui/glyph 9×9` | Keyboard keys, pad face buttons, d-pad. | todo |

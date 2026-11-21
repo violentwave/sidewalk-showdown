@@ -1,0 +1,17 @@
+[remap]
+
+importer="font_data_bmfont"
+type="FontFile"
+uid="uid://ch0sbvf0fmgc0"
+path="res://.godot/imported/sidewalk_marker.fnt-dfa5e0fbd25436d8c6a674b8b6f62835.fontdata"
+
+[deps]
+
+source_file="res://assets/fonts/sidewalk_marker.fnt"
+dest_files=["res://.godot/imported/sidewalk_marker.fnt-dfa5e0fbd25436d8c6a674b8b6f62835.fontdata"]
+
+[params]
+
+fallbacks=[]
+compress=true
+scaling_mode=2

@@ -64,6 +64,9 @@ jobs:
       - name: UI asset size tests
         run: godot --headless --path game --script res://tests/ui_assets_test.gd
         timeout-minutes: 5
+      - name: UI typography tests
+        run: godot --headless --path game --script res://tests/ui_typography_test.gd
+        timeout-minutes: 5
 
   air-probe:
     # Metrics only (docs/PROPOSALS.md section 3): the probe asserts nothing and

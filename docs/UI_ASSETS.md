@@ -106,7 +106,7 @@ Style references: **A** = `art/source/UI/HealthFull.png`, **B** =
 | `hud_meter_frame` | 106x8 | PixelLab ref + Hand | S | 137 | `hud/meter_frame 106×8` | Empty interior 104x6 at (1,1); tick marks at 25 and 50 drawn in code. | native draft (review) |
 | `hud_timer_box` | 24x20 | PixelLab ref + Hand | S | 141 | `hud/timer_box 24×20` | Empty interior; digits are a separate strip. | native draft (review) |
 | `hud_timer_digits` | 8x12 per digit, strip 88x12 (0–9, ∞) | Hand | C | — | — | 11 glyphs in one strip, 8 px apart. | todo |
-| `hud_portrait_frame` | 24x24 | PixelLab | S | — | `hud/portrait 24×24` | Holds a still of the fighter being played (not Tripp). Street-junk look: taped-down instant photo. | native draft (review) |
+| `hud_portrait_frame` | 24x24 | PixelLab | S | — | `hud/portrait 24×24` | Holds a still of the fighter being played (not Tripp). Street-junk look: taped-down instant photo. | native draft (review); PM cleared a figure the resize invented inside the photo area |
 | `hud_portrait_<fighter>` | 22x22 x3 states (normal, hurt, KO) | PixelLab + hand cleanup | fighter sprite | — | inside `hud/portrait 24×24` | Still of the fighter being played; sits in the taped photo frame. Generated for Pegleg Peg and Whiskey Richard (the playable pair). | native draft (review) |
 | `hud_pip_square` | 5x5 | Hand | — | 139/140 | `hud/pip_square 5×5` | Empty + filled + K/T/M/D letter variants. | todo |
 | `hud_pip_diamond` | 5x5 | Hand | — | 139/140 | `hud/pip_diamond 5×5` | Same set as square, diamond shape (P2). | todo |
@@ -120,8 +120,8 @@ Style references: **A** = `art/source/UI/HealthFull.png`, **B** =
 | asset_id | Native size | Method | Ref | Pack # | Figma component | Notes | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `stream_chat_panel` | 80x100 | PixelLab ref + Hand | S | 154 | `stream/chat_panel 80×100` | 9-slice-friendly border, empty interior. | native draft (review) |
-| `stream_sponsor_bug` | 40x12 | PixelLab ref + Hand | S | 156 | `stream/sponsor_bug 40×12` | Blank plate; fake brand names hand-pixeled later. | native draft (review) |
-| `stream_commentary_box` | 240x16 | PixelLab ref + Hand | S | 153 | (HUD between-rounds frame) | Between-rounds only. | native draft (review) |
+| `stream_sponsor_bug` | 40x12 | PixelLab ref + Hand | S | 156 | `stream/sponsor_bug 40×12` | Blank plate; fake brand names hand-pixeled later. | native draft rejected (resize lost the bottle): hand-draw at 40x12 from the v05 pick |
+| `stream_commentary_box` | 240x16 | PixelLab ref + Hand | S | 153 | (HUD between-rounds frame) | Between-rounds only. | native draft (review); rebuilt by PM with trim + 9-slice only, no generative resize |
 | `ui_panel` | 24x24 (8 px corners) | PixelLab ref + Hand | S | 146 | `panel/9slice 24×24` | 9-slice for every menu panel. | native draft (review) |
 | `ui_button` | 48x16 x4 states | PixelLab ref + Hand | S | — | `ui/button 48×16` | normal / focus / pressed / disabled, 9-slice-friendly. | native draft (review) |
 | `ui_glyphs` | 9x9 each | Hand | — | 148/149 | `ui/glyph 9×9` | Keyboard keys, pad face buttons, d-pad. | todo |

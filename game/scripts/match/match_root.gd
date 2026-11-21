@@ -6,6 +6,11 @@ enum Phase { INTRO, FIGHT, KO, ROUND_END, MATCH_END }
 # Emitted when the pause menu asks to leave the match; Main owns the flow back
 # to character select.
 signal return_to_select_requested
+# Phase 1 pause menu: Main pushes the Settings overlay over the paused
+# match, exits to the main menu, or shows the quit confirm.
+signal settings_requested
+signal main_menu_requested
+signal quit_requested
 
 const HUD_SCENE := preload("res://scenes/match/MatchHUD.tscn")
 const DEBUG_SCRIPT := preload("res://scripts/debug/debug_overlay.gd")
@@ -72,6 +77,10 @@ var sudden_death := false
 var round_damage: Array[float] = [0.0, 0.0]
 var pause_index := 0
 var pause_menu_open := false
+# True while a Phase 1 overlay (Settings / QuitConfirm) is open above the
+# paused match; the pause key and menu input must not leak underneath it.
+# Transient presentation state, deliberately not serialized.
+var modal_open := false
 var commentary_sample_shown := false
 # True when _ready() could not resolve usable roster data and stopped early.
 var setup_failed := false
@@ -388,6 +397,9 @@ func _physics_process(_delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_echo():
 		return
+	if modal_open:
+		# An overlay above the paused match owns all input right now.
+		return
 	if event.is_action_pressed("p1_pause") or (p2_human and event.is_action_pressed("p2_pause")):
 		_toggle_pause()
 		return
@@ -438,18 +450,28 @@ func _confirm_pause_selection() -> void:
 	if audio_manager != null:
 		audio_manager.play_ui_confirm()
 	match pause_index:
-		1:
+		2:
 			# Start the new match unpaused so its intro frames actually run.
 			_unpause()
 			_reset_match()
-		2:
+		3:
 			# Leave the match to Main: it frees this node and restores character
 			# select. Unpause first so the menu screen is not left paused.
 			_unpause()
 			return_to_select_requested.emit()
-		3:
+		4:
+			# Leave the match to Main: it frees this node and shows the main
+			# menu (Phase 1 hub). Unpause first so the menu is not left paused.
 			_unpause()
-			get_tree().quit()
+			main_menu_requested.emit()
+		5:
+			# QUIT goes through the quit-confirm overlay; Main pushes it above
+			# the still-paused match so NO can cancel back into the pause menu.
+			quit_requested.emit()
+		1:
+			# SETTINGS opens the overlay above the paused match; Main clears
+			# modal_open when the overlay closes.
+			settings_requested.emit()
 		_:
 			_unpause()
 

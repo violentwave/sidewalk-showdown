@@ -66,12 +66,14 @@ func _ready() -> void:
 
 
 func get_value(section: String, key: String):
+	_ensure_loaded()
 	if values.has(section) and values[section].has(key):
 		return values[section][key]
 	return DEFAULTS[section][key]
 
 
 func set_value(section: String, key: String, value) -> void:
+	_ensure_loaded()
 	if values[section][key] == value:
 		return
 	values[section][key] = value
@@ -90,6 +92,7 @@ func set_values_silently(new_values: Dictionary) -> void:
 
 
 func reset_to_defaults() -> void:
+	_ensure_loaded()
 	# Reset, apply, then save (docs/UI_HUD_SCREENS_PLAN.md rules).
 	values = _deep_copy_defaults()
 	_apply_all()
@@ -97,6 +100,13 @@ func reset_to_defaults() -> void:
 	for section in values:
 		for key in values[section]:
 			changed.emit(section, key)
+
+
+func _ensure_loaded() -> void:
+	# Autoload _ready may not have run yet (headless test harnesses can
+	# reach in during _initialize); values is never empty after a load.
+	if values.is_empty():
+		_load()
 
 
 func _load() -> void:
@@ -112,6 +122,7 @@ func _load() -> void:
 
 
 func save() -> void:
+	_ensure_loaded()
 	var file := ConfigFile.new()
 	file.set_value("meta", "version", CONFIG_VERSION)
 	for section in values:

@@ -10,7 +10,9 @@ const BAR_H := 8.0
 const METER_Y := 168.0
 const METER_H := 5.0
 const PIP_GAP := 7.0
-const PAUSE_OPTIONS := ["RESUME", "RESTART MATCH", "BACK TO CHARACTER SELECT", "QUIT TO DESKTOP"]
+const PAUSE_OPTIONS := ["RESUME", "SETTINGS", "RESTART MATCH",
+	"BACK TO CHARACTER SELECT", "MAIN MENU", "QUIT TO DESKTOP"]
+const UI_THEME := preload("res://resources/ui_theme.tres")
 
 var p1_fill: ColorRect
 var p2_fill: ColorRect
@@ -33,7 +35,7 @@ var counter_flash: Label
 var counter_flash_frames: int = 0
 var hud_root: Control
 var pause_root: Control
-var pause_options: Array[Label] = []
+var pause_options: Array[Button] = []
 var pips_p1: Array[ColorRect] = []
 var pips_p2: Array[ColorRect] = []
 
@@ -123,14 +125,25 @@ func _build() -> void:
 	pause_root = Control.new()
 	pause_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	pause_root.visible = false
+	pause_root.theme = UI_THEME
 	root.add_child(pause_root)
 	_rect(pause_root, Vector2.ZERO, Vector2(320, 180), Color(0, 0, 0, 0.65))
-	_label(pause_root, "PAUSED", Vector2(60, 38), Vector2(200, 18), HORIZONTAL_ALIGNMENT_CENTER, 16, Color(1, 1, 1))
+	_label(pause_root, "PAUSED", Vector2(60, 26), Vector2(200, 18),
+		HORIZONTAL_ALIGNMENT_CENTER, 16, Color(1, 1, 1))
+	# Phase 1 restyle: the street-junk ui_panel 9-slice behind the options,
+	# each option drawn on a ui_button 9-slice that warms up when selected.
+	var pause_panel := Panel.new()
+	pause_panel.position = Vector2(56, 48)
+	pause_panel.size = Vector2(208, 112)
+	pause_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pause_root.add_child(pause_panel)
 	for i in PAUSE_OPTIONS.size():
-		pause_options.append(_label(pause_root, PAUSE_OPTIONS[i], Vector2(60, 74 + i * 16),
-			Vector2(200, 14), HORIZONTAL_ALIGNMENT_CENTER, 12, Color(0.75, 0.72, 0.68)))
-	_label(pause_root, "W / S OR ARROWS TO MOVE   -   J / ENTER TO SELECT",
-		Vector2(10, 146), Vector2(300, 12), HORIZONTAL_ALIGNMENT_CENTER, 8, Color(0.7, 0.7, 0.7))
+		var option := _pause_button(PAUSE_OPTIONS[i], Vector2(64, 54 + i * 17))
+		pause_root.add_child(option)
+		pause_options.append(option)
+	_label(pause_root, "W/S OR ARROWS TO MOVE   -   J/ENTER TO SELECT",
+		Vector2(10, 164), Vector2(300, 12), HORIZONTAL_ALIGNMENT_CENTER, 8,
+		Color(0.7, 0.7, 0.7))
 	set_pause_selection(0)
 
 func bind(p1: FighterBase, p2: FighterBase) -> void:
@@ -256,8 +269,29 @@ func set_paused(paused: bool) -> void:
 func pause_option_count() -> int:
 	return PAUSE_OPTIONS.size()
 
+# One pause-menu row: a themed Button that never takes focus itself —
+# match_root owns selection, the button is only the street-junk visual.
+func _pause_button(text: String, at: Vector2) -> Button:
+	var button := Button.new()
+	button.text = text
+	button.position = at
+	button.size = Vector2(192, 16)
+	button.focus_mode = Control.FOCUS_NONE
+	button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_theme_font_size_override("font_size", 16)
+	button.add_theme_color_override("font_color", Color(0.75, 0.72, 0.68))
+	return button
+
 func set_pause_selection(index: int) -> void:
+	# Selection rides the ui_button focus stylebox (warm yellow modulate)
+	# so the button art itself shows the choice; input stays in
+	# match_root's hands.
+	var focus_style: StyleBox = UI_THEME.get_stylebox("focus", "Button")
 	for i in pause_options.size():
 		var selected := i == index
-		pause_options[i].text = "> %s <" % PAUSE_OPTIONS[i] if selected else PAUSE_OPTIONS[i]
-		pause_options[i].label_settings.font_color = Color(1, 0.9, 0.45) if selected else Color(0.75, 0.72, 0.68)
+		if selected:
+			pause_options[i].add_theme_stylebox_override("normal", focus_style)
+		else:
+			pause_options[i].remove_theme_stylebox_override("normal")
+		pause_options[i].add_theme_color_override("font_color",
+			Color(0.13, 0.11, 0.09) if selected else Color(0.75, 0.72, 0.68))

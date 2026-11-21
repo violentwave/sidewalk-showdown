@@ -1376,8 +1376,13 @@ func _tick_combo() -> void:
 	# new offensive sequence may begin, so the attacker's clip returns.
 	if opponent != null and clip_cancel_used and not opponent.combo_tracker.active:
 		clip_cancel_used = false
+	# Combo end: the §6 juggle counter only resets with the combo. Phase 2:
+	# the tracker must cover the WHOLE air combo (design §10.4/§14), so the
+	# 40-frame window cannot expire while the defender is still airborne from
+	# a launch — hitstun ending mid-air (HITSTUN -> JUMP_FALL) must not reset
+	# scaling and re-open a fresh unscaled jump-in. Grounded, the window is
+	# unchanged.
 	if combo_hits > 0 and frames_since_hit > 40 and state not in [State.HITSTUN, State.KNOCKDOWN]:
-		# Combo end: the §6 juggle counter only resets with the combo.
 		combo_hits = 0
 		combo_tracker.reset()
 		juggle_hits = 0
@@ -1490,14 +1495,15 @@ func serialize() -> Dictionary:
 		"clip_cancel_used": clip_cancel_used,
 		"macro_active": String(macro_active),
 		"macro_next_press": macro_next_press,
-		"macro_pending": macro_pending,
+		# Copies: snapshots must not alias the live containers.
+		"macro_pending": macro_pending.duplicate(),
 		"macro_gap_frames": macro_gap_frames,
 		"macro_replayed_this_move": macro_replayed_this_move,
 		"juggle_hits": juggle_hits,
 		"juggle_points": juggle_points,
 		"frames_since_hit": frames_since_hit,
-		"input_buffer": input_buffer,
-		"input_history": input_history,
+		"input_buffer": input_buffer.duplicate(),
+		"input_history": input_history.duplicate(),
 	}
 	return data
 

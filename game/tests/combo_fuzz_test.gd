@@ -27,12 +27,13 @@ const FUZZ_FRAMES := 300
 const DETERMINISM_FRAMES := 240
 const SOAK_MATCHES := 8
 # Measured on the fixed (#76-style) harness, NORMAL level, seeds 11/29,
-# both pairings and stages. After the Phase 2 juggle economics the matches
-# end between 3921 and 13928 frames (the longest is a legitimate multi-round
-# timeout war; no stalls, mutual idle always < 240). 15000 remains the
-# ceiling: the measured worst still fits, with ~8% headroom, so a regression
-# that stalls past it fails fast instead of hiding under a blunt limit.
-const SOAK_MAX_FRAMES := 15000
+# both pairings and stages. Phase 3 (Peggy 274 launcher + Taser Belch
+# 105->40) re-measured 2026-11-21: matches now end between 3092 and 5007
+# frames (both stages produce identical lengths per seed — the stages share
+# bounds and spawns, so only the pairing/seed matters); no stalls, mutual
+# idle always < 240. The ceiling resets to worst + ~25%: a regression that
+# stalls past it fails fast instead of hiding under the old blunt limit.
+const SOAK_MAX_FRAMES := 6500
 
 var failures := 0
 var checks := 0
@@ -54,6 +55,7 @@ func _initialize() -> void:
     await _cross_up_and_side_switch()
     await _juggle_budget_and_routes()
     await _juggle_fuzz()
+    await _stuns_and_breakers()
     await _cpu_vs_cpu_soak()
     print("combo_fuzz: %d checks, %d failure(s)" % [checks, failures])
     quit(1 if failures > 0 else 0)
@@ -108,9 +110,18 @@ func _step(mroot: Node, frames: int, press_action: String = "") -> void:
         for entry in press_action.split("+"):
             if entry == "":
                 continue
-            var action: String = entry.trim_prefix("p1_")
-            mroot.p1.input_buffer[action] = 0
-            mroot.p1._macro_on_press(action)
+            # Presses inject into the owning fighter's buffer; the prefix
+            # decides the side. Unprefixed entries keep targeting p1 for
+            # backward compatibility with the existing fuzz sections.
+            var who: FighterBase = mroot.p1
+            var action: String = entry
+            if entry.begins_with("p1_"):
+                action = entry.trim_prefix("p1_")
+            elif entry.begins_with("p2_"):
+                who = mroot.p2
+                action = entry.trim_prefix("p2_")
+            who.input_buffer[action] = 0
+            who._macro_on_press(action)
         # Advance the engine physics tick so Input's just_pressed semantics and
         # the physics-frame counter are real, then step the CPU AI when present.
         Engine.physics_ticks_per_second = 60000
@@ -256,8 +267,11 @@ func _meter_and_scalar_invariants() -> void:
     _check("meter: second combo hit pays x0.5 (3)",
         is_equal_approx(after_two - after_one, 3.0),
         "gain=%.2f" % (after_two - after_one))
+    # Phase 3 note: the chain uses light, not the neutral special — the
+    # neutral specials are authored stun rows now, and a stun hit pays the
+    # attacker nothing by design (§10.5).
     for i in 6:
-        p2.receive_hit(p1, neutral)
+        p2.receive_hit(p1, light)
     _check("meter: deep combo hits never below 0.25 floor per hit",
         p1.meter - after_two >= 6.0 * 0.25 * 6.0 - 0.01,
         "meter=%.2f (min=%.2f)" % [p1.meter, after_two + 6.0 * 0.25 * 6.0])
@@ -900,6 +914,132 @@ func _juggle_fuzz_run(stage_path: String, stage_label: String, combo: Dictionary
         "launch=%s bad=%s acted=%s accepted=%d rejected=%d air=%d max_hits=%d points=%d"
             % [str(launch_ok), str(bad), str(acted), accepted, rejected,
                 max_air_frames, max_juggle_hits, dfd.juggle_points])
+    await _free_match(mroot)
+
+# ---------------------------------------------------------------------------
+# Phase 3: stuns and the combo breaker (moved out of the skip list,
+# docs/COMBO_FINDINGS.md). Both matchups give each fighter a turn as the
+# stun attacker AND as the defender who breaks out.
+# ---------------------------------------------------------------------------
+
+func _stuns_and_breakers() -> void:
+    var matchups := [[RICHARD, PEGGY], [PEGGY, RICHARD]]
+    for matchup in matchups:
+        for seed in [4004, 5005]:
+            await _stun_breaker_run(matchup[0], matchup[1], seed)
+
+func _stun_breaker_run(p1_path: String, p2_path: String, seed: int) -> void:
+    var mroot: Node = await _build_match(p1_path, p2_path, GAS_N_GO)
+    await _to_fight(mroot)
+    mroot.fighters_can_pass_through = true
+    _reset_pair(mroot, 100.0, 140.0)
+    var atk: FighterBase = mroot.p1
+    var dfd: FighterBase = mroot.p2
+    var stun_move: MoveData = atk.data.find_move(
+        MoveData.InputType.SPECIAL_NEUTRAL, MoveData.Stance.STAND)
+    var light: MoveData = atk.data.find_move(
+        MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+    var rng_state := seed
+    var bad := false
+    var stun_landings := 0
+    var break_count := 0
+    var bad_detail := ""
+    var max_stun_frames := 0
+    var meter_before_stun: float = atk.meter
+    # Both fighters' authored stun rows exist (Phase 3 data).
+    _check("fuzz %s: the neutral special is an authored stun row"
+        % atk.data.display_name,
+        stun_move.stun != null and not stun_move.stun.launcher_safe,
+        "stun=%s" % str(stun_move.stun))
+    for round_i in 3:
+        _reset_pair(mroot, 100.0, 140.0)
+        meter_before_stun = atk.meter
+        # 1. The stun lands through the real resolver on a grounded defender.
+        var landed: bool = dfd.receive_hit(atk, stun_move)
+        if landed and dfd.stun_active():
+            stun_landings += 1
+        if landed and atk.meter != meter_before_stun:
+            bad = true
+            bad_detail = "stun hit built meter (%.1f -> %.1f)" % [meter_before_stun, atk.meter]
+        # 2. Scripted defender: mash the shake direction on rng frames, and
+        # press the breaker pair on others — the pair may only resolve while
+        # the defender is in hitstun.
+        var prev_state: int = dfd.state
+        var prev_invuln: int = dfd.breaker_invuln_frames
+        for frame in 240:
+            var press := ""
+            rng_state = _lcg(rng_state)
+            match rng_state % 5:
+                0, 1:
+                    press = "p2_up" # shake-out mashing
+                2, 3:
+                    press = "p2_grab+p2_special" # breaker attempts
+                _:
+                    press = ""
+            await _step(mroot, 1, press)
+            # A fresh break (invuln just armed) must have come from hitstun.
+            if dfd.breaker_invuln_frames == FighterBase.BREAKER_INVULN_FRAMES \
+                    and prev_invuln != FighterBase.BREAKER_INVULN_FRAMES:
+                break_count += 1
+                if prev_state != FighterBase.State.HITSTUN:
+                    bad = true
+                    bad_detail = "break fired from state %d (not hitstun)" % prev_state
+            prev_state = dfd.state
+            prev_invuln = dfd.breaker_invuln_frames
+            # Per-frame invariants.
+            if dfd.stun_active() and not dfd.grounded:
+                bad = true
+                bad_detail = "stun active while airborne"
+            if dfd.stun_frames_remaining > 45 or dfd.stun_frames_remaining < 0:
+                bad = true
+                bad_detail = "stun window out of bounds (%d)" % dfd.stun_frames_remaining
+            if dfd.breaker_free_uses_left < 0 or dfd.breaker_cooldown_frames > 300 \
+                    or dfd.breaker_invuln_frames > 20:
+                bad = true
+                bad_detail = ("breaker counters out of bounds (free=%d cd=%d inv=%d)"
+                    % [dfd.breaker_free_uses_left, dfd.breaker_cooldown_frames,
+                        dfd.breaker_invuln_frames])
+            max_stun_frames = maxi(max_stun_frames, dfd.stun_frames_remaining)
+            if is_nan(dfd.health) or is_nan(dfd.position.x) or dfd.health < 0.0 \
+                    or dfd.position.x < mroot.stage.left_bound - 1.0 \
+                    or dfd.position.x > mroot.stage.right_bound + 1.0:
+                bad = true
+                bad_detail = "nan/bounds after stun+breaker script"
+            if bad:
+                break
+        # 3. A real string hit during a fresh stun consumes it, and the
+        # breaker on the NEXT hitstun resolves through the normal buffer.
+        if not bad:
+            _reset_pair(mroot, 100.0, 140.0)
+            dfd.receive_hit(atk, light)
+            var broke_in_string := false
+            for frame in 30:
+                await _step(mroot, 1, "p2_grab+p2_special")
+                if dfd.breaker_invuln_frames > 0:
+                    broke_in_string = true
+                    break
+            if not broke_in_string:
+                bad = true
+                bad_detail = "breaker pair never resolved during a string"
+        if bad:
+            break
+    # The defender always recovers to a neutral state after the scripts.
+    var recovered := false
+    if not bad:
+        for i in 90:
+            await _step(mroot, 1)
+            if dfd.grounded and dfd.state in [FighterBase.State.IDLE,
+                    FighterBase.State.WALK_F, FighterBase.State.WALK_B,
+                    FighterBase.State.CROUCH]:
+                recovered = true
+                break
+    _check("stun/breaker fuzz (%s stuns, seed %d): bounded windows, legal breaks, clean recovery"
+        % [atk.data.display_name, seed],
+        not bad and stun_landings >= 3 and break_count >= 1 and recovered
+            and max_stun_frames <= 45,
+        "bad=%s (%s) landings=%d breaks=%d recovered=%s max_stun=%d"
+            % [str(bad), bad_detail, stun_landings, break_count, str(recovered),
+                max_stun_frames])
     await _free_match(mroot)
 
 # ---------------------------------------------------------------------------

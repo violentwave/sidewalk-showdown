@@ -48,6 +48,8 @@ jobs:
         timeout-minutes: 5
       - name: Combo fuzz tests
         run: godot --headless --path game --script res://tests/combo_fuzz_test.gd
+      - name: Stun and breaker tests
+        run: godot --headless --path game --script res://tests/stun_breaker_test.gd
         timeout-minutes: 10
       - name: Serialization tests
         run: godot --headless --path game --script res://tests/serialization_test.gd

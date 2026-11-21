@@ -33,10 +33,11 @@ b6_landing_whiff_test: ... checks, ... failure(s)
 ui_flow_test:          ... checks, ... failure(s)
 settings_test:         ... checks, ... failure(s)
 ui_assets_test:        ... checks, ... failure(s)
+ui_typography_test:    ... checks, ... failure(s)
 air probe:            metrics only, job must still pass
 ```
 
-- [ ] All fifteen CI suites run locally with the commands in `README.md`
+- [ ] All sixteen CI suites run locally with the commands in `README.md`
 - [ ] Rendered review done for visual changes (note the captures/screens and both facings)
 
 ## Docs

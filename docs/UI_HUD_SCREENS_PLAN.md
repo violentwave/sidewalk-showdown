@@ -1,15 +1,19 @@
 > **Status (2026-11-21): Phase 1 is IMPLEMENTED** (router, Settings autoload,
-> audio buses, content warning, title, main menu with the price board +
-> chat strip, quit confirm, the 6-item pause menu, and the approved art
-> wired through `art/tools/prepare_ui.gd`). See `docs/UI_SCREENS.md` for
-> what actually shipped — it supersedes this doc's Phase 1 section, and
-> notes the deltas: The Clip runs right after the content warning (before
-> the title), there is no attract demo, the main menu's five slat rects
-> are measured constants, and Settings has no Controls tab yet. Phases 2-5
-> below remain the plan. The Phase 1 prompt at the bottom is kept for
-> history; it predates the "audience model" and pixel-font decisions in
-> `docs/UI_DESIGN_RESEARCH.md`. Diagrams from the original doc are not
-> included.
+> audio buses, content warning, title, main menu with the price board,
+> quit confirm, the 6-item pause menu, and the approved art
+> wired through `art/tools/prepare_ui.gd`) **and polished from owner
+> playtest feedback the same day** (Sidewalk Marker + m5x7 typography
+> rules, the chat strip removed so the main menu is the price board
+> only, the content warning press-required with a 30-frame input guard).
+> See `docs/UI_SCREENS.md` for what actually shipped — it supersedes this
+> doc's Phase 1 section, and notes the deltas: The Clip runs right after
+> the content warning (before the title), there is no attract demo, the
+> main menu's slat rects are measured constants, QUIT rides a taped
+> ui_button on the sign pole, and Settings has no Controls tab yet.
+> Phases 2-5 below remain the plan. The Phase 1 prompt at the bottom is
+> kept for history; it predates the "audience model" and pixel-font
+> decisions in `docs/UI_DESIGN_RESEARCH.md`. Diagrams from the original
+> doc are not included.
 
 # Sidewalk Showdown — HUD & Screens Plan
 
@@ -67,7 +71,7 @@ Nine screens are new and two change shape; the biggest structural change is that
 
 | Screen | Status | Reached from | Back / exit goes to | Phase |
 | --- | --- | --- | --- | --- |
-| Content warning + photosensitivity notice | New | Boot | Title (auto after 3 s or confirm; shown once per launch) | 1 |
+| Content warning + photosensitivity notice | New | Boot | Title (confirm only, ignored for the first 30 frames; shown once per launch) | 1 |
 | The Clip | Exists | Title (first launch auto; later via Extras or idle attract) | Title | 1 (reroute only) |
 | Title ("PRESS START") | New | Boot, Main Menu back | Quit prompt | 1 |
 | Main Menu | New (replaces Mode Select as the first stop) | Title, every exit | Title | 1 |
@@ -146,7 +150,9 @@ Each screen borrows one real object from the world (a gas-station sign, a scratc
 | B. Tripp's stream deck | The menu is Tripp's OBS scene list; a fake chat scrolls on the right reacting to the highlighted item; LIVE tag and a viewer count | Sets up Tripp as the antagonist from the first screen | Most UI pieces; chat lines to write |
 | C. Bus Stop route board | Destinations on a transit schedule board; selection ticks over like a split-flap display | Strong motion, cheap art | Less tie-in to Tripp |
 
-My pick is **A with B's chat strip**: the sign carries the navigation, and a narrow chat column on the right carries the jokes, which follows the two-layer rule.
+My pick was **A with B's chat strip**; the owner later removed the chat
+strip in the 2026-11-21 polish pass — the main menu is the price board
+only (decision recorded).
 
 **The other screens**
 
@@ -235,7 +241,7 @@ Phase 1 (router, settings, title, main menu) can start now in its own worktree, 
 
 **Decisions for you**
 
-- [ ] Main menu direction: A (price board), B (stream deck), C (route board), or my pick A + chat strip.
+- [x] Main menu direction: A (price board) — chosen, shipped, and the chat strip removed in the 2026-11-21 polish (owner decision).
 - [ ] Pixel font and its license (an OFL bitmap font keeps it simple).
 - [ ] Content warning every launch, or first launch only.
 - [ ] The Clip auto-plays on first launch only, or every launch as today.

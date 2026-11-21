@@ -3,6 +3,7 @@
 extends Control
 
 signal mode_chosen(solo: bool)
+signal back_requested
 signal selection_moved
 signal selection_confirmed
 
@@ -40,6 +41,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_move(1)
 	elif event.is_action_pressed("p1_light") or event.is_action_pressed("ui_confirm"):
 		_choose()
+	elif event.is_action_pressed("ui_back"):
+		back_requested.emit()
 	else:
 		handled = false
 	if handled:

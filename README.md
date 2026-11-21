@@ -94,12 +94,15 @@ godot --headless --path game --script res://tests/combo_fuzz_test.gd
 godot --headless --path game --script res://tests/the_clip_test.gd
 godot --headless --path game --script res://tests/serialization_test.gd
 godot --headless --path game --script res://tests/b6_landing_whiff_test.gd
+godot --headless --path game --script res://tests/ui_flow_test.gd
+godot --headless --path game --script res://tests/settings_test.gd
+godot --headless --path game --script res://tests/ui_assets_test.gd
 ```
 
-Current suites: **combat 408 checks**, round flow 34, character select 50,
+Current suites: **combat 408 checks**, round flow 34, character select 54,
 locomotion speed 7, stage select 94, stage floor 9, CPU opponent 27,
 combo system 68, combo fuzz 110, The Clip 23, serialization 24, B6
-landing-whiff 5 — all
+landing-whiff 5, UI flow 48, settings 16, UI assets 4 — all
 green in CI (`tests.yml`, every step under a `timeout-minutes`).
 `tests/air_probe.gd` and `tests/juggle_probe.gd` print balance metrics and
 assert nothing; `tests/juggle_route_probe.gd` brute-forces real-hitbox juggle
@@ -112,8 +115,19 @@ drives P2, using either the d-pad or the left stick to move. The pad layout is
 GDD §4.2's: X light, Y heavy, B special, A grab, right shoulder for the
 METHtality finisher.
 
-After The Clip, **mode select** opens on `1 PLAYER` (solo) with `2 PLAYERS` one
-keypress away (W/S or A/D to move, J or click to start):
+The front-end flow (UI Phase 1, see `docs/UI_SCREENS.md`): boot shows a
+one-time **content warning**, then The Clip, then the **title screen**
+(PRESS START), then the **main menu** — Tripp's gas-station price board
+with VERSUS, TRAINING (coming soon), SETTINGS, EXTRAS (coming soon), and
+QUIT over the Gas-N-Go night art, plus a fake stream chat on the right.
+Menus run on the P1 keys below; a pad can confirm (A) and back (B) with
+its face buttons. SETTINGS opens the settings overlay (video, audio,
+gameplay, accessibility, stream tabs; saved to `user://settings.cfg`), and
+QUIT asks "Leave the sidewalk?" with NO as the safe default.
+
+- **VERSUS** opens mode select on `1 PLAYER` (solo) with `2 PLAYERS` one
+  keypress away (W/S or A/D to move, J or click to start; Backspace
+  returns to the main menu):
 
 - **1 PLAYER:** choose the CPU difficulty (EASY / NORMAL / HARD, W/S or A/D,
   J confirms, Backspace goes back), then P1 picks their fighter, confirms, and
@@ -150,8 +164,10 @@ match then loads the chosen stage and starts the round.
   Current presentation is a freeze plus banner; the normal KO flow ends the round.
 - **Specials are directional:** neutral, forward, back, down, and air (GDD §4.4).
 - `Enter` restarts after a match ends. Pause menu drives with W/S, the d-pad or
-  stick, or arrows; J, X, or Enter picks. Options are **Resume**, **Restart
-  Match**, **Back to Character Select**, and **Quit to Desktop**. Back to
+  stick, or arrows; J, X, or Enter picks. Options are **Resume**, **Settings**
+  (overlay above the paused match), **Restart Match**, **Back to Character
+  Select**, **Main Menu**, and **Quit to Desktop** (through the
+  "Leave the sidewalk?" confirm, which defaults to NO). Back to
   Character Select discards the in-progress match with no winner, keeps the
   current mode, and restores the matchup you were just playing.
 

@@ -3,9 +3,10 @@
 > **Keep this file current: every PR that changes features, tests, commands, or
 > rules must update PM_BRIEF.md.**
 >
-> Last verified: **2026-11-20**, against `origin/main` at `49dca36`
-> (2026-11-20, "docs: PM brief and agent rules (new files only) (#70)") plus
-> the test-reliability fixes on this branch. All claims below were checked
+> Last verified: **2026-11-20**, against `origin/main` at `77e0b55`
+> (2026-11-20, "fix(tests): kill the cpu_test flake at the root;
+> serialization/b6 gate CI; CI timeouts (#76)") including this branch's
+> stale-docs pass. All claims below were checked
 > against the code, resources, workflows, and a full local test run on this
 > branch — not copied from other docs. Stale claims found elsewhere are
 > called out in §9.
@@ -258,17 +259,17 @@ Release blockers / decisions pending:
 | Doc | One line | Status |
 |---|---|---|
 | `README.md` | Player/agent-facing overview: features, quick start, controls, builds, repo map, architecture rules | **Current** (2026-11-20: contributing section now lists all eleven suites; earlier staleness fixed with the test-reliability pass) |
-| `GDD.md` | Full design + production plan (§13 phases, §14 gates, §16 open questions) | Mostly current; **stale note in §14** (2026-11-17): claims solo P2 "stands idle because CPU AI is not implemented" and "no stage select flow" — both shipped 2026-11-17/19 |
+| `GDD.md` | Full design + production plan (§13 phases, §14 gates, §16 open questions) | Mostly current; the §14 implementation-status note was refreshed 2026-11-20 (CPU, stage select, difficulty select, combo Phase 1 all marked shipped) |
 | `GAME_BIBLE.md` | Story/world canon: Tripp, 15-fighter roster, rivalries, stage canon, METHtalities, campaign acts | Current (canon, not implementation status) |
 | `CHARACTERS.md` | Roster bible: archetypes, five story layers, move kits, METHtalities for all 15 | Current (canon, design-only) |
-| `docs/PHASE_STATUS.md` | GDD §13 phase-by-phase status with owner decisions | **Stale baseline note**: pinned to `74e2543`/PR #50 (main is `ba0906fe`/PR #68); meter decision dated "2026-11-30" (future-date typo for 2026-11-18); counts are correct (50 select, 27 CPU) |
-| `docs/KNOWN_ISSUES.md` | Defects + decisions, build contents, input policy, test inventory | **Stale**: character-select coverage says 49 (actual 50); coverage list omits `cpu_test.gd`; CI list omits the CPU/locomotion suites; "(there is no AI yet)" in the debug-overlay section predates the CPU |
+| `docs/PHASE_STATUS.md` | GDD §13 phase-by-phase status with owner decisions | Current (2026-11-20): baseline pinned to `77e0b55`/PR #76, meter-decision date typo fixed to 2026-11-18, gamepad row marks PR #53 shipped, counts correct (50 select, 27 CPU) |
+| `docs/KNOWN_ISSUES.md` | Defects + decisions, build contents, input policy, test inventory | Current (2026-11-20): counts fixed (50 select), cpu/combo/serialization/b6 inventory entries added, CI list covers all eleven suites, "(there is no AI yet)" removed, owner-reported playtest issues (jab strength, corner escape, move-clip scaling) recorded |
 | `docs/CPU_OPPONENT.md` | CPU architecture, behaviors, difficulty knobs, soak, 27-check suite | Current (27 checks verified; flake noted in §7 above is new) |
 | `docs/SIDE_SWITCHING.md` | Facing derivation, cross-up blocking, pass-through flag, determinism notes | Current (verified against `fighter_base.gd`/`match_root.gd`) |
 | `docs/STAGES.md` | Both stages' layers/ambience, floor_y method, thumbnails, stage select, add-a-stage recipe | Current (floor_y 158/170, bounds, spawns verified) |
 | `docs/COMBO_SYSTEM_DESIGN.md` | Combo-system audit (§§1-8) + design (§§9-16), phased plan, 11 open decisions | Current design doc; **not implemented** — Phase 1 in progress elsewhere |
 | `docs/SAVESTATE_PLAN.md` | What `serialize()` captures, AI state object, known gaps | Current (keys verified against code) |
-| `docs/PROPOSALS.md` | Historical combat-system proposals with measured results (§§1-7) | **Partly stale**: §§1/7 still describe the removed whiff-meter path (`finish_move_whiff()`, "1.5 on whiff"); §5 documents the current landed-hits economy |
+| `docs/PROPOSALS.md` | Historical combat-system proposals with measured results (§§1-7) | Current (2026-11-20): §§1/7 whiff-meter passages now carry inline "superseded" notes pointing to the landed-hits economy (§5); history preserved |
 | `docs/PIXELORAMA_PIPELINE.md` | Idle-sheet + authored-clip pipeline for both fighters (§8-§9b) | Current (integration status matches the clip libraries) |
 | `docs/PIXELLAB_ASSET_ORG.md` | PixelLab MCP project rules, style anchors, generation locks, walk-test proposal | Current (subscription counters will drift) |
 | `docs/UI_ASSETS.md` | UI art pipeline (generated -> approved -> runtime folders), Figma layout file link, per-asset manifest with native sizes | Current (planning; no UI art wired yet) |
@@ -276,14 +277,14 @@ Release blockers / decisions pending:
 | `docs/UI_DESIGN_RESEARCH.md` | Menu/HUD design research: audience model, motion/audio language, sourced findings vs proposals | Research; **not implemented** |
 | `docs/ART_CREDITS.md` | Art provenance, font licenses, all-rights-reserved notes | Current |
 | `docs/LICENSE_OPTIONS.md` | License decision document (A/B/C), AI-art caveats | Current (decision pending) |
-| `docs/MAIN_BRANCH_GUARD.md` | Why `main` is squash-merge-only and how the guard works | **Minor staleness**: calls the repo "private"; it was made public 2026-11-16 to fix the Actions/artifact budget |
+| `docs/MAIN_BRANCH_GUARD.md` | Why `main` is squash-merge-only and how the guard works | Current (2026-11-20): now records the repo is public since 2026-11-16 |
 | `docs/story/the_clip_art_manifest.md` | Panel-art delivery slots + spec for the intro | Current |
 | `docs/story/the_clip_art_prompts.md` | Owner-facing generation prompts for the 15 panels | Current |
 | `docs/SIDEWALK_SHOWDOWN_NON_DEFINING_ASSET_PROMPTS.md` | Prompt pack for non-defining assets (props, decals, items) | Current reference |
 | `docs/archive/*.md` (2 files) | Recovered pre-repo conversation/project history | Historical by design (frozen 2026-11-03) |
 | `docs/audits/*.md` (2 files + logs) | Read-only combat audit at `d523ed0` and the `e6d40d9` reconciliation | Historical by design (claims pinned to old SHAs; e.g. 124 combat checks then vs 407 now) |
 | `game/audio/temporary/README.md` | Temporary audio credits: CC0 SFX, unconfirmed-rights MP3s | Current |
-| `.github/pull_request_template.md` | PR checklist (summary, evidence, docs) | **Stale**: requires "all four suites"; CI gates eight (+ air probe) |
+| `.github/pull_request_template.md` | PR checklist (summary, evidence, docs) | Current (2026-11-20): evidence block lists all eleven CI suites plus the air probe |
 
 ## 10. Verification notes
 

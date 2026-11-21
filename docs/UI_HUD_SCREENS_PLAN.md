@@ -1,4 +1,15 @@
-> **Status (2026-11-20): planning doc, not implemented.** This is the HUD and screens plan exported from the project's Claude Doc. Since it was written, the Figma layout frames were built and the art pipeline and per-asset manifest moved to `docs/UI_ASSETS.md` (which wins on asset sizes and folders). The Phase 1 prompt at the bottom predates the "audience model" and pixel-font decisions in `docs/UI_DESIGN_RESEARCH.md` and must be re-cut before it is handed to an agent. The decisions checklist is still open. Diagrams from the original doc are not included.
+> **Status (2026-11-21): Phase 1 is IMPLEMENTED** (router, Settings autoload,
+> audio buses, content warning, title, main menu with the price board +
+> chat strip, quit confirm, the 6-item pause menu, and the approved art
+> wired through `art/tools/prepare_ui.gd`). See `docs/UI_SCREENS.md` for
+> what actually shipped — it supersedes this doc's Phase 1 section, and
+> notes the deltas: The Clip runs right after the content warning (before
+> the title), there is no attract demo, the main menu's five slat rects
+> are measured constants, and Settings has no Controls tab yet. Phases 2-5
+> below remain the plan. The Phase 1 prompt at the bottom is kept for
+> history; it predates the "audience model" and pixel-font decisions in
+> `docs/UI_DESIGN_RESEARCH.md`. Diagrams from the original doc are not
+> included.
 
 # Sidewalk Showdown — HUD & Screens Plan
 

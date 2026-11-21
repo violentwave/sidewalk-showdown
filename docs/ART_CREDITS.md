@@ -65,3 +65,13 @@ Bundled files:
 Every `Label` created by the intro assigns one of these fonts explicitly, and
 system-font fallback is disabled for the bundled font imports; no Godot
 theme-default font is used for intro copy or UI hints.
+
+## UI pixel font (menus and HUD, UI Phase 1)
+
+| Font | Designer / author | UI use | License | Source |
+|---|---|---|---|---|
+| m5x7 | Daniel Linssen | Theme default for every Phase 1 screen, pause menu, prompt lines, and (from Phase 2) HUD labels, at its native size 16 — one game pixel per font pixel, antialiasing and subpixel positioning off | CC0 (attribution appreciated, not required) | [managore.itch.io/m5x7](https://managore.itch.io/m5x7) |
+
+Bundled file: `game/assets/fonts/m5x7.ttf` (CC0 needs no license text
+beside it; this credit line covers the "attribution appreciated" request).
+Bangers stays for big headers and banner words, applied per label.

@@ -112,8 +112,11 @@ Engine and feel:
 - The round clock holds while either fighter is in hitstop, and hits resolve
   before the timeout, so a hit on the clock's final frame counts and a KO there
   beats the timeout.
-- A real pause menu (RESUME / RESTART MATCH / BACK TO CHARACTER SELECT / QUIT TO
-  DESKTOP) driven by either player's up/down plus light attack or Enter.
+- A real pause menu (RESUME / SETTINGS / RESTART MATCH / BACK TO CHARACTER
+  SELECT / MAIN MENU / QUIT TO DESKTOP, UI Phase 1) driven by either player's
+  up/down plus light attack or Enter. SETTINGS and QUIT open overlays above
+  the still-paused match (defaulting to NO on quit); MAIN MENU exits to the
+  Phase 1 hub.
   Back to character select discards the in-progress match with no winner and
   keeps the mode and matchup; restart re-rolls the match. Toggling is keyed on
   menu open state so pause opens cleanly when paused under debug frame-step.
@@ -477,7 +480,7 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   sudden-death tie resolving by damage dealt (with the announced tiebreak), the
   deterministic P1 fallback, a clean win in sudden death ending the match, the
   clock frozen during hitstop, and a hit on the timer's final frame counting.
-- `game/tests/character_select_test.gd` — **50 checks**: intro MP3 playback on
+- `game/tests/character_select_test.gd` — **54 checks**: intro MP3 playback on
   The Clip and character select, mode select defaulting to 1 PLAYER and moving
   to 2 PLAYERS, Backspace back-out, default selections,
   independent P1/P2 movement/confirmation, unlock-on-move, the solo two-pick
@@ -539,6 +542,22 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
 - `game/tests/b6_landing_whiff_test.gd` — **5 checks**: the superseded B6
   rule pinned to the current meter economy — landing a whiffed air move
   awards 0 meter, the move clears, and landing recovery runs to IDLE.
+- `game/tests/ui_flow_test.gd` — **48 checks** (UI Phase 1): router
+  push/pop/replace/clear semantics, every forward and back path of the
+  warning -> Clip -> title -> main-menu -> versus flow, the deferred
+  confirm-leak guard, pause -> settings -> back to pause, MAIN MENU from
+  pause, the quit confirm over a paused match, greyed slats refusing
+  confirm, QuitConfirm defaulting to NO, the content-warning auto-continue,
+  and the 1-second title pulse.
+- `game/tests/settings_test.gd` — **16 checks** (UI Phase 1): defaults on a
+  missing file, version fill-in of missing keys, round-trip save/load,
+  opening never saving, reset applying and saving, and default audio
+  settings keeping every bus at 0 dB. Runs against a scratch config file so
+  the player's `user://settings.cfg` is untouched.
+- `game/tests/ui_assets_test.gd` — **4 checks** (UI Phase 1): compiles
+  `art/tools/prepare_ui.gd` and re-runs its size table in verify-only mode
+  (manifest and test cannot drift), plus a byte-identity check of every
+  `game/art/ui/` copy against its approved source.
 - `game/tests/combo_fuzz_test.gd` — **110 checks**: seeded fuzz over the
   combo layer — route search and 12-hit/550-damage caps on BOTH
   stages, infinite-loop and corner-carry termination, macros (clean dial,
@@ -567,10 +586,11 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   actionability. Prints a report and exits 0 on success; `docs/PROPOSALS.md` §3
   documents the coarse grid, before/after metrics, and target limitations. Its
   numbers are informational measurements, not passing balance assertions.
-- `.github/workflows/tests.yml` runs the twelve headless suites — combat,
+- `.github/workflows/tests.yml` runs the fifteen headless suites — combat,
   round-flow, mode/character-select, stage-select/ambience, stage-floor-guard,
   locomotion-speed, CPU opponent, combo system, combo fuzz, The Clip intro,
-  serialization, and B6 landing-whiff — plus the air probe on push, pull
+  serialization, B6 landing-whiff, UI flow, settings, and UI assets — plus
+  the air probe on push, pull
   request and manual
   dispatch, every step under a `timeout-minutes` so a hang fails fast.
   They are separate jobs in one workflow; parallel

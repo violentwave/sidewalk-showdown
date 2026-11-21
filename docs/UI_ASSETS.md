@@ -1,9 +1,13 @@
 # UI Assets — Pipeline and Manifest
 
-**Version:** v0.1
-**Date:** 2026-11-20
-**Status:** Planning. No UI art is wired into the game yet; the current HUD and
-menus are built in code (`game/scripts/ui/`).
+**Version:** v0.2
+**Date:** 2026-11-21
+**Status:** Phase 1 wired. The approved street-junk set is generated into
+`game/art/ui/` by `art/tools/prepare_ui.gd` and the front-end screens
+(content warning, title, main menu, quit confirm, settings) plus the pause
+panel and the shared theme consume it (see `docs/UI_SCREENS.md`). HUD
+portraits/banners and the select-screen art are staged in
+`game/art/ui/` but not yet wired into the HUD/select visuals (Phases 2-3).
 
 This file is the source of truth for UI art: what each asset is, its exact
 native size, how it gets made, and where every version of the file lives.
@@ -31,7 +35,7 @@ folders) to UI. Where the two disagree on UI sizes or folders, this file wins.
 | --- | --- | --- | --- |
 | 1. Raw generations | `art/source/UI/generated/<asset_id>_review/` | Agent (PixelLab MCP) or owner (PixelLab web) | Every original output, untouched, plus `metadata.json` (tool, job/asset ids, prompt, negative prompt, seed, init image, size requested, size received, timestamp, cost). Never edited after saving. |
 | 2. Approved source | `art/source/UI/approved/<group>/<asset_id>.png` | Owner, or the PM session with owner approval by merge (see §6) | The chosen generation, cleaned by hand in Pixelorama to the **exact native size** in the manifest, transparent background, no anti-aliasing. Read-only after it lands (like all of `art/source/`). |
-| 3. Runtime | `game/art/ui/<group>/<asset_id>.png` | `art/tools/prepare_ui.gd` (headless Godot; to be written in UI Phase 5) | Copied/cropped from stage 2 and checked against the manifest size. Never hand-edit. Imported with nearest filter, no mipmaps. |
+| 3. Runtime | `game/art/ui/<group>/<asset_id>.png` | `art/tools/prepare_ui.gd` (headless Godot; **written and in use since UI Phase 1, 2026-11-21**) | Copied from stage 2 and checked against the manifest size; never hand-edit. Run it with `godot --headless --path game --script res://tools/prepare_ui.gd` (the game-side shim compiles the canonical `art/tools/prepare_ui.gd`, because Godot only executes scripts under `res://`). It copies every approved PNG unchanged, fails loudly on any size mismatch or unlisted approved file, and exits non-zero. `game/tests/ui_assets_test.gd` re-verifies the copies in CI. Imported with nearest filter, no mipmaps (project-wide `default_texture_filter=0`). |
 | Layout preview (optional) | Figma component of the same name | PM/Claude via Figma connector | Approved PNG placed into its placeholder so screens preview with real art. |
 
 The legacy concept art in `art/source/UI/` (`HealthFull.png`,

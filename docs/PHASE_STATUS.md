@@ -84,7 +84,7 @@ phase exit criteria:
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
   The current suites contain 408 combat, 68 combo-system, 110 combo-fuzz,
   34 round-flow,
-  50 mode/character-select integration, 7 locomotion-speed,
+  54 mode/character-select integration, 7 locomotion-speed,
   94 stage-select/ambience, 9 stage-floor, 23 intro, and 27 CPU-opponent
   checks. K1, R1, corner separation, bounded hitstop
   buffer freeze, and the
@@ -117,7 +117,12 @@ phase exit criteria:
   The Clip now plays before mode select; it is a 15-panel, owner-editable
   comic intro with all 15 pixel-art panels and the approved Peggy/Richard origin.
   Space advances the current beat or panel (dense copy may take extra presses),
-  Esc skips, and no timer advances the story. Procedural
+  Esc skips, and no timer advances the story. **UI Phase 1 (2026-11-21):**
+  the front end is now the planned hub flow — content warning (once per
+  launch), title, main menu (price-board + chat strip), quit confirm — on a
+  ScreenRouter with a persistent Settings autoload and audio buses;
+  `docs/UI_SCREENS.md` documents what shipped, and the fifteen-suite CI
+  adds ui_flow (48), settings (16), and ui_assets (4). Procedural
   newsprint/halftone and bundled OFL comic fonts are used throughout. Mode
   select (added 2026-11-17) offers 1 PLAYER or 2 PLAYERS: solo sends P1 to a
   difficulty pick (added 2026-11-19) and then lets P1 pick both fighters, with
@@ -284,7 +289,7 @@ phase exit criteria:
   keyboard, hitbox accuracy, AI, progression/unlocks, performance, exports,
   content/accessibility review. Exit: no progression blockers/crashes, stable
   match flow, usable modes, and builds on target PC specs.
-- **Status:** **In progress; exit not met.** CI runs the twelve headless suites
+- **Status:** **In progress; exit not met.** CI runs the fifteen headless suites
   (combat, round_flow, character_select, stage_select, stage_floor,
   locomotion_speed, cpu, combo, combo_fuzz, the_clip, serialization, b6) and
   the air

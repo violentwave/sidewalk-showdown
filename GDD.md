@@ -1214,22 +1214,25 @@ Visual ingredients:
 
 ### 10.2 Required Screens
 
-| Screen | Purpose |
-|---|---|
-| Splash / Content Warning | Mature tone warning |
-| Main Menu | Mode selection |
-| Character Select | Select fighter and palette |
-| Stage Select | Select stage for versus/training |
-| Versus Screen | Fighter matchup presentation |
-| Loading Screen | Tips, fake ads, lore jokes |
-| Match HUD | Health, timer, round count, meter |
-| Pause Menu | Resume, restart, back to character select, quit |
-| Options | video, audio, controls, accessibility |
-| Training Menu | dummy settings, meters, reset, display toggles |
-| Story Dialogue | campaign text, portraits, Tripp commentary |
-| Results Screen | winner, time, score, unlocks |
-| Gallery | extras and unlockables |
-| Credits | team, licenses, tools |
+| Screen | Purpose | Status (2026-11-21, UI Phase 1) |
+|---|---|---|
+| Splash / Content Warning | Mature tone warning | **Shipped** (once per launch, confirm or 3 s auto) |
+| Main Menu | Mode selection | **Shipped** (price board + chat strip hub: VERSUS, TRAINING*, SETTINGS, EXTRAS*, QUIT; *greyed) |
+| Title | Branding / start | **Shipped** (PRESS START, pulsing once per second) |
+| Character Select | Select fighter and palette | Exists, text-style (reskin Phase 3) |
+| Stage Select | Select stage for versus/training | Exists, text-style (reskin Phase 3) |
+| Versus Screen | Fighter matchup presentation | Phase 3 |
+| Loading Screen | Tips, fake ads, lore jokes | Deferred until load times appear |
+| Match HUD | Health, timer, round count, meter | Exists (reskin Phase 2) |
+| Pause Menu | Resume, restart, back to character select, quit | **Expanded** (6 items incl. Settings overlay, Main Menu, quit confirm) |
+| Options | video, audio, controls, accessibility | **Settings overlay shipped** (all tabs except Controls, Phase 4) |
+| Training Menu | dummy settings, meters, reset, display toggles | After combo Phase 2 |
+| Story Dialogue | campaign text, portraits, Tripp commentary | Campaign phase |
+| Results Screen | winner, time, score, unlocks | Phase 3 |
+| Gallery | extras and unlockables | Phase 4 |
+| Credits | team, licenses, tools | Phase 4 |
+
+The flow and router are documented in `docs/UI_SCREENS.md`.
 
 ### 10.3 Match HUD
 

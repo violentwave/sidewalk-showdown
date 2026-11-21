@@ -26,7 +26,12 @@ const FUZZ_PER_TARGET := 3
 const FUZZ_FRAMES := 300
 const DETERMINISM_FRAMES := 240
 const SOAK_MATCHES := 8
-const SOAK_MAX_FRAMES := 40000
+# Measured on the fixed (#76-style) harness, NORMAL level, seeds 11/29,
+# both pairings and stages: matches end between 4579 and 11755 frames
+# (the longest is a legitimate two-round timeout war; no stalls, mutual
+# idle always < 240). The limit is the measured worst plus ~25% margin:
+# a regression that stalls past it fails fast instead of hiding.
+const SOAK_MAX_FRAMES := 15000
 
 var failures := 0
 var checks := 0
@@ -64,10 +69,21 @@ func _build_match(p1_path: String, p2_path: String, stage_path: String,
     mroot.p2_cpu = p2_cpu
     mroot.cpu_level = level
     mroot.cpu_seed = seed
+    # The engine must NEVER tick this match: Godot re-enables a scene root's
+    # physics processing on tree entry in some paths, so the pre-add disable
+    # alone does not stick (the PR #76 root cause — the engine ticked the
+    # manually-stepped match a wall-dependent 4-10 frames during the build
+    # awaits and mid-script). Disable pre-add, post-add, and re-assert after
+    # the ready awaits with an is_physics_processing() guard, exactly like
+    # cpu_test.gd / combo_test.gd. Any residual build drift is absorbed by
+    # the phase-driven _to_fight below.
     mroot.set_physics_process(false)
     root.add_child(mroot)
+    mroot.set_physics_process(false)
     await process_frame
     await process_frame
+    mroot.set_physics_process(false)
+    assert(not mroot.is_physics_processing())
     mroot.p1.set_physics_process(false)
     mroot.p2.set_physics_process(false)
     mroot.p1.reset_state()
@@ -283,33 +299,37 @@ func _route_search_check_one(p1: FighterBase, p2: FighterBase, moves: Array, lab
         "total=%.1f" % p2.combo_tracker.total_damage)
 
 func _route_search_and_caps() -> void:
-    var mroot: Node = await _build_match(PEGGY, RICHARD, GAS_N_GO)
-    await _to_fight(mroot)
-    var p1: FighterBase = mroot.p1
-    var p2: FighterBase = mroot.p2
-    var moves := [
-        [MoveData.InputType.LIGHT, MoveData.Stance.STAND],
-        [MoveData.InputType.HEAVY, MoveData.Stance.STAND],
-        [MoveData.InputType.LIGHT, MoveData.Stance.CROUCH],
-        [MoveData.InputType.HEAVY, MoveData.Stance.CROUCH],
-        [MoveData.InputType.SPECIAL_NEUTRAL, MoveData.Stance.STAND],
-        [MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND],
-        [MoveData.InputType.SPECIAL_DOWN, MoveData.Stance.STAND],
-        [MoveData.InputType.SPECIAL_BACK, MoveData.Stance.STAND],
-        [MoveData.InputType.SPECIAL_AIR, MoveData.Stance.AIR],
-    ]
-    for move in moves:
-        var input := move[0] as MoveData.InputType
-        var stance := move[1] as MoveData.Stance
-        var m := p1.data.find_move(input, stance)
-        if m == null:
-            continue
-        # Reset the tracker for each starting move so the ladder re-engages.
-        p2.combo_tracker.reset()
-        p2.combo_hits = 0
-        p2.health = 1000.0
-        _route_search_check_one(p1, p2, [m], str(m.id))
-    await _free_match(mroot)
+    # Both stages: floor_y differs (Gas-N-Go 158, Bus Stop 170), so the
+    # direct-resolver cap checks must not silently assume one floor.
+    for stage_path in [GAS_N_GO, BUS_STOP]:
+        var stage_label: String = stage_path.trim_prefix("res://resources/stages/").trim_suffix(".tres")
+        var mroot: Node = await _build_match(PEGGY, RICHARD, stage_path)
+        await _to_fight(mroot)
+        var p1: FighterBase = mroot.p1
+        var p2: FighterBase = mroot.p2
+        var moves := [
+            [MoveData.InputType.LIGHT, MoveData.Stance.STAND],
+            [MoveData.InputType.HEAVY, MoveData.Stance.STAND],
+            [MoveData.InputType.LIGHT, MoveData.Stance.CROUCH],
+            [MoveData.InputType.HEAVY, MoveData.Stance.CROUCH],
+            [MoveData.InputType.SPECIAL_NEUTRAL, MoveData.Stance.STAND],
+            [MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND],
+            [MoveData.InputType.SPECIAL_DOWN, MoveData.Stance.STAND],
+            [MoveData.InputType.SPECIAL_BACK, MoveData.Stance.STAND],
+            [MoveData.InputType.SPECIAL_AIR, MoveData.Stance.AIR],
+        ]
+        for move in moves:
+            var input := move[0] as MoveData.InputType
+            var stance := move[1] as MoveData.Stance
+            var m := p1.data.find_move(input, stance)
+            if m == null:
+                continue
+            # Reset the tracker for each starting move so the ladder re-engages.
+            p2.combo_tracker.reset()
+            p2.combo_hits = 0
+            p2.health = 1000.0
+            _route_search_check_one(p1, p2, [m], "%s/%s" % [stage_label, m.id])
+        await _free_match(mroot)
 
 # ---------------------------------------------------------------------------
 # 3. Infinite hunt: shortest repeating loops and corner-carry loops terminate
@@ -317,39 +337,44 @@ func _route_search_and_caps() -> void:
 
 func _infinite_hunt_loops() -> void:
     # Repeating "light, heavy, neutral" must die at the 12-hit cap, never
-    # looping forever. A repeat hits the cap every 3 hits.
-    var mroot: Node = await _build_match(PEGGY, RICHARD, GAS_N_GO)
-    await _to_fight(mroot)
-    var p1: FighterBase = mroot.p1
-    var p2: FighterBase = mroot.p2
-    var light := p1.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
-    var heavy := p1.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.STAND)
-    var neutral := p1.data.find_move(MoveData.InputType.SPECIAL_NEUTRAL, MoveData.Stance.STAND)
-    var cycle := [light, heavy, neutral]
-    var idx := 0
-    var cap_frame := 0
-    for i in 13:
-        p2.receive_hit(p1, cycle[idx % cycle.size()])
-        if i == 11:
-            cap_frame = 1
-        idx += 1
-    _check("infinite hunt loop terminates at the 12-hit cap",
-        p2.combo_tracker.hits == 13 and p2.combo_tracker.total_damage <= 550.0 + 0.01,
-        "hits=%d total=%.1f" % [p2.combo_tracker.hits, p2.combo_tracker.total_damage])
+    # looping forever. A repeat hits the cap every 3 hits. Run on both
+    # stages (different floor_y) — direct resolver hits, so this is cheap.
+    for stage_path in [GAS_N_GO, BUS_STOP]:
+        var stage_label: String = stage_path.trim_prefix("res://resources/stages/").trim_suffix(".tres")
+        var mroot: Node = await _build_match(PEGGY, RICHARD, stage_path)
+        await _to_fight(mroot)
+        var p1: FighterBase = mroot.p1
+        var p2: FighterBase = mroot.p2
+        var light := p1.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+        var heavy := p1.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.STAND)
+        var neutral := p1.data.find_move(MoveData.InputType.SPECIAL_NEUTRAL, MoveData.Stance.STAND)
+        var cycle := [light, heavy, neutral]
+        var idx := 0
+        for i in 13:
+            p2.receive_hit(p1, cycle[idx % cycle.size()])
+            idx += 1
+        _check("infinite hunt loop terminates at the 12-hit cap (%s)" % stage_label,
+            p2.combo_tracker.hits == 13 and p2.combo_tracker.total_damage <= 550.0 + 0.01,
+            "hits=%d total=%.1f" % [p2.combo_tracker.hits, p2.combo_tracker.total_damage])
+        await _free_match(mroot)
 
     # Corner-carry loop: P1 and P2 trade at the right wall (P2 pinned by the
     # defender's right input). The scripted loop must resolve: no hash freeze
     # over 240 frames and no stuck state, with caps held.
-    _reset_pair(mroot, 250.0, 280.0)  # P1 left of P2, both near the right wall
-    p1.meter = 0.0
-    p2.meter = 0.0
-    p2.input_buffer["right"] = 0
+    var carry_mroot: Node = await _build_match(PEGGY, RICHARD, GAS_N_GO)
+    await _to_fight(carry_mroot)
+    var cp1: FighterBase = carry_mroot.p1
+    var cp2: FighterBase = carry_mroot.p2
+    _reset_pair(carry_mroot, 250.0, 280.0)  # P1 left of P2, both near the right wall
+    cp1.meter = 0.0
+    cp2.meter = 0.0
+    cp2.input_buffer["right"] = 0
     var last_hash := 0
     var same_streak := 0
     var bad := false
     for i in 240:
-        await _step(mroot, 1, "p1_light")
-        var h := _frame_hash(mroot)
+        await _step(carry_mroot, 1, "p1_light")
+        var h := _frame_hash(carry_mroot)
         if h == last_hash:
             same_streak += 1
             if same_streak > 240:
@@ -358,13 +383,13 @@ func _infinite_hunt_loops() -> void:
         else:
             same_streak = 0
             last_hash = h
-        if is_nan(mroot.p1.health) or is_nan(mroot.p2.health) or mroot.p2.health < 0.0:
+        if is_nan(cp1.health) or is_nan(cp2.health) or cp2.health < 0.0:
             bad = true
             break
     _check("corner-carry loop resolves without a stuck state",
-        not bad and mroot.phase == mroot.Phase.FIGHT,
-        "bad=%s phase=%d" % [bad, int(mroot.phase)])
-    await _free_match(mroot)
+        not bad and carry_mroot.phase == carry_mroot.Phase.FIGHT,
+        "bad=%s phase=%d" % [bad, int(carry_mroot.phase)])
+    await _free_match(carry_mroot)
 
 # ---------------------------------------------------------------------------
 # 4. Clip Cancel (recovery-only, 25 meter, once per combo, budget restored)
@@ -673,42 +698,46 @@ static func _first_diff(a: Array, b: Array) -> int:
 # ---------------------------------------------------------------------------
 
 func _cross_up_and_side_switch() -> void:
-    # Side-switch during macro: P1 strings L,L,H while P2 is opposite P1 (both
-    # facing each other). The combo continues on the defender with the right
-    # damage and hit count.
-    var mroot: Node = await _build_match(PEGGY, RICHARD, GAS_N_GO)
-    await _to_fight(mroot)
-    _reset_pair(mroot, 140.0, 100.0)   # P1 right of P2, lights reach
-    mroot.p1.facing = -1                 # face the opponent (P2 is to the left)
-    mroot.p2.facing = 1
-    mroot.p1.meter = 0.0
-    mroot.p2.meter = 0.0
-    var p1: FighterBase = mroot.p1
-    var p2: FighterBase = mroot.p2
-    await _dial_macro(mroot, ["p1_light", "p1_light", "p1_heavy"], 3)
-    await _wait_neutral(mroot)
-    _check("side-switch during macro: combo continues and tracks correctly",
-        is_equal_approx(p2.health, 1000.0 - 142.25) and p2.combo_tracker.hits >= 1,
-        "health=%.3f hits=%d" % [p2.health, p2.combo_tracker.hits])
-    await _free_match(mroot)
+    # Both stages: the cross-up and side-switch routes must behave the same
+    # on Bus Stop's floor (170) as on Gas-N-Go's (158).
+    for stage_path in [GAS_N_GO, BUS_STOP]:
+        var stage_label: String = stage_path.trim_prefix("res://resources/stages/").trim_suffix(".tres")
 
-    # Pass-through cross-up: P1 holds up then launches over P2 (defender to the
-    # left) with a forward special; the projectile clears P2 and P2 takes the
-    # hit while P1's body is overhead (pass-through on, no pushbox separation).
-    mroot = await _build_match(PEGGY, RICHARD, GAS_N_GO)
-    await _to_fight(mroot)
-    _reset_pair(mroot, 140.0, 100.0)   # P1 right of P2
-    mroot.p1.meter = 0.0
-    mroot.p2.meter = 0.0
-    var a: FighterBase = mroot.p1
-    var b: FighterBase = mroot.p2
-    await _step(mroot, 1, "p1_up")
-    await _press_and_confirm(mroot, "p1_special", 40)
-    await _step(mroot, 6)
-    _check("pass-through: cross-up launcher hits the opponent while airborne",
-        b.health < 1000.0 and b.combo_tracker.hits >= 1,
-        "health=%.3f hits=%d" % [b.health, b.combo_tracker.hits])
-    await _free_match(mroot)
+        # Side-switch during macro: P1 strings L,L,H while P2 is opposite P1
+        # (both facing each other). The combo continues on the defender with
+        # the right damage and hit count.
+        var mroot: Node = await _build_match(PEGGY, RICHARD, stage_path)
+        await _to_fight(mroot)
+        _reset_pair(mroot, 140.0, 100.0)   # P1 right of P2, lights reach
+        mroot.p1.facing = -1                 # face the opponent (P2 is to the left)
+        mroot.p2.facing = 1
+        mroot.p1.meter = 0.0
+        mroot.p2.meter = 0.0
+        var p1: FighterBase = mroot.p1
+        var p2: FighterBase = mroot.p2
+        await _dial_macro(mroot, ["p1_light", "p1_light", "p1_heavy"], 3)
+        await _wait_neutral(mroot)
+        _check("side-switch during macro (%s): combo continues and tracks correctly" % stage_label,
+            is_equal_approx(p2.health, 1000.0 - 142.25) and p2.combo_tracker.hits >= 1,
+            "health=%.3f hits=%d" % [p2.health, p2.combo_tracker.hits])
+        await _free_match(mroot)
+
+        # Pass-through cross-up: P1 jumps over P2 (defender to the left) and
+        # hits while P1's body is overhead (pass-through on, no pushbox).
+        mroot = await _build_match(PEGGY, RICHARD, stage_path)
+        await _to_fight(mroot)
+        _reset_pair(mroot, 140.0, 100.0)   # P1 right of P2
+        mroot.p1.meter = 0.0
+        mroot.p2.meter = 0.0
+        var a: FighterBase = mroot.p1
+        var b: FighterBase = mroot.p2
+        await _step(mroot, 1, "p1_up")
+        await _press_and_confirm(mroot, "p1_special", 40)
+        await _step(mroot, 6)
+        _check("pass-through (%s): cross-up launcher hits the opponent while airborne" % stage_label,
+            b.health < 1000.0 and b.combo_tracker.hits >= 1,
+            "health=%.3f hits=%d" % [b.health, b.combo_tracker.hits])
+        await _free_match(mroot)
 
 # ---------------------------------------------------------------------------
 # 8. CPU-vs-CPU soak: all pairings, both stages, no stuck states
@@ -765,7 +794,7 @@ func _cpu_vs_cpu_soak() -> void:
         avg /= float(lengths.size())
     _check("CPU-vs-CPU soak: all %d matches ended, average sane"
         % lengths.size(),
-        lengths.size() == 8 and avg > 600.0 and avg < 24000.0,
-        "avg=%.0f frames over %d matches" % [avg, lengths.size()])
+        lengths.size() == 8 and avg > 600.0 and avg < float(SOAK_MAX_FRAMES),
+        "avg=%.0f frames over %d matches (limit %d)" % [avg, lengths.size(), SOAK_MAX_FRAMES])
     print("SOAK: win counts ", win_counts, ", avg mroot length %.0f frames (~%.0f s)" % [avg, avg / 60.0])
 

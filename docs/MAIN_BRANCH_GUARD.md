@@ -2,7 +2,8 @@
 
 `.github/workflows/main_guard.yml` is a **reactive tripwire**, not branch
 protection. GitHub Free does not provide the required branch protection for
-this private repository. The workflow runs after each push to `main` and:
+this repository (public since 2026-11-16, when it was made public to fix the
+Actions/artifact budget). The workflow runs after each push to `main` and:
 
 - allows a commit only when GitHub associates that exact commit SHA with an
   already-merged PR targeting `main` (the repository's squash-merge path);

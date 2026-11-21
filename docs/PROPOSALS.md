@@ -229,6 +229,10 @@ blocker.
   how "missed because of invulnerability" is accounted for; the whiff-meter path
   (`finish_move_whiff()`) will now award whiff meter on invulnerable brushes,
   which is arguably correct (the attack did whiff) but should be a deliberate call.
+  > **Superseded (2026-11-18):** the meter economy became "landed hits only"
+  > (`METER_GAIN_ON_BLOCK_SCALE`, whiffs award nothing anywhere, defender never
+  > gains). The `finish_move_whiff()` award described here no longer exists; see
+  > §5 and `docs/PHASE_STATUS.md` for the rules of record. Kept for history.
 - **Balance sheet.** Reversals become mandatory knowledge; the current
   "any knockdown → free pressure" game becomes "knockdown → meaty / throw / bait
   reversal". That is the intended change, but it is a change.
@@ -1356,7 +1360,11 @@ recovery (`MoveData.whiff_recovery`, row-only override); Richard 140 damage,
 whiff, 4 received; 30f knockdown (intentional: bigger damage and shorter
 okizeme than the 42f normal-throw knockdown); THROW level, unblockable, no EX
 variant. R1, wake-up throw invulnerability, and airborne rejection are shared
-guards and still apply. Informational metric (not asserted): reward versus
+guards and still apply.
+> **Superseded (2026-11-18):** the "1.5 on whiff" and "4 received" awards above
+> describe the removed pre-economy values, kept for history — whiffs and
+> receiving award nothing under the landed-hits-only rules; `meter_gain_hit`
+> (6/8) is the only award. See §5. Informational metric (not asserted): reward versus
 the defender's best single-hit punish is 0.80 for Peggy (120/150) and 0.97 for
 Richard (140/145).
 

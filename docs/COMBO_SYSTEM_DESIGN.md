@@ -1,9 +1,10 @@
 # Combo System Design — Sidewalk Showdown
 
-**Version:** v0.2 — **Phase 1 implemented** (2026-11-20)
+**Version:** v0.2 — **Phase 1 implemented** (merged 2026-11-19 as PR #69,
+commit `c2e99bb`)
 **Status:** Phase 1 shipped (§14: cancel graph, strings, macros, scaling,
 combo tracker, Clip Cancel). Phase 2 (juggle points), Phase 3 (stuns,
-breaker), Phase 4 (combo HUD, CPU usage) remain design.
+breaker), Phase 4 (combo HUD, CPU usage) pending.
 **Goal:** A Mortal Kombat-style combo system, made our own: dial-a-combo
 macros, chain strings into specials, launchers and juggles, and themed
 stuns — deterministic, data-driven, rollback/replay-ready, on the fixed

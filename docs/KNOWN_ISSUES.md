@@ -312,7 +312,8 @@ that section by hand afterward — the simulation step comes from
   tournament order, or per-stage music assignment yet.
 - **Debug overlay is dev-only.** Boxes, frame state, frame advantage, input
   history, slow motion, frame-step and refill exist; there is no AI state view
-  (there is no AI yet) and no hitbox-invariant assertions.
+  (the CPU is deterministic and data-tuned, but the overlay does not surface
+  its plan/RNG) and no hitbox-invariant assertions.
 - **Airborne throws remain rejected.** Throws stay grounded-only, unchanged.
 - **No throw-tech follow-ups yet.** Punish Counter throws, delayed-throw
   pressure and shimmy baiting are design space, not implemented.
@@ -320,6 +321,27 @@ that section by hand afterward — the simulation step comes from
 ## Known edge cases and first-pass balance limits
 
 These are measured or first-pass limits, not phase-exit validation.
+
+**Owner-reported playtest issues (2026-11-20, to be addressed before/with
+combo Phase 2 — none have balance fixes yet):**
+
+- **The jab (J / stand light) is too strong relative to every other attack** —
+  it near-dominates the kit. Owner wants it toned down or the other attacks
+  compensated. Candidate levers, all data (`.tres`): light damage/hitstun,
+  heavy/EX reward, or meter gain per move.
+- **A fighter backed into a corner by an advancing opponent gets stuck** —
+  they cannot break the opponent's string or move. Related design already
+  written but unimplemented: the combo breaker (free once per round +
+  40-meter extras, `docs/COMBO_SYSTEM_DESIGN.md` §11/Phase 3) and the CPU's
+  corner-jump escape (shipped for the CPU only). A human-side escape option
+  is the missing piece.
+- **Some move animations still scale incorrectly** — characters appear
+  bigger/smaller during certain moves. The 2026-11-15 calibration pass fixed
+  the worst `h_ref` drift, but owner review still sees outliers; needs a
+  fresh rendered pass over the remaining move clips (the
+  `*_clip_render_check` harnesses are the tool).
+
+**Measured/engine limits:**
 
 - **Timeout ties**: equal health at time-out is a draw round with no pip. The
   first two ties just advance the round; the **third** tie starts a final
@@ -429,7 +451,7 @@ These are measured or first-pass limits, not phase-exit validation.
   sudden-death tie resolving by damage dealt (with the announced tiebreak), the
   deterministic P1 fallback, a clean win in sudden death ending the match, the
   clock frozen during hitstop, and a hit on the timer's final frame counting.
-- `game/tests/character_select_test.gd` — **49 checks**: intro MP3 playback on
+- `game/tests/character_select_test.gd` — **50 checks**: intro MP3 playback on
   The Clip and character select, mode select defaulting to 1 PLAYER and moving
   to 2 PLAYERS, Backspace back-out, default selections,
   independent P1/P2 movement/confirmation, unlock-on-move, the solo two-pick
@@ -468,6 +490,25 @@ These are measured or first-pass limits, not phase-exit validation.
   owner-script canon guards, panel ordering, boot-to-intro, Space-only
   beat/panel advancement, complete Space-only handoff, Esc skips from panels
   1/8/15, explicit bundled comic fonts, and monospaced livestream chat.
+- `game/tests/cpu_test.gd` — **27 checks**: CPU legality (no move out of
+  hitstun, no unpayable EX), same-seed determinism with scripted human
+  inputs, mid-match AI-state save/restore, HARD-over-EASY defense ordering
+  and damage, and an 8-match AI-vs-AI soak (both pairings, both stages, two
+  seeds) asserting every match ends in bounds with no stuck states
+  (`docs/CPU_OPPONENT.md`).
+- `game/tests/combo_test.gd` — **42 checks**: legacy pins (exact ladder
+  damage, cancel routes, authored launch, flat juggle cap, block economy),
+  scaling arithmetic (repeat/variety/air decay), BLOCK/WHIFF outcome
+  conditions, Clip Cancel legality/cost/budget, macro dial continue-on-hit
+  and die-on-block, combo caps and meter-in-combo, mid-combo save/restore,
+  scripted-dial determinism, and a seeded route fuzz
+  (`docs/COMBO_SYSTEM_DESIGN.md`).
+- `game/tests/serialization_test.gd` — **24 checks**: the MatchRoot
+  serializable surface carries every expected key and round-trips cleanly;
+  exits 0/1 like the other suites.
+- `game/tests/b6_landing_whiff_test.gd` — **5 checks**: the superseded B6
+  rule pinned to the current meter economy — landing a whiffed air move
+  awards 0 meter, the move clears, and landing recovery runs to IDLE.
 - Rendered/live verification harnesses (not run by CI; require a display
   because they read back the framebuffer, so they are manual review tools):
   `richard_clip_render_check.gd` (27 captures) and
@@ -485,10 +526,11 @@ These are measured or first-pass limits, not phase-exit validation.
   actionability. Prints a report and exits 0 on success; `docs/PROPOSALS.md` §3
   documents the coarse grid, before/after metrics, and target limitations. Its
   numbers are informational measurements, not passing balance assertions.
-- `.github/workflows/tests.yml` runs the combat, round-flow,
-  mode/character-select, stage-select/ambience, stage-floor-guard, and intro
-  suites plus the air probe on push, pull
-  request and manual dispatch.
+- `.github/workflows/tests.yml` runs the eleven headless suites — combat,
+  round-flow, mode/character-select, stage-select/ambience, stage-floor-guard,
+  locomotion-speed, CPU opponent, combo system, The Clip intro, serialization,
+  and B6 landing-whiff — plus the air probe on push, pull request and manual
+  dispatch, every step under a `timeout-minutes` so a hang fails fast.
   They are separate jobs in one workflow; parallel
   execution does not make a job non-gating. A non-zero command or job failure in
   the air-probe job can still fail the workflow even though the script contains

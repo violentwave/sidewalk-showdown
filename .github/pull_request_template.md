@@ -18,13 +18,21 @@
 <!-- Paste the actual output, not a claim. Every suite must pass. -->
 
 ```text
-combat_test:        ... checks, ... failure(s)
-round_flow_test:    ... checks, ... failure(s)
+combat_test:           ... checks, ... failure(s)
+round_flow_test:       ... checks, ... failure(s)
 character_select_test: ... checks, ... failure(s)
-the_clip_test:      ... checks, ... failure(s)
+stage_select_test:     ... checks, ... failure(s)
+stage_floor_test:      ... checks, ... failure(s)
+locomotion_speed_test: ... checks, ... failure(s)
+cpu_test:              ... checks, ... failure(s)
+combo_test:            ... checks, ... failure(s)
+the_clip_test:         ... checks, ... failure(s)
+serialization_test:    ALL PASS (exit 0)
+b6_landing_whiff_test: ... checks, ... failure(s)
+air probe:            metrics only, job must still pass
 ```
 
-- [ ] All four suites run locally with the commands in `README.md`
+- [ ] All eleven CI suites run locally with the commands in `README.md`
 - [ ] Rendered review done for visual changes (note the captures/screens and both facings)
 
 ## Docs

@@ -1887,12 +1887,16 @@ Possible updates:
 - keyboard/controller support
 - hitbox debug
 
-> **Implementation-status note (2026-11-17):** keyboard, mouse, and controller
-> support exist and are tested (P1 is keyboard + mouse only, P2 controller, per
-> owner direction). The in-game remap UI is still missing. A text-only mode
-> select (1 PLAYER / 2 PLAYERS) and character select now precede the match. Solo
-> lets P1 pick both fighters but P2 stands idle because CPU AI is not
-> implemented; there is no full main-menu or stage select flow. See
+> **Implementation-status note (updated 2026-11-20):** keyboard, mouse, and
+> controller support exist and are tested (P1 is keyboard + mouse only, P2
+> controller, per owner direction). The in-game remap UI is still missing.
+> A text-only mode select (1 PLAYER / 2 PLAYERS), a solo difficulty select
+> (EASY/NORMAL/HARD), character select, and a stage select precede the
+> match. Solo P2 is a **real CPU opponent** (deterministic, data-tuned —
+> see `docs/CPU_OPPONENT.md`), not an idle dummy. **Combo system Phase 1**
+> is shipped (blockstrings, counter-hit extensions, dial-a-combo macros,
+> the Clip Cancel, data-driven scaling — `docs/COMBO_SYSTEM_DESIGN.md`).
+> There is still no full main-menu/options flow. See
 > `docs/PHASE_STATUS.md` for the gate status.
 
 ### Must-Have for Vertical Slice

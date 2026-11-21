@@ -1,7 +1,9 @@
 # GDD Phase Status
 
-**Baseline:** `main` at `74e2543` (through PR #50), plus the 2026-11-16
-crouch-entry transient pass. This document tracks the GDD §13 phases against
+**Baseline:** `main` at `77e0b55` (through PR #76, 2026-11-20) — combo system
+Phase 1 (#69), CPU-opponent test reliability (#76), and the PM brief (#70)
+included, on top of the earlier baselines (the 2026-11-16 crouch-entry
+transient pass among them). This document tracks the GDD §13 phases against
 the current build; the earlier baseline note (PR #35, manually advanced “The
 Clip”) is superseded.
 The companion audit reconciliation is [`docs/audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md`](audits/2026-11-05_current-baseline-reconciliation_e6d40d9.md).
@@ -25,7 +27,7 @@ playtesting. Phase 2's presentation and private-show exit criteria are not met.
 - METHtality (2026-11-09) — full meter plus the METH input is sufficient;
   opponent health, state, and invulnerability do not gate activation. The full
   bar is still spent and the authored 30-frame hitstop is unchanged.
-- Meter builds only on landed hits (2026-11-30) — the special/METHtality meter
+- Meter builds only on landed hits (2026-11-18) — the special/METHtality meter
   is awarded to the attacker only when a hit or throw connects. Whiff gain,
   defender receive-gain, and passive/time-based gain were removed; blocked hits
   award `METER_GAIN_ON_BLOCK_SCALE * meter_gain_block` with the constant
@@ -316,7 +318,7 @@ phase exit criteria:
 |---|---|---|
 | First playable | 2 fighters; 1 stage; movement; block; attacks/specials; health/timer; round flow | **Implemented** for the Peggy/Richard slice on Gas-N-Go or Bus Stop; edge-case findings remain. |
 | First playable | Basic menu | **Partial:** pause/resume/restart/character-select/quit, mode select, character select, and stage select exist; no full front-end/main menu or options. |
-| First playable | Keyboard/controller support | **Partial:** keyboard is device-agnostic and tested; no gamepad mappings, support UI, or controller test. This is a documented first-playable blocker unless the owner amends §14. |
+| First playable | Keyboard/controller support | **Implemented (gamepad mappings shipped in PR #53):** P1 keyboard+mouse, P2 controller (device-pinned and regression-tested via real-key/real-pad events); the in-game remap UI is the remaining gap. |
 | First playable | Hitbox debug | **Implemented:** F1 boxes and other debug controls exist; box separation is incomplete (B9). |
 | Vertical slice | 2 polished fighters, 1 polished stage, real HUD, music/SFX, Tripp commentary, one METHtality, mini story route | **Partial:** official Peggy/Richard cast, Gas-N-Go and Bus Stop stages, mode/character/stage select, HUD, full-meter METHtality, 15-panel prologue, and one text-only Tripp commentary sample exist; polished runtime art, voiced/full commentary, broad SFX, and a fighter-specific route remain. |
 | Full v1.0 | 15 fighters, hidden Tripp boss, stages, campaign/arcade/versus/training, METHtalities, endings, options/accessibility, credits/licenses | **Not met; later GDD priorities.** |

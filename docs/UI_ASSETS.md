@@ -94,10 +94,11 @@ Style references: **A** = `art/source/UI/HealthFull.png`, **B** =
 | asset_id | Native size | Method | Ref | Pack # | Figma component | Notes | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `hud_health_frame` | 118x10 | PixelLab ref + Hand | S | 135 | `hud/health_frame 118×10` | Frame only, empty interior 116x8 at (1,1); fills are code-drawn. Mirrored for P2 in engine. | picked v06 (cleanup to native) |
-| `hud_meter_frame` | 106x8 | Hand | B | 137 | `hud/meter_frame 106×8` | Empty interior 104x6 at (1,1); tick marks at 25 and 50 drawn in code. | todo |
-| `hud_timer_box` | 24x20 | Hand | C | 141 | `hud/timer_box 24×20` | Empty interior; digits are a separate strip. | todo |
+| `hud_meter_frame` | 106x8 | PixelLab ref + Hand | S | 137 | `hud/meter_frame 106×8` | Empty interior 104x6 at (1,1); tick marks at 25 and 50 drawn in code. | picked v05 (cleanup to native) |
+| `hud_timer_box` | 24x20 | PixelLab ref + Hand | S | 141 | `hud/timer_box 24×20` | Empty interior; digits are a separate strip. | picked v01 (cleanup to native) |
 | `hud_timer_digits` | 8x12 per digit, strip 88x12 (0–9, ∞) | Hand | C | — | — | 11 glyphs in one strip, 8 px apart. | todo |
 | `hud_portrait_frame` | 24x24 | PixelLab | S | — | `hud/portrait 24×24` | Holds a still of the fighter being played (not Tripp). Street-junk look: taped-down instant photo. | picked v03 (cleanup to native) |
+| `hud_portrait_<fighter>` | 22x22 x3 states (normal, hurt, KO) | PixelLab + hand cleanup | fighter sprite | — | inside `hud/portrait 24×24` | Still of the fighter being played; sits in the taped photo frame. Generated for Pegleg Peg and Whiskey Richard (the playable pair). | picked (review) |
 | `hud_pip_square` | 5x5 | Hand | — | 139/140 | `hud/pip_square 5×5` | Empty + filled + K/T/M/D letter variants. | todo |
 | `hud_pip_diamond` | 5x5 | Hand | — | 139/140 | `hud/pip_diamond 5×5` | Same set as square, diamond shape (P2). | todo |
 | `hud_meth_skull` | 8x8, 2 frames | Hand | B | 144 | `hud/meth_skull 8×8` | Wobble loop for METH READY. | todo |
@@ -109,11 +110,11 @@ Style references: **A** = `art/source/UI/HealthFull.png`, **B** =
 
 | asset_id | Native size | Method | Ref | Pack # | Figma component | Notes | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `stream_chat_panel` | 80x100 | PixelLab | S | 154 | `stream/chat_panel 80×100` | 9-slice-friendly border, empty interior. | todo |
-| `stream_sponsor_bug` | 40x12 | PixelLab | S | 156 | `stream/sponsor_bug 40×12` | Blank plate; fake brand names hand-pixeled later. | todo |
-| `stream_commentary_box` | 240x16 | PixelLab | S | 153 | (HUD between-rounds frame) | Between-rounds only. | todo |
-| `ui_panel` | 24x24 (8 px corners) | Hand | A | 146 | `panel/9slice 24×24` | 9-slice for every menu panel. | todo |
-| `ui_button` | 48x16 x4 states | Hand | A | — | `ui/button 48×16` | normal / focus / pressed / disabled, 9-slice-friendly. | todo |
+| `stream_chat_panel` | 80x100 | PixelLab ref + Hand | S | 154 | `stream/chat_panel 80×100` | 9-slice-friendly border, empty interior. | picked v02 (cleanup to native) |
+| `stream_sponsor_bug` | 40x12 | PixelLab ref + Hand | S | 156 | `stream/sponsor_bug 40×12` | Blank plate; fake brand names hand-pixeled later. | picked v05 (cleanup to native) |
+| `stream_commentary_box` | 240x16 | PixelLab ref + Hand | S | 153 | (HUD between-rounds frame) | Between-rounds only. | picked v05 (cleanup to native) |
+| `ui_panel` | 24x24 (8 px corners) | PixelLab ref + Hand | S | 146 | `panel/9slice 24×24` | 9-slice for every menu panel. | picked v02 (cleanup to native) |
+| `ui_button` | 48x16 x4 states | PixelLab ref + Hand | S | — | `ui/button 48×16` | normal / focus / pressed / disabled, 9-slice-friendly. | picked v01 (cleanup to native) |
 | `ui_glyphs` | 9x9 each | Hand | — | 148/149 | `ui/glyph 9×9` | Keyboard keys, pad face buttons, d-pad. | todo |
 
 ### Batch 3 — menu objects (wait for the owner's menu-direction decision)

@@ -1,0 +1,17 @@
+{
+  "asset_id": "stream_commentary_box",
+  "pass": "street-junk",
+  "tool": "PixelLab REST POST /v2/generate-with-style-v2",
+  "style_references": [
+    "art/source/UI/refs/ref_sign.png",
+    "art/source/UI/refs/ref_clip.png"
+  ],
+  "description": "a very wide thin strip of masking tape with sharpie edges, empty middle, simple, no text, no people",
+  "style_description": "grimy Florida street junk pixel art, chunky 1px dark outline, sun-faded cardboard, silver duct tape, black sharpie scribbles, rust stains, simple and readable",
+  "seed": 105,
+  "size_received": "72x72; style reference to redraw at native size",
+  "picked": "v05",
+  "generations": 15,
+  "generated": "2026-11-21",
+  "status": "picked (review)"
+}

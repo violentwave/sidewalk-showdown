@@ -594,18 +594,25 @@ Suggested damage scaling:
 > proposed in this table is amended to 55%. The 35% value may be revisited only
 > after a juggle limit exists.
 >
-> **Implementation-status note (2026-11-05):** the current `_damage_scale()`
-> implements 100/100/85/70/55% for hits 1–2/3/4/5+, with a **55% floor**, which
-> now matches the owner decision above. Cancel routes are authored in `MoveData`
-> as of PR 2. The §6 juggle rules are now implemented (PR 3): at most
-> **3 airborne hits per combo** (`FighterBase.JUGGLE_HIT_CAP`); the first
-> airborne hit keeps the authored launch arc exactly, each repeat airborne hit
-> scales horizontal pushback by `JUGGLE_KNOCKBACK_SCALE` (x0.7 per prior air
-> hit), and airborne gravity is multiplied by `JUGGLE_GRAVITY_MULT` (x1.25)
-> while a repeat hit carries the arc back to the floor. The counter resets only
-> with the combo. Launchers are authored data as of the launcher PR: the forward
-> special and its EX launch for both fighters (base ~80% of jump takeoff, EX
-> higher), while crouch heavies stay hard knockdowns. The floor grid above is unchanged: the juggle limit now
+> **Implementation-status note (2026-11-05, updated 2026-11-21):** the damage
+> ladder is data (`ComboTuning.scaling_curve`, PR 69) and implements
+> 100/100/85/70/55% for hits 1–2/3/4/5+, with a **55% floor**, which matches
+> the owner decision above. Cancel routes are authored in `MoveData` as of PR 2.
+> The §6 juggle rules are implemented and, as of the juggle-economics PR,
+> use the **point budget** (decision 5): a grounded launcher hit grants the
+> defender 5 juggle points (`ComboTuning.juggle_points_start`); each air hit
+> spends by type (normals 2, air specials 3); a hit the remaining points cannot
+> pay is rejected and stays live (meaty-safe), exactly like the old flat cap.
+> The first airborne hit keeps the authored launch arc exactly, each repeat
+> airborne hit scales horizontal pushback by `JUGGLE_KNOCKBACK_SCALE` (x0.7
+> per prior air hit), and airborne gravity is multiplied by
+> `JUGGLE_GRAVITY_MULT` (x1.25) while a repeat hit carries the arc back to the
+> floor; air hitstun decays x0.9 per air hit (floor 8). The counters and
+> budget reset only with the combo, and the combo window cannot expire while
+> the defender is still airborne (the tracker covers the whole air combo).
+> Launchers are authored data: the forward special and its EX launch for both
+> fighters (marked `MoveData.launcher`; base ~80% of jump takeoff, EX higher),
+> while crouch heavies stay hard knockdowns. The floor grid above is unchanged: the juggle limit now
 > exists, but the owner has not approved revisiting the 55% floor. Counter-hit
 > detection exists (see §5.6).
 > Blocked strikes currently receive a fixed 45 px/s pushback in the real

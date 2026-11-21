@@ -44,8 +44,11 @@ Every coding agent working in this repo follows these rules. Read
     (blocked pays `meter_gain_block * METER_GAIN_ON_BLOCK_SCALE`, 0.0). Never
     reintroduce whiff/receive gain.
 11. Knockdown rejects all throws and non-METH strikes (K1/R1); chip floors at
-    1 HP; damage scaling is 100/100/85/70/55 with a 55% floor; juggle cap is 3
-    airborne hits. These are pinned owner decisions — don't "fix" them.
+    1 HP; damage scaling is 100/100/85/70/55 with a 55% floor (data in
+    `ComboTuning`); juggles run on the point budget — a grounded launcher
+    grants 5 points, air normals cost 2, air specials 3, an unpayable hit
+    rejects and stays live. These are pinned owner decisions — don't "fix"
+    them.
 12. Presentation never changes gameplay: clips/cadence/scale are visual only.
     Keep gameplay-data PRs separate from presentation-only PRs.
 

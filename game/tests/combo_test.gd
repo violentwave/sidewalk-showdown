@@ -32,6 +32,9 @@ func _initialize() -> void:
 	await _clip_cancel()
 	await _macros()
 	await _caps_and_meter()
+	await _juggle_economics()
+	await _juggle_routes()
+	await _juggle_determinism_serialization()
 	await _combo_state_save_restore()
 	await _determinism()
 	await _route_fuzz()
@@ -217,6 +220,9 @@ func _legacy_pins() -> void:
 		"grounded=%s vy=%.1f" % [str(mroot.p2.grounded), mroot.p2.velocity.y])
 	var launcher: MoveData = mroot.p1.data.find_move(
 		MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+	# Phase 2 point budget: the launch granted 5 points; a launcher used as a
+	# juggle hit is a normal-cost (2) air hit that refreshes the arc but does
+	# NOT re-grant the budget — two land, the third cannot pay.
 	var juggle_hits: int = 0
 	var rejected: int = 0
 	for i in 8:
@@ -227,8 +233,8 @@ func _legacy_pins() -> void:
 			juggle_hits += 1
 		else:
 			rejected += 1
-	_check("juggle flat cap pins: at most 3 air hits land, further ones reject",
-		juggle_hits == 3 and rejected >= 1,
+	_check("juggle budget pins: two launcher-cost air hits land, the third rejects",
+		juggle_hits == 2 and rejected >= 1,
 		"landed=%d rejected=%d" % [juggle_hits, rejected])
 
 	# Blocked hit: the attacker gains no meter, the defender none either.
@@ -602,7 +608,252 @@ func _caps_and_meter() -> void:
 
 	await _free_match(mroot)
 
-# ---------------- 7. combo state save/restore mid-combo --------------------
+# ---------------- 7. Phase 2 juggle economics ------------------------------
+
+# The point budget is data (ComboTuning), spent by move type, never regen'd
+# mid-combo, and a hit it cannot pay is rejected meaty-safe. Knockback decay
+# and the gravity ramp are the unchanged Phase 1-era policy.
+func _juggle_economics() -> void:
+	var mroot: Node = await _build_match(PEGGY, RICHARD, GAS_N_GO)
+	await _to_fight(mroot)
+	var p1: FighterBase = mroot.p1
+	var p2: FighterBase = mroot.p2
+	var t: ComboTuning = p1.data.combo_tuning
+	_check("juggle economics live in ComboTuning (5 start / 2 normal / 3 air special)",
+		t.juggle_points_start == 5 and t.juggle_cost_normal == 2
+			and t.juggle_cost_air_special == 3,
+		"start=%d normal=%d special=%d" % [t.juggle_points_start,
+			t.juggle_cost_normal, t.juggle_cost_air_special])
+	var peggy_fwd: MoveData = p1.data.find_move(
+		MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+	var peggy_fwd_ex: MoveData = p1.data.find_ex_move(
+		MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+	var rich_fwd: MoveData = p2.data.find_move(
+		MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+	var rich_fwd_ex: MoveData = p2.data.find_ex_move(
+		MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+	_check("both fighters' forward specials and EX rows are marked launchers in data",
+		peggy_fwd.launcher and peggy_fwd_ex.launcher
+			and rich_fwd.launcher and rich_fwd_ex.launcher,
+		"peggy=%s/%s richard=%s/%s" % [str(peggy_fwd.launcher),
+			str(peggy_fwd_ex.launcher), str(rich_fwd.launcher),
+			str(rich_fwd_ex.launcher)])
+	var air_l: MoveData = p1.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.AIR)
+	var air_h: MoveData = p1.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.AIR)
+	var air_s: MoveData = p1.data.find_move(MoveData.InputType.SPECIAL_AIR, MoveData.Stance.AIR)
+
+	# Launch grants 5; two normals spend 4; the third cannot pay.
+	_reset_pair(mroot, 100.0, 140.0)
+	_check("a grounded launcher starts the air sequence with 5 points",
+		p2.receive_hit(p1, peggy_fwd) and not p2.grounded
+			and p2.juggle_points == 5 and p2.juggle_hits == 0,
+		"grounded=%s points=%d hits=%d" % [str(p2.grounded), p2.juggle_points,
+			p2.juggle_hits])
+	_check("an air normal spends 2 points",
+		p2.receive_hit(p1, air_l) and p2.juggle_points == 3 and p2.juggle_hits == 1,
+		"points=%d hits=%d" % [p2.juggle_points, p2.juggle_hits])
+	_check("a second air normal spends 2 points",
+		p2.receive_hit(p1, air_h) and p2.juggle_points == 1 and p2.juggle_hits == 2,
+		"points=%d hits=%d" % [p2.juggle_points, p2.juggle_hits])
+	var rejected_hp: float = p2.health
+	var rejected := p2.receive_hit(p1, air_l)
+	_check("a hit the remaining 1 point cannot pay is rejected and stays live",
+		not rejected and p2.health == rejected_hp and p2.juggle_points == 1
+			and p2.juggle_hits == 2 and p2.is_invulnerable_to(air_l),
+		"connected=%s hp=%.2f points=%d" % [str(rejected), p2.health,
+			p2.juggle_points])
+
+	# Air specials cost 3: one special plus one normal exactly spends 5.
+	_reset_pair(mroot, 100.0, 140.0)
+	p2.receive_hit(p1, peggy_fwd)
+	_check("an air special spends 3 points",
+		p2.receive_hit(p1, air_s) and p2.juggle_points == 2 and p2.juggle_hits == 1,
+		"points=%d hits=%d" % [p2.juggle_points, p2.juggle_hits])
+	_check("one air special plus one normal exhausts the 5-point budget",
+		p2.receive_hit(p1, air_l) and p2.juggle_points == 0 and p2.juggle_hits == 2,
+		"points=%d hits=%d" % [p2.juggle_points, p2.juggle_hits])
+	_check("the exhausted budget rejects the next air hit",
+		not p2.receive_hit(p1, air_h), "points=%d" % p2.juggle_points)
+
+	# A launcher used as a juggle hit refreshes the arc but never re-grants
+	# the budget, so repeat launchers cannot self-sustain an infinite.
+	_reset_pair(mroot, 100.0, 140.0)
+	p2.receive_hit(p1, peggy_fwd)
+	p2.receive_hit(p1, air_l)
+	_check("a launcher used as a juggle hit drains the existing budget (no re-grant)",
+		p2.receive_hit(p1, peggy_fwd) and p2.juggle_points == 1
+			and p2.juggle_hits == 2,
+		"points=%d hits=%d" % [p2.juggle_points, p2.juggle_hits])
+
+	# Air hitstun decay is unchanged (x0.9 per air hit, floored) and the
+	# gravity ramp still engages from the second air hit.
+	_reset_pair(mroot, 100.0, 140.0)
+	p2.receive_hit(p1, peggy_fwd)
+	p2.receive_hit(p1, air_l)
+	var stun_one := maxi(t.air_hitstun_floor,
+		int(round(air_l.hitstun * pow(t.air_hitstun_decay, 1.0))))
+	_check("the first air hit decays hitstun by the tuning factor",
+		p2.hitstun_frames == stun_one,
+		"stun=%d expected=%d" % [p2.hitstun_frames, stun_one])
+	p2.receive_hit(p1, air_h)
+	var stun_two := maxi(t.air_hitstun_floor,
+		int(round(air_h.hitstun * pow(t.air_hitstun_decay, 2.0))))
+	_check("the second air hit decays hitstun again",
+		p2.hitstun_frames == stun_two,
+		"stun=%d expected=%d" % [p2.hitstun_frames, stun_two])
+	p2.grounded = false
+	p2._force_state(FighterBase.State.HITSTUN)
+	var vy_two: float = p2.velocity.y
+	p2._apply_gravity(1.0 / 60.0)
+	_check("gravity x1.25 still engages from the second air hit",
+		is_equal_approx(p2.velocity.y - vy_two,
+			p2.gravity * FighterBase.JUGGLE_GRAVITY_MULT / 60.0),
+		"dv=%.4f" % (p2.velocity.y - vy_two))
+	p2.juggle_hits = 1
+	p2.velocity.y = 0.0
+	p2._apply_gravity(1.0 / 60.0)
+	_check("the first air hit keeps authored gravity",
+		is_equal_approx(p2.velocity.y, p2.gravity / 60.0),
+		"vy=%.4f" % p2.velocity.y)
+
+	# Combo end clears the budget back to inactive (-1).
+	p2.frames_since_hit = 41
+	p2.grounded = true
+	p2._force_state(FighterBase.State.IDLE)
+	p2._tick_combo()
+	_check("combo end resets the juggle budget to inactive (-1) with the counter",
+		p2.juggle_points == -1 and p2.juggle_hits == 0 and p2.combo_hits == 0,
+		"points=%d hits=%d combo=%d" % [p2.juggle_points, p2.juggle_hits,
+			p2.combo_hits])
+
+	await _free_match(mroot)
+
+# The doc's §13 routes, priced through the real receive_hit path. The
+# launcher is hit 1; the two air hits are hits 2-3 of the same combo, so the
+# ladder applies and the third hit also pays the +5% variety bonus (launcher,
+# air hit, and the second air hit are three distinct ids).
+func _juggle_routes() -> void:
+	var mroot: Node = await _build_match(PEGGY, RICHARD, GAS_N_GO)
+	await _to_fight(mroot)
+	var peggy: FighterBase = mroot.p1
+	var richard: FighterBase = mroot.p2
+	var peggy_l: MoveData = peggy.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.AIR)
+	var peggy_h: MoveData = peggy.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.AIR)
+	var rich_h: MoveData = richard.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.AIR)
+	var rich_s: MoveData = richard.data.find_move(MoveData.InputType.SPECIAL_AIR, MoveData.Stance.AIR)
+	var cases := [
+		{"label": "Peggy base launch -> jump_light -> jump_heavy",
+			"attacker": peggy, "defender": richard,
+			"launcher": peggy.data.find_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND),
+			"seq": [peggy_l, peggy_h], "expected": 221.40, "points": 1},
+		{"label": "Peggy EX launch -> jump_light -> jump_heavy",
+			"attacker": peggy, "defender": richard,
+			"launcher": peggy.data.find_ex_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND),
+			"seq": [peggy_l, peggy_h], "expected": 256.40, "points": 1},
+		{"label": "Richard base launch -> jump_heavy -> richard_air",
+			"attacker": richard, "defender": peggy,
+			"launcher": richard.data.find_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND),
+			"seq": [rich_h, rich_s], "expected": 263.55, "points": 0},
+		{"label": "Richard EX launch -> jump_heavy -> richard_air",
+			"attacker": richard, "defender": peggy,
+			"launcher": richard.data.find_ex_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND),
+			"seq": [rich_h, rich_s], "expected": 293.55, "points": 0},
+	]
+	for c in cases:
+		_reset_pair(mroot, 100.0, 140.0)
+		var attacker: FighterBase = c["attacker"]
+		var defender: FighterBase = c["defender"]
+		var launch_ok := defender.receive_hit(attacker, c["launcher"])
+		var hits_ok := true
+		for move in c["seq"]:
+			hits_ok = hits_ok and defender.receive_hit(attacker, move)
+		var damage := 1000.0 - defender.health
+		_check("%s connects both air hits and pays the authored ladder" % c["label"],
+			launch_ok and hits_ok and is_equal_approx(damage, c["expected"])
+				and defender.combo_tracker.hits == 3
+				and defender.juggle_hits == 2
+				and defender.juggle_points == c["points"],
+			"launch=%s hits=%s dmg=%.2f expected=%.2f tracker=%d juggle=%d points=%d"
+				% [str(launch_ok), str(hits_ok), damage, c["expected"],
+					defender.combo_tracker.hits, defender.juggle_hits,
+					defender.juggle_points])
+		# The combo terminates: the defender lands and can act again.
+		var landed := false
+		for i in 300:
+			await _step(mroot, 1)
+			if defender.grounded and defender.state in [FighterBase.State.IDLE,
+					FighterBase.State.WALK_F, FighterBase.State.WALK_B,
+					FighterBase.State.CROUCH]:
+				landed = true
+				break
+		_check("%s terminates: the defender lands and can act" % c["label"],
+			landed, "grounded=%s state=%d" % [str(defender.grounded),
+				defender.state])
+	await _free_match(mroot)
+
+# ---------------- 8. mid-juggle save/restore and determinism ---------------
+
+func _juggle_hash(mroot: Node) -> int:
+	var p1: FighterBase = mroot.p1
+	var p2: FighterBase = mroot.p2
+	return hash([
+		int(round(p1.position.x)), int(round(p1.position.y)),
+		int(round(p2.position.x)), int(round(p2.position.y)),
+		int(round(p2.velocity.x * 100.0)), int(round(p2.velocity.y * 100.0)),
+		int(p2.state), int(p2.state_frame), int(round(p2.health)),
+		p2.juggle_hits, p2.juggle_points, p2.hitstun_frames,
+		int(round(p2.combo_tracker.total_damage * 100.0)),
+	])
+
+func _juggle_tail(mroot: Node) -> Array:
+	var p1: FighterBase = mroot.p1
+	var p2: FighterBase = mroot.p2
+	var air_h: MoveData = p1.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.AIR)
+	var air_l: MoveData = p1.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.AIR)
+	var hashes: Array = []
+	for i in 120:
+		if i == 4:
+			p2.receive_hit(p1, air_h)
+		if i == 18:
+			p2.receive_hit(p1, air_l) # cannot pay: rejected, stays live
+		await _step(mroot, 1)
+		hashes.append(_juggle_hash(mroot))
+	return hashes
+
+func _juggle_determinism_serialization() -> void:
+	var launcher_path := MoveData.InputType.SPECIAL_FWD
+	var a: Node = await _build_match(PEGGY, RICHARD, GAS_N_GO)
+	await _to_fight(a)
+	_reset_pair(a, 100.0, 140.0)
+	var a_launcher: MoveData = a.p1.data.find_move(launcher_path, MoveData.Stance.STAND)
+	var a_air_l: MoveData = a.p1.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.AIR)
+	a.p2.receive_hit(a.p1, a_launcher)
+	a.p2.receive_hit(a.p1, a_air_l)
+	var snap: Dictionary = a.serialize()
+	_check("the mid-juggle snapshot carries juggle_points and juggle_hits",
+		typeof(snap.get("p2")) == TYPE_DICTIONARY
+			and snap["p2"].get("juggle_points") == 3
+			and snap["p2"].get("juggle_hits") == 1,
+		"p2=%s" % str(snap.get("p2", {})))
+	var tail_a: Array = await _juggle_tail(a)
+	await _free_match(a)
+
+	var b: Node = await _build_match(PEGGY, RICHARD, GAS_N_GO)
+	await _to_fight(b)
+	_reset_pair(b, 100.0, 140.0)
+	b.p2.receive_hit(b.p1, b.p1.data.find_move(launcher_path, MoveData.Stance.STAND))
+	b.p2.receive_hit(b.p1, b.p1.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.AIR))
+	b.load(snap)
+	_check("loading a mid-juggle snapshot restores the budget and counter",
+		b.p2.juggle_points == 3 and b.p2.juggle_hits == 1,
+		"points=%d hits=%d" % [b.p2.juggle_points, b.p2.juggle_hits])
+	var tail_b: Array = await _juggle_tail(b)
+	_check("a mid-juggle save/restore reproduces the same continuation",
+		tail_a == tail_b, "%d vs %d hashes, first diff at %d"
+			% [tail_a.size(), tail_b.size(), _first_diff(tail_a, tail_b)])
+	await _free_match(b)
+
+# ---------------- 9. combo state save/restore mid-combo --------------------
 
 func _combo_state_save_restore() -> void:
 	# Run a two-hit string, snapshot the defender's full state (tracker
@@ -640,7 +891,7 @@ func _combo_state_save_restore() -> void:
 	_check("a mid-combo save/restore reproduces the same continuation",
 		tail_a == tail_b, "sizes %d vs %d" % [tail_a.size(), tail_b.size()])
 
-# ---------------- 8. determinism -------------------------------------------
+# ---------------- 10. determinism -------------------------------------------
 
 func _frame_hash(mroot: Node) -> int:
 	var p1: FighterBase = mroot.p1
@@ -686,7 +937,7 @@ static func _first_diff(a: Array, b: Array) -> int:
 			return i
 	return n if a.size() == b.size() else mini(a.size(), b.size())
 
-# ---------------- 9. seeded fuzz over the cancel routes --------------------
+# ---------------- 11. seeded fuzz over the cancel routes --------------------
 
 # Test-local LCG so the fuzz is reproducible without engine RNG.
 func _fuzz_run(p1_path: String, p2_path: String, seed: int) -> void:

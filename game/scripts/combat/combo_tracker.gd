@@ -57,7 +57,9 @@ func serialize() -> Dictionary:
 		"hits": hits,
 		"total_damage": total_damage,
 		"active": active,
-		"move_ids": move_ids,
+		# Copy: a snapshot must stay stable while the live combo continues
+		# (reset() clears the tracker's own array).
+		"move_ids": move_ids.duplicate(),
 	}
 
 func load_state(d: Dictionary) -> void:

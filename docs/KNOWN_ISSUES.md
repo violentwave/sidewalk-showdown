@@ -263,12 +263,14 @@ that section by hand afterward — the simulation step comes from
   neutral-game, no character-specific gameplans, and difficulty is data-tuned
   rates rather than distinct strategies. It plays a fair, readable match; it
   is not a tournament opponent.
-- **Combo depth is Phase 1.** Blockstrings, counter-hit extensions,
-  dial-a-combo macros (BENCH WARMER / LAST CALL), the Clip Cancel, and
-  data-driven scaling with repeat/variety/caps are in
-  ([`COMBO_SYSTEM_DESIGN.md`](COMBO_SYSTEM_DESIGN.md)) — but there is no
-  combo HUD readout yet, the CPU does not use the new routes, and juggle
-  points, stuns, and the breaker are still Phase 2/3.
+- **Combo depth is Phase 1 + Phase 2 economics.** Blockstrings,
+  counter-hit extensions, dial-a-combo macros (BENCH WARMER / LAST CALL),
+  the Clip Cancel, data-driven scaling with repeat/variety/caps, AND the
+  juggle point budget with authored launcher routes are in
+  ([`COMBO_SYSTEM_DESIGN.md`](COMBO_SYSTEM_DESIGN.md) §§9–10, 15.1) — but
+  there is no combo HUD readout yet, the CPU does not use the new routes,
+  and stuns and the breaker are still Phase 3 (the breaker's rejection-point
+  hook is placed).
 - **METHtality presentation is minimal.** The trigger, spend and KO win are
   real, but the finisher is a single point-blank hit with a long freeze and a
   banner — no cinematic, camera, or choreography yet. The 30f freeze is a
@@ -280,14 +282,14 @@ that section by hand afterward — the simulation step comes from
   special and its EX variant launch for both fighters with authored vertical
   knockback (base 228 Peggy / 200 Richard = 80% of jump; EX 360 / 340); crouch
   heavies remain hard knockdowns; EX cancel is grounded-only as ratified policy.
-  Measured limits (PROPOSALS §6 launcher table): Peggy's EX route reaches and
-  enforces the 3-airborne-hit cap; **Richard's 80% base launcher cannot connect
-  a follow-up** (his recovery/walk consume the ~34-frame arc - a taller launch
-  is needed: about 260 for one hit, 340 for the full route). Owner decision
-  (2026-11-07): Richard's base launcher is **260** (one juggle follow-up), an
-  intentional asymmetry - Peggy runs the full 3-hit route, Richard gets
-  shorter/heavier juggles with EX unlocking depth. His EX (340) reaches two
-  airborne hits.
+  Measured limits (PROPOSALS §6 launcher table + Phase 2 route probe,
+  2026-11-21): under the point budget, **Richard's 260 base launcher
+  connects the full two-hit route** (jump_heavy + richard_air, 263.55) —
+  the old "one follow-up" note is superseded — while **Peggy's 228 base
+  launcher connects no air follow-up at human timing** (her route is the
+  EX: 256.40; retune 228 → ~255 proposed, not applied). Both EX rows
+  (360 / 340) connect their routes. The rows are marked
+  `MoveData.launcher` (pure data).
 - **Jump-in follow-up has a measured spacing window.** PR B's sweep shows the
   chained `jump_light` connects at horizontal gaps 20-44 px with a 10-30 px
   launch height; at 0 px height the buffered grounded light connects at 20-44 px
@@ -295,9 +297,11 @@ that section by hand afterward — the simulation step comes from
   drops. The former #22 test only asserted the cancel started; it now asserts
   the follow-up hit CONNECTS at 20 px / 28 px for both starters and fighters.
   Owner decision (2026-11-07): **KEEP** the 20-44 px window; no widening.
-- **No per-move cancel windows or juggle limit.** Cancel windows are authored
-  data (`CancelRule` resources, PR 2). The §6 juggle rules are implemented
-  (PR 3: 3-airborne-hit cap, repeat-hit pushback/gravity scaling). Counter-hit
+- **Per-move cancel windows and juggle economics are data.** Cancel windows
+  are authored data (`CancelRule` resources, PR 2); the §6 juggle rules are
+  implemented and, since the juggle-economics PR, use the point budget
+  (5 start / normals 2 / air specials 3, `ComboTuning`; launcher rows carry
+  `MoveData.launcher`). Counter-hit
   detection and +2f hitstop are implemented (PROPOSALS §6, PR 1); counter-
   specific cancel routes exist in the engine and take precedence but no authored
   route sets a `COUNTER_HIT` condition yet.
@@ -333,24 +337,35 @@ immune, and X-axis actions are immune when the stick rests at exactly 0.
 
 These are measured or first-pass limits, not phase-exit validation.
 
-**Owner-reported playtest issues (2026-11-20, to be addressed before/with
-combo Phase 2 — none have balance fixes yet):**
+**Owner-reported playtest issues (2026-11-20; Phase 2 juggle economics
+landed 2026-11-21 — data recorded, no balance fixes applied yet):**
 
 - **The jab (J / stand light) is too strong relative to every other attack** —
   it near-dominates the kit. Owner wants it toned down or the other attacks
   compensated. Candidate levers, all data (`.tres`): light damage/hitstun,
-  heavy/EX reward, or meter gain per move.
+  heavy/EX reward, or meter gain per move. **Phase 2 data (design §15.1):**
+  launcher routes max at 258/286.5 base and 293/316.5 EX vs jab-only ceilings
+  196.5 (Peggy) / 252.7 (Richard) — Richard's AVERAGE launcher route (227.5)
+  is still below his jab ceiling, and every candidate ladder retune cuts
+  jab damage MORE than launcher damage, so the ladder alone cannot dethrone
+  the jab. A jab-specific decision is still pending (owner).
 - **A fighter backed into a corner by an advancing opponent gets stuck** —
   they cannot break the opponent's string or move. Related design already
   written but unimplemented: the combo breaker (free once per round +
   40-meter extras, `docs/COMBO_SYSTEM_DESIGN.md` §11/Phase 3) and the CPU's
   corner-jump escape (shipped for the CPU only). A human-side escape option
-  is the missing piece.
+  is the missing piece. **Phase 2 effect:** none yet on the ground game —
+  but juggle termination is now verified (a launched defender always
+  lands and can act, both stages, both sides, pass-through on) and the
+  breaker's rejection-point hook is placed in the budget check, so the
+  Phase 3 breaker can open the juggle window directly.
 - **Some move animations still scale incorrectly** — characters appear
   bigger/smaller during certain moves. The 2026-11-15 calibration pass fixed
   the worst `h_ref` drift, but owner review still sees outliers; needs a
   fresh rendered pass over the remaining move clips (the
-  `*_clip_render_check` harnesses are the tool).
+  `*_clip_render_check` harnesses are the tool). **Phase 2 effect:** none —
+  the juggle routes reuse existing clips (zero new art), so no new scaling
+  cases were introduced; the existing outliers are untouched.
 
 **Measured/engine limits:**
 
@@ -410,7 +425,7 @@ combo Phase 2 — none have balance fixes yet):**
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **407 checks**: distinct Peggy/Richard sheet
+- `game/tests/combat_test.gd` — **408 checks**: distinct Peggy/Richard sheet
   artwork in walk states, the authored idle sheet (selection, visibility, cel
   cadence, wrap, hitstop/pause freeze, re-entry reset, facing pivot, and the
   missing-art fallback), unchanged combat boxes, clean hits and
@@ -507,12 +522,16 @@ combo Phase 2 — none have balance fixes yet):**
   and damage, and an 8-match AI-vs-AI soak (both pairings, both stages, two
   seeds) asserting every match ends in bounds with no stuck states
   (`docs/CPU_OPPONENT.md`).
-- `game/tests/combo_test.gd` — **42 checks**: legacy pins (exact ladder
-  damage, cancel routes, authored launch, flat juggle cap, block economy),
+- `game/tests/combo_test.gd` — **68 checks**: legacy pins (exact ladder
+  damage, cancel routes, authored launch, juggle budget, block economy),
   scaling arithmetic (repeat/variety/air decay), BLOCK/WHIFF outcome
   conditions, Clip Cancel legality/cost/budget, macro dial continue-on-hit
-  and die-on-block, combo caps and meter-in-combo, mid-combo save/restore,
-  scripted-dial determinism, and a seeded route fuzz
+  and die-on-block, combo caps and meter-in-combo, Phase 2 juggle
+  economics (5/2/3 data pins, launch grant, spend by type, meaty-safe
+  rejection, no re-launch re-grant, decay/gravity unchanged, budget reset),
+  the four authored routes priced exactly with landing checks, mid-juggle
+  MatchRoot save/restore with per-frame hash comparison, mid-combo
+  save/restore, scripted-dial determinism, and a seeded route fuzz
   (`docs/COMBO_SYSTEM_DESIGN.md`).
 - `game/tests/serialization_test.gd` — **24 checks**: the MatchRoot
   serializable surface carries every expected key and round-trips cleanly;
@@ -520,14 +539,17 @@ combo Phase 2 — none have balance fixes yet):**
 - `game/tests/b6_landing_whiff_test.gd` — **5 checks**: the superseded B6
   rule pinned to the current meter economy — landing a whiffed air move
   awards 0 meter, the move clears, and landing recovery runs to IDLE.
-- `game/tests/combo_fuzz_test.gd` — **78 checks**: seeded fuzz over the
-  Phase 1 combo layer — route search and 12-hit/550-damage caps on BOTH
+- `game/tests/combo_fuzz_test.gd` — **110 checks**: seeded fuzz over the
+  combo layer — route search and 12-hit/550-damage caps on BOTH
   stages, infinite-loop and corner-carry termination, macros (clean dial,
   slow dial, dies-on-block), COUNTER_HIT edge gating, Clip Cancel
   legality/budget, two-build determinism with identical per-frame hashes,
   mid-combo serialize/restore, cross-up and side-switch on both stages,
-  and an 8-match CPU-vs-CPU soak with an honest 15000-frame limit measured
-  from real lengths (see `docs/COMBO_FINDINGS.md`).
+  Phase 2 juggle budget/route pins and a seeded juggle fuzz over every
+  launcher (base + EX), both characters, both sides, both stages,
+  pass-through on, and an 8-match CPU-vs-CPU soak with an honest
+  15000-frame limit measured from real lengths (3921–13928 after the
+  economics; see `docs/COMBO_FINDINGS.md`).
 - Rendered/live verification harnesses (not run by CI; require a display
   because they read back the framebuffer, so they are manual review tools):
   `richard_clip_render_check.gd` (27 captures) and

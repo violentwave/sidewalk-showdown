@@ -27,10 +27,11 @@ const FUZZ_FRAMES := 300
 const DETERMINISM_FRAMES := 240
 const SOAK_MATCHES := 8
 # Measured on the fixed (#76-style) harness, NORMAL level, seeds 11/29,
-# both pairings and stages: matches end between 4579 and 11755 frames
-# (the longest is a legitimate two-round timeout war; no stalls, mutual
-# idle always < 240). The limit is the measured worst plus ~25% margin:
-# a regression that stalls past it fails fast instead of hiding.
+# both pairings and stages. After the Phase 2 juggle economics the matches
+# end between 3921 and 13928 frames (the longest is a legitimate multi-round
+# timeout war; no stalls, mutual idle always < 240). 15000 remains the
+# ceiling: the measured worst still fits, with ~8% headroom, so a regression
+# that stalls past it fails fast instead of hiding under a blunt limit.
 const SOAK_MAX_FRAMES := 15000
 
 var failures := 0
@@ -51,6 +52,8 @@ func _initialize() -> void:
     await _macros_clips_blockcounter()
     await _determinism_serialization()
     await _cross_up_and_side_switch()
+    await _juggle_budget_and_routes()
+    await _juggle_fuzz()
     await _cpu_vs_cpu_soak()
     print("combo_fuzz: %d checks, %d failure(s)" % [checks, failures])
     quit(1 if failures > 0 else 0)
@@ -740,7 +743,167 @@ func _cross_up_and_side_switch() -> void:
         await _free_match(mroot)
 
 # ---------------------------------------------------------------------------
-# 8. CPU-vs-CPU soak: all pairings, both stages, no stuck states
+# 8. Juggle point budget, authored routes, and seeded juggle fuzz
+# ---------------------------------------------------------------------------
+
+func _juggle_budget_and_routes() -> void:
+    for stage_path in [GAS_N_GO, BUS_STOP]:
+        var stage_label: String = stage_path.trim_prefix("res://resources/stages/").trim_suffix(".tres")
+        for attacker_path in [PEGGY, RICHARD]:
+            var defender_path: String = RICHARD if attacker_path == PEGGY else PEGGY
+            var mroot: Node = await _build_match(attacker_path, defender_path, stage_path)
+            await _to_fight(mroot)
+            _reset_pair(mroot, 100.0, 140.0)
+            var atk: FighterBase = mroot.p1
+            var dfd: FighterBase = mroot.p2
+            var base_launcher: MoveData = atk.data.find_move(
+                MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+            var ex_launcher: MoveData = atk.data.find_ex_move(
+                MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+            var air_l: MoveData = atk.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.AIR)
+            var air_h: MoveData = atk.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.AIR)
+            var air_s: MoveData = atk.data.find_move(MoveData.InputType.SPECIAL_AIR, MoveData.Stance.AIR)
+            var seq: Array = [air_l, air_h] if attacker_path == PEGGY else [air_h, air_s]
+            var expected := 221.40 if attacker_path == PEGGY else 263.55
+            var points_left := 1 if attacker_path == PEGGY else 0
+
+            var launch_ok := dfd.receive_hit(atk, base_launcher)
+            var hits_ok := true
+            for move in seq:
+                hits_ok = hits_ok and dfd.receive_hit(atk, move)
+            var damage := 1000.0 - dfd.health
+            _check("juggle route (%s, %s): launcher + two air hits pay the point budget"
+                % [stage_label, atk.data.display_name],
+                launch_ok and hits_ok and is_equal_approx(damage, expected)
+                    and dfd.juggle_hits == 2 and dfd.juggle_points == points_left,
+                "launch=%s hits=%s dmg=%.2f expected=%.2f juggle=%d points=%d"
+                    % [str(launch_ok), str(hits_ok), damage, expected,
+                        dfd.juggle_hits, dfd.juggle_points])
+            var spent_hp: float = dfd.health
+            var third := dfd.receive_hit(atk, air_l)
+            _check("juggle route (%s, %s): the spent budget rejects the next air hit"
+                % [stage_label, atk.data.display_name],
+                not third and dfd.health == spent_hp and dfd.juggle_points == points_left,
+                "connected=%s hp=%.2f points=%d" % [str(third), dfd.health,
+                    dfd.juggle_points])
+
+            # The EX launcher grants the same 5 points, so the route still fits.
+            _reset_pair(mroot, 100.0, 140.0)
+            dfd.receive_hit(atk, ex_launcher)
+            var ex_ok := true
+            for move in seq:
+                ex_ok = ex_ok and dfd.receive_hit(atk, move)
+            _check("juggle route (%s, %s): the EX launcher route fits the same budget"
+                % [stage_label, atk.data.display_name],
+                ex_ok and dfd.juggle_hits == 2 and dfd.juggle_points == points_left,
+                "hits=%s juggle=%d points=%d" % [str(ex_ok), dfd.juggle_hits,
+                    dfd.juggle_points])
+
+            # Termination: the defender lands and can act, inside the stage.
+            var landed := false
+            for i in 300:
+                await _step(mroot, 1)
+                if dfd.grounded and dfd.state in [FighterBase.State.IDLE,
+                        FighterBase.State.WALK_F, FighterBase.State.WALK_B,
+                        FighterBase.State.CROUCH]:
+                    landed = true
+                    break
+            var in_bounds: bool = dfd.position.x >= mroot.stage.left_bound - 1.0 \
+                and dfd.position.x <= mroot.stage.right_bound + 1.0 \
+                and not is_nan(dfd.position.x) and not is_nan(dfd.position.y)
+            _check("juggle route (%s, %s): the defender lands, can act, and stays in bounds"
+                % [stage_label, atk.data.display_name],
+                landed and in_bounds,
+                "grounded=%s state=%d x=%.1f bounds=[%.0f,%.0f]"
+                    % [str(dfd.grounded), dfd.state, dfd.position.x,
+                        mroot.stage.left_bound, mroot.stage.right_bound])
+            await _free_match(mroot)
+
+# Seeded juggle fuzz: every launcher, both characters, both sides, both
+# stages, pass-through on. Every sequence must terminate: the defender lands
+# and can act, the budget never goes negative or over 5, air hits never
+# exceed the two the 5-point budget can pay, and nothing goes NaN/OOB.
+func _juggle_fuzz() -> void:
+    var combos := [
+        {"p1": PEGGY, "p2": RICHARD, "attacker_p1": true},
+        {"p1": RICHARD, "p2": PEGGY, "attacker_p1": true},
+        {"p1": RICHARD, "p2": PEGGY, "attacker_p1": false},
+        {"p1": PEGGY, "p2": RICHARD, "attacker_p1": false},
+    ]
+    var seed_base := 7000
+    for stage_path in [GAS_N_GO, BUS_STOP]:
+        var stage_label: String = stage_path.trim_prefix("res://resources/stages/").trim_suffix(".tres")
+        for combo in combos:
+            for launcher_kind in ["base", "ex"]:
+                seed_base += 1
+                await _juggle_fuzz_run(stage_path, stage_label, combo, launcher_kind, seed_base)
+
+func _juggle_fuzz_run(stage_path: String, stage_label: String, combo: Dictionary,
+        launcher_kind: String, seed: int) -> void:
+    var mroot: Node = await _build_match(combo["p1"], combo["p2"], stage_path)
+    await _to_fight(mroot)
+    mroot.fighters_can_pass_through = true
+    _reset_pair(mroot, 100.0, 140.0)
+    var atk: FighterBase = mroot.p1 if combo["attacker_p1"] else mroot.p2
+    var dfd: FighterBase = mroot.p2 if combo["attacker_p1"] else mroot.p1
+    var launcher: MoveData = atk.data.find_move(
+        MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND) if launcher_kind == "base" \
+        else atk.data.find_ex_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+    var moves: Array = [
+        atk.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.AIR),
+        atk.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.AIR),
+        atk.data.find_move(MoveData.InputType.SPECIAL_AIR, MoveData.Stance.AIR),
+    ]
+    var launch_ok := dfd.receive_hit(atk, launcher)
+    var rng_state := seed
+    var accepted := 0
+    var rejected := 0
+    var bad := false
+    var air_frames := 0
+    var max_air_frames := 0
+    var max_juggle_hits := 0
+    for frame in 360:
+        if not dfd.grounded and dfd.hitstop_frames == 0 and frame % 3 == 0:
+            rng_state = _lcg(rng_state)
+            var move: MoveData = moves[rng_state % moves.size()]
+            if dfd.receive_hit(atk, move):
+                accepted += 1
+            else:
+                rejected += 1
+        await _step(mroot, 1)
+        if not dfd.grounded:
+            air_frames += 1
+            max_air_frames = maxi(max_air_frames, air_frames)
+        else:
+            air_frames = 0
+        max_juggle_hits = maxi(max_juggle_hits, dfd.juggle_hits)
+        if is_nan(dfd.health) or is_nan(dfd.position.x) or is_nan(dfd.position.y) \
+                or dfd.health < 0.0 or dfd.juggle_points < -1 or dfd.juggle_points > 5 \
+                or max_juggle_hits > 2 or max_juggle_hits != accepted \
+                or dfd.position.x < mroot.stage.left_bound - 1.0 \
+                or dfd.position.x > mroot.stage.right_bound + 1.0:
+            bad = true
+            break
+    var acted := false
+    for i in 120:
+        if dfd.grounded and dfd.state in [FighterBase.State.IDLE,
+                FighterBase.State.WALK_F, FighterBase.State.WALK_B,
+                FighterBase.State.CROUCH]:
+            acted = true
+            break
+        await _step(mroot, 1)
+    _check("juggle fuzz (%s, %s, %s launcher, attacker p%d, seed %d): terminates cleanly"
+        % [stage_label, atk.data.display_name, launcher_kind,
+            1 if combo["attacker_p1"] else 2, seed],
+        launch_ok and not bad and acted and accepted >= 1
+            and accepted <= 2 and max_air_frames < 360,
+        "launch=%s bad=%s acted=%s accepted=%d rejected=%d air=%d max_hits=%d points=%d"
+            % [str(launch_ok), str(bad), str(acted), accepted, rejected,
+                max_air_frames, max_juggle_hits, dfd.juggle_points])
+    await _free_match(mroot)
+
+# ---------------------------------------------------------------------------
+# 9. CPU-vs-CPU soak: all pairings, both stages, no stuck states
 # ---------------------------------------------------------------------------
 
 func _cpu_vs_cpu_soak() -> void:
@@ -786,6 +949,8 @@ func _cpu_vs_cpu_soak() -> void:
                     % key, longest_mutual_idle < 240)
                 if mroot.phase == mroot.Phase.MATCH_END:
                     lengths.append(frame)
+                print("SOAK match %s: frames=%d phase=%d wins=%s"
+                    % [key, frame, mroot.phase, str(mroot.wins)])
                 await _free_match(mroot)
     var avg := 0.0
     if lengths.size() > 0:

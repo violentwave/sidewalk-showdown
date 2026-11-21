@@ -31,6 +31,16 @@ extends Resource
 @export var air_hitstun_decay: float = 0.9
 @export var air_hitstun_floor: int = 8
 
+# Juggle point economics (Phase 2, decision #5): a launch grants the
+# defender a point budget; each air hit spends from it by move type. When
+# the budget cannot pay, the next air hit is REJECTED and stays live
+# (meaty-safe, like the old flat cap). Air normals cost 2, air specials 3,
+# so a normals-only juggle gets two hits, an air-special route gets one
+# plus one normal, and no regen mid-combo.
+@export var juggle_points_start: int = 5
+@export var juggle_cost_normal: int = 2
+@export var juggle_cost_air_special: int = 3
+
 # Meter inside an active combo (decision #2): x0.5 from the second hit on,
 # the multiplier itself never below the floor.
 @export var meter_gain_in_combo: float = 0.5

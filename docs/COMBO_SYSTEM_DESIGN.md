@@ -87,15 +87,22 @@ GRAB, KO, WIN.
 - **Knockdown:** 30 frames, then WAKE_UP (`wakeup_frames` 12) with universal
   invulnerability 6 and throw invulnerability 8. KNOCKDOWN rejects strikes
   (METH is the exception) and throws.
-- **Juggles exist today (PROPOSALS §6, implemented):** a launcher is any
-  move with `knockback.y > 0` and `knockdown = false`. Juggle cap
-  `JUGGLE_HIT_CAP = 3` — airborne hits beyond the cap are rejected and stay
-  live (meaty-safe). Repeat airborne hits scale: horizontal knockback
-  ×0.7 per prior air hit, gravity ×1.25 once `juggle_hits >= 2`. The
-  launcher itself is a grounded hit and does not count. So the *skeleton*
-  for component 3 is already shipped; what is missing is per-move juggle
-  economics (points), air hitstun decay, and juggle-ending rules that
-  reward the right followups.
+- **Juggles exist today (PROPOSALS §6, implemented + Phase 2 economics):** a
+  launcher is any move with `knockback.y > 0` and `knockdown = false`, now
+  also marked `MoveData.launcher`. The flat 3-hit cap is replaced by the
+  **point budget** (decision #5): a grounded launcher hit grants the
+  defender 5 points (`ComboTuning.juggle_points_start`); each air hit
+  spends by type (normals 2, air specials 3); a hit the remaining points
+  cannot pay is REJECTED and stays live (meaty-safe, like the old cap).
+  An airborne defender with no active budget (`juggle_points == -1`, e.g. a
+  voluntary jump-in) gets the standard grant on its first air hit, so
+  jump-ins stay hittable and every air sequence is bounded. Repeat
+  airborne hits scale: horizontal knockback ×0.7 per prior air hit,
+  gravity ×1.25 once `juggle_hits >= 2`, air hitstun ×0.9 per air hit
+  (floor 8). A launcher used as a juggle hit refreshes the arc but drains
+  the budget — no re-launch loops. The launcher itself is a grounded hit
+  and does not count. The BREAKER HOOK (decision #9, Phase 3) sits at the
+  budget-rejection branch in `is_invulnerable_to`/`receive_hit`.
 - Counter-hits: defender in own startup and not a trade → +2 hitstop,
   HUD flash, `move_counter_hit` gates COUNTER_HIT cancel rules.
 
@@ -283,10 +290,11 @@ connect, the chain's HIT condition fails and the macro dies (§10.1).
 ```gdscript
 # ComboTuning — one resource per fighter (FighterData.combo_tuning), with
 # shared defaults authored once in a base .tres so both fighters stay in sync.
+# IMPLEMENTED (Phase 1 + Phase 2) — see game/scripts/combat/combo_tuning.gd.
 class_name ComboTuning extends Resource
-# Scaling ladder (replaces the hardcoded _damage_scale()):
+# Scaling ladder (replaces the hardcoded _damage_scale()); the last entry
+# is the floor for every later hit (there is no separate scaling_floor).
 @export var scaling_curve: Array[float] = [1.0, 1.0, 0.85, 0.70, 0.55]
-@export var scaling_floor: float = 0.4
 @export var repeat_penalty: float = 0.9      # per repeat of the same move id
 @export var repeat_freebies: int = 1        # first reuse is free
 @export var variety_bonus: float = 0.05      # last 3 move ids all distinct
@@ -294,13 +302,14 @@ class_name ComboTuning extends Resource
 @export var meter_gain_floor: float = 0.25
 @export var combo_hit_cap: int = 12         # hard per-combo hit cap
 @export var combo_damage_cap: float = 550.0 # hard per-combo damage cap
-# Juggle economics (replaces the flat JUGGLE_HIT_CAP):
-@export var juggle_points_start: int = 5    # granted to the defender's tracker
-@export var juggle_cost_normal: int = 2
+# Juggle economics (replaces the flat JUGGLE_HIT_CAP), IMPLEMENTED Phase 2:
+@export var juggle_points_start: int = 5    # granted by a grounded launch
+@export var juggle_cost_normal: int = 2     # any air hit except specials
 @export var juggle_cost_air_special: int = 3
-@export var juggle_regen_per_frame: int = 0 # 0: no regen mid-combo
-@export var juggle_gravity_per_point: float = 0.06  # ramp with points spent
 @export var air_hitstun_decay: float = 0.9  # per air hit, floored at 8f
+# NOTE: no regen and no per-point gravity field shipped — points never
+# regen mid-combo, and the gravity ramp is the Phase 1-era constant
+# JUGGLE_GRAVITY_MULT (x1.25 from the second air hit), unchanged.
 ```
 
 ```gdscript
@@ -403,11 +412,21 @@ MK macros are memorized button strings. Ours:
   readable budgeting: a pure air-special juggle gets one, air-normal
   juggles get two, and the EX launcher's higher arc buys a richer route.
 - **Air hitstun decays** ×0.9 per air hit (floor 8f) so late juggle hits
-  cannot re-launch loops; **gravity ramps** per point spent so the arc
-  visibly dies instead of a cap silently rejecting the 4th hit.
+  cannot re-launch loops; **gravity ramps** ×1.25 from the second air hit
+  (the Phase 1-era `JUGGLE_GRAVITY_MULT`, unchanged) and repeat-hit
+  horizontal knockback decays ×0.7, so the arc visibly dies instead of a
+  cap silently rejecting the next hit.
 - Landing from a juggle keeps the existing LAND state; a defender who
   lands mid-combo keeps the combo alive for 40 frames (existing
   `frames_since_hit` rule) — no new okizeme rules needed for Phase 2.
+  Phase 2 correction: the 40-frame window is now gated on **landing** —
+  it cannot expire while the defender is still airborne (hitstun ending
+  mid-air used to reset scaling and re-open a fresh unscaled jump-in);
+  the tracker covers the whole air combo.
+- **Implemented (2026-11-21):** the budget, the `MoveData.launcher` data
+  flag, the authored §13 routes, and the neutral→forward launcher-string
+  cancel edges are all live; measured route data is in §15.1. A breaker
+  hook (decision #9) is placed at the budget-rejection branch for Phase 3.
 
 ### 10.5 Stuns (freeze, taser, and friends)
 
@@ -515,6 +534,11 @@ per fighter (e.g. Peggy up-kick reusing jump_heavy's clip, Richard
 uppercut reusing crouch_heavy's clip), those are flagged **clip-reuse,
 2–3 new frames each** — proposed for Phase 2 backlog, not required.
 
+**Phase 2 status (2026-11-21):** the launcher strings, launchers, and
+juggle routes above are implemented and measured (§15.1); stuns, the
+breaker, and the anti-air normals remain Phases 3/backlog. No new art was
+needed for Phase 2.
+
 ## 14. Phase plan (each phase ships alone)
 
 **Phase 1 — Cancel graph, strings, macros, scaling, tracker** (engine +
@@ -528,13 +552,18 @@ data):
   the new tracker state; determinism hash suite extended.
 - Shippable alone: strings and macros are immediately playable.
 
-**Phase 2 — Launchers and juggles**:
-- Juggle points replace the flat cap; gravity ramp; air-hitstun decay;
-  juggle routes authored; optional clip-reuse anti-air normals (backlog).
-- Tests: point budget exhaustion rejects the next air hit (meaty-safe,
-  like today's cap); arc dies visibly; no re-launch loop (decay floor);
-  cross-over juggle knockback resolves by side helper; AI-vs-AI soak with
-  launchers enabled — matches still end, lengths sane.
+**Phase 2 — Launchers and juggles** (IMPLEMENTED 2026-11-21, see §15.1):
+- Juggle points replace the flat cap; gravity ramp and air-hitstun decay
+  unchanged; juggle routes authored (both fighters' forward/EX rows carry
+  `launcher = true`; both neutral specials carry the launcher-string
+  cancel edge); clip-reuse anti-air normals stay backlog (decision #10).
+- Tests shipped: point budget granted/spent per hit type and rejected
+  meaty-safe; no re-launch re-grant; decay and gravity ramp unchanged;
+  authored routes priced exactly (both fighters, base + EX) with landing
+  checks; seeded juggle fuzz over every launcher, both characters, both
+  sides, both stages, pass-through on; determinism hash and mid-juggle
+  MatchRoot serialize/restore; CPU soak re-measured (matches still end,
+  worst 13928 frames, no stalls).
 
 **Phase 3 — Stuns and breaker**:
 - StunEffect on the two neutral specials; STUN behavior via a flag on
@@ -566,13 +595,103 @@ the cancel graph, macros, data-driven scaling, and the combo tracker.
 | 2 | Meter in combos | **×0.5, floored at 0.25** (implemented Phase 1) |
 | 3 | Macro on block | **Dies** — macros continue only while hits connect (implemented Phase 1) |
 | 4 | Scaling curve | **Keep 1.0/1.0/0.85/0.70/0.55**, retune after Phase 2 balance data (implemented Phase 1 as data) |
-| 5 | Juggle budget | **Points: 5 start, normals 2, air specials 3** (Phase 2; flat cap stays until then) |
+| 5 | Juggle budget | **Points: 5 start, normals 2, air specials 3** (implemented Phase 2) |
 | 6 | Stun on airborne | **Never** — `launcher_safe = false` at schema level (Phase 3) |
 | 7 | Stun damage | **Reduced** — Richard's stun special 105 → 40 (Phase 3) |
 | 8 | Clip Cancel | **25 meter, recovery-only, once per combo** (implemented Phase 1) |
 | 9 | Breaker during juggles | **Allowed, same input window** (Phase 3) |
 | 10 | Anti-air launcher normals | **Backlog item**, not Phase 2 core |
 | 11 | Doc home | **This doc is the umbrella**; PROPOSALS.md cross-referenced per phase |
+
+### 15.1 Phase 2 implementation and balance data (2026-11-21)
+
+**Implemented vs planned.** Shipped: the point budget in `ComboTuning`
+(5 / 2 / 3), `MoveData.launcher` (pure data, both forward specials and
+forward EX rows per fighter), the authored §13 routes, the
+neutral→forward launcher-string cancel edges, `juggle_points`
+serialization, the budget-rejection BREAKER HOOK, and the landing-gated
+combo window (the tracker now covers the whole air combo). Not shipped
+and not planned for Phase 2: stuns, the breaker itself, HUD juggle pips,
+CPU combo usage (Phases 3–4), anti-air launcher normals (decision #10
+backlog — clip-reuse candidates: Peggy up-kick reusing `jump_heavy`'s
+clip, Richard uppercut reusing `crouch_heavy`'s clip, 2–3 new frames
+each). Zero new art was required for Phase 2.
+
+**Juggle numbers.** Launch grants 5 points; air normals cost 2, air
+specials cost 3, so the budget buys at most two air hits (L+H = 4,
+H+S = 5) — one fewer than the old flat 3-hit cap, by decision. Knockback
+×0.7 per air hit, gravity ×1.25 from the second air hit, air hitstun
+×0.9 floored at 8 — all unchanged from Phase 1. A launcher used as a
+juggle hit drains (never re-grants), so no re-launch loop exists.
+
+**Routes (both connect through the real resolver; damage includes the
+launcher as hit 1 and pays the ladder + variety bonus on the third hit):**
+
+| Fighter | Launcher | Route (cost) | Damage | Points left |
+|---|---|---|---|---|
+| Peggy | peggy_forward (110) | jump_light (2) + jump_heavy (2) | 221.40 | 1 |
+| Peggy | peggy_forward_ex (145) | jump_light (2) + jump_heavy (2) | 256.40 | 1 |
+| Richard | richard_forward (120) | jump_heavy (2) + richard_air (3) | 263.55 | 0 |
+| Richard | richard_forward_ex (150) | jump_heavy (2) + richard_air (3) | 293.55 | 0 |
+
+**Balance table (probe: `game/tests/juggle_probe.gd`, deterministic,
+every budget-legal route priced through `receive_hit`; EX = base route
++35 Peggy / +30 Richard on the launcher hit).** Juggle length is 2 air
+hits for every multi-hit route, 1 for single-hit routes.
+
+| Fighter | Launcher | Best route | Max damage | Avg (11 legal routes) | Jab-only (12 lights) | L,L,H reference |
+|---|---|---|---|---|---|---|
+| Peggy | base 110 | H+H | 258.00 | 212.83 | 196.54 | 142.25 |
+| Peggy | EX 145 | H+H | 293.00 | 247.83 | — | — |
+| Richard | base 120 | H+H | 286.50 | 227.53 | 252.70 | 175.00 |
+| Richard | EX 150 | H+H | 316.50 | 257.53 | — | — |
+
+**Launcher vs jab (informs the jab-dominance issue, decision pending):**
+Peggy's launcher routes clear her jab-only ceiling (max 258 vs 196.5,
++31%; authored route 221.4 vs 196.5, +13%), but Richard's *average*
+launcher route (227.5) is below his jab-only ceiling (252.7) — only his
+max (286.5, +13%) and EX routes beat jab mashing. A ladder-only retune
+cannot fix this: every candidate below cuts jab-only damage MORE than
+launcher-route max damage (jab strings pay the same ladder), so the gap
+widens. Dethroning the jab needs a jab-specific decision (jab damage,
+pushback, or the Phase 3 breaker/corner tools), which the owner has
+deliberately deferred.
+
+**Proposed ladder retunes (numbers only — NOT applied; decision #4 keeps
+1.0/1.0/0.85/0.70/0.55 until the owner chooses):**
+
+| Ladder | Peggy max / avg / jab | Richard max / avg / jab |
+|---|---|---|
+| keep 1.0/1.0/0.85/0.70/0.55 | 258.00 / 212.83 / 196.54 | 286.50 / 227.53 / 252.70 |
+| A 1.0/1.0/0.80/0.65/0.50 | 254.00 / 210.47 / 186.29 | 282.00 / 225.05 / 239.51 |
+| B 1.0/0.95/0.80/0.65/0.50 | 250.00 / 207.34 / 184.54 | 277.50 / 221.78 / 237.26 |
+| C 1.0/1.0/0.75/0.60/0.45 | 250.00 / 208.11 / 176.03 | 277.50 / 222.58 / 226.32 |
+
+Recommendation: keep the ladder for now; if launcher routes feel too
+strong after playtests, prefer economics over the ladder (raise
+`juggle_cost_normal` to 3 — one air hit — or lower launcher damage),
+which touches only juggles and leaves jab strings alone. If the owner
+instead wants shorter juggles AND weaker jab strings, candidate A is the
+gentlest.
+
+**Real-hitbox route check (`game/tests/juggle_route_probe.gd`, human
+timing: the attacker may only jump from an actionable state, forward
+drift allowed):**
+
+| Fighter | Launcher | Verdict |
+|---|---|---|
+| Peggy | base 228y | **No air follow-up connects** — the defender lands (~f30) before the attacker is actionable (~f34, hitstop + recovery). The base launcher is a damage/space tool; the route needs EX. Proposed (not applied): raise base `knockback.y` 228 → ~255 to match Richard's proven window. |
+| Peggy | EX 360y | Full route connects in-combo (256.40), jump f34–40. |
+| Richard | base 260y | Full route connects in-combo (263.55), jump f34–36 — the "one follow-up" asymmetry note in the docs is superseded: the budget route (H+S) fully connects. |
+| Richard | EX 340y | Full route connects in-combo (293.55). |
+
+**CPU-vs-CPU soak (NORMAL, seeds 11/29, both pairings, both stages).**
+Before (main `83f9573`): lengths 4579/11755 (P vs R), 4606/5208 (R vs P),
+Richard 5 – Peggy 3, avg 6537 frames. After Phase 2: lengths
+3921/13928 (P vs R), 4606/10867 (R vs P), **Richard 4 – Peggy 4**, avg
+8330 frames; worst 13928 still inside the 15000 ceiling (~8% headroom);
+no stalls (mutual idle always < 240). Longer average = launcher combos
+extend rounds; no stuck states.
 
 ## 16. Risks in the current code (combo-readiness)
 

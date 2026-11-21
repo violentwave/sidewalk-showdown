@@ -23,6 +23,15 @@ server, reusing our approved fighter art as the primary visual references.
   var; never commit it.
 - Verified balance at setup: **$0.00 credits; 2000/2000 subscription generations
   remaining (Tier 1: Pixel Apprentice, resets 2026-12-13)**.
+- Re-checked 2026-11-20 before the UI art session: **1115/2000 remaining**.
+  UI art session (2026-11-20, UI Batches 1-2 per `docs/UI_ASSETS.md`):
+  54 generations charged via `create_image_pixflux` (30 for Batch 1,
+  incl. one uncharged blank-output failure retried once, and 24 for
+  Batch 2), leaving **1061/2000** plus the daily bonus. All outputs saved
+  untouched under `art/source/UI/generated/<asset_id>_review/` at 2x
+  native size (the MCP's minimum canvas is 16 px per side / 1024 px², so
+  no tool can render the manifest's native sizes directly), filed into the
+  project folder, awaiting owner review.
 - Known issue: the OpenCode background service was observed repeatedly
   restarting while the pixellab MCP connection cycled, crashing the user's
   terminal. If this recurs, disconnect the server when not generating

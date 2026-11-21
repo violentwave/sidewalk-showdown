@@ -1,0 +1,49 @@
+{
+  "asset_id": "hud_health_frame",
+  "tool": "pixellab create_image_pixflux",
+  "batch": "UI Batch 1",
+  "scale": 2,
+  "native_size": "118x10",
+  "size_requested": "236x20 (2x native)",
+  "prompt_pack_entry": 135,
+  "prompt": "Create a grimy pixel-art health bar frame for Sidewalk Showdown. Style and rules: Sidewalk Showdown, fictional Sidewalk Florida, Mature-rated retro 2D arcade fighting game, 8-bit / 16-bit-inspired pixel art, chunky readable shapes, bold dark outline, no anti-aliasing, nearest-neighbor style, grimy sunbaked asphalt, dirty neon, sticky convenience-store color, raunchy arcade-comedy attitude, visually funny but combat-readable, transparent PNG unless noted, no real brands, no real town names, no real logos, no real public figures, no copyrighted characters, not photorealistic, not clean superhero art, not fantasy armor, not final character or full level art. Canvas/output: 236x20 at 2x pixel scale (each logical art pixel is a 2x2 block; the game-native size is 118x10), transparent background unless the asset is explicitly a tile or panel. Asset details: wide chunky HUD frame with cracked arcade cabinet edge, dark backing, dirty yellow accents, no player names yet. Frame only: completely empty dark interior (native 116x8 inset at 1,1); the health fill is drawn in code later. Keep the silhouette readable at small game scale. Leave any complex written text as blocky fake markings or blank space for hand-pixeling if needed. Avoid: no real logos, no recognizable brand labels, no real city names, no copyrighted mascots, no photorealism, no smooth vector art, no anime glamor, no fantasy armor, no full character design, no full stage background unless the asset type explicitly says layer, no gore, no readable slurs, no tiny unreadable clutter that would obscure fighters, no foreground blocking active combat space.",
+  "negative_prompt": "no real logos, no recognizable brand labels, no real city names, no copyrighted mascots, no photorealism, no smooth vector art, no anime glamor, no fantasy armor, no full character design, no full stage background unless the asset type explicitly says layer, no gore, no readable slurs, no tiny unreadable clutter that would obscure fighters, no foreground blocking active combat space",
+  "negative_prompt_note": "create_image_pixflux has no separate negative-prompt parameter; the pack negative prompt was appended to the description as an 'Avoid:' clause.",
+  "init_image": "art/source/UI/HealthFull.png (letterboxed to 236x20 copy at /tmp/opencode/ui-init/A_236x20.png, upload ref upload:c145ee3b-e5c8-4dc4-961a-08d31b86ac0d)",
+  "init_image_strength": 50,
+  "variants": [
+    {
+      "file": "hud_health_frame_v1_2x.png",
+      "job_id": "7d3c7189-f830-493a-8c7c-51fa4b42e16c",
+      "asset_id": "353caabd-44a7-5f34-b7a5-5cb71b6b8e98",
+      "seed": 101,
+      "size_requested": "236x20",
+      "size_received": "236x20",
+      "timestamp": "2026-11-20",
+      "cost": 1,
+      "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152"
+    },
+    {
+      "file": "hud_health_frame_v2_2x.png",
+      "job_id": "55d43f6e-1f6a-4805-9705-4b449f1d79e3",
+      "asset_id": "90dec017-a7d4-5357-8d2a-e7ac47604381",
+      "seed": 102,
+      "size_requested": "236x20",
+      "size_received": "236x20",
+      "timestamp": "2026-11-20",
+      "cost": 1,
+      "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152"
+    },
+    {
+      "file": "hud_health_frame_v3_2x.png",
+      "job_id": "9e8de97a-cbc2-4dc6-b254-fce88bde9add",
+      "asset_id": "72ceb97d-d4a2-54f0-b66f-dd6f438f7da9",
+      "seed": 103,
+      "size_requested": "236x20",
+      "size_received": "236x20",
+      "timestamp": "2026-11-20",
+      "cost": 1,
+      "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152"
+    }
+  ]
+}

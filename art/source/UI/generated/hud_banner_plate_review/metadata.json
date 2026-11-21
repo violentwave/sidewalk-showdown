@@ -1,0 +1,49 @@
+{
+  "asset_id": "hud_banner_plate",
+  "tool": "pixellab create_image_pixflux",
+  "batch": "UI Batch 1",
+  "scale": 2,
+  "native_size": "160x32",
+  "size_requested": "320x64 (2x native)",
+  "prompt_pack_entry": 173,
+  "prompt": "Create a round start banner for Sidewalk Showdown. Style and rules: Sidewalk Showdown, fictional Sidewalk Florida, Mature-rated retro 2D arcade fighting game, 8-bit / 16-bit-inspired pixel art, chunky readable shapes, bold dark outline, no anti-aliasing, nearest-neighbor style, grimy sunbaked asphalt, dirty neon, sticky convenience-store color, raunchy arcade-comedy attitude, visually funny but combat-readable, transparent PNG unless noted, no real brands, no real town names, no real logos, no real public figures, no copyrighted characters, not photorealistic, not clean superhero art, not fantasy armor, not final character or full level art. Canvas/output: 320x64 at 2x pixel scale (each logical art pixel is a 2x2 block; the game-native size is 160x32), transparent background unless the asset is explicitly a tile or panel. Asset details: wide grungy banner frame for ROUND text, cheap livestream overlay accents, blank center. Backing plate only; the ROUND / FIGHT / K.O. lettering is drawn separately. Keep the silhouette readable at small game scale. Leave any complex written text as blocky fake markings or blank space for hand-pixeling if needed. Avoid: no real logos, no recognizable brand labels, no real city names, no copyrighted mascots, no photorealism, no smooth vector art, no anime glamor, no fantasy armor, no full character design, no full stage background unless the asset type explicitly says layer, no gore, no readable slurs, no tiny unreadable clutter that would obscure fighters, no foreground blocking active combat space.",
+  "negative_prompt": "no real logos, no recognizable brand labels, no real city names, no copyrighted mascots, no photorealism, no smooth vector art, no anime glamor, no fantasy armor, no full character design, no full stage background unless the asset type explicitly says layer, no gore, no readable slurs, no tiny unreadable clutter that would obscure fighters, no foreground blocking active combat space",
+  "negative_prompt_note": "create_image_pixflux has no separate negative-prompt parameter; the pack negative prompt was appended to the description as an 'Avoid:' clause.",
+  "init_image": "art/source/UI/Time.png (letterboxed to 320x64 copy at /tmp/opencode/ui-init/C_320x64.png, upload ref upload:149a7c8f-7d43-47ee-8f4d-d0c8a9f49cb4)",
+  "init_image_strength": 50,
+  "variants": [
+    {
+      "file": "hud_banner_plate_v1_2x.png",
+      "job_id": "1521f548-8c0c-439d-8097-7329bb4744f4",
+      "asset_id": "bed788f9-458c-5de5-bee2-2b1ab2914988",
+      "seed": 501,
+      "size_requested": "320x64",
+      "size_received": "320x64",
+      "timestamp": "2026-11-20",
+      "cost": 1,
+      "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152"
+    },
+    {
+      "file": "hud_banner_plate_v2_2x.png",
+      "job_id": "c05a5e4c-8d8a-4f4a-aa3b-8bb3ca4f6e76",
+      "asset_id": "dbb76911-f0f1-58c1-824b-e4c6124bd5a4",
+      "seed": 502,
+      "size_requested": "320x64",
+      "size_received": "320x64",
+      "timestamp": "2026-11-20",
+      "cost": 1,
+      "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152"
+    },
+    {
+      "file": "hud_banner_plate_v3_2x.png",
+      "job_id": "965d5999-efc8-4778-bb18-8b7c79a31b20",
+      "asset_id": "cdd2dae4-6107-57b0-aaf0-c1b632b751c5",
+      "seed": 503,
+      "size_requested": "320x64",
+      "size_received": "320x64",
+      "timestamp": "2026-11-20",
+      "cost": 1,
+      "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152"
+    }
+  ]
+}

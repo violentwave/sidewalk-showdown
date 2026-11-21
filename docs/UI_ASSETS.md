@@ -44,9 +44,17 @@ is and is used only as a **style reference** (init image), never as runtime art.
 ## 3. How to make an asset
 
 1. **Check the manifest** below for the native size and method.
-2. **PixelLab assets:** use *Create UI elements* (web, or the MCP tools from an
-   OpenCode session). Set width/height to the native size, turn on
-   **No background**, and attach the style reference as the init image.
+2. **PixelLab assets:** use *Create UI elements* (web) or the MCP tools from an
+   OpenCode session. MCP size limits (verified 2026-11-20): *Create UI
+   elements* (`create_ui_asset`) only accepts canvases of **192-688 px** per
+   side and charges 10-25 generations per call, so it cannot make any
+   manifest size directly; the freeform `create_image_pixflux` tool (1
+   generation per image, init image + **No background** supported) needs
+   **each side >= 16 px and a total area >= 1024 px²** — still above most
+   manifest sizes. Route used for Batches 1-2: `create_image_pixflux` at
+   **2x the native size** (every 2x canvas is legal, 1 generation per
+   image); the owner downscales by the integer factor 2:1 in Pixelorama
+   (only non-integer scaling is forbidden).
    Prompt = the matching entry in
    `docs/SIDEWALK_SHOWDOWN_NON_DEFINING_ASSET_PROMPTS.md` (shared style block +
    negative prompt) with the **canvas size replaced by the manifest size** —
@@ -78,16 +86,16 @@ Style references: **A** = `art/source/UI/HealthFull.png`, **B** =
 
 | asset_id | Native size | Method | Ref | Pack # | Figma component | Notes | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `hud_health_frame` | 118x10 | PixelLab | A | 135 | `hud/health_frame 118×10` | Frame only, empty interior 116x8 at (1,1); fills are code-drawn. Mirrored for P2 in engine. | todo |
-| `hud_meter_frame` | 106x8 | PixelLab | B | 137 | `hud/meter_frame 106×8` | Empty interior 104x6 at (1,1); tick marks at 25 and 50 drawn in code. | todo |
-| `hud_timer_box` | 24x20 | PixelLab | C | 141 | `hud/timer_box 24×20` | Empty interior; digits are a separate strip. | todo |
+| `hud_health_frame` | 118x10 | PixelLab | A | 135 | `hud/health_frame 118×10` | Frame only, empty interior 116x8 at (1,1); fills are code-drawn. Mirrored for P2 in engine. | generated 2x (review) |
+| `hud_meter_frame` | 106x8 | PixelLab | B | 137 | `hud/meter_frame 106×8` | Empty interior 104x6 at (1,1); tick marks at 25 and 50 drawn in code. | generated 2x (review) |
+| `hud_timer_box` | 24x20 | PixelLab | C | 141 | `hud/timer_box 24×20` | Empty interior; digits are a separate strip. | generated 2x (review) |
 | `hud_timer_digits` | 8x12 per digit, strip 88x12 (0–9, ∞) | Hand | C | — | — | 11 glyphs in one strip, 8 px apart. | todo |
-| `hud_portrait_frame` | 24x24 | PixelLab | A | — | `hud/portrait 24×24` | Bevelled frame; face art goes inside (22x22). | todo |
+| `hud_portrait_frame` | 24x24 | PixelLab | A | — | `hud/portrait 24×24` | Bevelled frame; face art goes inside (22x22). | generated 2x (review) |
 | `hud_pip_square` | 5x5 | Hand | — | 139/140 | `hud/pip_square 5×5` | Empty + filled + K/T/M/D letter variants. | todo |
 | `hud_pip_diamond` | 5x5 | Hand | — | 139/140 | `hud/pip_diamond 5×5` | Same set as square, diamond shape (P2). | todo |
 | `hud_meth_skull` | 8x8, 2 frames | Hand | B | 144 | `hud/meth_skull 8×8` | Wobble loop for METH READY. | todo |
-| `hud_banner_plate` | 160x32 | PixelLab | C | 173 | `hud/banner 160×32` | Backing plate behind ROUND / FIGHT / K.O. lettering. | todo |
-| `stream_tripp_cam` | 28x18 frame + 6 faces | PixelLab + hand cleanup | T | — | `stream/tripp_cam 28×18` | Faces: hype, smirk, shocked, mocking, bored, glitched. 28x18 is tight; if faces don't read, raise the size and move the bottom band items. | todo |
+| `hud_banner_plate` | 160x32 | PixelLab | C | 173 | `hud/banner 160×32` | Backing plate behind ROUND / FIGHT / K.O. lettering. | generated 2x (review) |
+| `stream_tripp_cam` | 28x18 frame + 6 faces | PixelLab + hand cleanup | T | — | `stream/tripp_cam 28×18` | Faces: hype, smirk, shocked, mocking, bored, glitched. 28x18 is tight; if faces don't read, raise the size and move the bottom band items. | generated 2x (review) |
 | `stream_live_tag` | 24x7 | Hand | — | 155 | `stream/live_tag 24×7` | "LIVE" in 5 px letters on red. | todo |
 
 ### Batch 2 — stream layer + shared UI kit

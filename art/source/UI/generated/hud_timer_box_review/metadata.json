@@ -1,0 +1,49 @@
+{
+  "asset_id": "hud_timer_box",
+  "tool": "pixellab create_image_pixflux",
+  "batch": "UI Batch 1",
+  "scale": 2,
+  "native_size": "24x20",
+  "size_requested": "48x40 (2x native)",
+  "prompt_pack_entry": 141,
+  "prompt": "Create a fight timer frame for Sidewalk Showdown. Style and rules: Sidewalk Showdown, fictional Sidewalk Florida, Mature-rated retro 2D arcade fighting game, 8-bit / 16-bit-inspired pixel art, chunky readable shapes, bold dark outline, no anti-aliasing, nearest-neighbor style, grimy sunbaked asphalt, dirty neon, sticky convenience-store color, raunchy arcade-comedy attitude, visually funny but combat-readable, transparent PNG unless noted, no real brands, no real town names, no real logos, no real public figures, no copyrighted characters, not photorealistic, not clean superhero art, not fantasy armor, not final character or full level art. Canvas/output: 48x40 at 2x pixel scale (each logical art pixel is a 2x2 block; the game-native size is 24x20), transparent background unless the asset is explicitly a tile or panel. Asset details: center HUD timer housing, cracked arcade plastic, cheap broadcast label space, dark readable interior. Empty interior only; the digits are a separate sprite strip drawn later, no numbers. Keep the silhouette readable at small game scale. Leave any complex written text as blocky fake markings or blank space for hand-pixeling if needed. Avoid: no real logos, no recognizable brand labels, no real city names, no copyrighted mascots, no photorealism, no smooth vector art, no anime glamor, no fantasy armor, no full character design, no full stage background unless the asset type explicitly says layer, no gore, no readable slurs, no tiny unreadable clutter that would obscure fighters, no foreground blocking active combat space.",
+  "negative_prompt": "no real logos, no recognizable brand labels, no real city names, no copyrighted mascots, no photorealism, no smooth vector art, no anime glamor, no fantasy armor, no full character design, no full stage background unless the asset type explicitly says layer, no gore, no readable slurs, no tiny unreadable clutter that would obscure fighters, no foreground blocking active combat space",
+  "negative_prompt_note": "create_image_pixflux has no separate negative-prompt parameter; the pack negative prompt was appended to the description as an 'Avoid:' clause.",
+  "init_image": "art/source/UI/Time.png (letterboxed to 48x40 copy at /tmp/opencode/ui-init/C_48x40.png, upload ref upload:e49d20e5-d5fd-46ed-8e84-12b7bac42c71)",
+  "init_image_strength": 50,
+  "variants": [
+    {
+      "file": "hud_timer_box_v1_2x.png",
+      "job_id": "2f3e1481-eb02-4be9-8aa7-a30339b64595",
+      "asset_id": "7684d35e-1ed1-56fc-8b02-8123caa86522",
+      "seed": 301,
+      "size_requested": "48x40",
+      "size_received": "48x40",
+      "timestamp": "2026-11-20",
+      "cost": 1,
+      "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152"
+    },
+    {
+      "file": "hud_timer_box_v2_2x.png",
+      "job_id": "d2176a61-2839-496b-8200-8d331397f2d7",
+      "asset_id": "efcbb895-ba1a-5d0e-b073-9b6d2e69c023",
+      "seed": 302,
+      "size_requested": "48x40",
+      "size_received": "48x40",
+      "timestamp": "2026-11-20",
+      "cost": 1,
+      "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152"
+    },
+    {
+      "file": "hud_timer_box_v3_2x.png",
+      "job_id": "778074c7-e9de-45da-924b-fa05165dbf83",
+      "asset_id": "b554068b-4de5-5e88-b790-6bb254ae7294",
+      "seed": 303,
+      "size_requested": "48x40",
+      "size_received": "48x40",
+      "timestamp": "2026-11-20",
+      "cost": 1,
+      "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152"
+    }
+  ]
+}

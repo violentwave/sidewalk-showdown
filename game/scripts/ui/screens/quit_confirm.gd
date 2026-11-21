@@ -1,17 +1,19 @@
 # QuitConfirm — the "Leave the sidewalk?" modal (an overlay: pushed without
-# freeing the screen below). YES / NO with the selection defaulting to NO.
-# Used from the main menu, the title screen, and the pause menu (where it
-# must keep working while the tree is paused, hence PROCESS_MODE_ALWAYS).
+# freeing the screen below). YES / NO on one row with the selection
+# defaulting to NO. Used from the main menu, the title screen, and the
+# pause menu (where it must keep working while the tree is paused, hence
+# PROCESS_MODE_ALWAYS). One small centered ui_panel, items in Sidewalk
+# Marker, the focused item in yellow with a ">" marker.
 extends Control
 
 signal quit_confirmed
 signal dismissed
 
 const THEME_RESOURCE := preload("res://resources/ui_theme.tres")
-const MUTED := Color(0.75, 0.72, 0.68)
-const ITEM_TEXT := Color(0.96, 0.91, 0.83)
-
 const CHOICES := ["YES", "NO"]
+
+const PANEL_POS := Vector2(76, 54)
+const PANEL_SIZE := Vector2(168, 64)
 
 # The brief requires the default answer to be NO.
 var index := 1
@@ -21,7 +23,6 @@ var _labels: Array[Label] = []
 func _ready() -> void:
 	# Above a paused match the tree is frozen; this overlay must still run.
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	theme = THEME_RESOURCE
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var dim := ColorRect.new()
@@ -31,44 +32,38 @@ func _ready() -> void:
 	add_child(dim)
 
 	var panel := Panel.new()
-	panel.position = Vector2(88, 56)
-	panel.size = Vector2(144, 68)
+	panel.theme = THEME_RESOURCE
+	panel.position = PANEL_POS
+	panel.size = PANEL_SIZE
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(panel)
 
-	var question := Label.new()
-	question.text = "LEAVE THE SIDEWALK?"
-	question.position = Vector2(88, 64)
-	question.size = Vector2(144, 16)
+	var question := UiText.marker("LEAVE THE SIDEWALK?",
+		Vector2(PANEL_POS.x, PANEL_POS.y + 8), UiText.CREAM_TEXT)
+	question.size = Vector2(PANEL_SIZE.x, UiText.MARKER_LINE_HEIGHT)
 	question.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	question.add_theme_font_size_override("font_size", 16)
-	question.add_theme_color_override("font_color", ITEM_TEXT)
-	question.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(question)
 
 	for choice_index in CHOICES.size():
-		var label := Label.new()
-		label.text = CHOICES[choice_index]
-		label.position = Vector2(88 + 40 + choice_index * 44, 90)
-		label.size = Vector2(32, 16)
-		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		label.add_theme_font_size_override("font_size", 16)
-		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var label := UiText.marker(CHOICES[choice_index], Vector2.ZERO,
+			UiText.CREAM_TEXT)
+		label.size = Vector2(64, UiText.MARKER_LINE_HEIGHT)
 		add_child(label)
 		_labels.append(label)
 
-	var hint := Label.new()
-	hint.text = "PROGRESS IS SAVED WHEN YOU CHANGE IT"
-	hint.position = Vector2(88, 112)
-	hint.size = Vector2(144, 10)
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.add_theme_font_size_override("font_size", 16)
-	hint.add_theme_color_override("font_color", MUTED)
-	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(hint)
-
 	add_child(UiPromptLine.new("SELECT", "BACK"))
+	_layout_choices()
 	_refresh()
+
+
+func _layout_choices() -> void:
+	# YES / NO on one centered row, "> " marker included in the width.
+	var yes_w := UiText.marker_width("> YES")
+	var no_w := UiText.marker_width("> NO")
+	var gap := 24
+	var start_x := 160 - (yes_w + gap + no_w) / 2.0
+	_labels[0].position = Vector2(roundi(start_x), PANEL_POS.y + 36)
+	_labels[1].position = Vector2(roundi(start_x + yes_w + gap), PANEL_POS.y + 36)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -105,6 +100,6 @@ func _choose() -> void:
 func _refresh() -> void:
 	for choice_index in _labels.size():
 		var selected := choice_index == index
-		_labels[choice_index].text = "> %s <" % CHOICES[choice_index] if selected else CHOICES[choice_index]
+		_labels[choice_index].text = "> %s" % CHOICES[choice_index] if selected else CHOICES[choice_index]
 		_labels[choice_index].add_theme_color_override("font_color",
-			Color(0.949, 0.82, 0.227) if selected else MUTED)
+			UiText.YELLOW if selected else UiText.CREAM_TEXT)

@@ -13,5 +13,7 @@
   "variants": 9,
   "generations": 15,
   "generated": "2026-11-21",
-  "status": "generated (review)"
+  "status": "generated (review)",
+  "picked": "v04 (owner asked PM to pick; other 8 variants removed)",
+  "variants_kept": 1
 }

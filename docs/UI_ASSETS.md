@@ -93,15 +93,15 @@ Style references: **A** = `art/source/UI/HealthFull.png`, **B** =
 
 | asset_id | Native size | Method | Ref | Pack # | Figma component | Notes | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `hud_health_frame` | 118x10 | Hand | A | 135 | `hud/health_frame 118×10` | Frame only, empty interior 116x8 at (1,1); fills are code-drawn. Mirrored for P2 in engine. | todo |
+| `hud_health_frame` | 118x10 | PixelLab ref + Hand | S | 135 | `hud/health_frame 118×10` | Frame only, empty interior 116x8 at (1,1); fills are code-drawn. Mirrored for P2 in engine. | picked v06 (cleanup to native) |
 | `hud_meter_frame` | 106x8 | Hand | B | 137 | `hud/meter_frame 106×8` | Empty interior 104x6 at (1,1); tick marks at 25 and 50 drawn in code. | todo |
 | `hud_timer_box` | 24x20 | Hand | C | 141 | `hud/timer_box 24×20` | Empty interior; digits are a separate strip. | todo |
 | `hud_timer_digits` | 8x12 per digit, strip 88x12 (0–9, ∞) | Hand | C | — | — | 11 glyphs in one strip, 8 px apart. | todo |
-| `hud_portrait_frame` | 24x24 | PixelLab | S | — | `hud/portrait 24×24` | Holds a still of the fighter being played (not Tripp). Street-junk look: taped-down instant photo. | todo |
+| `hud_portrait_frame` | 24x24 | PixelLab | S | — | `hud/portrait 24×24` | Holds a still of the fighter being played (not Tripp). Street-junk look: taped-down instant photo. | picked v03 (cleanup to native) |
 | `hud_pip_square` | 5x5 | Hand | — | 139/140 | `hud/pip_square 5×5` | Empty + filled + K/T/M/D letter variants. | todo |
 | `hud_pip_diamond` | 5x5 | Hand | — | 139/140 | `hud/pip_diamond 5×5` | Same set as square, diamond shape (P2). | todo |
 | `hud_meth_skull` | 8x8, 2 frames | Hand | B | 144 | `hud/meth_skull 8×8` | Wobble loop for METH READY. | todo |
-| `hud_banner_plate` | 160x32 | PixelLab | S | 173 | `hud/banner 160×32` | Backing plate behind ROUND / FIGHT / K.O. lettering. | todo |
+| `hud_banner_plate` | 160x32 | PixelLab | S | 173 | `hud/banner 160×32` | Backing plate behind ROUND / FIGHT / K.O. lettering. | picked v04 (cleanup to native) |
 | `stream_tripp_cam` | 6 faces, 28x28 | PixelLab + hand cleanup | T | — | — | **Dropped from the HUD (owner, 2026-11-21).** One face per expression kept for commentary/results screens. | generated (review) |
 | `stream_live_tag` | 24x7 | Hand | — | 155 | `stream/live_tag 24×7` | "LIVE" in 5 px letters on red. | todo |
 

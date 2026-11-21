@@ -88,6 +88,7 @@ godot --headless --path game --script res://tests/stage_select_test.gd
 godot --headless --path game --script res://tests/stage_floor_test.gd
 godot --headless --path game --script res://tests/cpu_test.gd
 godot --headless --path game --script res://tests/combo_test.gd
+godot --headless --path game --script res://tests/combo_fuzz_test.gd
 godot --headless --path game --script res://tests/the_clip_test.gd
 godot --headless --path game --script res://tests/serialization_test.gd
 godot --headless --path game --script res://tests/b6_landing_whiff_test.gd
@@ -95,7 +96,8 @@ godot --headless --path game --script res://tests/b6_landing_whiff_test.gd
 
 Current suites: **combat 407 checks**, round flow 34, character select 50,
 locomotion speed 7, stage select 94, stage floor 9, CPU opponent 27,
-combo system 42, The Clip 23, serialization 24, B6 landing-whiff 5 — all
+combo system 42, combo fuzz 78, The Clip 23, serialization 24, B6
+landing-whiff 5 — all
 green in CI (`tests.yml`, every step under a `timeout-minutes`).
 `tests/air_probe.gd` prints balance metrics and asserts nothing.
 

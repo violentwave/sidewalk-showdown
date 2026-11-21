@@ -320,6 +320,17 @@ that section by hand afterward — the simulation step comes from
 
 ## Known edge cases and first-pass balance limits
 
+**Local-run gotcha (environment, not a bug — observed 2026-11-21):** if a
+physical controller is connected to the dev machine (a DualSense was), its
+resting stick noise streams real joypad events. Any action whose input map
+includes a JoypadMotion event on a noisy axis gets its virtual
+`Input.action_press` state recomputed and cleared on the next engine tick —
+observed as `p2_down` (axis 1, rest value ~0.012) clearing instantly, which
+fails combat_test's crouch-hold check locally even on a clean checkout. CI
+has no controllers and is unaffected. Power the pad off (or center/hold the
+stick) for local suite runs; `p1_*` actions are keyboard/mouse-only and
+immune, and X-axis actions are immune when the stick rests at exactly 0.
+
 These are measured or first-pass limits, not phase-exit validation.
 
 **Owner-reported playtest issues (2026-11-20, to be addressed before/with
@@ -509,6 +520,14 @@ combo Phase 2 — none have balance fixes yet):**
 - `game/tests/b6_landing_whiff_test.gd` — **5 checks**: the superseded B6
   rule pinned to the current meter economy — landing a whiffed air move
   awards 0 meter, the move clears, and landing recovery runs to IDLE.
+- `game/tests/combo_fuzz_test.gd` — **78 checks**: seeded fuzz over the
+  Phase 1 combo layer — route search and 12-hit/550-damage caps on BOTH
+  stages, infinite-loop and corner-carry termination, macros (clean dial,
+  slow dial, dies-on-block), COUNTER_HIT edge gating, Clip Cancel
+  legality/budget, two-build determinism with identical per-frame hashes,
+  mid-combo serialize/restore, cross-up and side-switch on both stages,
+  and an 8-match CPU-vs-CPU soak with an honest 15000-frame limit measured
+  from real lengths (see `docs/COMBO_FINDINGS.md`).
 - Rendered/live verification harnesses (not run by CI; require a display
   because they read back the framebuffer, so they are manual review tools):
   `richard_clip_render_check.gd` (27 captures) and
@@ -526,10 +545,11 @@ combo Phase 2 — none have balance fixes yet):**
   actionability. Prints a report and exits 0 on success; `docs/PROPOSALS.md` §3
   documents the coarse grid, before/after metrics, and target limitations. Its
   numbers are informational measurements, not passing balance assertions.
-- `.github/workflows/tests.yml` runs the eleven headless suites — combat,
+- `.github/workflows/tests.yml` runs the twelve headless suites — combat,
   round-flow, mode/character-select, stage-select/ambience, stage-floor-guard,
-  locomotion-speed, CPU opponent, combo system, The Clip intro, serialization,
-  and B6 landing-whiff — plus the air probe on push, pull request and manual
+  locomotion-speed, CPU opponent, combo system, combo fuzz, The Clip intro,
+  serialization, and B6 landing-whiff — plus the air probe on push, pull
+  request and manual
   dispatch, every step under a `timeout-minutes` so a hang fails fast.
   They are separate jobs in one workflow; parallel
   execution does not make a job non-gating. A non-zero command or job failure in

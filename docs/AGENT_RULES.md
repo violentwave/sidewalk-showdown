@@ -20,7 +20,7 @@ Every coding agent working in this repo follows these rules. Read
    capture tools):
    `godot --headless --path game --script res://tests/combat_test.gd` (and
    round_flow, character_select, locomotion_speed, stage_select, stage_floor,
-   cpu, combo, the_clip, serialization, b6_landing_whiff).
+   cpu, combo, combo_fuzz, the_clip, serialization, b6_landing_whiff).
    `air_probe.gd` is metrics-only. Every CI step has a `timeout-minutes`,
    but still run hanging-prone tooling under a shell timeout locally.
 5. Paste **real output** in the PR (checks + failures per suite), not claims.

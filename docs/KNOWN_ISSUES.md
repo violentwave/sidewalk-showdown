@@ -544,13 +544,14 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
 - `game/tests/b6_landing_whiff_test.gd` — **5 checks**: the superseded B6
   rule pinned to the current meter economy — landing a whiffed air move
   awards 0 meter, the move clears, and landing recovery runs to IDLE.
-- `game/tests/ui_flow_test.gd` — **48 checks** (UI Phase 1): router
-  push/pop/replace/clear semantics, every forward and back path of the
-  warning -> Clip -> title -> main-menu -> versus flow, the deferred
+- `game/tests/ui_flow_test.gd` — **52 checks** (UI Phase 1 + polish):
+  router push/pop/replace/clear semantics, every forward and back path of
+  the warning -> Clip -> title -> main-menu -> versus flow, the deferred
   confirm-leak guard, pause -> settings -> back to pause, MAIN MENU from
   pause, the quit confirm over a paused match, greyed slats refusing
-  confirm, QuitConfirm defaulting to NO, the content-warning auto-continue,
-  and the 1-second title pulse.
+  confirm, QuitConfirm defaulting to NO, the press-required content
+  warning (no auto-advance, 30-frame boot guard), the chat-free main
+  menu, wrap order, and the 1-second title pulse.
 - `game/tests/settings_test.gd` — **16 checks** (UI Phase 1): defaults on a
   missing file, version fill-in of missing keys, round-trip save/load,
   opening never saving, reset applying and saving, and default audio
@@ -560,6 +561,10 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   `art/tools/prepare_ui.gd` and re-runs its size table in verify-only mode
   (manifest and test cannot drift), plus a byte-identity check of every
   `game/art/ui/` copy against its approved source.
+- `game/tests/ui_typography_test.gd` — **7 checks** (2026-11-21 polish):
+  every label in the six Phase 1 surfaces (five screens + the pause menu)
+  uses Sidewalk Marker at 10 or m5x7 at 16, carries no theme outline or
+  shadow, sits at an integer position, and is never scaled.
 - `game/tests/combo_fuzz_test.gd` — **118 checks**: seeded fuzz over the
   combo layer — route search and 12-hit/550-damage caps on BOTH
   stages, infinite-loop and corner-carry termination, macros (clean dial,
@@ -597,11 +602,13 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   actionability. Prints a report and exits 0 on success; `docs/PROPOSALS.md` §3
   documents the coarse grid, before/after metrics, and target limitations. Its
   numbers are informational measurements, not passing balance assertions.
-- `.github/workflows/tests.yml` runs the sixteen headless suites — combat,
+- `.github/workflows/tests.yml` runs the seventeen headless suites — combat,
   round-flow, mode/character-select, stage-select/ambience, stage-floor-guard,
   locomotion-speed, CPU opponent, combo system, combo fuzz, stun & breaker,
   The Clip intro,
-  serialization, B6 landing-whiff, UI flow, settings, and UI assets — plus
+  serialization, B6 landing-whiff, UI flow, settings, UI assets, and UI
+  typography — plus
+  the air probe on push, pull
   the air probe on push, pull
   request and manual
   dispatch, every step under a `timeout-minutes` so a hang fails fast.

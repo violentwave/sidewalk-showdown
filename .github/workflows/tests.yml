@@ -46,6 +46,9 @@ jobs:
       - name: The Clip intro tests
         run: godot --headless --path game --script res://tests/the_clip_test.gd
         timeout-minutes: 5
+      - name: Combo fuzz tests
+        run: godot --headless --path game --script res://tests/combo_fuzz_test.gd
+        timeout-minutes: 10
       - name: Serialization tests
         run: godot --headless --path game --script res://tests/serialization_test.gd
         timeout-minutes: 5

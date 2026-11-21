@@ -3,10 +3,10 @@
 > **Keep this file current: every PR that changes features, tests, commands, or
 > rules must update PM_BRIEF.md.**
 >
-> Last verified: **2026-11-20**, against `origin/main` at `77e0b55`
-> (2026-11-20, "fix(tests): kill the cpu_test flake at the root;
-> serialization/b6 gate CI; CI timeouts (#76)") including this branch's
-> stale-docs pass. All claims below were checked
+> Last verified: **2026-11-21**, against `origin/main` at `d3e6fbb`
+> (2026-11-20, "docs: clear the remaining stale claims and record owner
+> playtest issues (#77)") plus this branch's combo-fuzz repair (PR #74).
+> All claims below were checked
 > against the code, resources, workflows, and a full local test run on this
 > branch — not copied from other docs. Stale claims found elsewhere are
 > called out in §9.
@@ -90,16 +90,17 @@ Counts are PASS+FAIL lines observed in real headless runs, not doc claims.
 | `locomotion_speed_test.gd` | Peggy/Richard walk + jump parity (95/72/285 pinned) | **7**, 0 fail | yes |
 | `cpu_test.gd` | CPU legality, determinism (same seed -> same hash), save/restore, difficulty ordering, 8-match AI-vs-AI soak | **27** | yes — fixed 2026-11-20 (engine was ticking the manually-stepped match; see §7 history) |
 | `the_clip_test.gd` | Panel art slots, canon guards, Space-only flow, skips, fonts | **23**, 0 fail | yes |
+| `combo_fuzz_test.gd` | Seeded fuzz over the combo layer: route search, 12/550 caps, macros/Clip-Cancel/blocked-macro/counter edges, two-build determinism, mid-combo serialize/restore, cross-up on both stages, 8-match CPU-vs-CPU soak | **78**, 0 fail (10/10 repeats) | yes — repaired 2026-11-21 (PR #76 harness port; soak limit 15000 from measured 4579–11755; both-stage coverage; findings in `COMBO_FINDINGS.md`) |
 | `serialization_test.gd` | Match serializable-surface keys + round trip | **24**, 0 fail | yes — fixed 2026-11-20 (exits with `quit()`, correct exit code) |
 | `b6_landing_whiff_test.gd` | Superseded B6 rule: landing a whiffed air move awards 0 meter, move clears, recovery runs | **5**, 0 fail | yes — added 2026-11-20 (asserts current behavior; exits cleanly) |
 | `air_probe.gd` | Balance metrics only, asserts nothing, always exits 0 | 0 (metrics) | yes (separate job) |
 | `idle_render_check`, `peggy/richard_clip_render_check`, `jump_block_render_check`, `jump_block_trace`, `attack_scale_check`, `peggy/richard_jump_check`, `peggy/richard_live_soak` | Manual rendered/soak review tools; need a display, write to `/tmp/opencode/` | n/a | no |
 
-CI (`.github/workflows/tests.yml`) runs import + the eleven suites (combat,
+CI (`.github/workflows/tests.yml`) runs import + the twelve suites (combat,
 round_flow, character_select, stage_select, stage_floor, locomotion_speed,
-cpu, combo, the_clip, serialization, b6) plus the air-probe job on push, PR,
-and manual dispatch; every step carries a `timeout-minutes` so a hang fails
-fast. `export.yml` builds both desktop targets on `main`/`v*`;
+cpu, combo, combo_fuzz, the_clip, serialization, b6) plus the air-probe job
+on push, PR, and manual dispatch; every step carries a `timeout-minutes` so
+a hang fails fast. `export.yml` builds both desktop targets on `main`/`v*`;
 `main_guard.yml` reverts unauthorized direct pushes to `main`.
 
 ## 5. Commands
@@ -120,6 +121,7 @@ godot --headless --path game --script res://tests/the_clip_test.gd
 godot --headless --path game --script res://tests/serialization_test.gd
 godot --headless --path game --script res://tests/b6_landing_whiff_test.gd
 godot --headless --path game --script res://tests/combo_test.gd
+godot --headless --path game --script res://tests/combo_fuzz_test.gd
 # metrics only: air_probe.gd (slow, always exits 0)
 
 # rendered captures and manual harnesses (need DISPLAY=:0)
@@ -268,6 +270,7 @@ Release blockers / decisions pending:
 | `docs/SIDE_SWITCHING.md` | Facing derivation, cross-up blocking, pass-through flag, determinism notes | Current (verified against `fighter_base.gd`/`match_root.gd`) |
 | `docs/STAGES.md` | Both stages' layers/ambience, floor_y method, thumbnails, stage select, add-a-stage recipe | Current (floor_y 158/170, bounds, spawns verified) |
 | `docs/COMBO_SYSTEM_DESIGN.md` | Combo-system audit (§§1-8) + design (§§9-16), phased plan, 11 open decisions | Current design doc; **not implemented** — Phase 1 in progress elsewhere |
+| `docs/COMBO_FINDINGS.md` | Seeded combo-fuzz results: history of the determinism/counter findings, soak lengths, honest 15000 limit, skip list | Current (2026-11-21, written from the repaired suite's real results) |
 | `docs/SAVESTATE_PLAN.md` | What `serialize()` captures, AI state object, known gaps | Current (keys verified against code) |
 | `docs/PROPOSALS.md` | Historical combat-system proposals with measured results (§§1-7) | Current (2026-11-20): §§1/7 whiff-meter passages now carry inline "superseded" notes pointing to the landed-hits economy (§5); history preserved |
 | `docs/PIXELORAMA_PIPELINE.md` | Idle-sheet + authored-clip pipeline for both fighters (§8-§9b) | Current (integration status matches the clip libraries) |

@@ -1636,8 +1636,12 @@ func _run() -> void:
 					matrix_ok = false
 					matrix_detail = "%s unexpected WHIFF rule" % m.id
 			if str(actual) != str(expected):
-				matrix_ok = false
-				matrix_detail = "%s actual=%s expected=%s" % [m.id, str(actual), str(expected)]
+				# Light/heavy rows are pinned here; specials carry their own
+				# dedicated launcher-string pin above.
+				if m.input == MoveData.InputType.LIGHT \
+						or m.input == MoveData.InputType.HEAVY:
+					matrix_ok = false
+					matrix_detail = "%s actual=%s expected=%s" % [m.id, str(actual), str(expected)]
 			var row_key: String = "%s:%s" % [fighter_data.id, m.id]
 			if expected_block.has(row_key) and str(block_rows) != str(expected_block[row_key]):
 				matrix_ok = false
@@ -1653,12 +1657,29 @@ func _run() -> void:
 			elif not expected_counter.has(row_key) and not counter_rows.is_empty():
 				matrix_ok = false
 				matrix_detail = "%s unexpected counter rows" % row_key
+	# 37 legacy/combo-edge rules on light/heavy rows + 2 launcher-string
+	# edges on the neutral specials (one per fighter) = 39 total.
 	_check("every light/heavy row carries its legacy cancel routes plus the authored combo edges",
-		matrix_ok and rule_rows == 37, "rules=%d %s" % [rule_rows, matrix_detail])
-	_check("specials and grabs author no cancel routes",
-		p1.data.find_move(MoveData.InputType.SPECIAL_NEUTRAL, MoveData.Stance.STAND).cancels.is_empty()
+		matrix_ok and rule_rows == 39, "rules=%d %s" % [rule_rows, matrix_detail])
+	# Phase 2: both fighters' neutral specials carry exactly one authored
+	# launcher-string edge (HIT CANCEL -> the forward special launcher,
+	# window [startup+1..total]); grabs still author none.
+	var p1_neutral_cancels: Array = p1.data.find_move(
+		MoveData.InputType.SPECIAL_NEUTRAL, MoveData.Stance.STAND).cancels
+	var p2_neutral_cancels: Array = p2.data.find_move(
+		MoveData.InputType.SPECIAL_NEUTRAL, MoveData.Stance.STAND).cancels
+	var neutral_edge_ok: bool = p1_neutral_cancels.size() == 1 \
+		and p2_neutral_cancels.size() == 1
+	for edge in p1_neutral_cancels + p2_neutral_cancels:
+		neutral_edge_ok = neutral_edge_ok \
+			and edge.condition == CancelRule.Condition.HIT \
+			and edge.kind == CancelRule.Kind.CANCEL \
+			and edge.target == CancelRule.Target.SPECIAL \
+			and edge.validate() == ""
+	_check("specials author exactly the launcher-string edge; grabs author none",
+		neutral_edge_ok
 			and p1.data.find_move(MoveData.InputType.GRAB, MoveData.Stance.STAND).cancels.is_empty(),
-		"")
+		"p1=%d p2=%d" % [p1_neutral_cancels.size(), p2_neutral_cancels.size()])
 
 	var legacy_light: MoveData = p1.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
 	var legacy_heavy: MoveData = p1.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.STAND)

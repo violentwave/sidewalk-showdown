@@ -1,0 +1,18 @@
+{
+  "asset_id": "hud_banner_plate",
+  "tool": "PixelLab REST POST /v2/generate-with-style-v2",
+  "style_references": [
+    "art/source/UI/refs/ref_meth.png (72x28: MethtalityMeter.png crop 1150x440+130+280, point-resized 6.25%)",
+    "art/source/UI/refs/ref_time.png (35x38: Time.png crop 560x600+400+230, point-resized 6.25%)"
+  ],
+  "description": "wide horizontal banner plate with bevelled border and empty dark center, livestream overlay style, no text",
+  "style_description": "chunky 16-bit arcade HUD pixel art, 1px dark outline, grey bevelled metal frame, dark navy interior, yellow and orange accents",
+  "seed": 82,
+  "no_background": true,
+  "native_size_target": "160x32",
+  "size_received": "72x72 (square canvas set by the largest style image); a style reference, not a drop-in: redraw or crop to native size during cleanup",
+  "variants": 9,
+  "generations": 15,
+  "generated": "2026-11-21",
+  "status": "generated (review)"
+}

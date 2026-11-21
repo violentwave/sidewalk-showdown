@@ -30,7 +30,7 @@ folders) to UI. Where the two disagree on UI sizes or folders, this file wins.
 | Stage | Path | Who writes it | Rules |
 | --- | --- | --- | --- |
 | 1. Raw generations | `art/source/UI/generated/<asset_id>_review/` | Agent (PixelLab MCP) or owner (PixelLab web) | Every original output, untouched, plus `metadata.json` (tool, job/asset ids, prompt, negative prompt, seed, init image, size requested, size received, timestamp, cost). Never edited after saving. |
-| 2. Approved source | `art/source/UI/approved/<group>/<asset_id>.png` | Owner only | The chosen generation, cleaned by hand in Pixelorama to the **exact native size** in the manifest, transparent background, no anti-aliasing. Read-only after it lands (like all of `art/source/`). |
+| 2. Approved source | `art/source/UI/approved/<group>/<asset_id>.png` | Owner, or the PM session with owner approval by merge (see §6) | The chosen generation, cleaned by hand in Pixelorama to the **exact native size** in the manifest, transparent background, no anti-aliasing. Read-only after it lands (like all of `art/source/`). |
 | 3. Runtime | `game/art/ui/<group>/<asset_id>.png` | `art/tools/prepare_ui.gd` (headless Godot; to be written in UI Phase 5) | Copied/cropped from stage 2 and checked against the manifest size. Never hand-edit. Imported with nearest filter, no mipmaps. |
 | Layout preview (optional) | Figma component of the same name | PM/Claude via Figma connector | Approved PNG placed into its placeholder so screens preview with real art. |
 
@@ -107,43 +107,43 @@ Style references: **A** = `art/source/UI/HealthFull.png`, **B** =
 
 | asset_id | Native size | Method | Ref | Pack # | Figma component | Notes | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `hud_health_frame` | 118x10 | PixelLab ref + Hand | S | 135 | `hud/health_frame 118×10` | Frame only, empty interior 116x8 at (1,1); fills are code-drawn. Mirrored for P2 in engine. | native final (PM-checked); ready to copy to approved/ |
-| `hud_meter_frame` | 106x8 | PixelLab ref + Hand | S | 137 | `hud/meter_frame 106×8` | Empty interior 104x6 at (1,1); tick marks at 25 and 50 drawn in code. | native final (PM-checked); ready to copy to approved/ |
-| `hud_timer_box` | 24x20 | PixelLab ref + Hand | S | 141 | `hud/timer_box 24×20` | Empty interior; digits are a separate strip. | native final (PM-checked); ready to copy to approved/ |
-| `hud_timer_digits` | 8x12 per digit, strip 88x12 (0–9, ∞) | Hand | C | — | — | 11 glyphs in one strip, 8 px apart. | todo |
-| `hud_portrait_frame` | 24x24 | PixelLab | S | — | `hud/portrait 24×24` | Holds a still of the fighter being played (not Tripp). Street-junk look: taped-down instant photo. | native final (PM-checked); ready to copy to approved/ |
-| `hud_portrait_<fighter>` | 22x22 x3 states (normal, hurt, KO) | PixelLab + hand cleanup | fighter sprite | — | inside `hud/portrait 24×24` | Still of the fighter being played; sits in the taped photo frame. Generated for Pegleg Peg and Whiskey Richard (the playable pair). | native final (PM-checked); ready to copy to approved/ |
-| `hud_pip_square` | 5x5 | Hand | — | 139/140 | `hud/pip_square 5×5` | Empty + filled + K/T/M/D letter variants. | todo |
-| `hud_pip_diamond` | 5x5 | Hand | — | 139/140 | `hud/pip_diamond 5×5` | Same set as square, diamond shape (P2). | todo |
-| `hud_meth_skull` | 8x8, 2 frames | Hand | B | 144 | `hud/meth_skull 8×8` | Wobble loop for METH READY. | todo |
-| `hud_banner_plate` | 160x32 | PixelLab | S | 173 | `hud/banner 160×32` | Backing plate behind ROUND / FIGHT / K.O. lettering. | native final (PM-checked); ready to copy to approved/ |
+| `hud_health_frame` | 118x10 | PixelLab ref + Hand | S | 135 | `hud/health_frame 118×10` | Frame only, empty interior 116x8 at (1,1); fills are code-drawn. Mirrored for P2 in engine. | approved |
+| `hud_meter_frame` | 106x8 | PixelLab ref + Hand | S | 137 | `hud/meter_frame 106×8` | Empty interior 104x6 at (1,1); tick marks at 25 and 50 drawn in code. | approved |
+| `hud_timer_box` | 24x20 | PixelLab ref + Hand | S | 141 | `hud/timer_box 24×20` | Empty interior; digits are a separate strip. | approved |
+| `hud_timer_digits` | 8x12 per digit, strip 88x12 (0–9, ∞) | Hand | C | — | — | 11 glyphs in one strip, 8 px apart. | approved (scripted 7-seg, gas-pump style) |
+| `hud_portrait_frame` | 24x24 | PixelLab | S | — | `hud/portrait 24×24` | Holds a still of the fighter being played (not Tripp). Street-junk look: taped-down instant photo. | approved |
+| `hud_portrait_<fighter>` | 22x22 x3 states (normal, hurt, KO) | PixelLab + hand cleanup | fighter sprite | — | inside `hud/portrait 24×24` | Still of the fighter being played; sits in the taped photo frame. Generated for Pegleg Peg and Whiskey Richard (the playable pair). | approved |
+| `hud_pip_square` | 5x5 | Hand | — | 139/140 | `hud/pip_square 5×5` | Empty + filled + K/T/M/D letter variants. | approved (scripted) |
+| `hud_pip_diamond` | 5x5 | Hand | — | 139/140 | `hud/pip_diamond 5×5` | Same set as square, diamond shape (P2). | approved (scripted) |
+| `hud_meth_skull` | 8x8, 2 frames | Hand | B | 144 | `hud/meth_skull 8×8` | Wobble loop for METH READY. | approved (scripted) |
+| `hud_banner_plate` | 160x32 | PixelLab | S | 173 | `hud/banner 160×32` | Backing plate behind ROUND / FIGHT / K.O. lettering. | approved |
 | `stream_tripp_cam` | 6 faces, 28x28 | PixelLab + hand cleanup | T | — | — | **Dropped from the HUD (owner, 2026-11-21).** One face per expression kept for commentary/results screens. | generated (review) |
-| `stream_live_tag` | 24x7 | Hand | — | 155 | `stream/live_tag 24×7` | "LIVE" in 5 px letters on red. | todo |
+| `stream_live_tag` | 24x7 | Hand | — | 155 | `stream/live_tag 24×7` | "LIVE" in 5 px letters on red. | approved (scripted) |
 
 ### Batch 2 — stream layer + shared UI kit
 
 | asset_id | Native size | Method | Ref | Pack # | Figma component | Notes | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `stream_chat_panel` | 80x100 | PixelLab ref + Hand | S | 154 | `stream/chat_panel 80×100` | 9-slice-friendly border, empty interior. | native final (PM-checked); ready to copy to approved/ |
-| `stream_sponsor_bug` | 40x12 | PixelLab ref + Hand | S | 156 | `stream/sponsor_bug 40×12` | Blank plate; fake brand names hand-pixeled later. | native final (PM-checked); ready to copy to approved/ |
-| `stream_commentary_box` | 240x16 | PixelLab ref + Hand | S | 153 | (HUD between-rounds frame) | Between-rounds only. | native final (PM-checked); ready to copy to approved/ |
-| `ui_panel` | 24x24 (8 px corners) | PixelLab ref + Hand | S | 146 | `panel/9slice 24×24` | 9-slice for every menu panel. | native final (PM-checked); ready to copy to approved/ |
-| `ui_button` | 48x16 x4 states | PixelLab ref + Hand | S | — | `ui/button 48×16` | normal / focus / pressed / disabled, 9-slice-friendly. | native final (PM-checked); ready to copy to approved/ |
-| `ui_glyphs` | 9x9 each | Hand | — | 148/149 | `ui/glyph 9×9` | Keyboard keys, pad face buttons, d-pad. | todo |
+| `stream_chat_panel` | 80x100 | PixelLab ref + Hand | S | 154 | `stream/chat_panel 80×100` | 9-slice-friendly border, empty interior. | approved |
+| `stream_sponsor_bug` | 40x12 | PixelLab ref + Hand | S | 156 | `stream/sponsor_bug 40×12` | Blank plate; fake brand names hand-pixeled later. | approved |
+| `stream_commentary_box` | 240x16 | PixelLab ref + Hand | S | 153 | (HUD between-rounds frame) | Between-rounds only. | approved |
+| `ui_panel` | 24x24 (8 px corners) | PixelLab ref + Hand | S | 146 | `panel/9slice 24×24` | 9-slice for every menu panel. | approved |
+| `ui_button` | 48x16 x4 states | PixelLab ref + Hand | S | — | `ui/button 48×16` | normal / focus / pressed / disabled, 9-slice-friendly. | approved |
+| `ui_glyphs` | 9x9 each | Hand | — | 148/149 | `ui/glyph 9×9` | Keyboard keys, pad face buttons, d-pad. | approved (scripted: key, A/B/X/Y, d-pad) |
 
-### Batch 3 — menu objects (wait for the owner's menu-direction decision)
+### Batch 3 — menu objects (owner chose price board + chat strip, 2026-11-21)
 
 | asset_id | Native size | Method | Ref | Pack # | Figma component | Notes | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `menu_price_sign` | 132x150 | PixelLab | — | — | (Screens / 03 Main Menu) | Gas-N-Go price board, night. Only if direction A is picked. | blocked |
-| `menu_price_slat` | 96x14, normal + lit | PixelLab | — | — | `menu/price_slat 96×14` | | blocked |
-| `select_portrait` | 64x64 per fighter | PixelLab | F | — | `select/portrait 64×64` | From final fighter art. | blocked |
-| `select_mugshot_bg` | 320x180 | PixelLab | — | — | (Screens / 05) | Height-chart wall. | blocked |
-| `select_rap_sheet` | 104x66 | PixelLab | — | — | (Screens / 05) | | blocked |
-| `stage_scratch_ticket` | 72x44 + 3 scratch frames | PixelLab + hand | — | 160 | `stage/scratch_ticket 72×44` | | blocked |
-| `vs_bust` | 96x128 per fighter | PixelLab | F | — | `vs/bust 96×128` | From final fighter art. | blocked |
-| `ui_logo` | ~220x64 | PixelLab + hand | — | — | (Screens / 02 Title) | | blocked |
-| `hud_banner_words` | ~160x32 each | Hand (lettering) | — | 172/173 | — | Waits for the font decision. | blocked |
+| `menu_price_sign` | 79x124 | PixelLab | — | — | (Screens / 03 Main Menu) | Gas-N-Go price board, night. Only if direction A is picked. | approved |
+| `menu_price_slat` | 66x7 | PixelLab | — | — | `menu/price_slat 96×14` | approved (lit overlay; normal slats are part of the sign) |
+| `select_portrait` | 64x64 per fighter | PixelLab | F | — | `select/portrait 64×64` | From final fighter art. | approved (Peg, Whiskey) |
+| `select_mugshot_bg` | 320x180 | PixelLab | — | — | (Screens / 05) | Height-chart wall. | approved (scripted height chart) |
+| `select_rap_sheet` | 76x66 | PixelLab | — | — | (Screens / 05) | approved |
+| `stage_scratch_ticket` | 72x44 | PixelLab + hand | — | 160 | `stage/scratch_ticket 72×44` | approved (covered state only; scratch/reveal frames to be done in code or a later pass) |
+| `vs_bust` | 96x128 per fighter | PixelLab | F | — | `vs/bust 96×128` | From final fighter art. | approved (Peg, Whiskey) |
+| `ui_logo` | 139x74 | PixelLab + hand | — | — | (Screens / 02 Title) | approved (Bangers, scripted) |
+| `hud_banner_words` | ~160x32 each | Hand (lettering) | — | 172/173 | — | Waits for the font decision. | approved (Bangers, scripted) |
 
 ## 5. Open owner decisions that affect art
 
@@ -151,3 +151,19 @@ Style references: **A** = `art/source/UI/HealthFull.png`, **B** =
 - Main menu direction (A price board, B stream deck, C route board).
 - UI key colour.
 - Tripp cam size (28x18 now).
+
+## 6. Approved set (2026-11-21)
+
+Every file in `art/source/UI/approved/` was produced and checked by the PM session and approved by the owner by merging the PR that added it (the owner asked not to do the cleanup by hand). Sources and recipes are in the matching `generated/*_review/` folders: PixelLab outputs with `metadata.json`, scripted pieces in `generated/hand_drawn_review/draw.js`, Bangers lettering rendered with ImageMagick (`+antialias`). Owner decisions recorded: main menu = price board + chat strip; menu/HUD label font = **m5x7** (CC0; Bangers stays for big headers and banner words); art direction = street junk; Tripp cam dropped from the HUD.
+
+| Group | Files |
+| --- | --- |
+| `hud` | `hud_banner_decisive`, `hud_banner_double_ko`, `hud_banner_fight`, `hud_banner_ko`, `hud_banner_methtality`, `hud_banner_plate`, `hud_banner_round_1`, `hud_banner_round_2`, `hud_banner_round_3`, `hud_banner_round_4`, `hud_banner_round_5`, `hud_banner_time`, `hud_health_frame`, `hud_meter_frame`, `hud_meth_skull_f1`, `hud_meth_skull_f2`, `hud_pip_diamond_d`, `hud_pip_diamond_empty`, `hud_pip_diamond_filled`, `hud_pip_diamond_k`, `hud_pip_diamond_m`, `hud_pip_diamond_t`, `hud_pip_square_d`, `hud_pip_square_empty`, `hud_pip_square_filled`, `hud_pip_square_k`, `hud_pip_square_m`, `hud_pip_square_t`, `hud_portrait_frame`, `hud_portrait_pegleg_peg_hurt`, `hud_portrait_pegleg_peg_ko`, `hud_portrait_pegleg_peg_normal`, `hud_portrait_whiskey_richard_hurt`, `hud_portrait_whiskey_richard_ko`, `hud_portrait_whiskey_richard_normal`, `hud_timer_box`, `hud_timer_digits` |
+| `menu` | `menu_price_sign`, `menu_price_slat_lit` |
+| `select` | `select_mugshot_bg`, `select_portrait_pegleg_peg`, `select_portrait_whiskey_richard`, `select_rap_sheet` |
+| `stage` | `stage_scratch_ticket` |
+| `stream` | `stream_chat_panel`, `stream_commentary_box`, `stream_live_tag`, `stream_sponsor_bug` |
+| `ui` | `ui_button`, `ui_glyph_dpad`, `ui_glyph_key_blank`, `ui_glyph_pad_a`, `ui_glyph_pad_b`, `ui_glyph_pad_x`, `ui_glyph_pad_y`, `ui_logo`, `ui_panel` |
+| `vs` | `vs_bust_pegleg_peg`, `vs_bust_whiskey_richard` |
+
+Native sizes changed from the original manifest where the art came out better at its own proportions: price sign 79x124, lit slat 66x7, rap sheet 76x66, logo 139x74. Button focus/pressed/disabled states and the scratch-off reveal are left to code (modulate/shader or masking).

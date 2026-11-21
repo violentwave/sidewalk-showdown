@@ -147,7 +147,7 @@ Style references: **A** = `art/source/UI/HealthFull.png`, **B** =
 | `stage_scratch_ticket` | 72x44 | PixelLab + hand | — | 160 | `stage/scratch_ticket 72×44` | approved (covered state only; scratch/reveal frames to be done in code or a later pass) |
 | `vs_bust` | 96x128 per fighter | PixelLab | F | — | `vs/bust 96×128` | From final fighter art. | approved (Peg, Whiskey) |
 | `ui_logo` | 139x74 | PixelLab + hand | — | — | (Screens / 02 Title) | approved (Bangers, scripted) |
-| `hud_banner_words` | ~160x32 each | Hand (lettering) | — | 172/173 | — | Waits for the font decision. | approved (Bangers, scripted) |
+| `hud_banner_words` | ~160x32 each | Hand (lettering) | — | 172/173 | — | Sidewalk Marker at 2x with a 1 px outline; DECISIVE ROUND at 1x so it fits the plate. Bangers v1 kept in generated/hand_drawn_review/bangers_v1/. | approved (Sidewalk Marker, scripted) |
 
 ## 5. Open owner decisions that affect art
 
@@ -158,7 +158,7 @@ Style references: **A** = `art/source/UI/HealthFull.png`, **B** =
 
 ## 6. Approved set (2026-11-21)
 
-Every file in `art/source/UI/approved/` was produced and checked by the PM session and approved by the owner by merging the PR that added it (the owner asked not to do the cleanup by hand). Sources and recipes are in the matching `generated/*_review/` folders: PixelLab outputs with `metadata.json`, scripted pieces in `generated/hand_drawn_review/draw.js`, Bangers lettering rendered with ImageMagick (`+antialias`). Owner decisions recorded: main menu = price board + chat strip; menu/HUD label font = **m5x7** (CC0; Bangers stays for big headers and banner words); art direction = street junk; Tripp cam dropped from the HUD.
+Every file in `art/source/UI/approved/` was produced and checked by the PM session and approved by the owner by merging the PR that added it (the owner asked not to do the cleanup by hand). Sources and recipes are in the matching `generated/*_review/` folders: PixelLab outputs with `metadata.json`, scripted pieces in `generated/hand_drawn_review/draw.js`, Bangers lettering rendered with ImageMagick (`+antialias`). Owner decisions recorded: main menu = price board (chat strip removed by owner, 2026-11-21); fonts = **Sidewalk Marker** (original project pixel font, `game/assets/fonts/sidewalk_marker*.fnt`, source in `art/tools/font/`) for headers, menu items, labels and banner words, **m5x7** (CC0) for small body text, Bangers for the logo only; art direction = street junk; Tripp cam dropped from the HUD.
 
 | Group | Files |
 | --- | --- |

@@ -142,6 +142,25 @@ func _test_boot_flow() -> void:
 		main.main_menu != null and main.title == null,
 		"menu=%s" % str(main.main_menu != null))
 
+	# Owner playtest change: the chat strip is gone entirely.
+	var chat_art := 0
+	for node in main.main_menu.get_children():
+		if node is TextureRect:
+			var path := str((node as TextureRect).texture.resource_path)
+			if "chat" in path or "live" in path:
+				chat_art += 1
+	_check("the main menu has no chat panel, LIVE tag or chat lines",
+		chat_art == 0, "%d chat texture(s) found" % chat_art)
+
+	# Navigation wraps across all five items and reaches QUIT.
+	var seen_order: Array[int] = [main.main_menu.index]
+	for step in 5:
+		_press(main.main_menu, "p1_down")
+		seen_order.append(main.main_menu.index)
+	var wrapped := seen_order[0] == 0 and seen_order[5] == 0 and seen_order[4] == 4
+	_check("menu navigation wraps VERSUS..QUIT -> VERSUS",
+		wrapped, "order=%s" % str(seen_order))
+
 	# Back: main menu -> title -> quit confirm -> NO -> title.
 	_press(main.main_menu, "ui_back")
 	await process_frame
@@ -383,17 +402,40 @@ func _test_quit_confirm_defaults() -> void:
 	confirm.free()
 	await process_frame
 
-	# Content warning auto-continues on its 180-frame counter.
+	# Content warning waits for a key press (owner playtest change,
+	# 2026-11-21): no auto-advance, a 30-frame input guard at boot,
+	# then confirm continues.
 	const WARNING_SCENE := preload("res://scenes/menus/content_warning.tscn")
 	var warning: Control = WARNING_SCENE.instantiate()
 	root.add_child(warning)
 	await process_frame
 	var done := [0]
 	warning.warning_done.connect(func(): done[0] += 1)
-	await _step(190)
-	_check("the content warning auto-continues after 3 seconds of frames",
-		done[0] == 1, "warning_done emitted %d time(s)" % done[0])
+	await _step(600)
+	_check("the content warning never advances on its own (600 frames)",
+		done[0] == 0, "warning_done emitted %d time(s)" % done[0])
 	warning.free()
+	await process_frame
+
+	var guard_warning: Control = WARNING_SCENE.instantiate()
+	root.add_child(guard_warning)
+	var guard_done := [0]
+	guard_warning.warning_done.connect(func(): guard_done[0] += 1)
+	_press(guard_warning, "ui_confirm")
+	_check("a key held at boot cannot skip the warning (30-frame guard)",
+		guard_done[0] == 0, "warning_done emitted %d time(s)" % guard_done[0])
+	guard_warning.free()
+	await process_frame
+
+	var ready_warning: Control = WARNING_SCENE.instantiate()
+	root.add_child(ready_warning)
+	var ready_done := [0]
+	ready_warning.warning_done.connect(func(): ready_done[0] += 1)
+	await _step(35)
+	_press(ready_warning, "ui_confirm")
+	_check("confirm after the 30-frame guard continues the warning",
+		ready_done[0] == 1, "warning_done emitted %d time(s)" % ready_done[0])
+	ready_warning.free()
 	await process_frame
 
 

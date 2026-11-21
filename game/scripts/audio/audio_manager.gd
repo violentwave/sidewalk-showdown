@@ -33,6 +33,7 @@ func _ready() -> void:
 	music_player.name = "TemporaryMusic"
 	music_player.stream = intro_music_stream
 	music_player.volume_db = -15.0
+	music_player.bus = "Music"
 	add_child(music_player)
 	for sound_id in SFX_PATHS:
 		_sfx_streams[sound_id] = load(SFX_PATHS[sound_id])
@@ -41,6 +42,7 @@ func _ready() -> void:
 		var player := AudioStreamPlayer.new()
 		player.name = "SFXPlayer%d" % index
 		player.volume_db = -5.0
+		player.bus = "SFX"
 		add_child(player)
 		sfx_players.append(player)
 
@@ -83,6 +85,12 @@ func play_sfx(sound_id: String) -> void:
 		return
 	var player := _acquire_sfx_player()
 	player.stream = _sfx_streams[sound_id]
+	# Menu sounds ride the UI bus; in-match cues stay on SFX (Phase 1
+	# settings routes both without changing loudness at defaults).
+	if sound_id in ["menu_move", "menu_confirm"]:
+		player.bus = "UI"
+	else:
+		player.bus = "SFX"
 	player.volume_db = -9.0 if sound_id in ["menu_move", "menu_confirm"] else -4.0
 	player.play()
 

@@ -15,6 +15,14 @@ config/version="0.1"
 run/main_scene="res://scenes/main/Main.tscn"
 config/features=PackedStringArray("4.7")
 
+[audio]
+
+buses/default_bus_layout="res://default_bus_layout.tres"
+
+[autoload]
+
+Settings="*res://scripts/ui/settings.gd"
+
 [display]
 
 window/size/viewport_width=320

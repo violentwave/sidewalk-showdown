@@ -1,0 +1,19 @@
+{
+  "asset_id": "stream_chat_panel",
+  "tool": "pixellab create_image_pixflux",
+  "batch": "UI Batch 2",
+  "scale": 2,
+  "native_size": "80x100",
+  "size_requested": "160x200 (2x native)",
+  "prompt_pack_entry": 154,
+  "prompt": "Create a small fake chat window panel for Sidewalk Showdown. Style and rules: Sidewalk Showdown, fictional Sidewalk Florida, Mature-rated retro 2D arcade fighting game, 8-bit / 16-bit-inspired pixel art, chunky readable shapes, bold dark outline, no anti-aliasing, nearest-neighbor style, grimy sunbaked asphalt, dirty neon, sticky convenience-store color, raunchy arcade-comedy attitude, visually funny but combat-readable, transparent PNG unless noted, no real brands, no real town names, no real logos, no real public figures, no copyrighted characters, not photorealistic, not clean superhero art, not fantasy armor, not final character or full level art. Canvas/output: 160x200 at 2x pixel scale (each logical art pixel is a 2x2 block; the game-native size is 80x100), transparent background unless the asset is explicitly a tile or panel. Asset details: transparent-ish chat window with stacked unreadable message bars, optional scrollbar, no real platform branding. 9-slice-friendly plain border so it can stretch in-engine. Keep the silhouette readable at small game scale. Leave any complex written text as blocky fake markings or blank space for hand-pixeling if needed. Avoid: no real logos, no recognizable brand labels, no real city names, no copyrighted mascots, no photorealism, no smooth vector art, no anime glamor, no fantasy armor, no full character design, no full stage background unless the asset type explicitly says layer, no gore, no readable slurs, no tiny unreadable clutter that would obscure fighters, no foreground blocking active combat space.",
+  "negative_prompt": "no real logos, no recognizable brand labels, no real city names, no copyrighted mascots, no photorealism, no smooth vector art, no anime glamor, no fantasy armor, no full character design, no full stage background unless the asset type explicitly says layer, no gore, no readable slurs, no tiny unreadable clutter that would obscure fighters, no foreground blocking active combat space",
+  "negative_prompt_note": "create_image_pixflux has no separate negative-prompt parameter; the pack negative prompt was appended to the description as an 'Avoid:' clause.",
+  "init_image": null,
+  "init_image_strength": null,
+  "variants": [
+    { "file": "stream_chat_panel_v1_2x.png", "job_id": "06fb4228-ae85-483d-ae6e-e8590c2301be", "asset_id": "a55c3e16-87e9-5c45-86e6-9b6b76e8226b", "seed": 701, "size_requested": "160x200", "size_received": "160x200", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" },
+    { "file": "stream_chat_panel_v2_2x.png", "job_id": "3439954c-62ae-4f8f-a966-1a6575a72437", "asset_id": "cf711ea8-648e-535b-b7c6-705eb986893d", "seed": 702, "size_requested": "160x200", "size_received": "160x200", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" },
+    { "file": "stream_chat_panel_v3_2x.png", "job_id": "c4400d9d-a904-465a-8371-58286e13af10", "asset_id": "d0989b42-8a10-5a67-9857-af7516465b3c", "seed": 703, "size_requested": "160x200", "size_received": "160x200", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" }
+  ]
+}

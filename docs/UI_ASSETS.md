@@ -102,11 +102,11 @@ Style references: **A** = `art/source/UI/HealthFull.png`, **B** =
 
 | asset_id | Native size | Method | Ref | Pack # | Figma component | Notes | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `stream_chat_panel` | 80x100 | PixelLab | — | 154 | `stream/chat_panel 80×100` | 9-slice-friendly border, empty interior. | todo |
-| `stream_sponsor_bug` | 40x12 | PixelLab | — | 156 | `stream/sponsor_bug 40×12` | Blank plate; fake brand names hand-pixeled later. | todo |
-| `stream_commentary_box` | 240x16 | PixelLab | — | 153 | (HUD between-rounds frame) | Between-rounds only. | todo |
-| `ui_panel` | 24x24 (8 px corners) | PixelLab | A | 146 | `panel/9slice 24×24` | 9-slice for every menu panel. | todo |
-| `ui_button` | 48x16 x4 states | PixelLab | A | — | `ui/button 48×16` | normal / focus / pressed / disabled, 9-slice-friendly. | todo |
+| `stream_chat_panel` | 80x100 | PixelLab | — | 154 | `stream/chat_panel 80×100` | 9-slice-friendly border, empty interior. | generated 2x (review) |
+| `stream_sponsor_bug` | 40x12 | PixelLab | — | 156 | `stream/sponsor_bug 40×12` | Blank plate; fake brand names hand-pixeled later. | generated 2x (review) |
+| `stream_commentary_box` | 240x16 | PixelLab | — | 153 | (HUD between-rounds frame) | Between-rounds only. Native 240x16 is above the MCP's 16px/1024px² floor, so this one generated at exact native size. | generated (review) |
+| `ui_panel` | 24x24 (8 px corners) | PixelLab | A | 146 | `panel/9slice 24×24` | 9-slice for every menu panel. | generated 2x (review) |
+| `ui_button` | 48x16 x4 states | PixelLab | A | — | `ui/button 48×16` | normal / focus / pressed / disabled, 9-slice-friendly. | generated 2x (review) |
 | `ui_glyphs` | 9x9 each | Hand | — | 148/149 | `ui/glyph 9×9` | Keyboard keys, pad face buttons, d-pad. | todo |
 
 ### Batch 3 — menu objects (wait for the owner's menu-direction decision)

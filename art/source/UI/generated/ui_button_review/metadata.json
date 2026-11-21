@@ -1,0 +1,35 @@
+{
+  "asset_id": "ui_button",
+  "tool": "pixellab create_image_pixflux",
+  "batch": "UI Batch 2",
+  "scale": 2,
+  "native_size": "48x16 per state",
+  "size_requested": "96x32 (2x native) per state",
+  "prompt_pack_entry": null,
+  "prompt_note": "Manifest lists no prompt-pack entry for this asset; prompts composed from the pack's shared style block and negative prompt plus the manifest notes (4 states, 9-slice-friendly). Four state prompts: normal / focus / pressed / disabled, 3 variants each.",
+  "prompt_template": "Create a menu button UI asset for Sidewalk Showdown. Style and rules: <style block>. Canvas/output: 96x32 at 2x pixel scale (each logical art pixel is a 2x2 block; the game-native size is 48x16), transparent background. Asset details: wide chunky bevelled button plate, cracked arcade cabinet edge, 9-slice-friendly so it stretches in-engine, blank face with no text or icon. This button's visual state: <per-state description>. Keep the silhouette readable at small game scale. Avoid: <negative prompt>.",
+  "state_descriptions": {
+    "normal": "plain normal state: dark face, subtle grime, dim dirty-yellow rim",
+    "focus": "focused state: bright dirty-yellow rim glow, slightly lighter face, crisp outline",
+    "pressed": "pressed state: pushed-in look, darker face sitting 1 pixel lower inside the bevel",
+    "disabled": "disabled state: greyed-out desaturated face, no glow, dull broken outline"
+  },
+  "negative_prompt": "no real logos, no recognizable brand labels, no real city names, no copyrighted mascots, no photorealism, no smooth vector art, no anime glamor, no fantasy armor, no full character design, no full stage background unless the asset type explicitly says layer, no gore, no readable slurs, no tiny unreadable clutter that would obscure fighters, no foreground blocking active combat space",
+  "negative_prompt_note": "create_image_pixflux has no separate negative-prompt parameter; the pack negative prompt was appended to the description as an 'Avoid:' clause.",
+  "init_image": "art/source/UI/HealthFull.png (letterboxed to 96x32 copy at /tmp/opencode/ui-init/A_96x32.png, upload ref upload:e1ccf046-96ae-4436-a586-6ba7607140c8)",
+  "init_image_strength": 50,
+  "variants": [
+    { "state": "normal", "file": "ui_button_normal_v1_2x.png", "job_id": "45c2f74e-7ba3-4181-9ea2-d7f24d5cd8ab", "asset_id": "cb0ac1eb-8238-5095-b511-9d9338a173c6", "seed": 1101, "size_requested": "96x32", "size_received": "96x32", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" },
+    { "state": "normal", "file": "ui_button_normal_v2_2x.png", "job_id": "bd41784b-aaf6-40a0-bb70-0794afa709dc", "asset_id": "89d8f38c-8090-5e1a-b4d3-5373b1abe1db", "seed": 1102, "size_requested": "96x32", "size_received": "96x32", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" },
+    { "state": "normal", "file": "ui_button_normal_v3_2x.png", "job_id": "4af495bf-84a0-4022-880b-b20df36f8e1c", "asset_id": "7ec647ce-9036-5884-b51b-2d79f84d6eaa", "seed": 1103, "size_requested": "96x32", "size_received": "96x32", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" },
+    { "state": "focus", "file": "ui_button_focus_v1_2x.png", "job_id": "157bda09-0993-48da-9df6-1a84e4849334", "asset_id": "117bc7d0-690c-569c-afa5-debd3e8d5182", "seed": 1111, "size_requested": "96x32", "size_received": "96x32", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" },
+    { "state": "focus", "file": "ui_button_focus_v2_2x.png", "job_id": "37c0fc26-3231-458d-adf1-0ccaae071370", "asset_id": "8e2aea2f-495b-59f9-aafd-0009e0bdbcb5", "seed": 1112, "size_requested": "96x32", "size_received": "96x32", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" },
+    { "state": "focus", "file": "ui_button_focus_v3_2x.png", "job_id": "fcacfa43-a2a9-42da-9467-f3798f280278", "asset_id": "8664d106-5f1d-524c-b240-9d4574516c05", "seed": 1113, "size_requested": "96x32", "size_received": "96x32", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" },
+    { "state": "pressed", "file": "ui_button_pressed_v1_2x.png", "job_id": "0d544f69-5e02-44b1-9b65-bf01ed1e03d2", "asset_id": "88117319-62c8-5ffb-9c5a-49504df55ee6", "seed": 1121, "size_requested": "96x32", "size_received": "96x32", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" },
+    { "state": "pressed", "file": "ui_button_pressed_v2_2x.png", "job_id": "71aeca7a-729a-407d-bb7f-73ec4858ea03", "asset_id": "6a9fecc9-f318-5a51-89c6-a53613af24b0", "seed": 1122, "size_requested": "96x32", "size_received": "96x32", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" },
+    { "state": "pressed", "file": "ui_button_pressed_v3_2x.png", "job_id": "5e474696-c72f-4c8a-a846-0e49d6e62980", "asset_id": "14e2f24b-c877-5d17-93be-2df5565df354", "seed": 1123, "size_requested": "96x32", "size_received": "96x32", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" },
+    { "state": "disabled", "file": "ui_button_disabled_v1_2x.png", "job_id": "3a3ff5ef-d749-4be9-8609-12cdf6343ade", "asset_id": "b5a60d70-fc9d-582f-a2eb-3a884f4027fa", "seed": 1131, "size_requested": "96x32", "size_received": "96x32", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" },
+    { "state": "disabled", "file": "ui_button_disabled_v2_2x.png", "job_id": "fc2ac2b9-a1cc-4053-8c2c-7c779b52f7f8", "asset_id": "95fd3464-8f1a-51a8-9733-b8552d49b1fb", "seed": 1132, "size_requested": "96x32", "size_received": "96x32", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" },
+    { "state": "disabled", "file": "ui_button_disabled_v3_2x.png", "job_id": "f7d4308f-4268-471b-ad65-41b1a18cf1d0", "asset_id": "71981b20-2e68-5019-a306-a2eb7661ccad", "seed": 1133, "size_requested": "96x32", "size_received": "96x32", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" }
+  ]
+}

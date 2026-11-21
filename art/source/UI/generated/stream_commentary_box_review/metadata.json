@@ -1,0 +1,19 @@
+{
+  "asset_id": "stream_commentary_box",
+  "tool": "pixellab create_image_pixflux",
+  "batch": "UI Batch 2",
+  "scale": 1,
+  "native_size": "240x16",
+  "size_requested": "240x16 (native; the 2x canvas 480x32 exceeds pixflux's 400px side cap, and the native size is pixflux-legal: sides >=16, area 3840 >= 1024)",
+  "prompt_pack_entry": 153,
+  "prompt": "Create a Tripp commentary popup frame for Sidewalk Showdown. Style and rules: Sidewalk Showdown, fictional Sidewalk Florida, Mature-rated retro 2D arcade fighting game, 8-bit / 16-bit-inspired pixel art, chunky readable shapes, bold dark outline, no anti-aliasing, nearest-neighbor style, grimy sunbaked asphalt, dirty neon, sticky convenience-store color, raunchy arcade-comedy attitude, visually funny but combat-readable, transparent PNG unless noted, no real brands, no real town names, no real logos, no real public figures, no copyrighted characters, not photorealistic, not clean superhero art, not fantasy armor, not final character or full level art. Canvas/output: 240x16 (this is the exact game-native size), transparent background unless the asset is explicitly a tile or panel. Asset details: annoying influencer-style pop-up panel, red/white/blue glare, blank avatar circle, no likeness. Wide between-rounds strip, blank center, no readable text. Keep the silhouette readable at small game scale. Leave any complex written text as blocky fake markings or blank space for hand-pixeling if needed. Avoid: no real logos, no recognizable brand labels, no real city names, no copyrighted mascots, no photorealism, no smooth vector art, no anime glamor, no fantasy armor, no full character design, no full stage background unless the asset type explicitly says layer, no gore, no readable slurs, no tiny unreadable clutter that would obscure fighters, no foreground blocking active combat space.",
+  "negative_prompt": "no real logos, no recognizable brand labels, no real city names, no copyrighted mascots, no photorealism, no smooth vector art, no anime glamor, no fantasy armor, no full character design, no full stage background unless the asset type explicitly says layer, no gore, no readable slurs, no tiny unreadable clutter that would obscure fighters, no foreground blocking active combat space",
+  "negative_prompt_note": "create_image_pixflux has no separate negative-prompt parameter; the pack negative prompt was appended to the description as an 'Avoid:' clause.",
+  "init_image": null,
+  "init_image_strength": null,
+  "variants": [
+    { "file": "stream_commentary_box_v1.png", "job_id": "919741af-01ae-4841-a026-ae5cc88d75fa", "asset_id": "57c08ab0-bca9-5121-b6bd-8d2f66331bf1", "seed": 901, "size_requested": "240x16", "size_received": "240x16", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" },
+    { "file": "stream_commentary_box_v2.png", "job_id": "a85c8966-e0e9-46a8-bac2-30999b3b79d5", "asset_id": "6e5ba02b-abea-5352-8e5b-6b25341e9148", "seed": 902, "size_requested": "240x16", "size_received": "240x16", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" },
+    { "file": "stream_commentary_box_v3.png", "job_id": "85b3a021-1ec8-4a46-8bf5-55588fad2e45", "asset_id": "3f8c26cc-8486-5bb1-9424-8586a9382083", "seed": 903, "size_requested": "240x16", "size_received": "240x16", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" }
+  ]
+}

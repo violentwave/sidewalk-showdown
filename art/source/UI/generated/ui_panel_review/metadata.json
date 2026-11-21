@@ -1,0 +1,19 @@
+{
+  "asset_id": "ui_panel",
+  "tool": "pixellab create_image_pixflux",
+  "batch": "UI Batch 2",
+  "scale": 2,
+  "native_size": "24x24",
+  "size_requested": "48x48 (2x native)",
+  "prompt_pack_entry": 146,
+  "prompt": "Create a pause menu panel background for Sidewalk Showdown. Style and rules: Sidewalk Showdown, fictional Sidewalk Florida, Mature-rated retro 2D arcade fighting game, 8-bit / 16-bit-inspired pixel art, chunky readable shapes, bold dark outline, no anti-aliasing, nearest-neighbor style, grimy sunbaked asphalt, dirty neon, sticky convenience-store color, raunchy arcade-comedy attitude, visually funny but combat-readable, transparent PNG unless noted, no real brands, no real town names, no real logos, no real public figures, no copyrighted characters, not photorealistic, not clean superhero art, not fantasy armor, not final character or full level art. Canvas/output: 48x48 at 2x pixel scale (each logical art pixel is a 2x2 block; the game-native size is 24x24), transparent background unless the asset is explicitly a tile or panel. Asset details: cleaner dark panel with subtle grime, readable border, minimal jokes, no heavy clutter. 9-slice tile: crisp 8px (native) corners with a plain stretchable middle. Keep the silhouette readable at small game scale. Leave any complex written text as blocky fake markings or blank space for hand-pixeling if needed. Avoid: no real logos, no recognizable brand labels, no real city names, no copyrighted mascots, no photorealism, no smooth vector art, no anime glamor, no fantasy armor, no full character design, no full stage background unless the asset type explicitly says layer, no gore, no readable slurs, no tiny unreadable clutter that would obscure fighters, no foreground blocking active combat space.",
+  "negative_prompt": "no real logos, no recognizable brand labels, no real city names, no copyrighted mascots, no photorealism, no smooth vector art, no anime glamor, no fantasy armor, no full character design, no full stage background unless the asset type explicitly says layer, no gore, no readable slurs, no tiny unreadable clutter that would obscure fighters, no foreground blocking active combat space",
+  "negative_prompt_note": "create_image_pixflux has no separate negative-prompt parameter; the pack negative prompt was appended to the description as an 'Avoid:' clause.",
+  "init_image": "art/source/UI/HealthFull.png (letterboxed to 48x48 copy at /tmp/opencode/ui-init/A_48x48.png, upload ref upload:d39753df-3f11-4947-a26b-9ab2761a8cc8)",
+  "init_image_strength": 50,
+  "variants": [
+    { "file": "ui_panel_v1_2x.png", "job_id": "4bd9b6e8-cd62-4fb6-b1ed-40ea18827af2", "asset_id": "f737743b-af3e-52fc-bb64-692c2451582f", "seed": 1001, "size_requested": "48x48", "size_received": "48x48", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" },
+    { "file": "ui_panel_v2_2x.png", "job_id": "d65a77d7-a031-462a-a8c4-003a66bc2ea0", "asset_id": "d21e2555-4fb1-5386-bd80-b3ad9ae1e2e8", "seed": 1002, "size_requested": "48x48", "size_received": "48x48", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" },
+    { "file": "ui_panel_v3_2x.png", "job_id": "5764df11-19e0-4c11-8fbf-f27b23c0a009", "asset_id": "f303db60-c296-5be9-98ef-cb29142fb672", "seed": 1003, "size_requested": "48x48", "size_received": "48x48", "timestamp": "2026-11-20", "cost": 1, "filed_in_project": "ad6330d1-09db-464d-96f5-7d3cf24cb152" }
+  ]
+}

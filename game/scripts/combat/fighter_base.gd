@@ -1382,7 +1382,8 @@ func _tick_combo() -> void:
 	# a launch — hitstun ending mid-air (HITSTUN -> JUMP_FALL) must not reset
 	# scaling and re-open a fresh unscaled jump-in. Grounded, the window is
 	# unchanged.
-	if combo_hits > 0 and frames_since_hit > 40 and state not in [State.HITSTUN, State.KNOCKDOWN]:
+	if combo_hits > 0 and frames_since_hit > 40 and grounded \
+			and state not in [State.HITSTUN, State.KNOCKDOWN]:
 		combo_hits = 0
 		combo_tracker.reset()
 		juggle_hits = 0

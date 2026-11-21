@@ -6,8 +6,10 @@ routes) across both characters, both stages, both sides, and pass-through
 on. Suites: `game/tests/combo_fuzz_test.gd` + `game/tests/combo_test.gd`,
 seeded test-local LCG (gameplay RNG untouched), headless Godot 4.7.2.
 
-**Status on this branch: combo_fuzz 110 checks, 0 failure(s); combo_test
-68 checks, 0 failure(s)** (was 78/42 before the Phase 2 juggle coverage).
+**Status on this branch: combo_fuzz 118 checks, 0 failure(s); combo_test
+68 checks, 0 failure(s); stun_breaker 55 checks, 0 failure(s)** (combo_fuzz
+was 78/42 before the Phase 2 juggle coverage and 110 before the Phase 3
+stun/breaker fuzz).
 
 ## History: findings that drove changes
 

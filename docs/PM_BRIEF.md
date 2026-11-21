@@ -319,7 +319,7 @@ Release blockers / decisions pending:
 | `docs/SIDE_SWITCHING.md` | Facing derivation, cross-up blocking, pass-through flag, determinism notes | Current (verified against `fighter_base.gd`/`match_root.gd`) |
 | `docs/STAGES.md` | Both stages' layers/ambience, floor_y method, thumbnails, stage select, add-a-stage recipe | Current (floor_y 158/170, bounds, spawns verified) |
 | `docs/COMBO_SYSTEM_DESIGN.md` | Combo-system audit (§§1-8) + design (§§9-16), phased plan, 11 owner-approved decisions, §15.1 Phase 2 implementation + balance data, §15.2 Phase 3 implementation + owner calls | Phases 1–3 implemented (§15.1/§15.2 measured 2026-11-21); Phase 4 planned |
-| `docs/COMBO_FINDINGS.md` | Seeded combo-fuzz results: harness/counter history, Phase 2 snapshot-aliasing + mid-air-expiry + base-Peggy findings, soak before/after, honest 15000 limit, skip list | Current (2026-11-21, includes the Phase 2 juggle coverage: 110/68 checks) |
+| `docs/COMBO_FINDINGS.md` | Seeded combo-fuzz results: harness/counter history, Phase 2 snapshot-aliasing + mid-air-expiry + base-Peggy findings, soak history, honest 6500 limit, Phase 3 skip-list closure | Current (2026-11-21, includes the Phase 2 juggle + Phase 3 stun/breaker coverage: 118/68/55 checks) |
 | `docs/SAVESTATE_PLAN.md` | What `serialize()` captures, AI state object, known gaps | Current (keys verified against code) |
 | `docs/PROPOSALS.md` | Historical combat-system proposals with measured results (§§1-7) | Current (2026-11-20): §§1/7 whiff-meter passages now carry inline "superseded" notes pointing to the landed-hits economy (§5); history preserved |
 | `docs/PIXELORAMA_PIPELINE.md` | Idle-sheet + authored-clip pipeline for both fighters (§8-§9b) | Current (integration status matches the clip libraries) |

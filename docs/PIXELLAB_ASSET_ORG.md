@@ -27,6 +27,10 @@ server, reusing our approved fighter art as the primary visual references.
   method) used 136 generations (1 bitforge test, 6 Tripp faces x 10, 5 UI
   pieces x 15); balance after: **925/2000**. Street-junk pilot (3 x 15) on the same day: **880/2000**. Remaining street-junk set (7 x 15) and HUD portraits for the two playable fighters (6 x 10): **715/2000**. API calls bill the subscription
   generations, not credits.
+- 2026-11-21: native-draft pass (`docs/UI_ASSETS.md` §3 step 6) — 15 resize
+  chains via the REST `POST /v2/resize` endpoint (1 generation per call)
+  turned the ten picked street-junk UI images and six fighter portraits
+  into drafts at exact native size; balance after: **700/2000**.
 - Known issue: the OpenCode background service was observed repeatedly
   restarting while the pixellab MCP connection cycled, crashing the user's
   terminal. If this recurs, disconnect the server when not generating

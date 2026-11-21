@@ -79,7 +79,9 @@ const SIZES := {
 }
 
 # Returns the number of errors (0 = success). Prints its own report.
-func run() -> int:
+# copy_files = false is the test/CI mode: verify the runtime copies exist
+# at the exact size without writing anything.
+func run(copy_files: bool = true) -> int:
 	var game_dir := ProjectSettings.globalize_path("res://").trim_suffix("/")
 	var repo_root := game_dir.get_base_dir()
 	var approved_root := repo_root.path_join("art/source/UI/approved")
@@ -111,13 +113,25 @@ func run() -> int:
 			continue
 
 		DirAccess.make_dir_recursive_absolute(dest_path.get_base_dir())
-		var dest_dir := DirAccess.open(dest_path.get_base_dir())
-		if dest_dir == null or dest_dir.copy(source_path, dest_path) != OK:
-			push_error("prepare_ui: FAILED to copy %s -> %s" % [source_path, dest_path])
-			errors += 1
-			continue
+		if copy_files:
+			var dest_dir := DirAccess.open(dest_path.get_base_dir())
+			if dest_dir == null or dest_dir.copy(source_path, dest_path) != OK:
+				push_error("prepare_ui: FAILED to copy %s -> %s" % [source_path, dest_path])
+				errors += 1
+				continue
+		else:
+			var runtime_image := Image.load_from_file(dest_path)
+			if runtime_image == null:
+				push_error("prepare_ui: MISSING runtime copy %s" % dest_path)
+				errors += 1
+				continue
+			if runtime_image.get_width() != expected_w or runtime_image.get_height() != expected_h:
+				push_error("prepare_ui: RUNTIME SIZE MISMATCH %s is %dx%d, expected %s"
+					% [rel_path, runtime_image.get_width(), runtime_image.get_height(), expected])
+				errors += 1
+				continue
 		copied += 1
-		print("copied %s (%s)" % [rel_path, expected])
+		print("%s %s (%s)" % ["verified" if not copy_files else "copied", rel_path, expected])
 
 	# Any approved file not in SIZES is a manifest gap — fail loudly so new
 	# art cannot silently ship without a size contract.

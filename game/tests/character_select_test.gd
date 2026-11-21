@@ -40,7 +40,15 @@ func _new_main() -> Node:
 	var instance: Node = MAIN_SCENE.instantiate()
 	root.add_child(instance)
 	await process_frame
+	# Phase 1 flow: warning -> The Clip -> title -> main menu -> VERSUS ->
+	# mode select. Walk it so the caller starts on mode select as before.
+	instance.content_warning._continue()
+	await process_frame
 	instance.intro.skip_intro()
+	await process_frame
+	_press(instance.title, "ui_confirm")
+	await process_frame
+	_press(instance.main_menu, "p1_light")
 	await process_frame
 	return instance
 
@@ -52,14 +60,40 @@ func _choose_two_players(main: Node) -> void:
 func _run() -> void:
 	await process_frame
 	var intro_song: AudioStreamMP3 = main_scene.audio_manager.intro_music_stream
-	_check("the intro song starts on The Clip and loops",
+	_check("the intro track starts on boot and loops",
 		main_scene.audio_manager.music_player.playing
 			and main_scene.audio_manager.music_player.stream == intro_song
 			and intro_song != null and intro_song.loop,
 		"intro MP3 is not playing as a loop")
+	_check("boot opens on the once-per-launch content warning",
+		main_scene.content_warning != null and main_scene.intro == null
+			and main_scene.mode_select == null,
+		"warning=%s intro=%s mode_select=%s" % [
+			str(main_scene.content_warning != null),
+			str(main_scene.intro != null),
+			str(main_scene.mode_select != null)])
+	main_scene.content_warning._continue()
+	await process_frame
+	_check("the warning hands off to The Clip",
+		main_scene.intro != null and main_scene.content_warning == null,
+		"intro=%s" % str(main_scene.intro != null))
 	main_scene.intro.skip_intro()
 	await process_frame
-	_check("the intro hands off to mode select rather than character select",
+	_check("The Clip hands off to the title screen",
+		main_scene.title != null and main_scene.mode_select == null
+			and main_scene.character_select == null,
+		"title=%s mode_select=%s character_select=%s" % [
+			str(main_scene.title != null),
+			str(main_scene.mode_select != null),
+			str(main_scene.character_select != null)])
+	_press(main_scene.title, "ui_confirm")
+	await process_frame
+	_check("confirming the title opens the main menu",
+		main_scene.main_menu != null and main_scene.title == null,
+		"main_menu=%s" % str(main_scene.main_menu != null))
+	_press(main_scene.main_menu, "p1_light")
+	await process_frame
+	_check("VERSUS opens mode select rather than character select",
 		main_scene.mode_select != null and main_scene.character_select == null,
 		"mode_select=%s character_select=%s" % [
 			str(main_scene.mode_select != null),
@@ -299,8 +333,9 @@ func _run() -> void:
 		_press(leaving, "p1_pause")
 		_press(leaving, "p1_down")
 		_press(leaving, "p1_down")
+		_press(leaving, "p1_down")
 		_check("pause menu selects back to character select",
-			leaving.pause_index == 2, "index=%d" % leaving.pause_index)
+			leaving.pause_index == 3, "index=%d" % leaving.pause_index)
 		_press(leaving, "p1_light")
 		await process_frame
 		await process_frame

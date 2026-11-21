@@ -560,11 +560,11 @@ func _run() -> void:
 	_press("p1_up")
 	_check("P1 moves the menu selection", scene.pause_index == 0, "index=%d" % scene.pause_index)
 	_press("p1_up")
-	_check("menu wraps to the last option", scene.pause_index == 3, "index=%d" % scene.pause_index)
+	_check("menu wraps to the last option", scene.pause_index == 5, "index=%d" % scene.pause_index)
 	_press("p1_down")
 	_check("menu wraps to the first option", scene.pause_index == 0, "index=%d" % scene.pause_index)
-	_check("pause menu offers resume, restart, character select, and quit",
-		scene.hud.pause_option_count() == 4,
+	_check("pause menu offers resume, settings, restart, character select, main menu, and quit",
+		scene.hud.pause_option_count() == 6,
 		"options=%d" % scene.hud.pause_option_count())
 
 	await _step(6)
@@ -584,7 +584,8 @@ func _run() -> void:
 	# --- 15. restart match from the menu ---
 	_press("p2_pause")
 	_press("p2_down")
-	_check("restart option selected", scene.pause_index == 1, "index=%d" % scene.pause_index)
+	_press("p2_down")
+	_check("restart option selected", scene.pause_index == 2, "index=%d" % scene.pause_index)
 	_press("ui_confirm")
 	await _step(2)
 	_check("restart match from the menu",
@@ -597,7 +598,8 @@ func _run() -> void:
 	_press("p1_pause")
 	_press("p1_down")
 	_press("p1_down")
-	_check("character-select option selected", scene.pause_index == 2,
+	_press("p1_down")
+	_check("character-select option selected", scene.pause_index == 3,
 		"index=%d" % scene.pause_index)
 	_press("p1_light")
 	_check("character-select option requests a return and unpauses",

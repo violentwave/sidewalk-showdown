@@ -271,10 +271,15 @@ func _on_stage_back() -> void:
 		stage_select = null
 	# The router's push is deferred for the same reason as the forward
 	# hand-off.
-	router.push(_build_character_select())
+	var select := _build_character_select()
+	router.push(select)
+	character_select = select
 
 
 func _build_character_select() -> Control:
+	# On first entry the intro track is already playing (no-op); after
+	# leaving a match this switches back from the fight track.
+	audio_manager.start_intro_music()
 	var select: Control = CHARACTER_SELECT_SCENE.instantiate()
 	select.roster = roster
 	select.solo = solo_mode
@@ -321,7 +326,9 @@ func _on_return_to_select() -> void:
 	match_root = null
 	router.pop()
 	get_tree().paused = false
-	router.push(_build_character_select())
+	var select := _build_character_select()
+	router.push(select)
+	character_select = select
 
 
 # Pause menu -> SETTINGS: the overlay rides on top of the paused match;

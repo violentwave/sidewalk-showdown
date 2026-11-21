@@ -72,6 +72,12 @@ enum Invuln { NONE, STRIKE, THROW, FULL }
 # are never returned by find_move()/find_ex_move().
 @export var meth: bool = false
 
+@export_group("Juggle")
+# Phase 2 launcher marker: pure data for tooling, the CPU, and the HUD. The
+# launch itself is still authored knockback (positive y, knockdown false) —
+# this flag changes no behavior on its own.
+@export var launcher: bool = false
+
 func total_frames() -> int:
 	return startup + active + recovery
 

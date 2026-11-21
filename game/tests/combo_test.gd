@@ -217,6 +217,9 @@ func _legacy_pins() -> void:
 		"grounded=%s vy=%.1f" % [str(mroot.p2.grounded), mroot.p2.velocity.y])
 	var launcher: MoveData = mroot.p1.data.find_move(
 		MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+	# Phase 2 point budget: the launch granted 5 points; a launcher used as a
+	# juggle hit is a normal-cost (2) air hit that refreshes the arc but does
+	# NOT re-grant the budget — two land, the third cannot pay.
 	var juggle_hits: int = 0
 	var rejected: int = 0
 	for i in 8:
@@ -227,8 +230,8 @@ func _legacy_pins() -> void:
 			juggle_hits += 1
 		else:
 			rejected += 1
-	_check("juggle flat cap pins: at most 3 air hits land, further ones reject",
-		juggle_hits == 3 and rejected >= 1,
+	_check("juggle budget pins: two launcher-cost air hits land, the third rejects",
+		juggle_hits == 2 and rejected >= 1,
 		"landed=%d rejected=%d" % [juggle_hits, rejected])
 
 	# Blocked hit: the attacker gains no meter, the defender none either.

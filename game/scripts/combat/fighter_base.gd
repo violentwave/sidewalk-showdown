@@ -60,14 +60,16 @@ const DEFAULT_LANDING_FRAMES := 2
 # GDD §5.6: a counter hit adds +2 frames of hitstop, shared like ordinary hitstop.
 const COUNTER_HIT_HITSTOP := 2
 
-# PROPOSALS §6 juggle policy. An airborne defender takes at most
-# JUGGLE_HIT_CAP hits per combo; later strikes are rejected and stay live.
-# The FIRST juggle hit keeps the authored launch arc exactly; every REPEAT
-# juggle hit is scaled: horizontal pushback falls by JUGGLE_KNOCKBACK_SCALE per
-# prior airborne hit, and gravity while carrying the airborne arc is multiplied
-# by JUGGLE_GRAVITY_MULT once the juggle continues past the cap boundary (i.e.
-# juggle_hits >= 2). These are documented engine policy, not hidden multipliers.
-const JUGGLE_HIT_CAP := 3
+# Juggle policy (PROPOSALS §6 + COMBO_SYSTEM_DESIGN Phase 2). The flat
+# 3-hit cap is replaced by the data-driven point budget in ComboTuning: a
+# launch grants the defender `juggle_points_start` (5); each air hit spends
+# by move type (normals 2, air specials 3); a hit the budget cannot pay is
+# rejected and stays live (meaty-safe). The FIRST juggle hit keeps the
+# authored launch arc exactly; every REPEAT juggle hit is scaled: horizontal
+# pushback falls by JUGGLE_KNOCKBACK_SCALE per prior airborne hit, and
+# gravity while carrying the airborne arc is multiplied by JUGGLE_GRAVITY_MULT
+# once the juggle continues past the second air hit (juggle_hits >= 2).
+# These are documented engine policy, not hidden multipliers.
 const JUGGLE_GRAVITY_MULT := 1.25
 const JUGGLE_KNOCKBACK_SCALE := 0.7
 
@@ -141,6 +143,15 @@ signal macro_step_replayed(macro_name: String, step_index: int)
 var combo_tracker := ComboTracker.new()
 # Airborne hits this fighter has received in the current combo (PROPOSALS §6).
 var juggle_hits := 0
+# COMBO_SYSTEM_DESIGN Phase 2, decision #5: the juggle point budget.
+# -1 means "no active air budget" (grounded, or airborne and not yet hit:
+# a voluntary jump-in must stay hittable). A LAUNCH pre-grants
+# `juggle_points_start` (5) from the defender's ComboTuning; any other
+# airborne sequence auto-grants the same budget on its first air hit, so
+# every air sequence is bounded exactly like the old flat cap was. Each air
+# hit then spends by move type (normals 2, air specials 3); a hit the
+# budget cannot pay is rejected and stays live (meaty-safe). Serialized.
+var juggle_points := -1
 var frames_since_hit := 0
 
 # --- Input buffer ---
@@ -326,6 +337,8 @@ func begin_round(spawn_pos: Vector2, opponent_x: float) -> void:
 	combo_tracker.reset()
 	clip_cancel_used = false
 	_macro_clear()
+	juggle_hits = 0
+	juggle_points = -1
 	frames_since_hit = 0
 	knockdown_frames = 0
 	tech_frames = 0
@@ -826,10 +839,20 @@ func is_invulnerable_to(move: MoveData) -> bool:
 		# checked before hit confirmation in MatchRoot, so rejected moves stay live.
 		if not move.meth:
 			return true
-	# PROPOSALS §6 juggle cap: an airborne defender who has already taken
-	# JUGGLE_HIT_CAP hits in this combo cannot be hit again. This query is checked
+	# PROPOSALS §6 juggle cap: an airborne defender whose juggle budget is
+	# spent cannot be hit again. This query is checked
 	# before hit confirmation in MatchRoot, so a rejected strike stays live.
-	if not grounded and juggle_hits >= JUGGLE_HIT_CAP:
+	# COMBO_SYSTEM_DESIGN Phase 2: the flat cap is a point budget now — an
+	# air hit the budget cannot pay is rejected and stays live (meaty-safe).
+	# juggle_points == -1 (no active budget: a voluntary jump, or airborne
+	# and not yet hit) is NOT gated here: the budget auto-grants on the
+	# first air hit inside receive_hit, so jump-ins stay hittable and this
+	# query cannot mutate state.
+	# BREAKER HOOK (decision #9, Phase 3): this is the rejection point where
+	# a juggle-breaker input will be checked — the defender's window opens
+	# here, while airborne and under juggle pressure, using the same
+	# serialized state (juggle_points, juggle_hits) this branch reads.
+	if not grounded and juggle_points >= 0 and juggle_points < _juggle_cost(move):
 		return true
 	if state == State.WAKE_UP:
 		if state_frame < (data.wakeup_invuln_frames if data else 6):
@@ -912,6 +935,7 @@ func can_block(move: MoveData) -> bool:
 func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> bool:
 	if state == State.KO:
 		juggle_hits = 0
+		juggle_points = -1
 		return false
 	# Keep K1/R1 true for direct resolver/test callers too; MatchRoot normally
 	# skips these contacts in _poll_hit() via is_invulnerable_to().
@@ -937,9 +961,16 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 			_start_tech(attacker)
 			return false
 
-	# PROPOSALS §6 juggle cap, mirrored for direct resolver/test callers; the
-	# airborne-arc scaling below applies to hits 2..cap only.
-	if not grounded and juggle_hits >= JUGGLE_HIT_CAP:
+	# COMBO_SYSTEM_DESIGN Phase 2, decision #5: the point budget. A launched
+	# defender (points granted at launch) is gated here; an airborne defender
+	# with no active budget (points == -1, e.g. a voluntary jump-in) gets the
+	# budget granted by the spend below on its first air hit, so it stays
+	# hittable and every air sequence is bounded like the old flat cap.
+	# BREAKER HOOK (decision #9, Phase 3): this is the rejection point where
+	# a juggle-breaker input will be checked — the defender's window opens
+	# here, while airborne and under juggle pressure, using the same
+	# serialized state (juggle_points, juggle_hits) this branch reads.
+	if not grounded and juggle_points >= 0 and juggle_points < _juggle_cost(move):
 		return false
 
 	if is_blocking() and can_block(move):
@@ -1012,9 +1043,14 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 	velocity = Vector2(dir * air_knockback_x, -move.knockback.y)
 	# Authored launchers (PROPOSALS §6) are plain data: positive vertical
 	# knockback takes the defender off the floor so gravity and the juggle rules
-	# apply. This is not a per-move special case.
-	if move.knockback.y > 0.0 and not move.knockdown:
+	# apply. This is not a per-move special case. Phase 2: the launch grants
+	# the juggle point budget (decision #5) — ONLY when it starts the air
+	# sequence (the defender was grounded). A launcher used as a juggle hit on
+	# an already-airborne defender refreshes the arc but drains the existing
+	# budget, so repeat launchers can never self-sustain an infinite.
+	if move.knockback.y > 0.0 and not move.knockdown and not was_airborne:
 		grounded = false
+		juggle_points = _combo_tuning().juggle_points_start
 	_emit_health()
 
 	if health <= 0.0:
@@ -1022,11 +1058,19 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 		grounded = false # let gravity arc the loser back down to the stage
 		_force_state(State.KO)
 		juggle_hits = 0
+		juggle_points = -1
 		ko.emit()
 		return true
 
 	if was_airborne:
 		juggle_hits += 1
+		# Phase 2: spend the juggle budget by move type. A defender airborne
+		# without an active budget (voluntary jump, -1) gets the standard
+		# grant on this first air hit; a launched defender already carries
+		# its launch-granted budget.
+		if juggle_points < 0:
+			juggle_points = _combo_tuning().juggle_points_start
+		juggle_points -= _juggle_cost(move)
 	if move.knockdown:
 		knockdown_frames = 30
 		_force_state(State.KNOCKDOWN)
@@ -1138,6 +1182,16 @@ func _combo_tuning() -> ComboTuning:
 		return data.combo_tuning
 	return _default_combo_tuning
 
+# Phase 2, decision #5: the juggle cost of one air hit, by move type —
+# data from the defender's ComboTuning. Air specials (SPECIAL_AIR input)
+# cost 3; every other air hit (normals, or a launcher used as a juggle
+# hit) costs 2.
+func _juggle_cost(move: MoveData) -> int:
+	var t: ComboTuning = _combo_tuning()
+	if move.input == MoveData.InputType.SPECIAL_AIR:
+		return t.juggle_cost_air_special
+	return t.juggle_cost_normal
+
 # ---------------- Macros (dial-a-combos, §10.1) --------------------
 
 # Called from _poll_input for every freshly pressed action. A press that
@@ -1235,6 +1289,7 @@ func reset_state() -> void:
 	clip_cancel_used = false
 	_macro_clear()
 	juggle_hits = 0
+	juggle_points = -1
 	frames_since_hit = 0
 	input_buffer.clear()
 	grounded = true
@@ -1326,6 +1381,7 @@ func _tick_combo() -> void:
 		combo_hits = 0
 		combo_tracker.reset()
 		juggle_hits = 0
+		juggle_points = -1
 		combo_changed.emit(0)
 
 # ---------------- Misc ----------------
@@ -1438,6 +1494,7 @@ func serialize() -> Dictionary:
 		"macro_gap_frames": macro_gap_frames,
 		"macro_replayed_this_move": macro_replayed_this_move,
 		"juggle_hits": juggle_hits,
+		"juggle_points": juggle_points,
 		"frames_since_hit": frames_since_hit,
 		"input_buffer": input_buffer,
 		"input_history": input_history,
@@ -1471,6 +1528,7 @@ func load(data: Dictionary) -> void:
 	landing_recovery_frames = data["landing_recovery_frames"]
 	combo_hits = data["combo_hits"]
 	juggle_hits = data["juggle_hits"]
+	juggle_points = data.get("juggle_points", -1)
 	if typeof(data.get("combo_tracker")) == TYPE_DICTIONARY:
 		combo_tracker.load_state(data["combo_tracker"])
 	clip_cancel_used = data.get("clip_cancel_used", false)

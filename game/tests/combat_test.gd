@@ -1757,23 +1757,32 @@ func _run() -> void:
 		"%s | %s | %s | %s" % [block_rule.validate(), whiff_rule.validate(),
 			backwards.validate(), wrong_target.validate()])
 
-	# --- 42. juggle/OTG rules (PROPOSALS 6): cap, reset, repeat-hit scaling ---
-	# Airborne juggle sequence driven through the real receive_hit path: three
-	# allowed airborne hits, the fourth rejected. Between hits the attacker
-	# starts fresh moves, so the counter is demonstrably not reset by a move
-	# change, only by combo end.
+	# --- 42. juggle/OTG rules (PROPOSALS 6 + COMBO Phase 2): budget, reset,
+	# repeat-hit scaling ---
+	# Airborne juggle sequence driven through the real receive_hit path. The
+	# flat 3-hit cap is now the point budget (launch grants 5; normals cost
+	# 2), so two normal air hits connect and the third is rejected. Between
+	# hits the attacker starts fresh moves, so the counter is demonstrably not
+	# reset by a move change, only by combo end.
 	var jg_strike: MoveData = p1.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.STAND)
+	var jg_launcher: MoveData = p1.data.find_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
 	scene._begin_round()
 	scene._start_fight()
 	_reset_fighters(100, 120)
 	p1.input_enabled = false
 	p2.input_enabled = false
-	# Launch the defender: all four attempts target an airborne fighter.
-	p2.grounded = false
-	p2._force_state(FighterBase.State.JUMP_FALL)
+	# Launch the defender through the real resolver: a grounded launcher hit
+	# grants the 5-point juggle budget without spending it.
+	p1._start_move(jg_launcher)
+	p1.state_frame = jg_launcher.startup
+	scene._resolve_hits()
+	_check("juggle: a launcher grants the 5-point budget (data: ComboTuning)",
+		not p2.grounded and p2.juggle_points == 5,
+		"grounded=%s points=%d" % [str(p2.grounded), p2.juggle_points])
 	var jg_velocities: Array[float] = []
 	var jg_expectations: Array[float] = []
 	var jg_health: Array[float] = []
+	var jg_budget_hits := 2 # 5 points, normals cost 2: the third cannot pay
 	for i in range(4):
 		var jg_move: MoveData = jg_strike if i != 2 \
 			else p1.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.STAND)
@@ -1786,17 +1795,16 @@ func _run() -> void:
 			pow(FighterBase.JUGGLE_KNOCKBACK_SCALE, float(jg_prior)))
 		if p2.receive_hit(p1, p1.current_move):
 			jg_velocities.append(absf(p2.velocity.x))
-	var cap := FighterBase.JUGGLE_HIT_CAP
-	_check("juggle: the first three airborne hits connect, none after the cap",
-		jg_velocities.size() == cap and p2.health == jg_health[cap],
+	_check("juggle: two normal air hits connect on the 5-point budget, none after",
+		jg_velocities.size() == jg_budget_hits and p2.health == jg_health[jg_budget_hits],
 		"hits=%d hp_after=%s" % [jg_velocities.size(), str(p2.health)])
 	_check("juggle: the first airborne hit keeps the authored pushback exactly",
 		jg_velocities[0] == jg_expectations[0], "v=%.3f" % jg_velocities[0])
 	_check("juggle: each repeat airborne hit scales horizontal pushback down",
-		is_equal_approx(jg_velocities[1], jg_expectations[1])
-			and is_equal_approx(jg_velocities[2], jg_expectations[2]),		"v=%s" % str(jg_velocities))
-	_check("juggle: the counter survives an attacker move change inside the combo",
-		p2.juggle_hits == cap, "juggle=%d" % p2.juggle_hits)
+		is_equal_approx(jg_velocities[1], jg_expectations[1]), "v=%s" % str(jg_velocities))
+	_check("juggle: the counters survive an attacker move change inside the combo",
+		p2.juggle_hits == jg_budget_hits and p2.juggle_points == 1,
+		"juggle=%d points=%d" % [p2.juggle_hits, p2.juggle_points])
 	var jg_gravity_ok := false
 	var vy_before := p2.velocity.y
 	p2._apply_gravity(1.0 / 60.0)
@@ -1811,21 +1819,26 @@ func _run() -> void:
 	p2.frames_since_hit = 41
 	p2._tick_combo()
 	var early := p2.juggle_hits
+	var early_points := p2.juggle_points
 	p2._force_state(FighterBase.State.IDLE)
 	p2.grounded = true
 	p2._tick_combo()
-	_check("juggle: the counter survives non-ending airborne stun ticks",
-		early == cap, "juggle=%d" % early)
-	_check("juggle: combo end resets the airborne-hit counter together with combo",
-		p2.juggle_hits == 0 and p2.combo_hits == 0
+	_check("juggle: the counters survive non-ending airborne stun ticks",
+		early == jg_budget_hits and early_points == 1,
+		"juggle=%d points=%d" % [early, early_points])
+	_check("juggle: combo end resets the airborne counter and budget together with combo",
+		p2.juggle_hits == 0 and p2.juggle_points == -1 and p2.combo_hits == 0
 			and p2.receive_hit(p1, p1.current_move),
-		"juggle=%d" % p2.juggle_hits)
-	# After the reset a fresh airborne attempt re-enters the count from 1.
-	p2.grounded = false
-	p2._force_state(FighterBase.State.JUMP_FALL)
+		"juggle=%d points=%d" % [p2.juggle_hits, p2.juggle_points])
+	# After the reset a fresh launch re-grants the budget and re-enters the
+	# count from 1.
+	p1._start_move(jg_launcher)
+	p1.state_frame = jg_launcher.startup
+	scene._resolve_hits()
 	var re_entered := p2.receive_hit(p1, p1.current_move)
-	_check("juggle: after reset a fresh airborne hit re-enters the count",
-		re_entered and p2.juggle_hits == 1, "juggle=%d" % p2.juggle_hits)
+	_check("juggle: after reset a fresh launch re-grants the budget and the count re-enters",
+		re_entered and p2.juggle_hits == 1 and p2.juggle_points == 3,
+		"re=%s juggle=%d points=%d" % [str(re_entered), p2.juggle_hits, p2.juggle_points])
 
 	# Grounded knockdown protection stays K1/R1 and keeps the attacker's window
 	# live: MatchRoot._poll_hit returns null and the move is not spent.
@@ -2462,7 +2475,10 @@ func _run() -> void:
 	cap_atk.state_frame = cap_launch.startup
 	scene._resolve_hits()
 	var cap_dmg: Array[float] = []
-	for i in range(FighterBase.JUGGLE_HIT_CAP):
+	# COMBO Phase 2: the launch grants 5 points; air heavies cost 2 each, so
+	# two connect and the third cannot pay.
+	var cap_budget_hits := 2
+	for i in range(3):
 		var before_hp: float = cap_dfd.health
 		cap_atk._start_move(cap_atk.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.AIR))
 		var connected: bool = cap_dfd.receive_hit(cap_atk, cap_atk.current_move)
@@ -2470,21 +2486,19 @@ func _run() -> void:
 	var fourth_hp: float = cap_dfd.health
 	cap_atk._start_move(cap_atk.data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.AIR))
 	var fourth := cap_dfd.receive_hit(cap_atk, cap_atk.current_move)
-	_check("the airborne-hit cap is reachable (3 hits counted on one defender)",
-		cap_dfd.juggle_hits == FighterBase.JUGGLE_HIT_CAP
-			and not is_zero_approx(cap_dmg[0]) and not is_zero_approx(cap_dmg[1])
-			and not is_zero_approx(cap_dmg[2]),
-		"juggle=%d dmg=%s" % [cap_dfd.juggle_hits, str(cap_dmg)])
+	_check("the juggle budget lands two air heavies, the third cannot pay",
+		cap_dfd.juggle_hits == cap_budget_hits
+			and not is_zero_approx(cap_dmg[0]) and not is_zero_approx(cap_dmg[1]),
+		"juggle=%d points=%d dmg=%s" % [cap_dfd.juggle_hits, cap_dfd.juggle_points,
+			str(cap_dmg)])
 	var juggle_heavy: MoveData = cap_atk.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.AIR)
-	# COMBO_SYSTEM_DESIGN: ladder 1.0/0.85/0.70 by hit position, and the
-	# third repeated heavy also pays the repeat-move penalty (0.9 per reuse
-	# beyond one freebie), so 80 x 0.85 = 68, then 80 x 0.70 x 0.9 = 50.4.
-	_check("the airborne chain pays the ladder plus the repeat-move penalty",
+	# COMBO_SYSTEM_DESIGN: ladder 1.0/0.85 by hit position (the launcher was
+	# hit 1, so the air heavies are hits 2 and 3).
+	_check("the airborne chain pays the ladder by hit position",
 		is_equal_approx(cap_dmg[0], juggle_heavy.damage)
-			and is_equal_approx(cap_dmg[1], juggle_heavy.damage * 0.85)
-			and is_equal_approx(cap_dmg[2], juggle_heavy.damage * 0.70 * 0.9),
+			and is_equal_approx(cap_dmg[1], juggle_heavy.damage * 0.85),
 		"dmg=%s authored=%.1f" % [str(cap_dmg), juggle_heavy.damage])
-	_check("the cap rejects the next airborne hit and keeps the window live",
+	_check("the spent budget rejects the next airborne hit and keeps the window live",
 		not fourth and cap_dfd.health == fourth_hp
 			and cap_dfd.is_invulnerable_to(cap_atk.data.find_move(MoveData.InputType.LIGHT,
 				MoveData.Stance.AIR)),

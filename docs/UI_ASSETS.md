@@ -81,7 +81,12 @@ is and is used only as a **style reference** (init image), never as runtime art.
    sub-16px-native assets are resized to height 16 and point-row-sampled
    down with ImageMagick. Drafts land next to the pick as
    `<asset_id>_native.png` (portraits: `<state>_native.png`), never
-   overwriting anything.
+   overwriting anything. **Caution (PM review of PR #80):** `/v2/resize` is
+   generative and can invent content on small targets (it drew a figure in
+   the portrait frame, people on the commentary caps, and lost the sponsor
+   bottle). Prefer trim + crop + 9-slice when the height already fits, check
+   every resize output by eye, and run `+repage` after any append so the PNG
+   carries no stale virtual-canvas size.
 7. Update the **Status** column in the manifest in the same PR.
 
 Agent sessions follow the usual image limits: stay under 8 images per

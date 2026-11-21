@@ -82,7 +82,7 @@ phase exit criteria:
   blocking and round flow work, and the match can end/restart.
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
-  The current suites contain 407 combat, 42 combo-system, 78 combo-fuzz,
+  The current suites contain 408 combat, 68 combo-system, 110 combo-fuzz,
   34 round-flow,
   50 mode/character-select integration, 7 locomotion-speed,
   94 stage-select/ambience, 9 stage-floor, 23 intro, and 27 CPU-opponent
@@ -96,9 +96,11 @@ phase exit criteria:
 - **Owner playtest decisions (2026-11-07):** air attacks keep stop-on-attack
   (M2); the no-block wake-up tail is kept (W2); blockstun buffering 4b stays
   deferred (S4); the measured 20–44 px jump-in window is kept; command-grab
-  values remain provisional. Richard's base launcher is 260 (one follow-up), an
-  intentional asymmetry with Peggy's route. Forward-special/EX is the launcher
-  category; EX cancels are grounded-only.
+  values remain provisional. Richard's base launcher is 260 and, under the
+  Phase 2 point budget, connects the full two-hit juggle route (263.55);
+  Peggy's 228 base launcher connects no air follow-up at human timing — her
+  route is the EX (retune proposed, not applied). Forward-special/EX is the
+  launcher category (`MoveData.launcher`); EX cancels are grounded-only.
 - **Blockers:** no known Phase 1 implementation blocker remains. Human feel
   validation is still required; Phase 2 presentation goals remain incomplete.
 
@@ -201,9 +203,11 @@ phase exit criteria:
   are missing. A small Phase 2 audio service plays the temporary track and cues.
   Dash/backdash states are absent.
 - **Owner decisions:** forward-special and its EX variant are the shared launcher
-  category; EX cancels are grounded-only. Richard's 260 base launcher is an
-  intentional asymmetry and enables one follow-up; Peggy retains her authored
-  route. The 3-airborne-hit cap and 55% scaling floor are implemented. The
+  category; EX cancels are grounded-only. Richard's 260 base launcher connects
+  the full budget route; Peggy's route is her EX (measured 2026-11-21, design
+  doc §15.1). The juggle POINT BUDGET (5 start / normals 2 / air specials 3,
+  decision #5) and the 55% scaling floor are implemented; the combo window is
+  gated on landing so the tracker covers the whole air combo. The
   jump-in follow-up's measured 20–44 px / 10–30 px connect window is kept.
   Command grabs are untechable with slow, punishable startup; their values remain
   provisional for the later-roster pass. Shared controls and Peggy/Richard-only

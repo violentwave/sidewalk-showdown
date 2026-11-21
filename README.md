@@ -56,7 +56,9 @@ who turns sidewalk chaos into a rigged tournament.**
   ([`docs/PIXELORAMA_PIPELINE.md`](docs/PIXELORAMA_PIPELINE.md) §8–§9a).
 - **Fighting-game systems** — 60 Hz deterministic simulation, frame data,
   blocking with chip that can't KO, hitstop, buffers, directional specials,
-  EX spenders, throws and throw techs, juggle cap, a METHtality finisher, and
+  EX spenders, throws and throw techs, launcher juggles on a point budget
+  (5 points at launch; air normals cost 2, air specials 3), a METHtality
+  finisher, and
   side switching: fighters auto-face each other and can walk through each
   other on the ground and in the air (the `fighters_can_pass_through` flag
   restores the legacy grounded pushbox) —
@@ -94,12 +96,14 @@ godot --headless --path game --script res://tests/serialization_test.gd
 godot --headless --path game --script res://tests/b6_landing_whiff_test.gd
 ```
 
-Current suites: **combat 407 checks**, round flow 34, character select 50,
+Current suites: **combat 408 checks**, round flow 34, character select 50,
 locomotion speed 7, stage select 94, stage floor 9, CPU opponent 27,
-combo system 42, combo fuzz 78, The Clip 23, serialization 24, B6
+combo system 68, combo fuzz 110, The Clip 23, serialization 24, B6
 landing-whiff 5 — all
 green in CI (`tests.yml`, every step under a `timeout-minutes`).
-`tests/air_probe.gd` prints balance metrics and asserts nothing.
+`tests/air_probe.gd` and `tests/juggle_probe.gd` print balance metrics and
+assert nothing; `tests/juggle_route_probe.gd` brute-forces real-hitbox juggle
+route timing (slow, not in CI).
 
 ## Controls
 

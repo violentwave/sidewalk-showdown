@@ -22,7 +22,15 @@ capture, and where it lives today.
   the per-defender `ComboTracker` record (hits, total damage, move-id
   history, active flag), the dial-a-combo macro ring (active macro, step
   index, held steps, gap clock), the Clip Cancel budget flag, and the
-  BLOCK/WHIFF outcome flags.
+  BLOCK/WHIFF outcome flags. Phase 2 adds the juggle point budget:
+  `juggle_hits` and `juggle_points` (−1 = no active air budget) serialize
+  with the fighter and restore exactly (mid-juggle round-trip pinned in
+  `combo_test.gd`).
+- **Snapshot stability (2026-11-21):** every mutable container in
+  `serialize()` (`wins`, `round_damage`, `move_ids`, `macro_pending`,
+  `input_buffer`, `input_history`) is a DUPLICATE, so a snapshot held
+  while the match keeps running is never mutated by the live game (the
+  mid-juggle round-trip test caught the old by-reference aliases).
 
 Covered by `game/tests/serialization_test.gd` (key inventory + round trip).
 

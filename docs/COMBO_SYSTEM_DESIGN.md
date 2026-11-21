@@ -195,8 +195,8 @@ throw whiff 22; METH "Walk the Plank" 3/2/24, dmg 1000, hitstop 30):
 | crouch_heavy | normal (low) | 8/3/18 | 75 (4) | 16/12 | 70, 0 | special/EX cancel |
 | jump_light | normal (OH) | 4/3/10 | 40 (3) | 14/9 | 50, 0 | landing rec 8 |
 | jump_heavy | normal (OH) | 7/3/13 | 80 (5) | 18/11 | 80, 0 | landing rec 8 |
-| peggy_neutral | special | 9/3/19 | 95 (6) | 20/13 | 110, 0 | combo ender today |
-| **peggy_forward** | special | 11/4/22 | 110 (7) | 22/14 | 130, **228** | **launcher already** |
+| peggy_neutral | special | 9/3/19 | 95 (6) | 20/13 | 110, 0 | **Peg-Lock stun** (Phase 3, 60f immunity) |
+| **peggy_forward** | special | 11/4/22 | 110 (7) | 22/14 | 130, **274** | **launcher already** (raised 228→274, Phase 3) |
 | peggy_down | special (low) | 10/3/20 | 90 (6) | 18/12 | 80, 0 | — |
 | peggy_back | special | 8/3/18 | 85 (5) | 18/12 | 60, 0 | — |
 | peggy_air | air special (OH) | 12/2/16 | 70 (5) | 18/12 | 90, 0 | landing rec 12 |
@@ -217,7 +217,7 @@ Richard (`whiskey_richard.tres`, same locomotion; METH "Flaming Belch"
 | crouch_heavy | normal (low) | 10/3/19 | 90 (5) | 16/12 | 70, 0 | special/EX cancel |
 | jump_light | normal (OH) | 4/3/10 | 45 (3) | 14/9 | 50, 0 | landing rec 8 |
 | jump_heavy | normal (OH) | 7/3/13 | 90 (5) | 18/11 | 80, 0 | + CHAIN→light |
-| richard_neutral | special | 9/3/19 | 105 (6) | 20/13 | 110, 0 | ender today; **stun candidate** |
+| richard_neutral | special | 9/3/19 | **40** (6) | 20/13 | 110, 0 | **Taser Belch stun** (Phase 3, 105→40, 240f immunity) |
 | **richard_forward** | special | 11/4/22 | 120 (7) | 22/14 | 130, **260** | **launcher already** |
 | richard_down | special (low) | 10/3/20 | 95 (6) | 18/12 | 80, 0 | — |
 | richard_back | special | 8/3/18 | 100 (5) | 18/12 | 60, 0 | — |
@@ -680,7 +680,7 @@ drift allowed):**
 
 | Fighter | Launcher | Verdict |
 |---|---|---|
-| Peggy | base 228y | **No air follow-up connects** — the defender lands (~f30) before the attacker is actionable (~f34, hitstop + recovery). The base launcher is a damage/space tool; the route needs EX. Proposed (not applied): raise base `knockback.y` 228 → ~255 to match Richard's proven window. |
+| Peggy | base 274y | **Full route connects** (jump f34–36, drift 90) — raised from 228 by the 2026-11-21 owner decision below; at 228 NO air follow-up connected (the defender lands ~f30 before the attacker is actionable ~f34, hitstop + recovery), and the §15.1 proposal of ~255 also does not connect at all. |
 | Peggy | EX 360y | Full route connects in-combo (256.40), jump f34–40. |
 | Richard | base 260y | Full route connects in-combo (263.55), jump f34–36 — the "one follow-up" asymmetry note in the docs is superseded: the budget route (H+S) fully connects. |
 | Richard | EX 340y | Full route connects in-combo (293.55). |
@@ -691,7 +691,41 @@ Richard 5 – Peggy 3, avg 6537 frames. After Phase 2: lengths
 3921/13928 (P vs R), 4606/10867 (R vs P), **Richard 4 – Peggy 4**, avg
 8330 frames; worst 13928 still inside the 15000 ceiling (~8% headroom);
 no stalls (mutual idle always < 240). Longer average = launcher combos
-extend rounds; no stuck states.
+extend rounds; no stuck states. Phase 3 re-measures the soak (Peggy's 274
+launcher and Richard's 40-damage stun special both change round pace); the
+fresh worst-case + ~25% resets `SOAK_MAX_FRAMES`.
+
+### 15.2 Phase 3 implementation (2026-11-21)
+
+**Implemented vs planned.** Shipped on `feat/stun-breaker`: the
+`StunEffect` resource (schema §9.3, `launcher_safe` false at schema level),
+authored stuns on both neutral specials (Richard's Taser Belch 105 → 40 +
+`taser_buzz` 240f immunity; Peggy's Peg-Lock keeps 95 damage + 60f immunity
+per the owner call above), stun windows that ride the existing HITSTUN
+state (no new states) and replace the move's authored hitstun, shake-out
+mashing after the authored minimum, once-per-combo via the defender's
+combo history, heavy-scaling shrinkage (a window that would fall below the
+minimum does not stun at all), and the stun hit earning the attacker NO
+meter while its follow-up string starts at scaling step 3. The breaker
+(decisions #1/#9): free once per round + 40-meter extras, 300-frame
+cooldown, once per combo, checked every frame in HITSTUN (grounded strings
+and juggles; never blockstun), grab+special together in the buffer, 30 px
+over 6 frames of separation through `direction_away_from()` with the
+wall-pinned share transferring to the attacker (the corner-escape fix),
+and a 20-frame invulnerability window gated in `is_invulnerable_to()`
+exactly like the wake-up windows. HUD-facing readouts
+(`breaker_ready()`, `breaker_free_remaining()`,
+`breaker_cooldown_left()`, `stun_active()`, `stun_frames_left()`,
+`stun_immunity_left()`) and signals (`stun_started`, `stun_ended`,
+`breaker_used`) are exposed for the Phase 4 HUD; no HUD elements shipped
+here. Impact "sparks" are the authored stun tint on the existing
+silhouette/sprite flash path — no new art required. All new state is
+serialized (`docs/SAVESTATE_PLAN.md`).
+
+Not shipped and not planned for Phase 3: the combo HUD (Phase 4), CPU
+usage of stuns/breakers (Phase 4: `stun_rate`/`breaker_rate`/shake-out
+mashing), and jab-value changes (deferred until after this phase's
+playtest, per the owner decision above).
 
 ## 16. Risks in the current code (combo-readiness)
 

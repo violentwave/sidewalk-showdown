@@ -2373,14 +2373,18 @@ func _run() -> void:
 	# --- 46. launchers (PROPOSALS 6, owner decisions 2026-11-07): authored
 	# vertical knockback on the forward specials + EX, launch state, juggle
 	# scaling/cap on the real hit path, and block punishability.
-	# Owner values: Peggy base 228 (80% of jump), Richard base 260 (intentional
+	# Owner values: Peggy base 274 (raised 2026-11-21 from 228 — the authored
+	# route now connects with human timing), Richard base 260 (intentional
 	# asymmetry: one follow-up); EX higher for both.
 	var launch_matrix_ok := true
 	var launch_detail := "ok"
 	for fighter_data in [p1.data, p2.data]:
 		var base_fwd: MoveData = fighter_data.find_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
 		var ex_fwd: MoveData = fighter_data.find_ex_move(MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
-		var want_base := 228.0 if fighter_data.id == "peg_leg_peggy" else 260.0
+		# Phase 3 owner call (2026-11-21): Peggy's base launcher was raised
+		# 228 -> 274 so the authored route (jump_light + jump_heavy) connects
+		# with Richard-grade human timing (3-frame jump window, f34-36).
+		var want_base := 274.0 if fighter_data.id == "peg_leg_peggy" else 260.0
 		var want_ex := 360.0 if fighter_data.id == "peg_leg_peggy" else 340.0
 		if not is_equal_approx(base_fwd.knockback.y, want_base):
 			launch_matrix_ok = false
@@ -2398,7 +2402,7 @@ func _run() -> void:
 		if crouch_heavy.knockback.y != 0.0 or not crouch_heavy.knockdown:
 			launch_matrix_ok = false
 			launch_detail = "%s crouch heavy changed" % fighter_data.id
-	_check("launchers are authored data with the owner values (Peggy 228/360, Richard 260/340)",
+	_check("launchers are authored data with the owner values (Peggy 274/360, Richard 260/340)",
 		launch_matrix_ok, launch_detail)
 	_check("crouch heavies remain hard knockdowns with no vertical knockback",
 		p1.data.find_move(MoveData.InputType.HEAVY, MoveData.Stance.CROUCH).knockdown

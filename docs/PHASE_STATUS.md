@@ -82,7 +82,8 @@ phase exit criteria:
   blocking and round flow work, and the match can end/restart.
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
-  The current suites contain 408 combat, 68 combo-system, 110 combo-fuzz,
+  The current suites contain 408 combat, 68 combo-system, 118 combo-fuzz,
+  55 stun-&-breaker,
   34 round-flow,
   54 mode/character-select integration, 7 locomotion-speed,
   94 stage-select/ambience, 9 stage-floor, 23 intro, and 27 CPU-opponent
@@ -98,9 +99,18 @@ phase exit criteria:
   deferred (S4); the measured 20–44 px jump-in window is kept; command-grab
   values remain provisional. Richard's base launcher is 260 and, under the
   Phase 2 point budget, connects the full two-hit juggle route (263.55);
-  Peggy's 228 base launcher connects no air follow-up at human timing — her
-  route is the EX (retune proposed, not applied). Forward-special/EX is the
+  **Peggy's base launcher was raised 228 → 274 (Phase 3 owner call,
+  2026-11-21) and now connects her authored route (221.40, jump f34–36 —
+  Richard-grade human timing; at 228 and the once-proposed ~255 nothing
+  connected).** Forward-special/EX is the
   launcher category (`MoveData.launcher`); EX cancels are grounded-only.
+- **Combo Phase 3 shipped (2026-11-21):** themed stuns on both neutral
+  specials (Peg-Lock 95 + 60f immunity; Taser Belch 40 + 240f immunity per
+  decision #7) riding the existing HITSTUN state with shake-out, and the
+  combo breaker (free per round + 40-meter extras, 5 s cooldown, once per
+  combo, hitstun/juggle-only, corner-transfer separation) — the designed
+  fix for the corner-stuck playtest issue. Jab dominance stays open by
+  owner decision (deferred until after this phase's playtest).
 - **Blockers:** no known Phase 1 implementation blocker remains. Human feel
   validation is still required; Phase 2 presentation goals remain incomplete.
 
@@ -121,7 +131,7 @@ phase exit criteria:
   the front end is now the planned hub flow — content warning (once per
   launch), title, main menu (price-board + chat strip), quit confirm — on a
   ScreenRouter with a persistent Settings autoload and audio buses;
-  `docs/UI_SCREENS.md` documents what shipped, and the fifteen-suite CI
+  `docs/UI_SCREENS.md` documents what shipped, and the sixteen-suite CI
   adds ui_flow (48), settings (16), and ui_assets (4). Procedural
   newsprint/halftone and bundled OFL comic fonts are used throughout. Mode
   select (added 2026-11-17) offers 1 PLAYER or 2 PLAYERS: solo sends P1 to a
@@ -289,7 +299,7 @@ phase exit criteria:
   keyboard, hitbox accuracy, AI, progression/unlocks, performance, exports,
   content/accessibility review. Exit: no progression blockers/crashes, stable
   match flow, usable modes, and builds on target PC specs.
-- **Status:** **In progress; exit not met.** CI runs the fifteen headless suites
+- **Status:** **In progress; exit not met.** CI runs the sixteen headless suites
   (combat, round_flow, character_select, stage_select, stage_floor,
   locomotion_speed, cpu, combo, combo_fuzz, the_clip, serialization, b6) and
   the air

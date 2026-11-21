@@ -35,6 +35,18 @@ who turns sidewalk chaos into a rigged tournament.**
   repeat-move penalties, and variety bonuses are all data-tuned
   ([`docs/COMBO_SYSTEM_DESIGN.md`](docs/COMBO_SYSTEM_DESIGN.md)).
 
+- **Stuns & the combo breaker, Phase 3** — each neutral special is a themed
+  stun (Peggy's **Peg-Lock** freeze keeps her 95 damage; Richard's **Taser
+  Belch** trades down to 40 for a 45-frame window): the stunned defender
+  mashes **up** to shake out after the unshakeable minimum, and both sides
+  get post-stun immunity. Getting comboed? Press **grab + special together**
+  while in hitstun (strings or juggles) to break out: free once per round,
+  40 meter after that, on a 5-second cooldown — the break shoves both
+  fighters apart and even a corner-pinned defender escapes. Peggy's base
+  launcher was retuned (228 → 274 knockback) so her authored juggle route
+  connects with human timing
+  ([`docs/COMBO_SYSTEM_DESIGN.md`](docs/COMBO_SYSTEM_DESIGN.md) §15).
+
 - **The Clip** — a 15-panel comic intro that leads into mode select, with
   Space-only advancement and a complete skip path.
 - **Solo and local versus** — pick `1 PLAYER`, choose the CPU difficulty
@@ -91,6 +103,7 @@ godot --headless --path game --script res://tests/stage_floor_test.gd
 godot --headless --path game --script res://tests/cpu_test.gd
 godot --headless --path game --script res://tests/combo_test.gd
 godot --headless --path game --script res://tests/combo_fuzz_test.gd
+godot --headless --path game --script res://tests/stun_breaker_test.gd
 godot --headless --path game --script res://tests/the_clip_test.gd
 godot --headless --path game --script res://tests/serialization_test.gd
 godot --headless --path game --script res://tests/b6_landing_whiff_test.gd
@@ -101,7 +114,8 @@ godot --headless --path game --script res://tests/ui_assets_test.gd
 
 Current suites: **combat 408 checks**, round flow 34, character select 54,
 locomotion speed 7, stage select 94, stage floor 9, CPU opponent 27,
-combo system 68, combo fuzz 110, The Clip 23, serialization 24, B6
+combo system 68, combo fuzz 118, stun & breaker 55, The Clip 23,
+serialization 24, B6
 landing-whiff 5, UI flow 48, settings 16, UI assets 4 — all
 green in CI (`tests.yml`, every step under a `timeout-minutes`).
 `tests/air_probe.gd` and `tests/juggle_probe.gd` print balance metrics and
@@ -265,5 +279,6 @@ this is fictional "Sidewalk Florida".
 changes separate from presentation-only changes, and run the headless suites
 before pushing: `combat`, `round_flow`, `character_select`, `stage_select`,
 `stage_floor`, `locomotion_speed`, `cpu`, `combo`, `the_clip`,
-`serialization`, `b6_landing_whiff` (see `docs/PM_BRIEF.md` §5 for the exact
-commands; every CI step has a `timeout-minutes`).
+`serialization`, `b6_landing_whiff`, plus `combo_fuzz`, `stun_breaker`,
+`ui_flow`, `settings`, and `ui_assets` (see `docs/PM_BRIEF.md` §5 for the
+exact commands; every CI step has a `timeout-minutes`).

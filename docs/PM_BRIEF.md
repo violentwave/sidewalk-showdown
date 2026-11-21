@@ -3,12 +3,15 @@
 > **Keep this file current: every PR that changes features, tests, commands, or
 > rules must update PM_BRIEF.md.**
 >
-> Last verified: **2026-11-21**, against `origin/main` at `4960353`
-> (PR #81) plus this branch's UI Phase 1 (router, Settings autoload, audio
-> buses, content warning / title / main menu / quit confirm screens, the
-> 6-item pause menu, m5x7 theme, prepare_ui.gd art pipeline, and three new
-> suites: ui_flow 48, settings 16, ui_assets 4; character_select grew to
-> 54 with boot-flow checks). All claims below were checked
+> Last verified: **2026-11-21**, against `origin/main` at `16124bc`
+> (PR #83, UI Phase 1 + combo Phase 2) plus this branch's **combo Phase 3
+> (stuns + breaker)**: authored StunEffect rows on both neutral specials
+> (Richard Taser Belch 105→40 + 240f immunity, Peggy Peg-Lock 95 + 60f
+> immunity), the free-per-round + 40-meter combo breaker, and Peggy's base
+> launcher raised 228→274 (owner call: the authored route now connects with
+> human timing). New suite: stun_breaker 55 checks; combo_fuzz grew to
+> 118 with stun/breaker fuzz and a re-measured soak (3092–5007 frames,
+> limit 6500). All claims below were checked
 > against the code, resources, workflows, and a full local test run on this
 > branch — not copied from other docs. Stale claims found elsewhere are
 > called out in §9.
@@ -40,9 +43,11 @@ Slice, in progress**. Shipped features, each verified in code/data:
 
 | Feature | One-line status |
 |---|---|
-| Peg Leg Peggy | 1000 HP, walk 95/72, jump 285, body 26x54; throw 95; command grab 14/3/24 (dmg 120, whiff rec 24); forward special launches (130x/228y, `launcher` data flag; 228y connects NO air follow-up at human timing — her juggle route needs EX), forward EX (150x/360y, cost 50; route 256.40); METH "Walk the Plank" (1000 dmg, hitstop 30) |
-| Whiskey Richard | 1000 HP, same locomotion, body 32x60; throw 105; command grab 16/3/26 (dmg 140, whiff rec 26, meter_gain_hit 8.0 authored); launcher 260y base (full budget route jump_heavy+richard_air = 263.55 connects) / 340y EX (293.55); METH "Flaming Belch" |
-| Meter (Hype) | Max 100; builds **only on landed hits** (`meter_gain_hit` 6.0 default, throws included, one award per connection); blocked pays `meter_gain_block x METER_GAIN_ON_BLOCK_SCALE` (static, **0.0**); whiff/receive values stay authored but are never awarded; spenders: EX specials (50 each) and METHtality (drains the full bar) |
+| Peg Leg Peggy | 1000 HP, walk 95/72, jump 285, body 26x54; throw 95; command grab 14/3/24 (dmg 120, whiff rec 24); neutral special = **Peg-Lock stun** (95 dmg kept, 45f window, 60f immunity — owner call 2026-11-21); forward special launches (130x/**274y**, `launcher` data flag — raised from 228 so the authored route jump_light+jump_heavy connects at human timing, jump f34–36; route 221.40), forward EX (150x/360y, cost 50; route 256.40); METH "Walk the Plank" (1000 dmg, hitstop 30) |
+| Whiskey Richard | 1000 HP, same locomotion, body 32x60; throw 105; command grab 16/3/26 (dmg 140, whiff rec 26, meter_gain_hit 8.0 authored); neutral special = **Taser Belch stun** (decision #7: 105 → 40 dmg, 45f window, 240f immunity); launcher 260y base (full budget route jump_heavy+richard_air = 263.55 connects) / 340y EX (293.55); METH "Flaming Belch" |
+| Meter (Hype) | Max 100; builds **only on landed hits** (`meter_gain_hit` 6.0 default, throws included, one award per connection); blocked pays `meter_gain_block x METER_GAIN_ON_BLOCK_SCALE` (static, **0.0**); whiff/receive values stay authored but are never awarded; **a stun-authored hit pays the attacker nothing (§10.5)**; spenders: EX specials (50 each), METHtality (full bar), and **extra combo breaks (40 each)** |
+| Stuns (Phase 3) | Both neutral specials carry authored `StunEffect` rows (see the fighter rows). A landed stun replaces the move's hitstun with the 45f window (rides HITSTUN — no new states), shrinks with the hit's damage scale (below the 20f minimum it does not stun at all), never lands airborne (`launcher_safe` false), once per combo, shake-out mashing (up) cuts 3f per press after the 20f minimum, then immunity (Peggy 60f / Richard 240f); the follow-up string starts at scaling step 3; stun feedback is the authored tint on the existing flash path (no new art) |
+| Combo breaker (Phase 3) | Grab+special together while in HITSTUN (grounded strings AND juggles; never blockstun): free once per round, extra breaks cost 40 meter (a 0-meter defender keeps the free one), 300f cooldown, once per combo. On break: the attacker's combo and dial-in die, both fighters separate 30 px over 6 frames via `direction_away_from()` (a wall-pinned defender's share transfers to the attacker — the corner-escape fix), and 20f of wake-up-style invulnerability gates everything. Round-scoped free uses re-arm in `begin_round`; all state serializes; HUD readouts/signals exposed for Phase 4 |
 | Side switching | Facing is derived from the opponent each grounded neutral frame (IDLE/WALK/CROUCH), frozen everywhere else and during hitstop; 4 px deadzone; block/knockback/throw/tech side resolved positionally via `relative_side()` / `direction_away_from()` / `is_in_front_of()` (equal-x counts as in front of the attacker) |
 | Pass-through | `MatchRoot.fighters_can_pass_through = true` (exported, ships ON): Smash-style bodies, no pushbox separation on ground or in air; `false` restores the legacy grounded pushbox with corner-transfer separation; jump-over works either way |
 | CPU opponent | Solo P2 driven by `CpuController` (deterministic seeded LCG, presses the same `p2_*` actions as a human, ticks at physics priority -100 on completed frames); difficulties are data: `game/resources/ai/cpu_{easy,normal,hard}.tres` (reaction 22/14/8f, block 0.35/0.65/0.90, idle watchdog 90/60/40); debug `p1_cpu` enables AI-vs-AI |
@@ -100,7 +105,8 @@ Counts are PASS+FAIL lines observed in real headless runs, not doc claims.
 | `cpu_test.gd` | CPU legality, determinism (same seed -> same hash), save/restore, difficulty ordering, 8-match AI-vs-AI soak | **27** | yes — fixed 2026-11-20 (engine was ticking the manually-stepped match; see §7 history) |
 | `the_clip_test.gd` | Panel art slots, canon guards, Space-only flow, skips, fonts | **23**, 0 fail | yes |
 | `combo_test.gd` | Combo layer: legacy ladder pins, BLOCK/WHIFF cancels, Clip Cancel, macros, caps + meter-in-combo, Phase 2 juggle budget/routes/decay/serialization, mid-combo + mid-juggle save/restore, determinism, seeded route fuzz | **68**, 0 fail | yes |
-| `combo_fuzz_test.gd` | Seeded fuzz over the combo layer: route search, 12/550 caps, macros/Clip-Cancel/blocked-macro/counter edges, two-build determinism, mid-combo serialize/restore, cross-up on both stages, juggle budget/routes/seeded juggle fuzz on both stages, 8-match CPU-vs-CPU soak (3921–13928 frames, limit 15000) | **110**, 0 fail | yes — repaired 2026-11-21 (PR #76 harness port); Phase 2 juggle coverage added 2026-11-21 |
+| `combo_fuzz_test.gd` | Seeded fuzz over the combo layer: route search, 12/550 caps, macros/Clip-Cancel/blocked-macro/counter edges, two-build determinism, mid-combo serialize/restore, cross-up on both stages, juggle budget/routes/seeded juggle fuzz on both stages, Phase 3 stun/breaker fuzz (both matchups, both fighters as the breaking side), 8-match CPU-vs-CPU soak (3092–5007 frames, limit 6500 = worst + ~25%) | **118**, 0 fail | yes — repaired 2026-11-21 (PR #76 harness port); Phase 2 juggle coverage added 2026-11-21; **Phase 3 stun/breaker fuzz + soak re-measure added 2026-11-21** |
+| `stun_breaker_test.gd` | Phase 3 stun and breaker rails end to end: window/shake-out/immunity/once-per-combo/step-3 scaling, blocked and airborne rails, buffer-freeze bounds, breaker free/meter/cooldown/once-per-combo economy, blockstun+neutral rejection, juggle breaks, the corner escape, mid-stun/mid-break serialize-restore, determinism | **55**, 0 fail | yes — **added 2026-11-21 (Phase 3)** |
 | `serialization_test.gd` | Match serializable-surface keys + round trip | **24**, 0 fail | yes — fixed 2026-11-20 (exits with `quit()`, correct exit code) |
 | `b6_landing_whiff_test.gd` | Superseded B6 rule: landing a whiffed air move awards 0 meter, move clears, recovery runs | **5**, 0 fail | yes — added 2026-11-20 (asserts current behavior; exits cleanly) |
 | `ui_flow_test.gd` | Phase 1 routing: router semantics, every forward/back path, confirm-leak guard, pause overlays, greyed items, QuitConfirm default, warning auto-continue, title pulse | **48**, 0 fail | yes — added 2026-11-21 (UI Phase 1) |
@@ -111,10 +117,10 @@ Counts are PASS+FAIL lines observed in real headless runs, not doc claims.
 | `juggle_route_probe.gd` | Real-hitbox juggle route timing search (human timing; ~7 min) | 0 (metrics) | no |
 | `idle_render_check`, `peggy/richard_clip_render_check`, `jump_block_render_check`, `jump_block_trace`, `attack_scale_check`, `peggy/richard_jump_check`, `peggy/richard_live_soak` | Manual rendered/soak review tools; need a display, write to `/tmp/opencode/` | n/a | no |
 
-CI (`.github/workflows/tests.yml`) runs import + the fifteen suites (combat,
+CI (`.github/workflows/tests.yml`) runs import + the sixteen suites (combat,
 round_flow, character_select, stage_select, stage_floor, locomotion_speed,
-cpu, combo, combo_fuzz, the_clip, serialization, b6, ui_flow, settings,
-ui_assets) plus the air-probe job
+cpu, combo, combo_fuzz, stun_breaker, the_clip, serialization, b6, ui_flow,
+settings, ui_assets) plus the air-probe job
 on push, PR, and manual dispatch; every step carries a `timeout-minutes` so
 a hang fails fast. `export.yml` builds both desktop targets on `main`/`v*`;
 `main_guard.yml` reverts unauthorized direct pushes to `main`.
@@ -138,6 +144,7 @@ godot --headless --path game --script res://tests/serialization_test.gd
 godot --headless --path game --script res://tests/b6_landing_whiff_test.gd
 godot --headless --path game --script res://tests/combo_test.gd
 godot --headless --path game --script res://tests/combo_fuzz_test.gd
+godot --headless --path game --script res://tests/stun_breaker_test.gd
 godot --headless --path game --script res://tests/ui_flow_test.gd
 godot --headless --path game --script res://tests/settings_test.gd
 godot --headless --path game --script res://tests/ui_assets_test.gd
@@ -274,10 +281,14 @@ Release blockers / decisions pending:
   `ComboTuning` replacing the hardcoded damage ladder, macro tracker, Clip
   Cancel) merged as PR #69.** **Phase 2 (juggle point budget, `launcher`
   data flags, authored §13 routes, landing-gated combo window, breaker hook,
-  balance data + proposed retunes) is implemented on
-  `feat/juggle-economics`** — see design doc §15.1 for the measured route
-  and balance tables. Phases 3–4 (stuns + breaker, combo HUD + CPU usage)
-  are planned; the eleven §15 decisions are all owner-approved.
+  balance data + proposed retunes) merged as PR #82.** **Phase 3 (stuns +
+  the combo breaker, plus the owner-approved Peggy launcher retune 228→274)
+  is implemented on `feat/stun-breaker`** — see design doc §15.1/§15.2 for
+  the measured route, the knockback sweep, and the implementation notes.
+  Phase 4 (combo HUD + CPU usage of stuns/breakers) is planned; the eleven
+  §15 decisions are all owner-approved, and the three 2026-11-21 Phase 3
+  owner calls (launcher 274, ladder kept, jab deferred) are recorded in
+  §15.1.
 - **Training mode** (GDD §6.4, Phase 3) — not started.
 - **Input remapping UI** (GDD §4.1/§4.6/§14) — not started; the map is
   generated data today.
@@ -298,17 +309,17 @@ Release blockers / decisions pending:
 
 | Doc | One line | Status |
 |---|---|---|
-| `README.md` | Player/agent-facing overview: features, quick start, controls, builds, repo map, architecture rules | **Current** (2026-11-20: contributing section now lists all fifteen suites; earlier staleness fixed with the test-reliability pass) |
+| `README.md` | Player/agent-facing overview: features, quick start, controls, builds, repo map, architecture rules | **Current** (2026-11-20: contributing section now lists all sixteen suites; earlier staleness fixed with the test-reliability pass) |
 | `GDD.md` | Full design + production plan (§13 phases, §14 gates, §16 open questions) | Mostly current; the §14 implementation-status note was refreshed 2026-11-20 (CPU, stage select, difficulty select, combo Phase 1 all marked shipped) |
 | `GAME_BIBLE.md` | Story/world canon: Tripp, 15-fighter roster, rivalries, stage canon, METHtalities, campaign acts | Current (canon, not implementation status) |
 | `CHARACTERS.md` | Roster bible: archetypes, five story layers, move kits, METHtalities for all 15 | Current (canon, design-only) |
-| `docs/PHASE_STATUS.md` | GDD §13 phase-by-phase status with owner decisions | Current (2026-11-20): baseline pinned to `77e0b55`/PR #76, meter-decision date typo fixed to 2026-11-18, gamepad row marks PR #53 shipped, counts correct (54 select, 27 CPU; fifteen suites since UI Phase 1) |
-| `docs/KNOWN_ISSUES.md` | Defects + decisions, build contents, input policy, test inventory | Current (2026-11-20): counts fixed (54 select), cpu/combo/serialization/b6 inventory entries added, CI list covers all fifteen suites, ui_flow/settings/ui_assets entries added (UI Phase 1), "(there is no AI yet)" removed, owner-reported playtest issues (jab strength, corner escape, move-clip scaling) recorded |
+| `docs/PHASE_STATUS.md` | GDD §13 phase-by-phase status with owner decisions | Current (2026-11-20): baseline pinned to `77e0b55`/PR #76, meter-decision date typo fixed to 2026-11-18, gamepad row marks PR #53 shipped, counts correct (54 select, 27 CPU; sixteen suites since combo Phase 3) |
+| `docs/KNOWN_ISSUES.md` | Defects + decisions, build contents, input policy, test inventory | Current (2026-11-20): counts fixed (54 select), cpu/combo/serialization/b6 inventory entries added, CI list covers all sixteen suites, ui_flow/settings/ui_assets entries added (UI Phase 1), "(there is no AI yet)" removed, owner-reported playtest issues (jab strength, corner escape, move-clip scaling) recorded |
 | `docs/CPU_OPPONENT.md` | CPU architecture, behaviors, difficulty knobs, soak, 27-check suite | Current (27 checks verified; flake noted in §7 above is new) |
 | `docs/SIDE_SWITCHING.md` | Facing derivation, cross-up blocking, pass-through flag, determinism notes | Current (verified against `fighter_base.gd`/`match_root.gd`) |
 | `docs/STAGES.md` | Both stages' layers/ambience, floor_y method, thumbnails, stage select, add-a-stage recipe | Current (floor_y 158/170, bounds, spawns verified) |
-| `docs/COMBO_SYSTEM_DESIGN.md` | Combo-system audit (§§1-8) + design (§§9-16), phased plan, 11 owner-approved decisions, §15.1 Phase 2 implementation + balance data | Phases 1–2 implemented (§15.1 measured 2026-11-21); Phases 3–4 planned |
-| `docs/COMBO_FINDINGS.md` | Seeded combo-fuzz results: harness/counter history, Phase 2 snapshot-aliasing + mid-air-expiry + base-Peggy findings, soak before/after, honest 15000 limit, skip list | Current (2026-11-21, includes the Phase 2 juggle coverage: 110/68 checks) |
+| `docs/COMBO_SYSTEM_DESIGN.md` | Combo-system audit (§§1-8) + design (§§9-16), phased plan, 11 owner-approved decisions, §15.1 Phase 2 implementation + balance data, §15.2 Phase 3 implementation + owner calls | Phases 1–3 implemented (§15.1/§15.2 measured 2026-11-21); Phase 4 planned |
+| `docs/COMBO_FINDINGS.md` | Seeded combo-fuzz results: harness/counter history, Phase 2 snapshot-aliasing + mid-air-expiry + base-Peggy findings, soak history, honest 6500 limit, Phase 3 skip-list closure | Current (2026-11-21, includes the Phase 2 juggle + Phase 3 stun/breaker coverage: 118/68/55 checks) |
 | `docs/SAVESTATE_PLAN.md` | What `serialize()` captures, AI state object, known gaps | Current (keys verified against code) |
 | `docs/PROPOSALS.md` | Historical combat-system proposals with measured results (§§1-7) | Current (2026-11-20): §§1/7 whiff-meter passages now carry inline "superseded" notes pointing to the landed-hits economy (§5); history preserved |
 | `docs/PIXELORAMA_PIPELINE.md` | Idle-sheet + authored-clip pipeline for both fighters (§8-§9b) | Current (integration status matches the clip libraries) |
@@ -326,7 +337,7 @@ Release blockers / decisions pending:
 | `docs/archive/*.md` (2 files) | Recovered pre-repo conversation/project history | Historical by design (frozen 2026-11-03) |
 | `docs/audits/*.md` (2 files + logs) | Read-only combat audit at `d523ed0` and the `e6d40d9` reconciliation | Historical by design (claims pinned to old SHAs; e.g. 124 combat checks then vs 408 now) |
 | `game/audio/temporary/README.md` | Temporary audio credits: CC0 SFX, unconfirmed-rights MP3s | Current |
-| `.github/pull_request_template.md` | PR checklist (summary, evidence, docs) | Current (2026-11-20): evidence block lists all fifteen CI suites plus the air probe |
+| `.github/pull_request_template.md` | PR checklist (summary, evidence, docs) | Current (2026-11-20): evidence block lists all sixteen CI suites plus the air probe |
 
 ## 10. Verification notes
 

@@ -611,16 +611,26 @@ Suggested damage scaling:
 > budget reset only with the combo, and the combo window cannot expire while
 > the defender is still airborne (the tracker covers the whole air combo).
 > Launchers are authored data: the forward special and its EX launch for both
-> fighters (marked `MoveData.launcher`; base ~80% of jump takeoff, EX higher),
-> while crouch heavies stay hard knockdowns. The floor grid above is unchanged: the juggle limit now
-> exists, but the owner has not approved revisiting the 55% floor. Counter-hit
-> detection exists (see §5.6).
-> Blocked strikes currently receive a fixed 45 px/s pushback in the real
+> fighters (marked `MoveData.launcher`), while crouch heavies stay hard
+> knockdowns. Peggy's base launcher was raised to 274 vertical knockback
+> (2026-11-21 owner call) so her authored juggle route connects at human
+> timing. Counter-hit detection exists (see §5.6).
+>
+> **Implementation-status note (2026-11-21, combo Phases 1–3):** the
+> behavior-preserving authored-cancel migration, macros, data-driven
+> scaling, the Clip Cancel, and the juggle point budget ARE implemented
+> (PRs 69/82 — the "await approval" sentence above is superseded; see
+> `docs/COMBO_SYSTEM_DESIGN.md` §§9–15). **Phase 3 (2026-11-21) adds the
+> §5.11-adjacent defensive layer:** themed stuns authored as
+> `MoveData.stun` (`StunEffect`) on both neutral specials — Peggy's
+> Peg-Lock (95 damage kept, 60-frame immunity) and Richard's Taser Belch
+> (105 → 40, 240-frame immunity) — riding the existing hitstun state with
+> shake-out mashing, once-per-combo, no airborne targets, and no meter for
+> the stun hit; plus the **combo breaker** (grab+special in hitstun: free
+> once per round, 40-meter extras, 5-second cooldown, once per combo,
+> corner-transfer separation, 20 frames of invulnerability). Blocked strikes currently receive a fixed 45 px/s pushback in the real
 > simulation, independent of authored hit knockback; there is no per-move block
-> pushback or block-condition cancel data. The behavior-preserving authored-
-> cancel migration and future combo rules are proposed in
-> `docs/PROPOSALS.md` §6 for GDD Phase 3; they are not implemented and await
-> approval. See `docs/PHASE_STATUS.md` and audit finding B8.
+> pushback or block-condition cancel data. See `docs/PHASE_STATUS.md` and audit finding B8.
 
 ### 5.11 Defensive Systems
 

@@ -111,11 +111,34 @@ budget can pay, and nothing goes NaN or out of bounds.
 
 ## Skipped, feature not present
 
-- Stuns — not present (Phase 3).
-- Breaker — not present (Phase 3); the rejection-point hook is placed.
-- CPU combo usage (strings/launchers/stuns as CPU behavior) — not merged
-  (Phase 4); the CPU-vs-CPU soak still validates that matches end
-  decisively with no stuck states.
+- ~~Stuns — not present (Phase 3).~~ **Covered since Phase 3 (2026-11-21):**
+  the `_stuns_and_breakers` fuzz (both matchups, seeds 4004/5005) lands the
+  authored stun through the real resolver, mashes shake-out presses, and
+  presses the breaker pair on scripted frames — asserting the window stays
+  in [0, 45], stun never survives going airborne, breaker counters stay in
+  bounds (free ≥ 0, cooldown ≤ 300, invuln ≤ 20), every fresh break came
+  from HITSTUN, the stun hit builds no meter, and the defender always
+  recovers. `stun_breaker_test.gd` (55 checks) covers the deterministic
+  rails end to end.
+- ~~Breaker — not present (Phase 3); the rejection-point hook is placed.~~
+  **Covered since Phase 3** (see above): the breaker resolves only in
+  HITSTUN (never blockstun, never neutral), once per combo, cooldown-gated,
+  and both fighters were fuzzed as the breaking side.
+- CPU combo usage (strings/launchers/stuns/breakers as CPU behavior) — not
+  merged (Phase 4); the CPU-vs-CPU soak still validates that matches end
+  decisively with no stuck states. The CPU does not press breakers or
+  shake out yet (owner-approved Phase 4 scope), which also keeps the
+  Phase 3 soak deterministic.
+
+## Soak history
+
+- Phase 2 (juggle economics): 3921–13928 frames, avg 8330, limit 15000.
+- **Phase 3 (2026-11-21, Peggy 274 launcher + Taser Belch 105→40):**
+  3092–5007 frames over the same 8 matches (both stages produce identical
+  lengths per seed — shared bounds/spawns), avg ~3935, worst 5007 — a
+  normal multi-round match, no stalls (mutual idle always < 240). Limit
+  reset worst + ~25%: **6500**. cpu_test's separate 40000 anti-hang
+  ceiling is generic and unchanged.
 
 ## Notes
 

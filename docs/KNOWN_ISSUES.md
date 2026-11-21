@@ -281,17 +281,19 @@ that section by hand afterward — the simulation step comes from
 - **No dash/backdash.** GDD §5.2/§5.11 list them; neutral movement is walk-only.
 - **No input-remap UI.** Gamepad play is implemented (P1 keyboard + mouse, P2
   controller), but in-game remapping is still a GDD §4.1/§4.6/§14 requirement.
-- **Launcher category (owner decision, 2026-11-07; implemented).** The forward
+- **Launcher category (owner decision, 2026-11-07; implemented; Peggy base
+  retuned 2026-11-21).** The forward
   special and its EX variant launch for both fighters with authored vertical
-  knockback (base 228 Peggy / 200 Richard = 80% of jump; EX 360 / 340); crouch
+  knockback (base **274** Peggy — raised from 228 by the Phase 3 owner call
+  so her authored route connects / 260 Richard; EX 360 / 340); crouch
   heavies remain hard knockdowns; EX cancel is grounded-only as ratified policy.
-  Measured limits (PROPOSALS §6 launcher table + Phase 2 route probe,
+  Measured limits (PROPOSALS §6 launcher table + Phase 2/3 route probes,
   2026-11-21): under the point budget, **Richard's 260 base launcher
-  connects the full two-hit route** (jump_heavy + richard_air, 263.55) —
-  the old "one follow-up" note is superseded — while **Peggy's 228 base
-  launcher connects no air follow-up at human timing** (her route is the
-  EX: 256.40; retune 228 → ~255 proposed, not applied). Both EX rows
-  (360 / 340) connect their routes. The rows are marked
+  connects the full two-hit route** (jump_heavy + richard_air, 263.55),
+  and **Peggy's 274 base launcher connects her authored route**
+  (jump_light + jump_heavy, 221.40, jump f34–36 — Richard-grade human
+  timing; at 228 and even at the once-proposed 255 nothing connected).
+  Both EX rows (360 / 340) connect their routes. The rows are marked
   `MoveData.launcher` (pure data).
 - **Jump-in follow-up has a measured spacing window.** PR B's sweep shows the
   chained `jump_light` connects at horizontal gaps 20-44 px with a 10-30 px
@@ -353,15 +355,15 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   jab damage MORE than launcher damage, so the ladder alone cannot dethrone
   the jab. A jab-specific decision is still pending (owner).
 - **A fighter backed into a corner by an advancing opponent gets stuck** —
-  they cannot break the opponent's string or move. Related design already
-  written but unimplemented: the combo breaker (free once per round +
-  40-meter extras, `docs/COMBO_SYSTEM_DESIGN.md` §11/Phase 3) and the CPU's
-  corner-jump escape (shipped for the CPU only). A human-side escape option
-  is the missing piece. **Phase 2 effect:** none yet on the ground game —
-  but juggle termination is now verified (a launched defender always
-  lands and can act, both stages, both sides, pass-through on) and the
-  breaker's rejection-point hook is placed in the budget check, so the
-  Phase 3 breaker can open the juggle window directly.
+  they cannot break the opponent's string or move. **FIXED (2026-11-21,
+  combo Phase 3): the combo breaker shipped.** Grab+special together while
+  in hitstun (grounded strings AND juggles) breaks out: free once per round,
+  40-meter extras, 5-second cooldown, once per combo. The break separates
+  both fighters 30 px over 6 frames through the shared side helper, and a
+  WALL-PINNED defender's pushback share transfers to the attacker, so the
+  cornered defender escapes with 20 frames of invulnerability (pinned in
+  `stun_breaker_test.gd` §5b). Keep this entry for the playtest: the fix is
+  verified by suites, not yet by human feel.
 - **Some move animations still scale incorrectly** — characters appear
   bigger/smaller during certain moves. The 2026-11-15 calibration pass fixed
   the worst `h_ref` drift, but owner review still sees outliers; needs a
@@ -558,7 +560,7 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   `art/tools/prepare_ui.gd` and re-runs its size table in verify-only mode
   (manifest and test cannot drift), plus a byte-identity check of every
   `game/art/ui/` copy against its approved source.
-- `game/tests/combo_fuzz_test.gd` — **110 checks**: seeded fuzz over the
+- `game/tests/combo_fuzz_test.gd` — **118 checks**: seeded fuzz over the
   combo layer — route search and 12-hit/550-damage caps on BOTH
   stages, infinite-loop and corner-carry termination, macros (clean dial,
   slow dial, dies-on-block), COUNTER_HIT edge gating, Clip Cancel
@@ -566,9 +568,18 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   mid-combo serialize/restore, cross-up and side-switch on both stages,
   Phase 2 juggle budget/route pins and a seeded juggle fuzz over every
   launcher (base + EX), both characters, both sides, both stages,
-  pass-through on, and an 8-match CPU-vs-CPU soak with an honest
-  15000-frame limit measured from real lengths (3921–13928 after the
-  economics; see `docs/COMBO_FINDINGS.md`).
+  pass-through on, **Phase 3 stun/breaker fuzz (both matchups: bounded
+  windows, legal break states, no stun meter, clean recovery)**, and an
+  8-match CPU-vs-CPU soak with an honest 6500-frame limit measured from
+  real lengths (3092–5007 after the Phase 3 retunes; see
+  `docs/COMBO_FINDINGS.md`).
+- `game/tests/stun_breaker_test.gd` — **55 checks** (combo Phase 3): stun
+  window/shake-out/immunity/once-per-combo rails, step-3 scaling on the
+  follow-up string, blocked and airborne rails, the hitstop buffer-freeze
+  bounds, the full breaker economy (free per round, 40-meter extras,
+  5-second cooldown, once per combo, blockstun/neutral rejection), juggle
+  breaks, the wall-pinned corner escape, mid-stun and mid-break
+  serialize/restore, and a two-run determinism hash.
 - Rendered/live verification harnesses (not run by CI; require a display
   because they read back the framebuffer, so they are manual review tools):
   `richard_clip_render_check.gd` (27 captures) and
@@ -586,9 +597,10 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   actionability. Prints a report and exits 0 on success; `docs/PROPOSALS.md` §3
   documents the coarse grid, before/after metrics, and target limitations. Its
   numbers are informational measurements, not passing balance assertions.
-- `.github/workflows/tests.yml` runs the fifteen headless suites — combat,
+- `.github/workflows/tests.yml` runs the sixteen headless suites — combat,
   round-flow, mode/character-select, stage-select/ambience, stage-floor-guard,
-  locomotion-speed, CPU opponent, combo system, combo fuzz, The Clip intro,
+  locomotion-speed, CPU opponent, combo system, combo fuzz, stun & breaker,
+  The Clip intro,
   serialization, B6 landing-whiff, UI flow, settings, and UI assets — plus
   the air probe on push, pull
   request and manual

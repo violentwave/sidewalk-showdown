@@ -575,10 +575,12 @@ func _launcher_route(move: MoveData, meter: float) -> Dictionary:
 				attacker.input_buffer.clear()
 			Input.action_release(fwd)
 			attacker.input_enabled = false
-		# Enforcement: at the cap on an airborne defender, the real hit path
-		# must reject a legitimate strike (no damage, no hit recorded).
-		if defender.juggle_hits >= FighterBase.JUGGLE_HIT_CAP and not defender.grounded \
-				and not cap_checked and started:
+		# Enforcement: with a spent budget (points in [0, cost)) on an airborne
+		# defender, the real hit path must reject a legitimate strike (no
+		# damage, no hit recorded). Phase 2: the flat cap is the point budget
+		# — a stand light is a normal-cost (2) air hit.
+		if defender.juggle_points >= 0 and defender.juggle_points < 2 \
+				and not defender.grounded and not cap_checked and started:
 			cap_checked = true
 			var before := defender.health
 			var strike: MoveData = attacker.data.find_move(MoveData.InputType.LIGHT,

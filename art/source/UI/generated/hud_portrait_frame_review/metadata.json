@@ -1,0 +1,19 @@
+{
+  "asset_id": "hud_portrait_frame",
+  "pass": "street-junk pilot",
+  "tool": "PixelLab REST POST /v2/generate-with-style-v2",
+  "style_references": [
+    "art/source/UI/refs/ref_sign.png (Items/SnakeSign.png trimmed, point-resized to 72x54)",
+    "art/source/UI/refs/ref_clip.png (Items/Clipboard.png trimmed, point-resized to 45x56)"
+  ],
+  "description": "a blank square instant photo taped down at two corners with silver duct tape, empty dark photo area, simple, no text, no people",
+  "style_description": "grimy Florida street junk pixel art, chunky 1px dark outline, sun-faded cardboard, silver duct tape, black sharpie scribbles, rust stains, simple and readable",
+  "seed": 93,
+  "size_received": "72x72; style reference to redraw at native size",
+  "variants": 9,
+  "generations": 15,
+  "generated": "2026-11-21",
+  "status": "generated (review)",
+  "picked": "v03 (owner asked PM to pick; other 8 variants removed)",
+  "variants_kept": 1
+}

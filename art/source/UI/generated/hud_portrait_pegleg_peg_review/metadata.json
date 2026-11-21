@@ -1,0 +1,28 @@
+{
+  "asset_id": "hud_portrait_pegleg_peg",
+  "tool": "PixelLab REST POST /v2/generate-with-style-v2",
+  "style_reference": "art/source/UI/refs/ref_peg24.png (source sprite point-resized to its ~1/16-1/22 logical scale, head cropped 24x24)",
+  "size_received": "24x24 (portrait window is 22x22: trim 1px border during cleanup)",
+  "states": {
+    "normal": {
+      "file": "normal_v03.png",
+      "description": "the same woman with green beanie and curly red hair, head and shoulders, tough confident grin",
+      "seed": 111,
+      "generations": 10
+    },
+    "hurt": {
+      "file": "hurt_v07.png",
+      "description": "the same woman with green beanie and curly red hair, head and shoulders, hurt and wincing, black eye, bruised",
+      "seed": 112,
+      "generations": 10
+    },
+    "ko": {
+      "file": "ko_v01.png",
+      "description": "the same woman with green beanie and curly red hair, head and shoulders, knocked out, X eyes, tongue out, dazed",
+      "seed": 113,
+      "generations": 10
+    }
+  },
+  "generated": "2026-11-21",
+  "status": "picked (review)"
+}

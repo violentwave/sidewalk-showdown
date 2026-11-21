@@ -1,0 +1,56 @@
+{
+  "asset_id": "stream_tripp_cam",
+  "part": "faces",
+  "tool": "PixelLab REST POST /v2/generate-with-style-v2",
+  "style_reference": "art/source/UI/refs/ref_tripp_head28.png (28x28: art/source/Characters/TrippVlogz.png point-resized to 64x64, cropped 28x28+21+6)",
+  "native_size_target": "28x18 cam window; outputs are 28x28 head-and-shoulders, crop to the cam window during cleanup",
+  "size_received": "28x28",
+  "variants_per_face": 64,
+  "generations_per_face": 10,
+  "generated": "2026-11-21",
+  "status": "generated (review)",
+  "faces": {
+    "smirk": {
+      "folder": "face_smirk",
+      "description": "the same bearded man's face, smirking, one eyebrow raised, smug half smile",
+      "style_description": "chunky 16-bit pixel art, dark outline, warm skin, brown hair and beard",
+      "seed": 21,
+      "no_background": false
+    },
+    "hype": {
+      "folder": "face_hype",
+      "description": "the same bearded man's face, hyped and screaming with excitement, mouth wide open, eyes wide, eyebrows up",
+      "style_description": "chunky 16-bit pixel art, dark outline, warm skin, brown hair and beard",
+      "seed": 31,
+      "no_background": false
+    },
+    "shocked": {
+      "folder": "face_shocked",
+      "description": "the same bearded man's face, shocked, jaw dropped, eyes bulging, eyebrows raised high",
+      "style_description": "chunky 16-bit pixel art, dark outline, warm skin, brown hair and beard",
+      "seed": 41,
+      "no_background": false
+    },
+    "mocking": {
+      "folder": "face_mocking",
+      "description": "the same bearded man's face, mocking laugh, pointing and laughing, eyes squinted, big grin",
+      "style_description": "chunky 16-bit pixel art, dark outline, warm skin, brown hair and beard",
+      "seed": 51,
+      "no_background": false
+    },
+    "bored": {
+      "folder": "face_bored",
+      "description": "the same bearded man's face, bored and unimpressed, half-closed eyelids, flat mouth, slouching",
+      "style_description": "chunky 16-bit pixel art, dark outline, warm skin, brown hair and beard",
+      "seed": 61,
+      "no_background": false
+    },
+    "glitched": {
+      "folder": "face_glitched",
+      "description": "the same bearded man's face, same face distorted by a video glitch, horizontal scanline tears, shifted color channels",
+      "style_description": "chunky 16-bit pixel art, dark outline, warm skin, brown hair and beard",
+      "seed": 71,
+      "no_background": false
+    }
+  }
+}

@@ -1,20 +1,26 @@
 # ContentWarning — the boot notice (shown once per launch).
-# A plain, sober photosensitivity sentence on a ui_panel 9-slice with one
-# Tripp-flavored line above it. Continues on confirm or after 3 s (180
-# frames — UI timers count frames, never wall-clock). Pure presentation.
+# A plain, sober notice on one centered ui_panel: a short mature-content
+# line and a short photosensitivity line in m5x7, a Sidewalk Marker header.
+# No auto-advance (owner playtest change, 2026-11-21): the player must
+# press confirm, and confirm is ignored for the first 30 frames so a key
+# held at boot cannot skip the screen. UI timers count frames, never
+# wall-clock. Pure presentation.
 extends Control
 
 signal warning_done
 
 const THEME_RESOURCE := preload("res://resources/ui_theme.tres")
-const AUTO_CONTINUE_FRAMES := 180  # 3 seconds at 60 Hz
+const GLYPH_KEY := preload("res://art/ui/ui/ui_glyph_key_blank.png")
+
+const PANEL_POS := Vector2(40, 42)
+const PANEL_SIZE := Vector2(240, 96)
+const INPUT_GUARD_FRAMES := 30
 
 var _frames := 0
 var _done := false
 
 
 func _ready() -> void:
-	theme = THEME_RESOURCE
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var dim := ColorRect.new()
@@ -24,30 +30,50 @@ func _ready() -> void:
 	add_child(dim)
 
 	var panel := Panel.new()
-	panel.position = Vector2(52, 52)
-	panel.size = Vector2(216, 76)
+	panel.theme = THEME_RESOURCE
+	panel.position = PANEL_POS
+	panel.size = PANEL_SIZE
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(panel)
 
-	_add_label("TRIPP VLOGS PRESENTS", Vector2(52, 24), Vector2(216, 16),
-		Color(0.949, 0.82, 0.227), HORIZONTAL_ALIGNMENT_CENTER)
-	_add_label("NOTICE", Vector2(52, 58), Vector2(216, 16),
-		Color(0.96, 0.91, 0.83), HORIZONTAL_ALIGNMENT_CENTER)
-	_add_label("THIS GAME CONTAINS FLASHING IMAGERY AND\nSTROBING LIGHTS THAT MAY POSE A RISK TO\nPHOTOSENSITIVE PLAYERS.",
-		Vector2(60, 74), Vector2(200, 48),
-		Color(0.96, 0.91, 0.83), HORIZONTAL_ALIGNMENT_CENTER)
-	_add_label("PRESS CONTINUE OR WAIT", Vector2(52, 134),
-		Vector2(216, 10), Color(0.68, 0.66, 0.62), HORIZONTAL_ALIGNMENT_CENTER)
+	var header := UiText.marker("HEADS UP", Vector2(PANEL_POS.x, PANEL_POS.y + 8),
+		UiText.CREAM_TEXT)
+	header.size = Vector2(PANEL_SIZE.x, UiText.MARKER_LINE_HEIGHT)
+	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	add_child(header)
 
+	var line1 := UiText.body("THIS GAME CONTAINS MATURE CONTENT.",
+		Vector2(PANEL_POS.x + 8, PANEL_POS.y + 26), UiText.CREAM_TEXT)
+	add_child(line1)
+	var line2 := UiText.body("FLASHING LIGHTS. MIND YOUR EYES.",
+		Vector2(PANEL_POS.x + 8, PANEL_POS.y + 42), UiText.CREAM_TEXT)
+	add_child(line2)
+
+	_build_press_row(PANEL_POS.y + 72)
 	add_child(UiPromptLine.new("CONTINUE", ""))
 
 
+func _build_press_row(at_y: int) -> void:
+	# "PRESS [glyph] TO CONTINUE" centered as one row (Sidewalk Marker).
+	var left := UiText.marker("PRESS ", Vector2.ZERO, UiText.MUTED)
+	var glyph := TextureRect.new()
+	glyph.texture = GLYPH_KEY
+	glyph.size = Vector2(9, 9)
+	glyph.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var right := UiText.marker(" TO CONTINUE", Vector2.ZERO, UiText.MUTED)
+	var total := UiText.marker_width("PRESS ") + 9 + UiText.marker_width(" TO CONTINUE")
+	var x := 160 - total / 2.0
+	left.position = Vector2(roundi(x), at_y)
+	glyph.position = Vector2(roundi(x + UiText.marker_width("PRESS ")), at_y + 1)
+	right.position = Vector2(roundi(x + UiText.marker_width("PRESS ") + 9), at_y)
+	add_child(left)
+	add_child(glyph)
+	add_child(right)
+
+
 func _physics_process(_delta: float) -> void:
-	if _done:
-		return
 	_frames += 1
-	if _frames >= AUTO_CONTINUE_FRAMES:
-		_continue()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -55,6 +81,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	ScreenRouter.note_input_device(event)
 	if _done:
+		return
+	if _frames < INPUT_GUARD_FRAMES:
+		# A key held down at boot must not skip the notice.
+		if event.is_action_pressed("ui_confirm") or event.is_action_pressed("p1_light"):
+			get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("ui_confirm") or event.is_action_pressed("p1_light"):
 		get_viewport().set_input_as_handled()
@@ -66,17 +97,3 @@ func _continue() -> void:
 		return
 	_done = true
 	warning_done.emit()
-
-
-func _add_label(text: String, at: Vector2, dimensions: Vector2, color: Color,
-		alignment: HorizontalAlignment) -> void:
-	var label := Label.new()
-	label.position = at
-	label.size = dimensions
-	label.text = text
-	label.horizontal_alignment = alignment
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 16)
-	label.add_theme_color_override("font_color", color)
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(label)

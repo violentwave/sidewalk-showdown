@@ -497,7 +497,7 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   sudden-death tie resolving by damage dealt (with the announced tiebreak), the
   deterministic P1 fallback, a clean win in sudden death ending the match, the
   clock frozen during hitstop, and a hit on the timer's final frame counting.
-- `game/tests/character_select_test.gd` — **54 checks**: intro MP3 playback on
+- `game/tests/character_select_test.gd` — **55 checks**: intro MP3 playback on
   The Clip and character select, mode select defaulting to 1 PLAYER and moving
   to 2 PLAYERS, Backspace back-out, default selections,
   independent P1/P2 movement/confirmation, unlock-on-move, the solo two-pick
@@ -579,7 +579,7 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   `art/tools/prepare_ui.gd` and re-runs its size table in verify-only mode
   (manifest and test cannot drift), plus a byte-identity check of every
   `game/art/ui/` copy against its approved source.
-- `game/tests/ui_typography_test.gd` — **14 checks** (2026-11-21 polish, extended by the PR #86 review fixes and the PR A select screens):
+- `game/tests/ui_typography_test.gd` — **38 checks** (2026-11-21 polish, extended by the PR #86 review fixes, the PR A select screens, and the PR B match wrap):
   every label in the ten UI surfaces (nine screens + the pause menu)
   uses Sidewalk Marker at 10 or m5x7 at 16 with every glyph present, carries
   no theme outline or shadow, sits at an integer position, and is never
@@ -587,7 +587,7 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   container and use the dark inks (#2A2418/#7A6A48/#1C160D); over-stage-art
   lettering uses the outlined marker; the pause panel sizes itself to its
   longest item plus 8 px padding each side.
-- `game/tests/select_screens_test.gd` — **23 checks** (PR A, 2026-11-22):
+- `game/tests/select_screens_test.gd` — **24 checks** (PR A, 2026-11-22; extended by the PM review fix-ups):
   the Mode and Difficulty choices are unchanged (names, order, defaults,
   emits, back paths); the difficulty rows draw 1/2/3 ink tally marks; the
   rap sheet shows the focused fighter's roster name and owner-editable
@@ -597,6 +597,14 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   immediately; the RANDOM scratch-off holds the hand-off for its full
   18 frames and then hands off the stage the RNG picked with its own
   thumbnail revealed.
+- `game/tests/results_flow_test.gd` — **20 checks** (PR B, 2026-11-22): the
+  VS busts slide in over 12 integer steps and land at their marks (P2
+  flipped); the 20-frame VS skip guard; the full 150-frame duration;
+  Results appears at match end above the frozen (paused) match with the
+  real winner and rounds tally; serialize() is identical while Results is
+  up; the 30-frame Results input guard; REMATCH routes through the VS
+  bumper and keeps fighters and stage; CHARACTER SELECT / STAGE SELECT /
+  MAIN MENU all route correctly and unpause.
 - `game/tests/combo_fuzz_test.gd` — **118 checks**: seeded fuzz over the
   combo layer — route search and 12-hit/550-damage caps on BOTH
   stages, infinite-loop and corner-carry termination, macros (clean dial,
@@ -634,12 +642,12 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   actionability. Prints a report and exits 0 on success; `docs/PROPOSALS.md` §3
   documents the coarse grid, before/after metrics, and target limitations. Its
   numbers are informational measurements, not passing balance assertions.
-- `.github/workflows/tests.yml` runs the eighteen headless suites — combat,
+- `.github/workflows/tests.yml` runs the nineteen headless suites — combat,
   round-flow, mode/character-select, stage-select/ambience, stage-floor-guard,
   locomotion-speed, CPU opponent, combo system, combo fuzz, stun & breaker,
   The Clip intro,
   serialization, B6 landing-whiff, UI flow, settings, UI assets,
-  UI typography, and select screens — plus
+  UI typography, select screens, and results flow — plus
   the air probe on push, pull
   the air probe on push, pull
   request and manual

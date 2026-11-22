@@ -292,12 +292,23 @@ func _test_boot_flow() -> void:
 	await process_frame
 	_press(main.character_select, "p1_light")
 	await process_frame
+	# Forward again into a match — through the Phase 3b VS bumper.
 	_press(main.stage_select, "p1_light")
 	await process_frame
 	await process_frame
-	_check("confirming a stage starts the match",
-		main.match_root != null and main.stage_select == null,
-		"match=%s" % str(main.match_root != null))
+	_check("confirming a stage opens the VS bumper",
+		main.vs_screen != null and main.stage_select == null
+			and main.match_root == null,
+		"vs=%s match=%s" % [str(main.vs_screen != null),
+			str(main.match_root != null)])
+	await _step(25)
+	_press(main.vs_screen, "ui_confirm")  # past the 20-frame guard: skip
+	await process_frame
+	await process_frame
+	_check("skipping the VS bumper starts the match",
+		main.match_root != null and main.vs_screen == null,
+		"match=%s vs=%s" % [str(main.match_root != null),
+			str(main.vs_screen != null)])
 
 	# Pause: SETTINGS overlay above the paused match, back to the pause menu.
 	var paused_match: Node = main.match_root

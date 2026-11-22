@@ -21,6 +21,8 @@ const SCREEN_SCENES := [
 	["difficulty select", "res://scenes/menus/DifficultySelect.tscn"],
 	["character select", "res://scenes/menus/CharacterSelect.tscn"],
 	["stage select", "res://scenes/menus/StageSelect.tscn"],
+	["vs screen", "res://scenes/menus/vs_screen.tscn"],
+	["results screen", "res://scenes/menus/results_screen.tscn"],
 ]
 const MATCH_SCENE := preload("res://scenes/match/MatchRoot.tscn")
 
@@ -105,6 +107,75 @@ func _panel_under(node: Control) -> Panel:
 	return best
 
 
+func _ink_core(node: Control) -> Rect2:
+	# The label's DRAWN ink band, not its rect: rows like the settings
+	# label/value pairs share a row with rects that touch, so overlap is
+	# measured on the text extents — horizontally the ink inside the rect
+	# per alignment, vertically a centered 8 px core (m5x7/marker line boxes
+	# are taller than the ink, and stacked wall text uses 10 px spacing).
+	var label := node as Label
+	var font: Font = label.get_theme_font("font")
+	var size: int = label.get_theme_font_size("font_size")
+	var ink_width := font.get_string_size(label.text,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+	var x := label.global_position.x
+	match label.horizontal_alignment:
+		HORIZONTAL_ALIGNMENT_CENTER:
+			x += (label.size.x - ink_width) / 2.0
+		HORIZONTAL_ALIGNMENT_RIGHT:
+			x += label.size.x - ink_width
+	var height: float = minf(label.size.y, 8.0)
+	var top: float = label.global_position.y + (label.size.y - height) / 2.0
+	return Rect2(Vector2(x, top), Vector2(ink_width, height))
+
+
+func _overlap_problems(labels: Array) -> Array[String]:
+	# PM review fix-ups: no two visible, non-empty labels may overlap on any
+	# screen. The two PR A bugs (ticket names wider than their columns
+	# overlapping the neighbouring name, rap-sheet text overhanging into
+	# neighbouring rows) both fail this on the old code.
+	var problems: Array[String] = []
+	var visible: Array = []
+	for node in labels:
+		if node.is_visible_in_tree() and not node.text.is_empty():
+			visible.append(node)
+	for i in visible.size():
+		for j in range(i + 1, visible.size()):
+			var a: Control = visible[i]
+			var b: Control = visible[j]
+			if _ink_core(a).intersects(_ink_core(b)):
+				problems.append("'%s' overlaps '%s'" % [a.text, b.text])
+	return problems
+
+
+func _card_problems(labels: Array, scene: Node) -> Array[String]:
+	# PM review fix-ups: every label drawn over a TextureRect card (the rap
+	# sheet, the tickets, the taped button) must lie fully inside that card.
+	# Full-screen background art is not a card.
+	var problems: Array[String] = []
+	var cards: Array = []
+	for n in scene.find_children("*", "TextureRect", true, false):
+		var card := n as TextureRect
+		if not card.is_visible_in_tree():
+			continue
+		if card.size.x >= 320.0 and card.size.y >= 180.0:
+			continue  # full-screen background art
+		if card.size.y < 12.0:
+			continue  # highlight strips (the lit price slat) are not cards
+		cards.append(card)
+	for node in labels:
+		if not node.is_visible_in_tree() or node.text.is_empty():
+			continue
+		var label_rect := Rect2(node.global_position, node.size)
+		for card in cards:
+			var card_rect := Rect2(card.global_position, card.size)
+			if card_rect.intersects(label_rect) and not card_rect.encloses(label_rect):
+				problems.append("%s '%s' spills off its card %s" % [
+					str(node.name), node.text, str(card_rect)])
+				break
+	return problems
+
+
 func _run() -> void:
 	await process_frame
 
@@ -119,6 +190,12 @@ func _run() -> void:
 		var problems := _typography_problems(labels)
 		_check("every label in the %s follows the typography rules" % entry[0],
 			problems.is_empty(), "; ".join(problems))
+		var label_overlaps := _overlap_problems(labels)
+		_check("no two visible labels overlap in the %s" % entry[0],
+			label_overlaps.is_empty(), "; ".join(label_overlaps))
+		var card_problems := _card_problems(labels, scene)
+		_check("every label over a card in the %s lies inside it" % entry[0],
+			card_problems.is_empty(), "; ".join(card_problems))
 		scene.free()
 		await process_frame
 

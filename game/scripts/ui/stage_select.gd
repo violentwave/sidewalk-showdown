@@ -28,6 +28,15 @@ const SILVER_SIZE := Vector2(36, 16)
 const REVEAL_FRAMES := 18
 const REVEAL_COLUMNS := 18
 
+# PM review fix: every ticket label must fit its 88 px column. Use a short
+# display label IN THE STAGE SELECT ONLY when the full name does not fit;
+# the full names stay everywhere else (roster, HUD, docs).
+const NAME_COLUMN_WIDTH := 88.0
+const SHORT_NAMES := {
+	"gas_n_go": "GAS-N-GO",
+	"bus_stop_night": "BUS STOP",
+}
+
 @export var roster: MatchRoster
 # Stable id restored when returning from a match; "" falls back to the first
 # stage in the roster.
@@ -142,6 +151,9 @@ func _build_ui() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var background: Node2D = STAGE_SCENE.instantiate()
+	# Stage ambient sprites (the mosquitoes) use z_index 10; push the whole
+	# backdrop below the UI so nothing flies over panels or text.
+	background.z_index = -20
 	add_child(background)
 	add_child(UiText.dim_overlay())
 
@@ -186,9 +198,9 @@ func _build_ui() -> void:
 			random_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			add_child(random_note)
 		else:
-			var name_label := UiText.marker(stages[entry].display_name.to_upper(),
-				Vector2(at.x, at.y + 46), Color.WHITE, true)
-			name_label.size = Vector2(TICKET_SIZE.x, UiText.MARKER_LINE_HEIGHT)
+			var name_label := UiText.marker(_ticket_label(stages[entry]),
+				Vector2(at.x - 8.0, at.y + 46), Color.WHITE, true)
+			name_label.size = Vector2(NAME_COLUMN_WIDTH, UiText.MARKER_LINE_HEIGHT)
 			name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			add_child(name_label)
 
@@ -202,6 +214,15 @@ func _build_ui() -> void:
 
 	add_child(UiPromptLine.new("CONFIRM", "BACK"))
 	_refresh()
+
+
+func _ticket_label(stage: StageData) -> String:
+	# PM review fix: the full Marker name only if it fits the 88 px column,
+	# otherwise the stage's short select label.
+	var full := stage.display_name.to_upper()
+	if UiText.marker_width(full) <= NAME_COLUMN_WIDTH:
+		return full
+	return str(SHORT_NAMES.get(stage.id, full))
 
 
 func _move(direction: int) -> void:

@@ -113,13 +113,14 @@ godot --headless --path game --script res://tests/settings_test.gd
 godot --headless --path game --script res://tests/ui_assets_test.gd
 godot --headless --path game --script res://tests/ui_typography_test.gd
 godot --headless --path game --script res://tests/select_screens_test.gd
+godot --headless --path game --script res://tests/results_flow_test.gd
 ```
 
-Current suites: **combat 408 checks**, round flow 34, character select 54,
+Current suites: **combat 408 checks**, round flow 34, character select 55,
 locomotion speed 7, stage select 94, stage floor 9, CPU opponent 41,
 combo system 68, combo fuzz 118, stun & breaker 55, The Clip 23,
 serialization 24, B6
-landing-whiff 5, UI flow 52, settings 16, UI assets 4, UI typography 14, select screens 23
+landing-whiff 5, UI flow 53, settings 16, UI assets 4, UI typography 38, select screens 24, results flow 20
 — all green in CI (`tests.yml`, every step under a `timeout-minutes`).
 `tests/air_probe.gd` and `tests/juggle_probe.gd` print balance metrics and
 assert nothing; `tests/juggle_route_probe.gd` brute-forces real-hitbox juggle
@@ -156,6 +157,8 @@ QUIT asks "Leave the sidewalk?" with NO as the safe default.
 ![Mode select](docs/assets/ui/mode_select.png)
 ![Character select](docs/assets/ui/character_select_both.png)
 ![Stage select](docs/assets/ui/stage_select.png)
+![VS bumper](docs/assets/ui/vs_screen.png)
+![Results](docs/assets/ui/results.png)
 
 - **VERSUS** opens mode select on `1 PLAYER` (solo) with `2 PLAYERS` one
   keypress away (W/S or A/D to move, J or click to start; Backspace
@@ -177,8 +180,16 @@ scratch-off tickets: Gas-N-Go, Bus Stop (Night), and RANDOM last. W/S, A/D,
 the d-pad, or the stick move the shared cursor (the focused ticket lifts
 with a yellow frame); J/click or pad X confirms; Backspace returns to
 character select with the same matchup. Confirming RANDOM plays an
-18-frame scratch-off reveal of the drawn stage before the match. The
-match then loads the chosen stage and starts the round.
+18-frame scratch-off reveal of the drawn stage. A short **VS bumper**
+then plays — the matchup lettering, both busts sliding in, the sponsor
+bug — before the match loads the chosen stage and starts the round; any
+confirm skips it after the first second.
+
+When the match ends, the **Results screen** replaces the old
+"Enter restarts": the winner's bust, the rounds/damage/max-combo/METH/time
+tally on a cardboard panel, and REMATCH / CHARACTER SELECT /
+STAGE SELECT / MAIN MENU below it. REMATCH runs the same matchup through
+the VS bumper again.
 
 | Action | P1 keyboard / mouse | P2 controller |
 |---|---|---|

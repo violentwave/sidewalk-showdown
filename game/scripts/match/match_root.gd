@@ -6,6 +6,9 @@ enum Phase { INTRO, FIGHT, KO, ROUND_END, MATCH_END }
 # Emitted when the pause menu asks to leave the match; Main owns the flow back
 # to character select.
 signal return_to_select_requested
+# Emitted once when the match reaches MATCH_END (UI Phase 3b): Main pauses
+# the tree and pushes the Results screen above the finished match.
+signal match_results_requested
 # Phase 1 pause menu: Main pushes the Settings overlay over the paused
 # match, exits to the main menu, or shows the quit confirm.
 signal settings_requested
@@ -285,8 +288,11 @@ func _match_has_winner() -> bool:
 func _end_match(winner_index: int, note := "") -> void:
 	phase = Phase.MATCH_END
 	var champion := p1 if winner_index == 0 else p2
-	hud.show_message("%s WINS THE MATCH%s\nENTER TO RESTART"
-		% [champion.data.display_name.to_upper(), note])
+	hud.show_message("%s WINS THE MATCH%s" % [champion.data.display_name.to_upper(), note])
+	# UI Phase 3b: Main owns the match-end hand-off now (the Results screen
+	# replaces the old "ENTER TO RESTART" prompt). Emitted exactly once; the
+	# sim is untouched and the paused match stays frozen underneath.
+	match_results_requested.emit()
 
 # Sudden death must end without a coin flip. Deterministic order:
 #   1. remaining health,
@@ -391,8 +397,10 @@ func _physics_process(_delta: float) -> void:
 				round_number += 1
 				_begin_round()
 		Phase.MATCH_END:
-			if Input.is_action_just_pressed("ui_confirm"):
-				_reset_match()
+			# UI Phase 3b: the Results screen (pushed by Main on
+			# match_results_requested) owns everything from here; the
+			# finished match just idles, frozen, underneath it.
+			pass
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_echo():

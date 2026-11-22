@@ -51,6 +51,9 @@ jobs:
       - name: Stun and breaker tests
         run: godot --headless --path game --script res://tests/stun_breaker_test.gd
         timeout-minutes: 10
+      - name: Combo adversarial tests
+        run: godot --headless --path game --script res://tests/combo_adversarial_test.gd
+        timeout-minutes: 5
       - name: Serialization tests
         run: godot --headless --path game --script res://tests/serialization_test.gd
         timeout-minutes: 5

@@ -59,14 +59,16 @@ const METH_BANNER_FRAMES := 120
 const FLASH_FRAMES := 12
 const PULSE_STEP := 15  # gentle low-health pulse, one shade per step
 const SKULL_STEP := 15   # METH READY skull alternation
-# Banner stamp-in: 6 sim frames, integer per-frame offsets from 8 px above.
-const STAMP_OFFSETS := [8, 7, 5, 4, 3, 1]
+# Banner stamp-in: 6 sim frames, integer per-frame offsets from 8 px above
+# down to the resting mark.
+const STAMP_OFFSETS := [8, 6, 4, 2, 1, 0]
 
 # Per-side state (index 0 = P1, 1 = P2).
 var _health: Array[float] = [1000.0, 1000.0]
 var _max_health: Array[float] = [1000.0, 1000.0]
 var _ghost: Array[float] = [1000.0, 1000.0]
 var _ghost_drain: Array[int] = [0, 0]
+var _ghost_step: Array[float] = [0.0, 0.0]
 var _combo_active: Array[bool] = [false, false]
 var _flash: Array[int] = [0, 0]
 var _round_lost: Array[bool] = [false, false]
@@ -361,13 +363,13 @@ func sim_tick() -> void:
 		if _commentary_frames == 0:
 			commentary_panel.visible = false
 			commentary_label.visible = false
-	# Ghost drain: 20 sim frames after the combo ends.
+	# Ghost drain: a linear 20-sim-frame descent from the damage point to
+	# the current health, starting when the combo counter clears.
 	for side in 2:
 		if _ghost_drain[side] > 0:
 			_ghost_drain[side] -= 1
 			var target: float = _health[side]
-			var step: float = (_ghost[side] - target) / float(GHOST_DRAIN_FRAMES)
-			_ghost[side] = maxf(target, _ghost[side] - step)
+			_ghost[side] = maxf(target, _ghost[side] - _ghost_step[side])
 			_layout_ghost(side)
 		# One flash per hit (a single fade, never strobing).
 		if _flash[side] > 0:
@@ -577,6 +579,7 @@ func _on_combo(side: int, count: int) -> void:
 		_combo_active[side] = false
 		if _ghost[side] > _health[side] + 0.5:
 			_ghost_drain[side] = GHOST_DRAIN_FRAMES
+			_ghost_step[side] = (_ghost[side] - _health[side]) / float(GHOST_DRAIN_FRAMES)
 	# Combo damage under the counter, only while the setting is on.
 	var damage_label := combo_damages[side]
 	if count >= 2 and _show_combo_damage():

@@ -71,6 +71,11 @@ func _run() -> void:
 	await _open(menu, 10)
 	await _grab("main_menu")
 
+	# 3b. Main menu with SETTINGS focused (yellow bar on the third slat).
+	menu.index = 2
+	menu._refresh()
+	await _grab("main_menu_settings")
+
 	# 4. Main menu with QUIT focused (the taped pole button).
 	menu.index = 4
 	menu._refresh()
@@ -78,13 +83,16 @@ func _run() -> void:
 	menu.free()
 	await process_frame
 
-	# 5-6. Settings overlay, Video tab then Audio tab.
+	# 5-7. Settings overlay: Video, Audio, then Gameplay tabs.
 	var settings := SETTINGS_SCENE.instantiate()
 	await _open(settings, 10)
 	await _grab("settings_video")
 	settings.tab_index = 1
 	settings._refresh()
 	await _grab("settings_audio")
+	settings.tab_index = 2
+	settings._refresh()
+	await _grab("settings_gameplay")
 	settings.free()
 	await process_frame
 

@@ -199,18 +199,24 @@ func _begin_round() -> void:
 	hud.set_timer(float(timer_frames) / 60.0)
 	hud.set_pips(wins[0], wins[1])
 	if sudden_death:
-		hud.show_message("SUDDEN DEATH")
+		hud.show_banner_text("SUDDEN DEATH")
 	elif wins[0] >= WINS_TO_TAKE_MATCH and wins[1] >= WINS_TO_TAKE_MATCH:
-		hud.show_message("DECISIVE ROUND")
+		hud.show_banner("decisive")
 	else:
-		hud.show_message("ROUND %d" % round_number)
+		# Rounds can pass 5 through double-KO draws; the approved word
+		# sprites stop at ROUND 5, so later rounds fall back to text on
+		# the plate.
+		if round_number >= 1 and round_number <= 5:
+			hud.show_banner("round_%d" % round_number)
+		else:
+			hud.show_banner_text("ROUND %d" % round_number)
 
 func _start_fight() -> void:
 	phase = Phase.FIGHT
 	phase_frame = 0
 	p1.input_enabled = true
 	p2.input_enabled = p2_human or p2_cpu
-	hud.clear_message()
+	hud.show_banner("fight")
 	if not commentary_sample_shown:
 		hud.show_commentary("TRIPP: The crowd is going insane!")
 		commentary_sample_shown = true
@@ -218,7 +224,7 @@ func _start_fight() -> void:
 		audio_manager.play_sfx("round_start")
 
 func _on_meth_started(meth_name: String) -> void:
-	hud.show_meth_message("METHtality\n%s" % meth_name.to_upper())
+	hud.show_banner("methtality", meth_name.to_upper())
 	if audio_manager != null:
 		audio_manager.play_sfx("meth")
 
@@ -232,7 +238,7 @@ func _on_fighter_ko(loser: FighterBase) -> void:
 			for f: FighterBase in [p1, p2]:
 				if f.health <= 0.0 and f.state != FighterBase.State.KO:
 					f._force_state(FighterBase.State.KO)
-			hud.show_message("DOUBLE K.O.")
+			hud.show_banner("double_ko")
 		return
 	if phase != Phase.FIGHT:
 		return
@@ -247,7 +253,7 @@ func _on_fighter_ko(loser: FighterBase) -> void:
 		audio_manager.play_sfx("ko")
 	var winner := p2 if loser == p1 else p1
 	winner._force_state(FighterBase.State.WIN)
-	hud.show_message("K.O.")
+	hud.show_banner("ko")
 
 func _finish_round(winner_index: int, double_ko := false) -> void:
 	var tiebreak_note := ""
@@ -272,10 +278,10 @@ func _finish_round(winner_index: int, double_ko := false) -> void:
 		return
 	phase = Phase.ROUND_END
 	if winner_index < 0:
-		hud.show_message("DOUBLE K.O.\nBOTH TAKE THE ROUND" if double_ko else "DRAW")
+		hud.show_banner_text("DOUBLE K.O.\nBOTH TAKE THE ROUND" if double_ko else "DRAW")
 	else:
 		var winner := p1 if winner_index == 0 else p2
-		hud.show_message("%s\nTAKES THE ROUND" % winner.data.display_name.to_upper())
+		hud.show_banner_text("%s\nTAKES THE ROUND" % winner.data.display_name.to_upper())
 
 # A match is won by the first fighter to reach WINS_TO_TAKE_MATCH *and* lead the
 # other. A 2-2 scoreline (two double KOs, or a double KO levelling the set) does
@@ -288,7 +294,7 @@ func _match_has_winner() -> bool:
 func _end_match(winner_index: int, note := "") -> void:
 	phase = Phase.MATCH_END
 	var champion := p1 if winner_index == 0 else p2
-	hud.show_message("%s WINS THE MATCH%s" % [champion.data.display_name.to_upper(), note])
+	hud.show_banner_text("%s WINS THE MATCH%s" % [champion.data.display_name.to_upper(), note])
 	# UI Phase 3b: Main owns the match-end hand-off now (the Results screen
 	# replaces the old "ENTER TO RESTART" prompt). Emitted exactly once; the
 	# sim is untouched and the paused match stays frozen underneath.
@@ -362,6 +368,12 @@ func _physics_process(_delta: float) -> void:
 
 	sim_frame += 1
 	phase_frame += 1
+	# UI Phase 2: the presentation-only per-sim-tick hook. The HUD counts
+	# its timers through this call (frozen here by the paused check above,
+	# and by hitstop inside the HUD), and it never writes anything back —
+	# nothing in the match reads from the HUD.
+	if hud != null:
+		hud.sim_tick()
 	match phase:
 		Phase.INTRO:
 			if phase_frame >= INTRO_FRAMES:

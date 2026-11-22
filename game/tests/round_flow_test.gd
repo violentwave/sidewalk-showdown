@@ -161,9 +161,17 @@ func _run() -> void:
 		"round=%d phase=%d" % [scene.round_number, scene.phase])
 
 	# --- Round 4: 2-2 is decisive; an outright win ends the match ---
-	await _step(65)
-	_check("2-2 shows the decisive-round message", scene.hud.message.text == "DECISIVE ROUND",
-		"msg='%s'" % scene.hud.message.text)
+	await _step(10)
+	_check("2-2 shows the decisive-round banner", scene.hud.banner_id == "decisive",
+		"banner='%s'" % scene.hud.banner_id)
+	# The FIGHT banner replaces it the tick the fight starts (auto-removed
+	# 30 sim frames later), so poll for the phase flip.
+	for _wait in 80:
+		await physics_frame
+		if scene.phase == 1:
+			break
+	_check("the decisive round reaches the fight with the FIGHT banner",
+		scene.hud.banner_id == "fight", "banner='%s'" % scene.hud.banner_id)
 	_place_for_ko()
 	p1._start_move(light)
 	await _step(20)

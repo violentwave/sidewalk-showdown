@@ -69,6 +69,9 @@ jobs:
       - name: UI typography tests
         run: godot --headless --path game --script res://tests/ui_typography_test.gd
         timeout-minutes: 5
+      - name: Select screens tests
+        run: godot --headless --path game --script res://tests/select_screens_test.gd
+        timeout-minutes: 5
 
   air-probe:
     # Metrics only (docs/PROPOSALS.md section 3): the probe asserts nothing and

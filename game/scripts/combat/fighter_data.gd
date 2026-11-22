@@ -43,6 +43,17 @@ extends Resource
 # Dial-a-combos owned by this fighter (§9.2). Empty = none authored.
 @export var macros: Array[MacroData] = []
 
+@export_group("Combo Breaker (Phase 3, §9.4/§11)")
+# Decision #1: one free breaker per round, extra breaks cost meter. A defender
+# with zero meter still gets the free break — the landed-hits economy never
+# pays the defender, so this is the sanctioned "no" button.
+@export var breaker_free_per_round: int = 1
+@export var breaker_meter_cost: float = 40.0
+# 5 s between breaks (fairness rail so the free tier cannot replace blocking).
+@export var breaker_cooldown_frames: int = 300
+# The two buffered actions that must be live together during hitstun/juggle.
+@export var breaker_input: Array[StringName] = [&"grab", &"special"]
+
 @export var moves: Array[MoveData] = []
 
 # PROPOSALS §7: the per-fighter command grab row (input COMMAND_GRAB). Distinct

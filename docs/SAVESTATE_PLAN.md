@@ -26,6 +26,21 @@ capture, and where it lives today.
   `juggle_hits` and `juggle_points` (−1 = no active air budget) serialize
   with the fighter and restore exactly (mid-juggle round-trip pinned in
   `combo_test.gd`).
+- **Stun state (Phase 3, 2026-11-21):** `stun_id`,
+  `stun_frames_remaining`, `stun_window_applied`, `stun_min_frames`,
+  `stun_shake_presses`, `stun_shake_per_press`, `stun_grant_immunity`,
+  `stun_immunity_frames` — the whole stun window (post shake-out) and its
+  granted immunity round-trip mid-stun (pinned in
+  `stun_breaker_test.gd`). The tint is re-derived from the stun id through
+  the authored `StunEffect` on load, so the dictionary stays plain data.
+- **Breaker state (Phase 3, 2026-11-21):** `breaker_free_uses_left`
+  (round-scoped, re-armed from `FighterData.breaker_free_per_round` in
+  `begin_round`), `breaker_cooldown_frames`, `breaker_used_this_combo`,
+  `breaker_invuln_frames`, and the separating push
+  (`breaker_push_dir`, `breaker_push_self_px`,
+  `breaker_push_other_px`, `breaker_push_frames`) — mid-break snapshots
+  restore cooldown and invulnerability exactly (pinned in
+  `stun_breaker_test.gd`).
 - **Snapshot stability (2026-11-21):** every mutable container in
   `serialize()` (`wins`, `round_damage`, `move_ids`, `macro_pending`,
   `input_buffer`, `input_history`) is a DUPLICATE, so a snapshot held

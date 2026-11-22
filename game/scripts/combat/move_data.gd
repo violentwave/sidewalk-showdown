@@ -78,6 +78,13 @@ enum Invuln { NONE, STRIKE, THROW, FULL }
 # this flag changes no behavior on its own.
 @export var launcher: bool = false
 
+@export_group("Stun (Phase 3)")
+# A landed hit with a stun effect opens a combo window instead of extra
+# damage: the defender stays in HITSTUN for the stun window (shake-out
+# shortens it), then gains immunity. Null = no stun. See stun_effect.gd
+# for the rails the engine enforces around this resource.
+@export var stun: StunEffect
+
 func total_frames() -> int:
 	return startup + active + recovery
 

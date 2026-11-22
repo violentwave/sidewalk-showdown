@@ -181,10 +181,15 @@ func _cg(id: String, startup: int, recovery: int, damage: float, whiff_recovery:
 
 
 func _peggy() -> FighterData:
+	# NOTE (2026-11-21): the .tres files are hand-authored AHEAD of this
+	# generator — Phase 1/2/3 fields (combo_tuning, macros, cancels, launcher
+	# flags, StunEffect rows) exist only in the .tres. Do NOT re-run this tool
+	# to "refresh" the resources; it would drop those fields. The tables
+	# below are kept in sync for the base rows only.
 	var f := _fighter("peg_leg_peggy", "Peg Leg Peggy", 95.0, 72.0, 285.0, 26.0, 54.0,
 		Color(0.95, 0.55, 0.15, 1.0))
 	var moves: Array[MoveData] = _normals([3, 7, 35], [7, 15, 85, 5], [4, 9, 30], [8, 18, 75, 4], 40, 80)
-	moves.append_array(_specials("peggy", 95, 110, 90, 85, 70, 95, 228.0))
+	moves.append_array(_specials("peggy", 95, 110, 90, 85, 70, 95, 274.0))
 	moves.append(_ex(_m("peggy_neutral_ex", SP_NEUTRAL, STAND, MID, 7, 3, 17, 120, 7.0,
 		22, 14, 120, false, Vector2(28, -40), Vector2(44, 20), 10)))
 	moves.append(_ex(_m("peggy_forward_ex", SP_FWD, STAND, MID, 9, 4, 20, 145, 9.0,
@@ -204,10 +209,14 @@ func _peggy() -> FighterData:
 
 
 func _richard() -> FighterData:
-	var f := _fighter("whiskey_richard", "Whiskey Richard", 70.0, 55.0, 250.0, 32.0, 60.0,
+	# Same NOTE as _peggy(): the .tres is ahead of this generator; do not
+	# re-run to refresh. Phase 3 (decision #7): the neutral special is the
+	# Taser Belch stun — 105 -> 40, the lost damage is the price of the
+	# window (authored stun lives in the .tres only).
+	var f := _fighter("whiskey_richard", "Whiskey Richard", 95.0, 72.0, 285.0, 32.0, 60.0,
 		Color(0.85, 0.2, 0.18, 1.0))
 	var moves: Array[MoveData] = _normals([4, 9, 45], [9, 17, 100, 5], [5, 10, 35], [10, 19, 90, 5], 45, 90)
-	moves.append_array(_specials("richard", 105, 120, 95, 100, 60, 105, 260.0))
+	moves.append_array(_specials("richard", 40, 120, 95, 100, 60, 105, 260.0))
 	moves.append(_ex(_m("richard_neutral_ex", SP_NEUTRAL, STAND, MID, 7, 4, 17, 135, 8.0,
 		24, 14, 120, false, Vector2(28, -40), Vector2(44, 20), 10)))
 	moves.append(_ex(_m("richard_forward_ex", SP_FWD, STAND, MID, 9, 4, 20, 150, 9.0,

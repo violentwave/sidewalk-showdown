@@ -1,10 +1,14 @@
-> **Status (2026-11-21): Phase 1 is IMPLEMENTED** (router, Settings autoload,
+> **Status (2026-11-22): Phase 1 is IMPLEMENTED** (router, Settings autoload,
 > audio buses, content warning, title, main menu with the price board,
 > quit confirm, the 6-item pause menu, and the approved art
 > wired through `art/tools/prepare_ui.gd`) **and polished from owner
 > playtest feedback the same day** (Sidewalk Marker + m5x7 typography
 > rules, the chat strip removed so the main menu is the price board
 > only, the content warning press-required with a 30-frame input guard).
+> **Phase 3a (select screens) is implemented 2026-11-22 (PR A)**: Mode and
+> Difficulty restyled, Character Select reskinned as the mugshot board,
+> Stage Select reskinned as scratch-off tickets with an 18-frame RANDOM
+> reveal. Phase 3b (VS and Results screens) is the next slice.
 > See `docs/UI_SCREENS.md` for what actually shipped — it supersedes this
 > doc's Phase 1 section, and notes the deltas: The Clip runs right after
 > the content warning (before the title), there is no attract demo, the
@@ -161,8 +165,8 @@ only (decision recorded).
 | Content warning | A sun-faded gas-station NOTICE sticker | One Tripp line ("my lawyer made me put this here"), then a plain, sober photosensitivity sentence. Confirm or 3 s to continue. |
 | Title | Logo over the night sidewalk | SIDEWALK SHOWDOWN in Bangers with a spray-paint underline; PRESS START pulses once per second. After 30 s idle, an **attract demo** plays a CPU vs CPU match using the existing AI-vs-AI soak flag with a DEMO stamp, then The Clip. |
 | Versus setup | The current 1P / 2P choice, restyled | Adds a RULES row: rounds (1/3/5), timer (60/99/∞), METHtality on/off. Passed into `MatchRoot` as config. |
-| Character select | Booking-room mugshot board | Portrait against a height chart; a "rap sheet" card shows archetype, difficulty, tagline, rival and home stage (GDD §10.4). P1 and P2 cursors are marker scribbles; a button cycles palettes. Tripp never shows. |
-| Stage select | Scratch-off lottery tickets | Each stage is a ticket with its thumbnail; RANDOM is a ticket you scratch. Uses `ScratchOff.png` from `art/source/Items/` as reference. |
+| Character select | Booking-room mugshot board | Portrait against a height chart; a "rap sheet" card shows archetype, difficulty, tagline, rival and home stage (GDD §10.4). P1 and P2 cursors are marker scribbles; a button cycles palettes. Tripp never shows. **SHIPPED 2026-11-22 (PR A, Phase 3a): mugshot wall, rap sheet, scribble cursors; archetype/tagline/difficulty are owner-editable presentation copy (no data fields exist), rival/home stage omitted until data does; palette cycling never shipped and is still open.** |
+| Stage select | Scratch-off lottery tickets | Each stage is a ticket with its thumbnail; RANDOM is a ticket you scratch. Uses `ScratchOff.png` from `art/source/Items/` as reference. **SHIPPED 2026-11-22 (PR A, Phase 3a): integer-crop thumbnails in the silver panel, 2 px focus lift with a yellow frame, 18-frame RANDOM scratch-off reveal before the same hand-off.** |
 | VS screen | Tripp's "TONIGHT'S MATCHUP" bumper | Diagonal split, both portraits slam in, names, one trash-talk line per matchup, a fake sponsor bug ("brought to you by Swamp Juice"). About 2.5 s, any button skips. |
 | Pause | VHS pause | "▌▌ PAUSE" with faint tracking lines (static, no flicker). Resume, Move List (later), Settings, Restart Match, Character Select, Main Menu, Quit to Desktop (with confirm). |
 | Results | Tripp's clip of the match | Winner pose and win quote; stats: damage, max combo, METHtality yes/no, time left; viewer count change. Rematch, Character Select, Stage Select, Main Menu. Replaces today's "Enter restarts". |

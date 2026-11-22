@@ -88,6 +88,20 @@ description line sits on a dark plate bottom-left (greyed items say
 "Coming soon."); the prompt line is bottom-right. The constants live in
 `game/scripts/ui/screens/main_menu.gd`.
 
+## The select screens (PR A, 2026-11-22)
+
+All four screens run on the same rules: dimmed Gas-N-Go art (or the
+mugshot wall) behind a 55% `#1C160D` overlay, marker headers, ink-on-
+cardboard rows with the yellow focus bar, descriptions on the prompt
+plate, and unchanged input contracts (`select_screens_test` pins them).
+
+| Screen | Layout |
+| --- | --- |
+| ModeSelect | dimmed Gas-N-Go; ui_panel (96,44) 128x76; "VERSUS" marker ink header; rows "1 PLAYER" / "2 PLAYERS" (full-width focus bars at y+26/46); description on the prompt plate's left. Defaults to 1 PLAYER. |
+| Difficulty | dimmed Gas-N-Go; ui_panel (96,40) 128x88; "CPU LEVEL" header; EASY / NORMAL / HARD rows (order and names unchanged, default NORMAL) with code-drawn 1px ink tally marks (1/2/3) at each row's right; description on the prompt plate. |
+| CharacterSelect | `select/select_mugshot_bg.png` wall; "BOOKING" outlined marker header; each fighter's 64x64 `select_portrait_<fighter>.png` on the height chart (columns x 44/148, y 30); the rap sheet `select/select_rap_sheet.png` at (236,42) with dark-ink m5x7 booking lines — name from `FighterData.display_name`, archetype/tagline/difficulty tally from the owner-editable `RAP_SHEETS` presentation table (no data fields exist for them; rival and home stage are omitted until they do). Cursors: code-drawn scribbles (P1 `#f29e26` lopsided circle, P2 `#e5473a` irregular box, fixed point lists, no RNG) framing the focused portraits; the rap sheet follows whoever moved last. Status and "STAGE: CHOOSE NEXT" are outlined marker lines over the wall. Every pick, lock, solo step, and restore behavior is unchanged; there is no palette cycling (none ever shipped). |
+| StageSelect | dimmed Gas-N-Go; "PICK YOUR SPOT" outlined marker header; each stage is a `stage/stage_scratch_ticket.png` (72x44) at y 46 (x 28/124/220) with its 80x45 thumbnail **center-cropped** into the measured silver panel (36x16 at local x 18..53 / y 16..31, an AtlasTexture region — a crop, never a scale) and its name in outlined marker under it. The focused ticket lifts 2 px with a 1 px yellow frame. RANDOM stays covered ("?" over blank silver); confirming it plays an 18-frame integer-pixel scratch-off reveal (18 cover columns, one per physics frame) of the drawn stage's cropped thumbnail before the same hand-off as a concrete pick. The random source is the screen's own visual/meta RNG, unchanged. |
+
 ## Settings
 
 Autoload `Settings` (`game/scripts/ui/settings.gd`), stored in
@@ -193,16 +207,21 @@ Per-screen layouts (positions are 320x180 screen space):
 `docs/assets/ui/` holds one 320x180 PNG per polished screen:
 `content_warning`, `title`, `main_menu`, `main_menu_settings` (SETTINGS
 focused), `main_menu_quit` (QUIT focused), `settings_video`,
-`settings_audio`, `settings_gameplay`, `pause`, `quit_confirm`.
+`settings_audio`, `settings_gameplay`, `pause`, `quit_confirm`, plus the
+PR A select screens: `mode_select`, `difficulty`,
+`character_select_p1` (solo), `character_select_both` (versus),
+`stage_select`, `stage_select_random` (RANDOM focused).
 Regenerate by driving the real scenes:
 
 ```bash
 DISPLAY=:0 godot --path game --resolution 1280x720 \
     --script res://tools/ui_polish_capture.gd
+DISPLAY=:0 godot --path game --resolution 1280x720 \
+    --script res://tools/ui_select_capture.gd
 ```
 
-(`game/tools/ui_polish_capture.gd` captures the window and
-nearest-resizes to 320x180.)
+(`game/tools/ui_polish_capture.gd` and `ui_select_capture.gd` capture
+the window and nearest-resize to 320x180.)
 
 ## Fonts and theme (background)
 
@@ -246,11 +265,21 @@ on an approved file missing from the table, and exits non-zero.
 - `game/tests/settings_test.gd` — 16 checks: defaults, fill-in, round
   trip, opening never saves, reset applies + saves, 0 dB defaults.
 - `game/tests/ui_assets_test.gd` — 4 checks: sizes + byte identity.
-- `game/tests/ui_typography_test.gd` — 10 checks: every label in the six
-  Phase 1 surfaces (five screens + the pause menu) uses a pixel font at
-  its native size with every glyph present, no theme outline/shadow,
+- `game/tests/ui_typography_test.gd` — 14 checks: every label in the ten
+  Phase 1 + PR A surfaces (nine screens + the pause menu) uses a pixel font
+  at its native size with every glyph present, no theme outline/shadow,
   integer positions, no scaling; labels on cardboard (ui_panel /
   ui_button) fit their container and use the dark inks; over-art
   lettering uses the outlined marker; the pause panel sizes itself to
   its longest item plus padding.
-- All four run in CI (`tests.yml`) alongside the existing suites.
+- `game/tests/select_screens_test.gd` — 23 checks (PR A): the Mode and
+  Difficulty choices are unchanged (names, order, defaults, emits, back
+  paths); the difficulty rows draw 1/2/3 tally marks; the rap sheet
+  shows the focused fighter's roster name and owner-editable booking
+  details; cursors are per-player scribbles in the side accents and solo
+  hides P2 until lock; RANDOM starts covered; the focused ticket lifts
+  2 px with a yellow frame; concrete stages hand off immediately; the
+  RANDOM scratch-off holds the hand-off for 18 frames, then hands off
+  the stage the RNG picked with its own thumbnail revealed; Backspace
+  still leaves after the reveal.
+- All five run in CI (`tests.yml`) alongside the existing suites.

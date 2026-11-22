@@ -112,13 +112,14 @@ godot --headless --path game --script res://tests/ui_flow_test.gd
 godot --headless --path game --script res://tests/settings_test.gd
 godot --headless --path game --script res://tests/ui_assets_test.gd
 godot --headless --path game --script res://tests/ui_typography_test.gd
+godot --headless --path game --script res://tests/select_screens_test.gd
 ```
 
 Current suites: **combat 408 checks**, round flow 34, character select 54,
 locomotion speed 7, stage select 94, stage floor 9, CPU opponent 41,
 combo system 68, combo fuzz 118, stun & breaker 55, The Clip 23,
 serialization 24, B6
-landing-whiff 5, UI flow 52, settings 16, UI assets 4, UI typography 10
+landing-whiff 5, UI flow 52, settings 16, UI assets 4, UI typography 14, select screens 23
 — all green in CI (`tests.yml`, every step under a `timeout-minutes`).
 `tests/air_probe.gd` and `tests/juggle_probe.gd` print balance metrics and
 assert nothing; `tests/juggle_route_probe.gd` brute-forces real-hitbox juggle
@@ -152,22 +153,31 @@ QUIT asks "Leave the sidewalk?" with NO as the safe default.
 ![Settings](docs/assets/ui/settings_video.png)
 ![Pause](docs/assets/ui/pause.png)
 ![Quit confirm](docs/assets/ui/quit_confirm.png)
+![Mode select](docs/assets/ui/mode_select.png)
+![Character select](docs/assets/ui/character_select_both.png)
+![Stage select](docs/assets/ui/stage_select.png)
 
 - **VERSUS** opens mode select on `1 PLAYER` (solo) with `2 PLAYERS` one
   keypress away (W/S or A/D to move, J or click to start; Backspace
-  returns to the main menu):
+  returns to the main menu). The choices sit on a cardboard panel over the
+  dimmed Gas-N-Go art:
 
 - **1 PLAYER:** choose the CPU difficulty (EASY / NORMAL / HARD, W/S or A/D,
-  J confirms, Backspace goes back), then P1 picks their fighter, confirms, and
+  J confirms, Backspace goes back; each level carries tally-mark ink), then
+  P1 picks their fighter against the mugshot wall, confirms, and
   picks the opponent with the same keys. P2 is played by the CPU at the chosen
   difficulty. Backspace steps back one pick, then back to mode select.
 - **2 PLAYERS:** each player confirms their own fighter (P1 with J/click, P2 with
-  pad X). Backspace on the P1 keyboard returns to mode select.
+  pad X) — orange circle and red box scribble cursors mark the picks, and a
+  rap sheet books the focused fighter. Backspace on the P1 keyboard returns
+  to mode select.
 
-After both fighters are confirmed, **stage select** opens with Gas-N-Go, Bus
-Stop (Night), and RANDOM last. W/S, A/D, the d-pad, or the stick move the shared
-cursor; J/click or pad X confirms; Backspace returns to character select with
-the same matchup. RANDOM resolves to a real stage before the match starts. The
+After both fighters are confirmed, **stage select** opens as a row of
+scratch-off tickets: Gas-N-Go, Bus Stop (Night), and RANDOM last. W/S, A/D,
+the d-pad, or the stick move the shared cursor (the focused ticket lifts
+with a yellow frame); J/click or pad X confirms; Backspace returns to
+character select with the same matchup. Confirming RANDOM plays an
+18-frame scratch-off reveal of the drawn stage before the match. The
 match then loads the chosen stage and starts the round.
 
 | Action | P1 keyboard / mouse | P2 controller |

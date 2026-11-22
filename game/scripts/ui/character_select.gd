@@ -31,19 +31,27 @@ const PORTRAIT_SIZE := Vector2(64, 64)
 # Rap sheet on the right, beside the focused fighter's column.
 const SHEET_POS := Vector2(236, 42)
 const SHEET_SIZE := Vector2(76, 66)
+# Wall booking text below the clipboard (x 232-316), from y 112.
+const WALL_NAME_POS := Vector2(232, 112)
+const WALL_NAME_WIDTH := 84.0
+const WALL_DETAIL_POS := Vector2(232, 138)
+const WALL_DETAIL_WIDTH := 80.0
+const WALL_DETAIL_STEP := 10.0
+const WALL_TEXT_ROWS := 4
 
 # Owner-editable booking copy (FighterData carries no archetype/tagline/
 # difficulty fields — this is presentation copy, like the chat seeds, not
-# invented data). "marks" is the pick-up difficulty tally.
+# invented data). "marks" is the pick-up difficulty tally. Keep archetype +
+# tagline short enough for three 80 px rows.
 const RAP_SHEETS := {
 	"peg_leg_peggy": {
-		"archetype": "ASSAULT, PROSTHETIC LEG",
-		"tagline": "hops in on one leg swinging",
+		"archetype": "ASSAULT, ONE LEG",
+		"tagline": "swings anyway",
 		"marks": 2,
 	},
 	"whiskey_richard": {
-		"archetype": "GRAPPLER, SIPS BETWEEN COMBOS",
-		"tagline": "smells like a bar mat",
+		"archetype": "GRAPPLER, SIPPER",
+		"tagline": "bar-mat chic",
 		"marks": 3,
 	},
 }
@@ -53,6 +61,12 @@ const RAP_SHEETS := {
 const PORTRAITS := {
 	"peg_leg_peggy": "res://art/ui/select/select_portrait_pegleg_peg.png",
 	"whiskey_richard": "res://art/ui/select/select_portrait_whiskey_richard.png",
+}
+
+# The focused fighter's booking photo in the clipboard's box (22x22).
+const BOOKING_PHOTOS := {
+	"peg_leg_peggy": "res://art/ui/hud/hud_portrait_pegleg_peg_normal.png",
+	"whiskey_richard": "res://art/ui/hud/hud_portrait_whiskey_richard_normal.png",
 }
 
 # Set by Main from the mode-select screen. Solo means P1 picks both fighters and
@@ -80,9 +94,9 @@ var _status: Label
 var _portraits: Array[TextureRect] = []
 var _p1_scribble: Control
 var _p2_scribble: Control
-var _sheet_name: Label
-var _sheet_archetype: Label
-var _sheet_tagline: Label
+var _sheet_portrait: TextureRect
+var _sheet_name_lines: Array[Label] = []
+var _sheet_detail_lines: Array[Label] = []
 var _sheet_tally: Array[ColorRect] = []
 
 
@@ -207,18 +221,22 @@ func _build_ui() -> void:
 		_portraits.append(portrait)
 
 		var p1_mark := UiText.marker("", Vector2(x + 2, 96), P1_ACCENT, true)
-		p1_mark.size = Vector2(30, UiText.MARKER_LINE_HEIGHT)
+		p1_mark.size = Vector2(60, UiText.MARKER_LINE_HEIGHT)
 		add_child(p1_mark)
 		_p1_marks.append(p1_mark)
-		var p2_mark := UiText.marker("", Vector2(x + 34, 96), P2_ACCENT, true)
-		p2_mark.size = Vector2(30, UiText.MARKER_LINE_HEIGHT)
-		p2_mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		# The marks stack on two rows: "P1 READY"/"P2 READY" are wider than
+		# half a portrait, so side-by-side marks would overlap on a shared
+		# fighter (ui_typography_test's no-overlap check).
+		var p2_mark := UiText.marker("", Vector2(x + 2, 108), P2_ACCENT, true)
+		p2_mark.size = Vector2(60, UiText.MARKER_LINE_HEIGHT)
 		add_child(p2_mark)
 		_p2_marks.append(p2_mark)
 
-	# Rap sheet with the focused fighter's booking details, dark ink in the
-	# ruled area (name from FighterData; archetype/tagline/tally are the
-	# owner-editable presentation copy in RAP_SHEETS).
+	# Rap sheet (PM review fix): no text on the clipboard — it is too small.
+	# The focused fighter's 22x22 hud portrait sits in the clipboard's photo
+	# box (art-space x 9-31 / y 18-41, centred) and the tally marks go in the
+	# blank lower-left area (art-space x 6-30 / y 46-58). Name, archetype and
+	# tagline live on the WALL below the clipboard (x 232-316, from y 112).
 	var sheet := TextureRect.new()
 	sheet.texture = RAP_SHEET
 	sheet.position = SHEET_POS
@@ -227,24 +245,37 @@ func _build_ui() -> void:
 	sheet.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_child(sheet)
 
-	_sheet_name = UiText.body("", SHEET_POS + Vector2(4, 5), UiText.INK)
-	_sheet_name.size = Vector2(68, UiText.M5X7_LINE_HEIGHT)
-	add_child(_sheet_name)
-	_sheet_archetype = UiText.body("", SHEET_POS + Vector2(4, 19), UiText.INK_MUTED)
-	_sheet_archetype.size = Vector2(68, UiText.M5X7_LINE_HEIGHT)
-	add_child(_sheet_archetype)
-	_sheet_tagline = UiText.body("", SHEET_POS + Vector2(4, 34), UiText.INK)
-	_sheet_tagline.size = Vector2(68, UiText.M5X7_LINE_HEIGHT)
-	add_child(_sheet_tagline)
+	_sheet_portrait = TextureRect.new()
+	_sheet_portrait.position = SHEET_POS + Vector2(9, 18)
+	_sheet_portrait.size = Vector2(22, 22)
+	_sheet_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_sheet_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	add_child(_sheet_portrait)
 	for mark in 3:
 		var stroke := ColorRect.new()
 		stroke.color = UiText.INK
-		stroke.position = SHEET_POS + Vector2(4 + mark * 3.0, 52)
+		stroke.position = SHEET_POS + Vector2(6 + mark * 3.0, 48)
 		stroke.size = Vector2(1, 8)
 		stroke.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		stroke.visible = false
 		add_child(stroke)
 		_sheet_tally.append(stroke)
+
+	# Wall booking text: the name in outlined marker cream (wrapped to two
+	# lines), then archetype and tagline in m5x7 cream wrapped to 80 px with
+	# a 10 px line spacing.
+	for line in 2:
+		var name_line := UiText.marker("",
+			WALL_NAME_POS + Vector2(0, line * 12.0), UiText.CREAM_TEXT, true)
+		name_line.size = Vector2(WALL_NAME_WIDTH, UiText.MARKER_LINE_HEIGHT)
+		add_child(name_line)
+		_sheet_name_lines.append(name_line)
+	for line in WALL_TEXT_ROWS:
+		var detail_line := UiText.body("",
+			WALL_DETAIL_POS + Vector2(0, line * WALL_DETAIL_STEP), UiText.CREAM_TEXT)
+		detail_line.size = Vector2(WALL_DETAIL_WIDTH, UiText.M5X7_LINE_HEIGHT)
+		add_child(detail_line)
+		_sheet_detail_lines.append(detail_line)
 
 	# Cursors: code-drawn scribbles around the focused portraits.
 	_p1_scribble = ScribbleCursor.new()
@@ -261,13 +292,15 @@ func _build_ui() -> void:
 	add_child(_p2_scribble)
 
 	# Status and the stage hand-off note, outlined marker over the wall art.
-	_status = UiText.marker("", Vector2(0, 138), UiText.MUTED, true)
-	_status.size = Vector2(320, UiText.MARKER_LINE_HEIGHT)
+	# PM review fix: the status centers in x 8-228 so it never meets the
+	# booking block on the right.
+	_status = UiText.marker("", Vector2(8, 138), UiText.MUTED, true)
+	_status.size = Vector2(220, UiText.MARKER_LINE_HEIGHT)
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_status)
-	var stage_note := UiText.marker("STAGE: CHOOSE NEXT", Vector2(0, 152),
+	var stage_note := UiText.marker("STAGE: CHOOSE NEXT", Vector2(8, 152),
 		UiText.MUTED, true)
-	stage_note.size = Vector2(320, UiText.MARKER_LINE_HEIGHT)
+	stage_note.size = Vector2(220, UiText.MARKER_LINE_HEIGHT)
 	stage_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(stage_note)
 
@@ -320,6 +353,34 @@ func _portrait_x_for(fighter_index: int) -> float:
 	return _portraits[fighter_index].position.x
 
 
+func _wrap_marker_name(name: String) -> Array[String]:
+	# The wall name wraps to at most two lines inside 84 px; split at the
+	# space nearest the middle when it does not fit.
+	if UiText.marker_width(name) <= WALL_NAME_WIDTH:
+		return [name]
+	var space := name.rfind(" ")
+	if space < 0:
+		return [name]
+	return [name.substr(0, space).strip_edges(), name.substr(space + 1)]
+
+
+func _wrap_body_80(text: String) -> Array[String]:
+	# Greedy word wrap at 80 px for m5x7 wall text.
+	var rows: Array[String] = []
+	var current := ""
+	for word in text.split(" "):
+		var candidate := word if current.is_empty() else current + " " + word
+		if UiText.body_width(candidate) <= WALL_DETAIL_WIDTH:
+			current = candidate
+		else:
+			if not current.is_empty():
+				rows.append(current)
+			current = word
+	if not current.is_empty():
+		rows.append(current)
+	return rows
+
+
 func _refresh() -> void:
 	# In solo the opponent cursor stays hidden until P1 has locked their pick, so
 	# the screen never implies a second player is active.
@@ -338,22 +399,34 @@ func _refresh() -> void:
 	if show_p2:
 		_p2_scribble.position = Vector2(_portrait_x_for(p2_choice), PORTRAIT_Y)
 
-	# Rap sheet follows whoever moved last.
+	# Rap sheet follows whoever moved last. PM review fix: the clipboard
+	# carries only the booking photo and tally marks; name, archetype and
+	# tagline are wrapped wall text below it.
 	var sheet_fighter: FighterData = FIGHTERS[p1_choice] if focus_side == 1 \
 		else FIGHTERS[p2_choice]
-	_sheet_name.text = sheet_fighter.display_name.to_upper()
-	var details: Dictionary = RAP_SHEETS.get(sheet_fighter.id, {})
-	if details.is_empty():
-		_sheet_archetype.text = ""
-		_sheet_tagline.text = ""
-		for stroke in _sheet_tally:
-			stroke.visible = false
+	var photo_path := str(BOOKING_PHOTOS.get(sheet_fighter.id, ""))
+	if not photo_path.is_empty() and ResourceLoader.exists(photo_path):
+		_sheet_portrait.texture = load(photo_path)
 	else:
-		_sheet_archetype.text = str(details["archetype"])
-		_sheet_tagline.text = str(details["tagline"])
-		var marks := mini(int(details["marks"]), _sheet_tally.size())
-		for stroke_index in _sheet_tally.size():
-			_sheet_tally[stroke_index].visible = stroke_index < marks
+		_sheet_portrait.texture = null
+
+	var name_lines := _wrap_marker_name(sheet_fighter.display_name.to_upper())
+	for line in _sheet_name_lines.size():
+		_sheet_name_lines[line].text = name_lines[line] if line < name_lines.size() else ""
+
+	var details: Dictionary = RAP_SHEETS.get(sheet_fighter.id, {})
+	var detail_rows: Array[String] = []
+	if not details.is_empty():
+		for row in _wrap_body_80(str(details["archetype"])):
+			detail_rows.append(row)
+		for row in _wrap_body_80(str(details["tagline"])):
+			detail_rows.append(row)
+	for line in _sheet_detail_lines.size():
+		_sheet_detail_lines[line].text = detail_rows[line] if line < detail_rows.size() else ""
+
+	var marks := mini(int(details.get("marks", 0)), _sheet_tally.size())
+	for stroke_index in _sheet_tally.size():
+		_sheet_tally[stroke_index].visible = stroke_index < marks
 
 	if p1_locked and p2_locked:
 		_status.text = "STARTING MATCH..."

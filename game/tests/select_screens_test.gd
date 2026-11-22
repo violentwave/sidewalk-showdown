@@ -151,29 +151,40 @@ func _test_character_select() -> void:
 	select.solo = false
 	await _open(select)
 
+	var sheet_name := " ".join(select._sheet_name_lines.map(
+		func(line: Label): return line.text)).strip_edges()
 	_check("the rap sheet shows the focused fighter's roster name",
-		select._sheet_name.text == "PEG LEG PEGGY",
-		"name=%s" % select._sheet_name.text)
+		sheet_name == "PEG LEG PEGGY",
+		"name=%s" % sheet_name)
+	var sheet_details: Array[String] = []
+	for line in select._sheet_detail_lines:
+		if not line.text.is_empty():
+			sheet_details.append(line.text)
 	_check("the rap sheet carries archetype, tagline and tally details",
-		not select._sheet_archetype.text.is_empty()
-			and not select._sheet_tagline.text.is_empty()
+		sheet_details.size() >= 2
 			and select._sheet_tally[0].visible
 			and select._sheet_tally[1].visible
 			and not select._sheet_tally[2].visible,
-		"archetype=%s tagline=%s" % [select._sheet_archetype.text,
-			select._sheet_tagline.text])
+		"details=%s" % str(sheet_details))
+	_check("the clipboard carries the focused fighter's booking photo",
+		select._sheet_portrait.texture != null
+			and select._sheet_portrait.texture.get_size() == Vector2(22, 22),
+		"photo=%s" % str(select._sheet_portrait.texture))
 
 	# P2 moving its own cursor moves the rap sheet to P2's fighter.
 	_press(select, "p2_left")
 	_check("P2's pad moves its own cursor and the rap sheet follows",
 		select.p2_choice == 0 and select._p2_scribble.visible
-			and select._sheet_name.text == "PEG LEG PEGGY"
+			and " ".join(select._sheet_name_lines.map(
+				func(line: Label): return line.text)).strip_edges() == "PEG LEG PEGGY"
 			and select._p1_scribble.position.x == 44.0,
-		"p2_choice=%d sheet=%s" % [select.p2_choice, select._sheet_name.text])
+		"p2_choice=%d" % select.p2_choice)
 	_press(select, "p2_right")
+	var p2_name := " ".join(select._sheet_name_lines.map(
+		func(line: Label): return line.text)).strip_edges()
 	_check("the rap sheet shows the P2-focused fighter after a P2 move",
-		select._sheet_name.text == "WHISKEY RICHARD",
-		"name=%s" % select._sheet_name.text)
+		p2_name == "WHISKEY RICHARD",
+		"name=%s" % p2_name)
 	_check("the P2 fighter's tally marks replace the P1 fighter's",
 		select._sheet_tally[0].visible
 			and select._sheet_tally[1].visible

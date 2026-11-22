@@ -77,6 +77,9 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var background: Node2D = STAGE_SCENE.instantiate()
+	# Stage ambient sprites (the mosquitoes) use z_index 10; push the whole
+	# backdrop below the UI so nothing flies over panels or text.
+	background.z_index = -20
 	add_child(background)
 
 	# Declutter: the stage art sits behind a #1C160D 55% overlay

@@ -25,16 +25,16 @@ const BUSTS := {
 
 const WINNER_POS := Vector2(115, 10)  # 90x20 top-centre
 const BUST_POS := Vector2(16, 42)     # 96x128 on the left
-const PANEL_POS := Vector2(168, 30)
-const PANEL_SIZE := Vector2(140, 92)
+const PANEL_POS := Vector2(168, 34)
+const PANEL_SIZE := Vector2(140, 78)
 const ROW_X_LABEL := 176.0
 const ROW_X_VALUE_RIGHT := 296.0
-const ROW_Y := 44.0
-const ROW_STEP := 14.0
+const ROW_Y := 42.0
+const ROW_STEP := 12.0
 
 const MENU_X := 168.0
 const MENU_W := 140.0
-const MENU_Y := 124.0
+const MENU_Y := 116.0
 const MENU_STEP := 12.0
 const MENU_ITEMS := ["REMATCH", "CHARACTER SELECT", "STAGE SELECT", "MAIN MENU"]
 
@@ -62,6 +62,9 @@ func _ready() -> void:
 	# The match's own stage art behind the 55% overlay.
 	if stage != null and stage.scene != null:
 		var background: Node2D = stage.scene.instantiate()
+		# Stage ambient sprites (the mosquitoes) use z_index 10; push the whole
+		# backdrop below the UI so nothing flies over panels or text.
+		background.z_index = -20
 		add_child(background)
 	add_child(UiText.dim_overlay())
 
@@ -111,8 +114,10 @@ func _ready() -> void:
 			Vector2(MENU_W, 12))
 		add_child(bar)
 		_menu_bars.append(bar)
+		# The menu sits over stage art, not cardboard: outlined cream, with the
+		# focused row in dark ink on its yellow bar (PM review of PR #91).
 		var label := UiText.marker(MENU_ITEMS[item],
-			Vector2(MENU_X, MENU_Y + item * MENU_STEP), UiText.INK)
+			Vector2(MENU_X, MENU_Y + item * MENU_STEP), UiText.CREAM_TEXT, true)
 		label.size = Vector2(MENU_W, UiText.MARKER_LINE_HEIGHT)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		add_child(label)
@@ -194,4 +199,8 @@ func _refresh() -> void:
 		var focused := item == index
 		_menu_bars[item].visible = focused
 		_menu_labels[item].add_theme_color_override("font_color",
-			UiText.INK_DARK if focused else UiText.INK)
+			UiText.INK_DARK if focused else UiText.CREAM_TEXT)
+		# Plain Marker on the yellow bar (a dark outline around dark ink smears
+		# into a blob); outlined Marker when the row sits on bare stage art.
+		_menu_labels[item].add_theme_font_override("font",
+			UiText.MARKER if focused else UiText.MARKER_OUTLINE)

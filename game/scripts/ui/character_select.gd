@@ -45,12 +45,12 @@ const WALL_TEXT_ROWS := 4
 # tagline short enough for three 80 px rows.
 const RAP_SHEETS := {
 	"peg_leg_peggy": {
-		"archetype": "ASSAULT, ONE LEG",
-		"tagline": "swings anyway",
+		"archetype": "ASSAULT",
+		"tagline": "one-leg fury",
 		"marks": 2,
 	},
 	"whiskey_richard": {
-		"archetype": "GRAPPLER, SIPPER",
+		"archetype": "GRAPPLER",
 		"tagline": "bar-mat chic",
 		"marks": 3,
 	},
@@ -294,7 +294,7 @@ func _build_ui() -> void:
 	# Status and the stage hand-off note, outlined marker over the wall art.
 	# PM review fix: the status centers in x 8-228 so it never meets the
 	# booking block on the right.
-	_status = UiText.marker("", Vector2(8, 138), UiText.MUTED, true)
+	_status = UiText.marker("", Vector2(8, 138), UiText.CREAM_TEXT, true)
 	_status.size = Vector2(220, UiText.MARKER_LINE_HEIGHT)
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_status)

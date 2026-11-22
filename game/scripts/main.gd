@@ -33,6 +33,9 @@ var main_menu: Control
 var quit_confirm: Control
 var settings_overlay: Control
 var mode_select: Control
+# Physics frames between MATCH_END and the Results screen (PM review, PR #91).
+const RESULTS_DELAY_FRAMES := 90
+var _results_pending := false
 var difficulty_select: Control
 var character_select: Control
 var stage_select: Control
@@ -357,6 +360,14 @@ func _start_match(p1_data: FighterData, p2_data: FighterData,
 # byte-identical before and after the screen appears, and every Results
 # option unpauses and routes.
 func _on_match_results_requested() -> void:
+	if match_root == null or results_screen != null or _results_pending:
+		return
+	# Give the KO and the "X WINS THE MATCH" banner a beat before Results
+	# covers them. Counted in physics frames (deterministic); presentation only.
+	_results_pending = true
+	for _frame in RESULTS_DELAY_FRAMES:
+		await get_tree().physics_frame
+	_results_pending = false
 	if match_root == null or results_screen != null:
 		return
 	var snapshot: Dictionary = stats_tracker.snapshot()

@@ -100,6 +100,8 @@ mugshot wall) behind a 55% `#1C160D` overlay, marker headers, ink-on-
 cardboard rows with the yellow focus bar, descriptions on the prompt
 plate, and unchanged input contracts (`select_screens_test` pins them).
 
+Stage backdrops used behind UI screens are instantiated with `z_index = -20`, so the stage's ambient sprites (the z_index-10 mosquitoes) stay under panels and text.
+
 | Screen | Layout |
 | --- | --- |
 | ModeSelect | dimmed Gas-N-Go; ui_panel (96,44) 128x76; "VERSUS" marker ink header; rows "1 PLAYER" / "2 PLAYERS" (full-width focus bars at y+26/46); description on the prompt plate's left. Defaults to 1 PLAYER. |
@@ -128,7 +130,7 @@ pauses the tree and pushes Results above the **frozen match** —
 `serialize()` is byte-identical while the screen is up. The screen draws
 the match's own stage art behind the 55% overlay, `ui/results_winner.png`
 (90x20) top-centre, the winner's bust (96x128) on the left, and one
-cardboard ui_panel (168,30) 140x92 with dark-ink m5x7 stat rows:
+cardboard ui_panel (168,34) 140x78 with dark-ink m5x7 stat rows (12 px apart):
 rounds won, match-total damage, max combo, METH used (P1/P2/BOTH/NO),
 time left. Stats come from `game/scripts/ui/match_stats_tracker.gd`, a
 presentation-only reader (accumulates MatchRoot's per-round
@@ -136,8 +138,8 @@ presentation-only reader (accumulates MatchRoot's per-round
 `meth_started`, samples `wins`/`timer_frames` at the end). **Not
 available: per-round win-type letters** — MatchRoot only distinguishes
 the current round's KO/timeout, no history exists, so the panel shows
-the plain rounds tally. Below the panel: REMATCH / CHARACTER SELECT /
-STAGE SELECT / MAIN MENU in Marker with the yellow focus bar; input is
+the plain rounds tally. Below the panel (from y 116, over stage art): REMATCH / CHARACTER SELECT /
+STAGE SELECT / MAIN MENU in outlined cream Marker, the focused row in plain dark-ink Marker on the yellow focus bar; Results appears 90 physics frames after MATCH_END so the KO and the winner banner land first; input is
 ignored for the first 30 frames. Every option unpauses and routes;
 REMATCH goes back through the VsScreen with the same fighters and
 stage.

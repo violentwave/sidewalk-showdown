@@ -135,8 +135,8 @@ phase exit criteria:
   was removed in the same day's polish pass), quit confirm — on a
   ScreenRouter with a persistent Settings autoload and audio buses;
   `docs/UI_SCREENS.md` documents what shipped (typography rules included),
-  and the seventeen-suite CI adds ui_flow (52), settings (16),
-  ui_assets (4), and ui_typography (10). Procedural
+  and the eighteen-suite CI adds ui_flow (52), settings (16),
+  ui_assets (4), ui_typography (14), and select screens (23). Procedural
   newsprint/halftone and bundled OFL comic fonts are used throughout. Mode
   select (added 2026-11-17) offers 1 PLAYER or 2 PLAYERS: solo sends P1 to a
   difficulty pick (added 2026-11-19) and then lets P1 pick both fighters, with
@@ -303,7 +303,7 @@ phase exit criteria:
   keyboard, hitbox accuracy, AI, progression/unlocks, performance, exports,
   content/accessibility review. Exit: no progression blockers/crashes, stable
   match flow, usable modes, and builds on target PC specs.
-- **Status:** **In progress; exit not met.** CI runs the sixteen headless suites
+- **Status:** **In progress; exit not met.** CI runs the eighteen headless suites
   (combat, round_flow, character_select, stage_select, stage_floor,
   locomotion_speed, cpu, combo, combo_fuzz, the_clip, serialization, b6) and
   the air

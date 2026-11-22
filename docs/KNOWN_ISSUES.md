@@ -579,14 +579,24 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   `art/tools/prepare_ui.gd` and re-runs its size table in verify-only mode
   (manifest and test cannot drift), plus a byte-identity check of every
   `game/art/ui/` copy against its approved source.
-- `game/tests/ui_typography_test.gd` — **10 checks** (2026-11-21 polish, extended by the PR #86 review fixes):
-  every label in the six Phase 1 surfaces (five screens + the pause menu)
+- `game/tests/ui_typography_test.gd` — **14 checks** (2026-11-21 polish, extended by the PR #86 review fixes and the PR A select screens):
+  every label in the ten UI surfaces (nine screens + the pause menu)
   uses Sidewalk Marker at 10 or m5x7 at 16 with every glyph present, carries
   no theme outline or shadow, sits at an integer position, and is never
   scaled; labels on cardboard (ui_panel/ui_button) lie fully inside their
   container and use the dark inks (#2A2418/#7A6A48/#1C160D); over-stage-art
   lettering uses the outlined marker; the pause panel sizes itself to its
   longest item plus 8 px padding each side.
+- `game/tests/select_screens_test.gd` — **23 checks** (PR A, 2026-11-22):
+  the Mode and Difficulty choices are unchanged (names, order, defaults,
+  emits, back paths); the difficulty rows draw 1/2/3 ink tally marks; the
+  rap sheet shows the focused fighter's roster name and owner-editable
+  booking details; cursors are per-player scribbles in the side accents
+  and solo hides P2's until lock; RANDOM starts covered; the focused
+  ticket lifts 2 px with a yellow frame; concrete stages hand off
+  immediately; the RANDOM scratch-off holds the hand-off for its full
+  18 frames and then hands off the stage the RNG picked with its own
+  thumbnail revealed.
 - `game/tests/combo_fuzz_test.gd` — **118 checks**: seeded fuzz over the
   combo layer — route search and 12-hit/550-damage caps on BOTH
   stages, infinite-loop and corner-carry termination, macros (clean dial,
@@ -624,12 +634,12 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   actionability. Prints a report and exits 0 on success; `docs/PROPOSALS.md` §3
   documents the coarse grid, before/after metrics, and target limitations. Its
   numbers are informational measurements, not passing balance assertions.
-- `.github/workflows/tests.yml` runs the seventeen headless suites — combat,
+- `.github/workflows/tests.yml` runs the eighteen headless suites — combat,
   round-flow, mode/character-select, stage-select/ambience, stage-floor-guard,
   locomotion-speed, CPU opponent, combo system, combo fuzz, stun & breaker,
   The Clip intro,
-  serialization, B6 landing-whiff, UI flow, settings, UI assets, and UI
-  typography — plus
+  serialization, B6 landing-whiff, UI flow, settings, UI assets,
+  UI typography, and select screens — plus
   the air probe on push, pull
   the air probe on push, pull
   request and manual

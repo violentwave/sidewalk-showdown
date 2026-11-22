@@ -17,6 +17,10 @@ const SCREEN_SCENES := [
 	["main menu", "res://scenes/menus/main_menu.tscn"],
 	["settings overlay", "res://scenes/menus/settings_overlay.tscn"],
 	["quit confirm", "res://scenes/menus/quit_confirm.tscn"],
+	["mode select", "res://scenes/menus/ModeSelect.tscn"],
+	["difficulty select", "res://scenes/menus/DifficultySelect.tscn"],
+	["character select", "res://scenes/menus/CharacterSelect.tscn"],
+	["stage select", "res://scenes/menus/StageSelect.tscn"],
 ]
 const MATCH_SCENE := preload("res://scenes/match/MatchRoot.tscn")
 

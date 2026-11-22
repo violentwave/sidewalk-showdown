@@ -7,7 +7,9 @@
 (content warning, title, main menu, quit confirm, settings) plus the pause
 panel and the shared theme consume it (see `docs/UI_SCREENS.md`). HUD
 portraits/banners and the select-screen art are staged in
-`game/art/ui/` but not yet wired into the HUD/select visuals (Phases 2-3).
+`game/art/ui/` but not yet wired into the HUD visuals (Phase 2). The
+select screens (mugshot wall, portraits, rap sheet, tickets) are wired
+as of PR A, 2026-11-22.
 
 This file is the source of truth for UI art: what each asset is, its exact
 native size, how it gets made, and where every version of the file lives.
@@ -141,10 +143,10 @@ Style references: **A** = `art/source/UI/HealthFull.png`, **B** =
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `menu_price_sign` | 79x124 | PixelLab | — | — | (Screens / 03 Main Menu) | Gas-N-Go price board, night. Only if direction A is picked. | approved |
 | `menu_price_slat` | 66x7 | PixelLab | — | — | `menu/price_slat 96×14` | approved (lit overlay; normal slats are part of the sign) |
-| `select_portrait` | 64x64 per fighter | PixelLab | F | — | `select/portrait 64×64` | From final fighter art. | approved (Peg, Whiskey) |
-| `select_mugshot_bg` | 320x180 | PixelLab | — | — | (Screens / 05) | Height-chart wall. | approved (scripted height chart) |
-| `select_rap_sheet` | 76x66 | PixelLab | — | — | (Screens / 05) | approved |
-| `stage_scratch_ticket` | 72x44 | PixelLab + hand | — | 160 | `stage/scratch_ticket 72×44` | approved (covered state only; scratch/reveal frames to be done in code or a later pass) |
+| `select_portrait` | 64x64 per fighter | PixelLab | F | — | `select/portrait 64×64` | From final fighter art. | approved (Peg, Whiskey) — **wired (PR A, character select)** |
+| `select_mugshot_bg` | 320x180 | PixelLab | — | — | (Screens / 05) | Height-chart wall. | approved (scripted height chart) — **wired (PR A, character select)** |
+| `select_rap_sheet` | 76x66 | PixelLab | — | — | (Screens / 05) | approved — **wired (PR A, character select)** |
+| `stage_scratch_ticket` | 72x44 | PixelLab + hand | — | 160 | `stage/scratch_ticket 72×44` | approved (covered state only) — **wired (PR A, stage select; the 18-frame reveal is code-drawn)** |
 | `vs_bust` | 96x128 per fighter | PixelLab | F | — | `vs/bust 96×128` | From final fighter art. | approved (Peg, Whiskey) |
 | `ui_logo` | 139x74 | PixelLab + hand | — | — | (Screens / 02 Title) | approved (Bangers, scripted) |
 | `hud_banner_words` | ~160x32 each | Hand (lettering) | — | 172/173 | — | Sidewalk Marker at 2x with a 1 px outline; DECISIVE ROUND at 1x so it fits the plate. Bangers v1 kept in generated/hand_drawn_review/bangers_v1/. | approved (Sidewalk Marker, scripted) |

@@ -84,15 +84,23 @@ func _run() -> void:
 	_check("the selector shows the first stage's 80x45 thumbnail",
 		roster.stages[0].thumbnail.get_size() == Vector2(80, 45))
 	var shown_thumbnails: Array[Texture2D] = []
-	for child in select.get_children():
-		if child is TextureRect:
-			shown_thumbnails.append(child.texture)
+	for thumbnail in select._thumbnails:
+		shown_thumbnails.append(thumbnail.texture)
+	# PR A reskin: each ticket draws its thumbnail as an integer center-crop
+	# of the roster art, so the comparison unwraps AtlasTexture back to the
+	# source. RANDOM stays covered (a null thumbnail).
+	var shown_sources: Array[Texture2D] = []
+	for texture in shown_thumbnails:
+		var source: Texture2D = texture
+		if texture is AtlasTexture:
+			source = (texture as AtlasTexture).atlas
+		shown_sources.append(source)
 	_check("stage select shows both stages' thumbnails and leaves RANDOM blank",
-		shown_thumbnails.size() == roster.stages.size() + 1
-			and shown_thumbnails[0] == roster.stages[0].thumbnail
-			and shown_thumbnails[1] == roster.stages[1].thumbnail
-			and shown_thumbnails[2] == null,
-		"shown=%d" % shown_thumbnails.size())
+		shown_sources.size() == roster.stages.size() + 1
+			and shown_sources[0] == roster.stages[0].thumbnail
+			and shown_sources[1] == roster.stages[1].thumbnail
+			and shown_sources[2] == null,
+		"shown=%d" % shown_sources.size())
 
 	select.index = 0
 	_press(select, "p1_left")
@@ -130,7 +138,11 @@ func _run() -> void:
 	random_select.index = random_select.random_index()
 	random_select.rng.seed = 7
 	_press(random_select, "p1_light")
-	_check("RANDOM emits a concrete roster stage",
+	# PR A: confirming RANDOM plays an 18-frame integer-pixel scratch-off
+	# reveal of the drawn stage before the hand-off.
+	for _frame in 20:
+		await physics_frame
+	_check("RANDOM reveals a concrete roster stage after the scratch-off",
 		_chosen_stage != null and _chosen_stage.id == _chosen_id
 			and random_select.resolved_stage_id == _chosen_id
 			and roster.stages.has(_chosen_stage),

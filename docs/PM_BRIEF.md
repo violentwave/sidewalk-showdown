@@ -3,7 +3,13 @@
 > **Keep this file current: every PR that changes features, tests, commands, or
 > rules must update PM_BRIEF.md.**
 >
-> Last verified: **2026-11-21**, against `origin/main` at `16124bc`
+> Last verified: **2026-11-22**, against `origin/main` at `fe1f551`
+> (PR #86 polish + #88 VS/Results lettering + #89 CPU combos) plus this
+> branch's **UI PR A (select screens)**: Mode/Difficulty restyled onto
+> cardboard panels, Character Select reskinned as the mugshot board
+> (rap sheet + scribble cursors), Stage Select reskinned as scratch
+> tickets with the 18-frame RANDOM reveal; new suite select_screens 23
+> checks, ui_typography grew 10 -> 14.
 > (PR #83, UI Phase 1 + combo Phase 2) plus this branch's **combo Phase 3
 > (stuns + breaker)**: authored StunEffect rows on both neutral specials
 > (Richard Taser Belch 105→40 + 240f immunity, Peggy Peg-Lock 95 + 60f
@@ -52,8 +58,8 @@ Slice, in progress**. Shipped features, each verified in code/data:
 | Pass-through | `MatchRoot.fighters_can_pass_through = true` (exported, ships ON): Smash-style bodies, no pushbox separation on ground or in air; `false` restores the legacy grounded pushbox with corner-transfer separation; jump-over works either way |
 | CPU opponent | Solo P2 driven by `CpuController` (deterministic seeded LCG, presses the same `p2_*` actions as a human, ticks at physics priority -100 on completed frames); difficulties are data: `game/resources/ai/cpu_{easy,normal,hard}.tres` (reaction 22/14/8f, block 0.35/0.65/0.90, idle watchdog 90/60/40, plus the Phase 4 combo knobs string/route/launcher/stun/juggle/breaker/clip/shake); debug `p1_cpu` enables AI-vs-AI; since Phase 4 the CPU walks the authored cancel graph, chases juggles, fishes stuns, breaks (free first, meter when worthwhile), Clip Cancels, and shakes out of stuns |
 | Stages | `gas_n_go` — "Everglades Gas-N-Go", `floor_y 158`, bounds 24-296, spawns 110/210; `bus_stop_night` — "Bus Stop", `floor_y 170`, bounds 24-296, spawns 110/210; each is a native 320x180 layered scene with visual-only ambience (clouds 5 px/s; Gas-N-Go 8 fps mosquitoes + breathing/blinking gator; Bus Stop 8 fps 4-frame fire + flickering liquor sign) |
-| Stage select | Shared pick after character select: thumbnails + descriptions from `MatchRoster.stages`, **RANDOM last**, resolved on the selector to a concrete stage id stored in `Main.last_stage_id`; empty/invalid roster stops `MatchRoot._ready()` before instantiating anything |
-| Menus & flow | Content warning (once per launch, press-required with a 30-frame input guard) -> The Clip (15 panels, Space-only advance, Esc skip) -> Title (PRESS START, 1 s pulse) -> Main Menu (price-board hub: VERSUS, TRAINING greyed, SETTINGS, EXTRAS greyed, QUIT, price board only — the chat strip was removed in the 2026-11-21 polish, QUIT rides a taped ui_button on the sign pole; no RNG) -> mode select (1 PLAYER default / 2 PLAYERS) -> [solo] difficulty select (EASY/NORMAL/HARD, default NORMAL) -> character select (solo: P1 picks both; versus: each player) -> stage select -> match; ScreenRouter (deferred pushes = confirm-leak guard) + FlowState; pause menu: Resume / Settings (overlay above the paused match) / Restart Match / Character Select / Main Menu / Quit to Desktop (through the quit confirm, default NO); Enter restarts after match end |
+| Stage select | Shared pick after character select: every stage a `stage_scratch_ticket.png` (72x44) with its thumbnail **center-cropped** into the measured silver panel (36x16 AtlasTexture region, never scaled) and its name in outlined Marker; RANDOM last stays covered and confirms through an 18-frame integer-pixel scratch-off reveal before the same hand-off; the visual/meta RNG source is unchanged; resolved on the selector to a concrete stage id stored in `Main.last_stage_id`; empty/invalid roster stops `MatchRoot._ready()` before instantiating anything |
+| Menus & flow | Content warning (once per launch, press-required with a 30-frame input guard) -> The Clip (15 panels, Space-only advance, Esc skip) -> Title (PRESS START, 1 s pulse) -> Main Menu (price-board hub: VERSUS, TRAINING greyed, SETTINGS, EXTRAS greyed, QUIT, price board only — the chat strip was removed in the 2026-11-21 polish, QUIT rides a taped ui_button on the sign pole; no RNG) -> mode select (1 PLAYER default / 2 PLAYERS, cardboard panel with yellow focus bars over the dimmed Gas-N-Go) -> [solo] difficulty select (EASY/NORMAL/HARD, default NORMAL, ink tally marks) -> character select (mugshot wall, rap sheet with owner-editable booking copy, scribble cursors; solo: P1 picks both; versus: each player) -> stage select -> match; ScreenRouter (deferred pushes = confirm-leak guard) + FlowState; pause menu: Resume / Settings (overlay above the paused match) / Restart Match / Character Select / Main Menu / Quit to Desktop (through the quit confirm, default NO); Enter restarts after match end |
 | Settings | `Settings` autoload -> `user://settings.cfg` (`[meta] version=1`, defaults fill missing keys, apply on boot, save on change only); overlay with Video / Audio / Gameplay / Accessibility / Stream tabs (no Controls yet); audio buses Master/Music/SFX/Voice/UI, defaults at exactly 0 dB |
 | Input policy | P1 keyboard + mouse only, P2 controller only (both `device = -1`); the map is generated by `game/tools/setup_input.gd`, never hand-edited; combat_test replays real keys (device 16) and pins the policy |
 | Round rules | 99 s rounds; 2 wins to take the match **and lead** (2-2 continues into DECISIVE ROUNDS); double KO = both take a pip; two timeout ties draw, the third starts a 30 s SUDDEN DEATH resolved by health -> round damage -> meter -> P1 |
@@ -113,16 +119,17 @@ Counts are PASS+FAIL lines observed in real headless runs, not doc claims.
 | `ui_flow_test.gd` | Phase 1 routing: router semantics, every forward/back path, confirm-leak guard, pause overlays, greyed items, QuitConfirm default, press-required warning (30-frame guard), chat-free menu, wrap order, title pulse | **52**, 0 fail | yes — 2026-11-21 polish pass (was 48; warning behavior pins updated with owner approval) |
 | `settings_test.gd` | Settings persistence: defaults, fill-in, round trip, opening never saves, reset applies+saves, 0 dB defaults | **16**, 0 fail | yes — added 2026-11-21 (scratch config; player file untouched) |
 | `ui_assets_test.gd` | Runtime UI art: prepare_ui size table re-run in verify mode + byte identity vs approved sources | **4**, 0 fail | yes — added 2026-11-21 |
-| `ui_typography_test.gd` | Phase 1 typography + contrast rules: every label in the six surfaces uses a pixel font at native size with every glyph present, no outline/shadow, integer positions, no scaling; cardboard labels fit their container and use the dark inks; prompt-line pairs never overlap | **10**, 0 fail | yes — added 2026-11-21 (polish pass), extended 2026-11-22 (review fixes) |
+| `ui_typography_test.gd` | Phase 1 + PR A typography and contrast rules: every label in the ten surfaces uses a pixel font at native size with every glyph present, no outline/shadow, integer positions, no scaling; cardboard labels fit their container and use the dark inks; prompt-line pairs never overlap | **14**, 0 fail | yes — added 2026-11-21 (polish pass), extended 2026-11-22 (review fixes, PR A select screens) |
+| `select_screens_test.gd` | PR A select reskins: Mode/Difficulty choices unchanged (names, order, defaults, emits, back paths), difficulty tallies, rap-sheet fields, per-player scribble cursors, ticket focus lift, the 18-frame RANDOM scratch-off and its hand-off | **23**, 0 fail | yes — added 2026-11-22 (PR A) |
 | `air_probe.gd` | Balance metrics only, asserts nothing, always exits 0 | 0 (metrics) | yes (separate job) |
 | `juggle_probe.gd` | Juggle balance metrics (every budget-legal launcher route, jab-only reference, candidate ladders), asserts nothing | 0 (metrics) | no |
 | `juggle_route_probe.gd` | Real-hitbox juggle route timing search (human timing; ~7 min) | 0 (metrics) | no |
 | `idle_render_check`, `peggy/richard_clip_render_check`, `jump_block_render_check`, `jump_block_trace`, `attack_scale_check`, `peggy/richard_jump_check`, `peggy/richard_live_soak` | Manual rendered/soak review tools; need a display, write to `/tmp/opencode/` | n/a | no |
 
-CI (`.github/workflows/tests.yml`) runs import + the seventeen suites (combat,
+CI (`.github/workflows/tests.yml`) runs import + the eighteen suites (combat,
 round_flow, character_select, stage_select, stage_floor, locomotion_speed,
 cpu, combo, combo_fuzz, stun_breaker, the_clip, serialization, b6, ui_flow,
-settings, ui_assets, ui_typography) plus the air-probe job
+settings, ui_assets, ui_typography, select_screens) plus the air-probe job
 on push, PR, and manual dispatch; every step carries a `timeout-minutes` so
 a hang fails fast. `export.yml` builds both desktop targets on `main`/`v*`;
 `main_guard.yml` reverts unauthorized direct pushes to `main`.
@@ -276,9 +283,15 @@ Release blockers / decisions pending:
   feedback):** Sidewalk Marker + m5x7 typography rules
   (`game/scripts/ui/ui_text.gd`, enforced by `ui_typography_test`),
   the chat strip removed from the main menu, the content warning
-  press-required, and screenshots in `docs/assets/ui/`. Phases 2-5
-  (HUD pass, match wrap, controls + extras, remaining art wiring)
-  follow the plan in `docs/UI_HUD_SCREENS_PLAN.md`.
+  press-required, and screenshots in `docs/assets/ui/`. **Phase 3a
+  (select screens) — SHIPPED on this branch (2026-11-22, PR A):** Mode
+  and Difficulty restyled onto cardboard panels, Character Select
+  reskinned as the mugshot board (portraits, rap sheet, scribble
+  cursors), Stage Select reskinned as scratch tickets with the
+  18-frame RANDOM reveal; pinned by `select_screens_test` (23). Phase
+  3b (VS and Results screens) follows; the HUD pass (Phase 2) and
+  controls/extras (Phase 4) follow the plan in
+  `docs/UI_HUD_SCREENS_PLAN.md`.
 
 - **Combo system** (design home: `docs/COMBO_SYSTEM_DESIGN.md`, merged
   2026-11-19 as PR #68): a four-component MK-style combo layer on the existing
@@ -334,9 +347,9 @@ Release blockers / decisions pending:
 | `docs/PROPOSALS.md` | Historical combat-system proposals with measured results (§§1-7) | Current (2026-11-20): §§1/7 whiff-meter passages now carry inline "superseded" notes pointing to the landed-hits economy (§5); history preserved |
 | `docs/PIXELORAMA_PIPELINE.md` | Idle-sheet + authored-clip pipeline for both fighters (§8-§9b) | Current (integration status matches the clip libraries) |
 | `docs/PIXELLAB_ASSET_ORG.md` | PixelLab MCP project rules, style anchors, generation locks, walk-test proposal | Current (subscription counters will drift) |
-| `docs/UI_ASSETS.md` | UI art pipeline (generated -> approved -> runtime folders), Figma layout file link, per-asset manifest with native sizes | Current (v0.2, 2026-11-21): Phase 1 wired; `prepare_ui.gd` documented in §2 |
-| `docs/UI_SCREENS.md` | What shipped in UI Phase 1: the router, the screen flow with every back path, Settings keys and consumption status, the art pipeline command | **New (2026-11-21), current** |
-| `docs/UI_HUD_SCREENS_PLAN.md` | HUD and screens plan: screen list and routing, ScreenRouter/Settings design, 5 build phases, open decisions, Phase 1 agent prompt | Plan; **Phase 1 implemented** (2026-11-21) — see `docs/UI_SCREENS.md` for what shipped and the deltas |
+| `docs/UI_ASSETS.md` | UI art pipeline (generated -> approved -> runtime folders), Figma layout file link, per-asset manifest with native sizes | Current (2026-11-22): Phase 1 + select screens wired; `prepare_ui.gd` documented in §2 |
+| `docs/UI_SCREENS.md` | What shipped in UI Phase 1 + PR A: the router, the screen flow with every back path, Settings keys and consumption status, the select-screen layouts, the art pipeline command | Current (2026-11-22) |
+| `docs/UI_HUD_SCREENS_PLAN.md` | HUD and screens plan: screen list and routing, ScreenRouter/Settings design, 5 build phases, open decisions, Phase 1 agent prompt | Plan; **Phases 1 and 3a implemented** (2026-11-21/22) — see `docs/UI_SCREENS.md` for what shipped and the deltas |
 | `docs/UI_DESIGN_RESEARCH.md` | Menu/HUD design research: audience model, motion/audio language, sourced findings vs proposals | Research; **not implemented** |
 | `docs/ART_CREDITS.md` | Art provenance, font licenses, all-rights-reserved notes | Current (2026-11-21): m5x7 (Daniel Linssen, CC0) added as the UI pixel font |
 | `docs/LICENSE_OPTIONS.md` | License decision document (A/B/C), AI-art caveats | Current (decision pending) |

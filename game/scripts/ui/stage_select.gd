@@ -1,8 +1,13 @@
-# Stage select: one shared stage choice between character select and the match.
-# The list comes from the shared roster; RANDOM is always the last entry and is
-# resolved here, before the match exists, using a non-gameplay RNG. The screen
-# reports both the StageData and its stable id, so the flow never stores an
-# index into a list that can be reordered.
+# Stage select, street-junk reskin (PR A): every stage is a scratch-off
+# lottery ticket (stage/stage_scratch_ticket.png) with its 80x45 thumbnail
+# center-cropped into the ticket's measured silver panel (36x16 at local
+# x 18..53 / y 16..31 — a crop, never a non-integer scale) and its name in
+# Marker under it. The focused ticket lifts 2 px with a 1 px yellow frame.
+# RANDOM stays covered; confirming it plays an 18-frame integer-pixel
+# scratch-off reveal of the drawn stage before the same hand-off as a
+# concrete pick. The random source is exactly the screen's existing
+# visual/meta RNG (never part of the deterministic fight simulation), and
+# the list, wrap order, ids, and signals are unchanged.
 extends Control
 
 signal stage_chosen(stage: StageData, stage_id: String)
@@ -10,11 +15,18 @@ signal back_requested
 signal selection_moved
 signal selection_confirmed
 
-const P1_ACCENT := Color(0.98, 0.64, 0.18)
-const MUTED := Color(0.68, 0.66, 0.62)
-const CARD_SIZE := Vector2(92, 74)
-const CARD_Y := 46.0
-const THUMBNAIL_SIZE := Vector2(80, 45)
+const STAGE_SCENE := preload("res://scenes/stages/gas_n_go.tscn")
+const TICKET := preload("res://art/ui/stage/stage_scratch_ticket.png")
+
+const TICKET_SIZE := Vector2(72, 44)
+const TICKET_Y := 46.0
+const TICKET_X := [28.0, 124.0, 220.0]
+# Measured silver panel inside the ticket art (local space).
+const SILVER_POS := Vector2(18, 16)
+const SILVER_SIZE := Vector2(36, 16)
+# The reveal: 18 one-frame steps clear 18 cover columns over the silver.
+const REVEAL_FRAMES := 18
+const REVEAL_COLUMNS := 18
 
 @export var roster: MatchRoster
 # Stable id restored when returning from a match; "" falls back to the first
@@ -27,9 +39,22 @@ var index := 0
 var resolved_stage_id := ""
 var rng := RandomNumberGenerator.new()
 
-var _cards: Array[Panel] = []
-var _description: Label
+# Ticket visuals, indexed 0..stages.size() (RANDOM last).
+var _tickets: Array[TextureRect] = []
+var _thumbnails: Array[TextureRect] = []
+var _frames: Array[Control] = []
 var _chosen := false
+# RANDOM scratch-off state.
+var _reveal_stage: StageData = null
+var _reveal_frame := 0
+var _reveal_covers: Array[ColorRect] = []
+
+
+# A 1 px focus frame drawn around the lifted ticket.
+class TicketFrame extends Control:
+	func _draw() -> void:
+		draw_rect(Rect2(0, 0, size.x, size.y), UiText.YELLOW, false, 1.0)
+
 
 func _ready() -> void:
 	if roster == null:
@@ -46,14 +71,16 @@ func _ready() -> void:
 	_build_ui()
 	_refresh()
 
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_echo():
 		return
 	# As on character select, only the keyboard backs out; P2's pad must not
-	# yank the shared stage choice away from P1.
+	# yank the shared stage choice away from P1. No input leaves mid-reveal.
 	if event is InputEventKey and event.is_action_pressed("ui_back"):
-		back_requested.emit()
-		get_viewport().set_input_as_handled()
+		if _reveal_stage == null:
+			back_requested.emit()
+			get_viewport().set_input_as_handled()
 		return
 	var handled := true
 	if event.is_action_pressed("p1_left") or event.is_action_pressed("p2_left") \
@@ -70,11 +97,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	if handled:
 		get_viewport().set_input_as_handled()
 
+
 func stage_count() -> int:
 	return stages.size() + 1
 
+
 func random_index() -> int:
 	return stages.size()
+
 
 func index_of_stage_id(stage_id: String) -> int:
 	for i in stages.size():
@@ -82,86 +112,103 @@ func index_of_stage_id(stage_id: String) -> int:
 			return i
 	return -1
 
+
 func selected_stage() -> StageData:
 	if index < 0 or index >= stages.size():
 		return null
 	return stages[index]
 
-func _build_ui() -> void:
-	var background := ColorRect.new()
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	background.color = Color(0.055, 0.05, 0.055)
-	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(background)
 
-	_add_label("SIDEWALK SHOWDOWN", Vector2(20, 9), Vector2(280, 20), 16,
-		Color(1.0, 0.83, 0.48), HORIZONTAL_ALIGNMENT_CENTER)
-	_add_label("CHOOSE YOUR STAGE", Vector2(20, 30), Vector2(280, 12), 9,
-		MUTED, HORIZONTAL_ALIGNMENT_CENTER)
+# Center-crop an 80x45 thumbnail into the ticket's silver panel: an integer
+# region select on the source art, never a scale.
+func _silver_crop(thumbnail: Texture2D) -> AtlasTexture:
+	var crop := AtlasTexture.new()
+	crop.atlas = thumbnail
+	var source := thumbnail.get_size()
+	var region := Rect2(
+		(source.x - SILVER_SIZE.x) / 2.0, (source.y - SILVER_SIZE.y) / 2.0,
+		SILVER_SIZE.x, SILVER_SIZE.y)
+	crop.region = Rect2i(region.position.round(), SILVER_SIZE)
+	return crop
+
+
+func _ticket_pos(entry: int) -> Vector2:
+	var x: float = TICKET_X[entry] if entry < TICKET_X.size() \
+		else TICKET_X[0] + entry * (TICKET_SIZE.x + 24.0)
+	return Vector2(x, TICKET_Y)
+
+
+func _build_ui() -> void:
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var background: Node2D = STAGE_SCENE.instantiate()
+	add_child(background)
+	add_child(UiText.dim_overlay())
+
+	# "PICK YOUR SPOT" over the art: outlined marker.
+	var header := UiText.marker("PICK YOUR SPOT", Vector2(0, 12), Color.WHITE, true)
+	header.size = Vector2(320, UiText.MARKER_LINE_HEIGHT)
+	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	add_child(header)
 
 	for entry in stage_count():
-		var x := 12.0 + entry * (CARD_SIZE.x + 8.0)
-		var card := Panel.new()
-		card.position = Vector2(x, CARD_Y)
-		card.size = CARD_SIZE
-		card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(card)
-		_cards.append(card)
+		var at := _ticket_pos(entry)
+		var ticket := TextureRect.new()
+		ticket.texture = TICKET
+		ticket.position = at
+		ticket.size = TICKET_SIZE
+		ticket.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ticket.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		add_child(ticket)
+		_tickets.append(ticket)
 
+		# The thumbnail sits IN the ticket's silver panel (a crop, not a
+		# scale); RANDOM stays covered with a "?".
 		var thumbnail := TextureRect.new()
-		thumbnail.position = card.position + Vector2(6, 5)
-		thumbnail.size = THUMBNAIL_SIZE
+		thumbnail.position = at + SILVER_POS
+		thumbnail.size = SILVER_SIZE
 		thumbnail.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		thumbnail.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		thumbnail.stretch_mode = TextureRect.STRETCH_KEEP
+		thumbnail.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		if entry < stages.size() and stages[entry] != null:
-			thumbnail.texture = stages[entry].thumbnail
+			thumbnail.texture = _silver_crop(stages[entry].thumbnail)
 		add_child(thumbnail)
+		_thumbnails.append(thumbnail)
 
 		if entry == random_index():
-			var mark := _add_label("?", card.position + Vector2(6, 5),
-				THUMBNAIL_SIZE, 30, Color(0.93, 0.75, 0.4),
-				HORIZONTAL_ALIGNMENT_CENTER)
-			mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-			_add_label("RANDOM", card.position + Vector2(4, 53),
-				Vector2(CARD_SIZE.x - 8, 16), 8, Color(0.96, 0.91, 0.83),
-				HORIZONTAL_ALIGNMENT_CENTER)
+			var question := UiText.marker("?", at + SILVER_POS + Vector2(0, 1),
+				Color.WHITE, true)
+			question.size = Vector2(SILVER_SIZE.x, 12)
+			question.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			add_child(question)
+			var random_note := UiText.marker("RANDOM", Vector2(at.x, at.y + 46),
+				Color.WHITE, true)
+			random_note.size = Vector2(TICKET_SIZE.x, UiText.MARKER_LINE_HEIGHT)
+			random_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			add_child(random_note)
 		else:
-			var name_label := _add_label(stages[entry].display_name.to_upper(),
-				card.position + Vector2(4, 52), Vector2(CARD_SIZE.x - 8, 18), 7,
-				Color(0.96, 0.91, 0.83), HORIZONTAL_ALIGNMENT_CENTER)
-			name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			name_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+			var name_label := UiText.marker(stages[entry].display_name.to_upper(),
+				Vector2(at.x, at.y + 46), Color.WHITE, true)
+			name_label.size = Vector2(TICKET_SIZE.x, UiText.MARKER_LINE_HEIGHT)
+			name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			add_child(name_label)
 
-	_description = _add_label("", Vector2(16, 124), Vector2(288, 18), 7, MUTED,
-		HORIZONTAL_ALIGNMENT_CENTER)
-	_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		var frame := TicketFrame.new()
+		frame.position = at
+		frame.size = TICKET_SIZE
+		frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		frame.visible = false
+		add_child(frame)
+		_frames.append(frame)
 
-	_add_label("A/D OR STICK MOVE   -   J/X CONFIRM   -   BACKSPACE BACK",
-		Vector2(8, 150), Vector2(304, 10), 7, P1_ACCENT,
-		HORIZONTAL_ALIGNMENT_CENTER)
-	_add_label("THE MATCH STARTS ON THE STAGE YOU PICK",
-		Vector2(8, 163), Vector2(304, 10), 7, MUTED,
-		HORIZONTAL_ALIGNMENT_CENTER)
+	add_child(UiPromptLine.new("CONFIRM", "BACK"))
+	_refresh()
 
-func _add_label(text: String, at: Vector2, dimensions: Vector2, font_size: int,
-		color: Color, alignment: HorizontalAlignment) -> Label:
-	var label := Label.new()
-	label.position = at
-	label.size = dimensions
-	label.text = text
-	label.horizontal_alignment = alignment
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", color)
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(label)
-	return label
 
 func _move(direction: int) -> void:
 	index = wrapi(index + direction, 0, stage_count())
 	_refresh()
 	selection_moved.emit()
+
 
 func _choose() -> void:
 	if _chosen or stages.is_empty():
@@ -173,21 +220,57 @@ func _choose() -> void:
 		# RANDOM: draw once, before the match is created, from a visual/meta RNG
 		# that is never part of the deterministic fight simulation.
 		stage = stages[rng.randi_range(0, stages.size() - 1)]
+		_begin_reveal(stage)
+		return
 	resolved_stage_id = stage.id
 	stage_chosen.emit(stage, stage.id)
 
-func _refresh() -> void:
-	for i in _cards.size():
-		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.17, 0.155, 0.15) if i == index else Color(0.13, 0.12, 0.13)
-		style.set_border_width_all(2)
-		style.border_color = P1_ACCENT if i == index else Color(0.5, 0.47, 0.42)
-		_cards[i].add_theme_stylebox_override("panel", style)
 
-	var stage := selected_stage()
-	if stage == null:
-		_description.text = "A random stage is drawn before the match."
-	elif stage.description.is_empty():
-		_description.text = stage.display_name
-	else:
-		_description.text = stage.description
+# The RANDOM scratch-off: the drawn stage's thumbnail appears in the RANDOM
+# ticket's silver panel under 18 cover columns; one column clears per frame,
+# then the hand-off fires exactly like a concrete pick.
+func _begin_reveal(stage: StageData) -> void:
+	_reveal_stage = stage
+	_reveal_frame = 0
+	var at := _ticket_pos(random_index())
+	_thumbnails[random_index()].texture = _silver_crop(stage.thumbnail)
+	_reveal_covers.clear()
+	for column in REVEAL_COLUMNS:
+		var cover := ColorRect.new()
+		cover.color = Color(0.83, 0.83, 0.83)  # the ticket's silver tone
+		cover.position = at + SILVER_POS + Vector2(column * (SILVER_SIZE.x / REVEAL_COLUMNS), 0)
+		cover.size = Vector2(ceil(SILVER_SIZE.x / REVEAL_COLUMNS), SILVER_SIZE.y)
+		cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(cover)
+		_reveal_covers.append(cover)
+
+
+func _physics_process(_delta: float) -> void:
+	if _reveal_stage == null:
+		return
+	if _reveal_frame < REVEAL_FRAMES:
+		var clear_count := _reveal_frame + 1
+		for cover_index in _reveal_covers.size():
+			_reveal_covers[cover_index].visible = cover_index >= clear_count
+		_reveal_frame += 1
+		return
+	# 18 frames done: same hand-off as a concrete pick.
+	for cover in _reveal_covers:
+		cover.queue_free()
+	_reveal_covers.clear()
+	var stage: StageData = _reveal_stage
+	_reveal_stage = null
+	resolved_stage_id = stage.id
+	stage_chosen.emit(stage, stage.id)
+
+
+func _refresh() -> void:
+	for i in _tickets.size():
+		var focused := i == index
+		# The focused ticket lifts 2 px and gets the 1 px yellow frame.
+		var lift := -2.0 if focused else 0.0
+		_tickets[i].position = _ticket_pos(i) + Vector2(0, lift)
+		_thumbnails[i].position = _ticket_pos(i) + SILVER_POS + Vector2(0, lift)
+		_frames[i].position = _ticket_pos(i) + Vector2(0, lift)
+		_frames[i].visible = focused
+		# Ticket names/notes sit under the tickets and do not move with them.

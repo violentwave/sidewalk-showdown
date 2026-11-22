@@ -1913,9 +1913,14 @@ Possible updates:
 > A text-only mode select (1 PLAYER / 2 PLAYERS), a solo difficulty select
 > (EASY/NORMAL/HARD), character select, and a stage select precede the
 > match. Solo P2 is a **real CPU opponent** (deterministic, data-tuned —
-> see `docs/CPU_OPPONENT.md`), not an idle dummy. **Combo system Phase 1**
-> is shipped (blockstrings, counter-hit extensions, dial-a-combo macros,
-> the Clip Cancel, data-driven scaling — `docs/COMBO_SYSTEM_DESIGN.md`).
+> see `docs/CPU_OPPONENT.md`), not an idle dummy. **Combo system Phases
+> 1–3 are shipped** (blockstrings, counter-hit extensions, dial-a-combo
+> macros, the Clip Cancel, data-driven scaling, the juggle point budget
+> with authored launcher routes, stuns, and the combo breaker —
+> `docs/COMBO_SYSTEM_DESIGN.md`), and **the CPU now uses all of it**
+> (authored route walking, juggle chases, stun-then-string, breaker,
+> shake-out, Clip Cancel — Phase 4's CPU half, 2026-11-22). The combo HUD
+> (Phase 4's other half) is still pending.
 > There is still no full main-menu/options flow. See
 > `docs/PHASE_STATUS.md` for the gate status.
 

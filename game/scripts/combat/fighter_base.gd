@@ -1123,8 +1123,16 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 	# per-combo damage cap clamps the remaining budget; past the hit cap a hit
 	# still connects but pays nothing.
 	var scaled := _combo_damage_for(move)
+	var fresh_combo := combo_hits == 0
 	health = maxf(0.0, health - scaled)
 	combo_hits += 1
+	# Phase 3 A1 (adversarial pass 2, COMBO_FINDINGS): the breaker's
+	# once-per-COMBO rail is combo-scoped — a fresh combo opening clears it,
+	# or the decision #1 meter extras could never fire after the first
+	# break of the round (the break itself zeroes combo_hits, so a natural
+	# combo-end reset alone would never run).
+	if fresh_combo:
+		breaker_used_this_combo = false
 	frames_since_hit = 0
 	combo_tracker.record(move.id, scaled)
 	combo_changed.emit(combo_hits)

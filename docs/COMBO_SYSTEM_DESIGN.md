@@ -485,21 +485,36 @@ launch bugs, the same rule the cross-up blocking tests already pin.
 
 The AI reads data, never strings of code:
 
-- `cpu_controller.gd` already caches moves and reaches at setup. Phase 4
-  adds: string awareness (walk the authored `cancels` of its current move
-  after a hit-confirm — replaces the blunt `combo_rate` light offer),
-  launcher usage (after a launcher connects, run the juggle route whose
-  point costs fit the defender's remaining budget), stun usage (fish for
-  the stun special at its authored range, then insert the string), Clip
-  Cancel usage (safety on blocked heavies at HARD), and defense: preblock
-  already handles blockstrings; add a `breaker_rate` (uses the free break
-  when combo damage exceeds a threshold), stun shake-out mashing, and
-  juggle-fall air-drift (hold away from the attacker, legal input).
+- **IMPLEMENTED (2026-11-22, Phase 4's CPU half).** `cpu_controller.gd`
+  walks the authored `cancels` of its current move after a hit-confirm
+  (replacing the blunt `combo_rate` light offer): on each confirm it picks a
+  window-open rule matching the outcome (HIT/BLOCK/COUNTER_HIT) at
+  `string_rate`, up to `route_depth` steps per combo, with a random choice
+  among eligible edges for variety. SPECIAL targets dial the flavor —
+  forward-held launcher (`launcher_rate`) or the neutral stun
+  (`stun_rate`, stun-then-string); a declined offer presses nothing.
+  Launcher usage arms the JUGGLE plan on a confirmed launcher: jump toward
+  on the actionable frame, press the authored air normals while the
+  defender's point budget can pay. Clip Cancel usage: a blocked move with
+  meter resolves via the 25-meter recovery cancel
+  (`clip_cancel_rate`) or an authored BLOCK-condition blockstring.
+  Defense: the breaker attempt arms on hitstun entry behind the fairness
+  reaction delay and rolls `breaker_rate`, gated by `breaker_ready()` and a
+  worth-it rule (free always; meter only at low health, cornered, or a 60+
+  damage combo); stun shake-out mashes the authored direction past the
+  authored minimum (`shake_rate`); juggle-fall drift holds away from the
+  attacker. Preblock already handled blockstrings.
 - All of this is observable-state decisions with the existing seeded LCG —
-  the determinism and save/restore tests extend unchanged. New
-  `CpuDifficulty` knobs: `string_rate`, `launcher_rate`, `stun_rate`,
-  `breaker_rate`, `clip_cancel_rate` (EASY low, HARD high, tuned in the
-  existing `cpu_*.tres`).
+  the determinism and save/restore tests extend unchanged (mid-combo,
+  mid-stun, mid-break restores are pinned in `cpu_test.gd`). New
+  `CpuDifficulty` knobs: `string_rate`, `route_depth`, `launcher_rate`,
+  `stun_rate`, `juggle_rate`, `breaker_rate`, `clip_cancel_rate`,
+  `shake_rate` — EASY low, HARD high, tuned in the existing `cpu_*.tres`
+  (full table in `docs/CPU_OPPONENT.md`).
+- Also shipped with this phase: the A1 fix from the adversarial pass — the
+  breaker's once-per-combo rail now clears with each fresh combo opening,
+  which is what makes the decision #1 meter extras (and this CPU's paid
+  breaks) reachable at all.
 
 ## 13. Move list proposal
 

@@ -66,6 +66,40 @@ extends Resource
 # Watchdog: consecutive idle frames allowed before the CPU forces action.
 @export var idle_limit: int = 60
 
+# --- Phase 4 combo knobs (COMBO_SYSTEM_DESIGN §12) --------------------------
+
+# Chance, on each hit-confirm of our own attack, to continue the string via
+# an authored cancel edge (replaces the blunt combo_rate light offer).
+@export var string_rate: float = 0.40
+
+# Maximum authored continuation steps the CPU will take in one combo.
+@export var route_depth: int = 2
+
+# Chance the forward special is chosen over the neutral one when a special
+# comes up (neutral reach, or a SPECIAL cancel target): forward = launcher,
+# neutral = the stun special (stun-then-string).
+@export var launcher_rate: float = 0.25
+
+# Chance to fish with the neutral stun special at special reach.
+@export var stun_rate: float = 0.12
+
+# Chance to chase a launched opponent with the authored juggle route (jump
+# toward, air normals while the point budget can pay).
+@export var juggle_rate: float = 0.35
+
+# Chance to attempt the breaker (grab+special) once a hitstun entry has
+# waited out the reaction delay. The engine still enforces free/meter,
+# once-per-combo, and the cooldown; blockstun never reaches this roll.
+@export var breaker_rate: float = 0.25
+
+# Chance to Clip Cancel (grab+special, 25 meter) out of a blocked move's
+# recovery when the meter can pay.
+@export var clip_cancel_rate: float = 0.10
+
+# Chance per tick to mash the authored shake-out direction once a stun's
+# unshakeable minimum has elapsed.
+@export var shake_rate: float = 0.35
+
 # Loaded by menu index: 0 EASY, 1 NORMAL, 2 HARD. Falls back to built-in
 # NORMAL defaults when a .tres is missing so a bad resource path can never
 # break the flow.

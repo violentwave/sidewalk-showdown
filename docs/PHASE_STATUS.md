@@ -86,8 +86,10 @@ phase exit criteria:
   55 stun-&-breaker,
   34 round-flow,
   54 mode/character-select integration, 7 locomotion-speed,
-  94 stage-select/ambience, 9 stage-floor, 23 intro, and 27 CPU-opponent
-  checks. K1, R1, corner separation, bounded hitstop
+  94 stage-select/ambience, 9 stage-floor, 23 intro, and 41 CPU-opponent
+  checks (Phase 4 added combo ordering, combo legality under fire,
+  mid-combo/stun/break AI-state restores, and honest soak limits). K1, R1,
+  corner separation, bounded hitstop
   buffer freeze, and the
   post-KO winner-state repair are covered. Non-METH strikes reject during
   knockdown; METH remains the K1

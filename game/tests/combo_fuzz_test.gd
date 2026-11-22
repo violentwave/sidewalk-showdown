@@ -28,12 +28,13 @@ const DETERMINISM_FRAMES := 240
 const SOAK_MATCHES := 8
 # Measured on the fixed (#76-style) harness, NORMAL level, seeds 11/29,
 # both pairings and stages. Phase 3 (Peggy 274 launcher + Taser Belch
-# 105->40) re-measured 2026-11-21: matches now end between 3092 and 5007
-# frames (both stages produce identical lengths per seed — the stages share
+# 105->40) re-measured 2026-11-21: 3092-5007 frames. Phase 4 (the combo CPU)
+# re-measured 2026-11-22: matches now end between 3282 and 3896 frames
+# (both stages produce identical lengths per seed — the stages share
 # bounds and spawns, so only the pairing/seed matters); no stalls, mutual
 # idle always < 240. The ceiling resets to worst + ~25%: a regression that
 # stalls past it fails fast instead of hiding under the old blunt limit.
-const SOAK_MAX_FRAMES := 6500
+const SOAK_MAX_FRAMES := 4900
 
 var failures := 0
 var checks := 0

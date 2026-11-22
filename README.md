@@ -80,8 +80,9 @@ who turns sidewalk chaos into a rigged tournament.**
 
 Not in yet: input remapping, campaign, stage rotation/tournament order,
 final audio/voice/VFX, and final art/cleaning for some clips. The solo CPU
-opponent is real (deterministic, three difficulties) but deliberately
-simple — no fuzzy guard, no character-specific gameplans; it is a fair
+opponent now uses the full combo system (authored route walking, juggles,
+stuns, breaker, Clip Cancel — Phase 4's CPU half, 2026-11-22) but stays
+deliberately simple — no fuzzy guard, no character-specific gameplans; it is a fair
 sparring partner, not a tournament opponent. Online play is deferred beyond v0.1
 per GDD §2.4/§16.
 
@@ -114,7 +115,7 @@ godot --headless --path game --script res://tests/ui_typography_test.gd
 ```
 
 Current suites: **combat 408 checks**, round flow 34, character select 54,
-locomotion speed 7, stage select 94, stage floor 9, CPU opponent 27,
+locomotion speed 7, stage select 94, stage floor 9, CPU opponent 41,
 combo system 68, combo fuzz 118, stun & breaker 55, The Clip 23,
 serialization 24, B6
 landing-whiff 5, UI flow 52, settings 16, UI assets 4, UI typography 10

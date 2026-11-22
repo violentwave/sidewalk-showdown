@@ -43,6 +43,9 @@ enum Plan {
 	ANTI_AIR,
 	CORNER_JUMP,
 	JUMP_IN,
+	# Phase 4 (§12): chasing a launched opponent with the authored juggle
+	# route (jump toward, air normals while the point budget can pay).
+	JUGGLE,
 }
 
 var fighter: FighterBase
@@ -59,6 +62,12 @@ var react_frames: int = 0
 var idle_frames: int = 0
 var _held_bits: int = 0
 var _last_opp_state: int = -1
+# Phase 4 combo state (§12): authored-route steps spent in the opponent's
+# current combo, the scheduled breaker attempt (armed on hitstun entry,
+# fires after the reaction delay), and the juggle-chase step.
+var combo_depth: int = 0
+var break_armed: int = 0
+var juggle_step: int = 0
 # ---------------------------------------------------------------------------
 
 var _actions: PackedStringArray = []
@@ -70,11 +79,13 @@ var _special_neutral: MoveData
 var _grab: MoveData
 var _command_grab: MoveData
 var _meth: MoveData
+var _air_light: MoveData
 var _reach_light: float = 0.0
 var _reach_heavy: float = 0.0
 var _reach_special: float = 0.0
 var _reach_throw: float = 0.0
 var _reach_meth: float = 0.0
+var _reach_air: float = 0.0
 # Opponent's standing light reach, for pre-blocking distance.
 var _opp_reach_light: float = 40.0
 # Tests drive the simulation manually and call manual_tick() themselves.
@@ -94,6 +105,9 @@ func setup(who: FighterBase, foe: FighterBase, match: Node,
 	idle_frames = 0
 	_held_bits = 0
 	_last_opp_state = -1
+	combo_depth = 0
+	break_armed = 0
+	juggle_step = 0
 	for action in ACTIONS:
 		_actions.append("p%d_%s" % [fighter.player_index, action])
 	_cache_move_data()
@@ -107,11 +121,13 @@ func _cache_move_data() -> void:
 	_grab = data.find_move(MoveData.InputType.GRAB, MoveData.Stance.STAND)
 	_command_grab = data.find_command_grab()
 	_meth = data.meth_move
+	_air_light = data.find_move(MoveData.InputType.LIGHT, MoveData.Stance.AIR)
 	_reach_light = _reach_of(_light)
 	_reach_heavy = _reach_of(_heavy)
 	_reach_special = maxf(_reach_of(_special_fwd), _reach_of(_special_neutral))
 	_reach_throw = maxf(_reach_of(_grab), _reach_of(_command_grab))
 	_reach_meth = _reach_of(_meth)
+	_reach_air = _reach_of(_air_light)
 	var opp_light: MoveData = opponent.data.find_move(
 		MoveData.InputType.LIGHT, MoveData.Stance.STAND)
 	_opp_reach_light = _reach_of(opp_light)
@@ -159,6 +175,11 @@ func _tick() -> void:
 			_press(A_GRAB, false)
 		return
 
+	# Route depth is per combo: the opponent's combo record (defender-side)
+	# dying means the string is over.
+	if opponent.combo_hits == 0:
+		combo_depth = 0
+
 	# While committed to a stun or a move of our own, keep holding a block
 	# direction through blockstrings and stop pressing buttons; buffered
 	# cancels are authored engine rules and stay available to it.
@@ -169,6 +190,31 @@ func _tick() -> void:
 			_hold_block()
 		else:
 			_release_buttons()
+			# Phase 4 defense (§12). The breaker is grab+special in HITSTUN —
+			# never blockstun (blocking is already the defense there, and
+			# the BLOCKSTUN case is handled above as a hold-block).
+			if fighter.state == FighterBase.State.HITSTUN:
+				if _last_own_state != FighterBase.State.HITSTUN:
+					# Entering hitstun (a new combo opportunity): arm the
+					# attempt, which fires after the fairness delay.
+					break_armed = difficulty.reaction_delay_frames + 1
+				if not fighter.grounded:
+					# Juggle-fall drift: hold away from the attacker so we
+					# land out of follow-up reach (legal input, §12).
+					_walk(-signf(opponent.position.x - fighter.position.x))
+				elif break_armed > 0:
+					break_armed -= 1
+					if break_armed == 0 and fighter.breaker_ready() \
+							and _worth_breaking() \
+							and _randf() < difficulty.breaker_rate:
+						_press(A_GRAB, true)
+						_press(A_SPECIAL, true)
+				# Stun shake-out: mash the authored direction once the
+				# unshakeable minimum has elapsed.
+				if fighter.stun_id != &"" and fighter.stun_window_applied \
+						- fighter.stun_frames_remaining >= fighter.stun_min_frames \
+						and _randf() < difficulty.shake_rate:
+					_press(A_UP, true)
 			# Wake-up: roll the reversal exactly once, on the first frame.
 			if fighter.state == FighterBase.State.WAKE_UP and _last_own_state \
 					!= FighterBase.State.WAKE_UP and _randf() < difficulty.reversal_rate:
@@ -178,13 +224,25 @@ func _tick() -> void:
 		return
 
 	if fighter.state == FighterBase.State.ATTACK:
-		# Pressure: with the move confirmed, an authored cancel may consume a
-		# buffered button. Only a human-legal button is ever offered.
+		# Phase 4 offense (§12): walk the AUTHORED cancel graph instead of
+		# offering one blunt light. Only human-legal buttons are ever
+		# offered; the engine validates windows, stances, and meter.
 		_release_buttons()
-		if fighter.move_hit_confirmed and opponent.state \
-				in [FighterBase.State.HITSTUN, FighterBase.State.KNOCKDOWN] \
-				and _dist() <= _reach_light + 8.0 and _randf() < difficulty.combo_rate:
-			_press(A_LIGHT, true)
+		if fighter.current_move != null:
+			var confirmed: bool = fighter.move_hit_confirmed \
+					and opponent.state in [FighterBase.State.HITSTUN,
+						FighterBase.State.KNOCKDOWN]
+			if confirmed:
+				if fighter.current_move.launcher and not opponent.grounded:
+					# Our launcher connected: chase the authored juggle
+					# route within the point budget (difficulty-scaled).
+					if _randf() < difficulty.juggle_rate:
+						plan = Plan.JUGGLE
+						juggle_step = 0
+				else:
+					_continue_route(CancelRule.Condition.HIT)
+			elif fighter.move_was_blocked:
+				_blocked_route()
 		_last_own_state = fighter.state
 		_last_opp_state = opponent.state
 		return
@@ -249,6 +307,40 @@ func _decide() -> void:
 		if plan_frames == 0:
 			plan = Plan.NONE
 		return
+
+	# Phase 4 offense (§12): the juggle chase. Our launcher connected and
+	# the roll said chase: jump toward (real input — the held direction does
+	# the drift, no velocity injection) and press the authored air normals
+	# while the defender's point budget can still pay for them.
+	if plan == Plan.JUGGLE:
+		if opponent.grounded or opponent.juggle_points < 2 \
+				or opponent.juggle_hits >= 2:
+			plan = Plan.NONE
+			juggle_step = 0
+		elif juggle_step == 0:
+			# This branch only runs outside ATTACK, so we are actionable:
+			# jump now, holding toward for the drift.
+			_walk(signf(opponent.position.x - fighter.position.x))
+			_press(A_UP, true)
+			juggle_step = 1
+		elif fighter.grounded:
+			# JUMP_START (or we landed without connecting): keep the
+			# direction held and re-offer the jump while the arc is live.
+			_walk(signf(opponent.position.x - fighter.position.x))
+			_press(A_UP, true)
+		elif _dist() <= _reach_air + 8.0 \
+				and opponent.position.y >= fighter.position.y - 20.0:
+			# In air-move reach with the defender at hittable height: press
+			# the authored route — light first, heavy after it connects.
+			_walk(signf(opponent.position.x - fighter.position.x))
+			if _randf() < difficulty.juggle_rate + 0.3:
+				if opponent.juggle_hits == 0:
+					_press(A_LIGHT, true)
+				else:
+					_press(A_HEAVY, true)
+		else:
+			_walk(signf(opponent.position.x - fighter.position.x))
+		return
 	plan = Plan.NONE
 
 	# Punish: opponent stuck in hitstun or knockdown recovery inside reach.
@@ -312,14 +404,23 @@ func _decide() -> void:
 		_hold_block()
 		return
 
-	# Special / EX at special reach.
+	# Special / EX at special reach. The direction dials the flavor (§12):
+	# neutral = the stun special (stun-then-string), forward = the
+	# launcher; EX stays the forward-held meter route.
 	if dist <= _reach_special and _special_fwd != null:
 		if _randf() < difficulty.special_rate:
 			var want_ex: bool = fighter.meter >= 50.0 \
 					and _randf() < difficulty.ex_rate
+			var toward: float = signf(opponent.position.x - fighter.position.x)
 			if want_ex:
 				_press(A_HEAVY, true) # the EX modifier hold
-			_walk(signf(opponent.position.x - fighter.position.x))
+				_walk(toward)
+			elif _randf() < difficulty.stun_rate:
+				_walk(0.0) # neutral: the stun special
+			elif _randf() < difficulty.launcher_rate:
+				_walk(toward) # forward: the launcher
+			else:
+				return
 			_press(A_SPECIAL, true)
 			return
 
@@ -351,6 +452,109 @@ func _decide() -> void:
 
 func _dist() -> float:
 	return absf(fighter.position.x - opponent.position.x)
+
+# Phase 4 offense (§12): continue the string through the AUTHORED cancel
+# graph of the current move. The CPU only ever offers a button; the engine
+# validates the window, stance, and outcome before consuming it, so an
+# illegal cancel is impossible by construction.
+func _continue_route(cond: int) -> void:
+	if combo_depth >= difficulty.route_depth:
+		return
+	# A buffered press out of string range would just whiff: gate on reach
+	# for grounded strings (juggle hits are handled by the JUGGLE plan).
+	if opponent.grounded and _dist() > _reach_light + 10.0:
+		return
+	if _randf() >= difficulty.string_rate:
+		return
+	var rule: CancelRule = _pick_cancel_rule(cond)
+	if rule == null:
+		return
+	combo_depth += 1
+	_press_route(rule.target)
+
+# Pick among the authored cancel edges of the current move that match the
+# outcome and are window-open right now. Random choice = route variety.
+func _pick_cancel_rule(cond: int) -> CancelRule:
+	if fighter.current_move == null:
+		return null
+	var frame: int = fighter.state_frame
+	var eligible: Array = []
+	for rule: CancelRule in fighter.current_move.cancels:
+		if not rule.window_open(frame):
+			continue
+		if rule.condition == cond:
+			eligible.append(rule)
+		elif cond == CancelRule.Condition.HIT \
+				and rule.condition == CancelRule.Condition.COUNTER_HIT \
+				and fighter.move_counter_hit:
+			eligible.append(rule)
+	if eligible.is_empty():
+		return null
+	var idx: int = int(_randf() * float(eligible.size()))
+	return eligible[mini(idx, eligible.size() - 1)]
+
+# Offer the button for one authored cancel target. For SPECIAL targets the
+# direction is the flavor dial (§12): forward-held = the launcher, neutral =
+# the stun special (stun-then-string). Both flavors are difficulty-gated; if
+# neither rolls in, the offer is declined (no button pressed) — a declined
+# special never stuns by accident, because pressing the neutral special IS
+# the stun move. EX is the authored forward-held punish.
+func _press_route(target: int) -> bool:
+	var toward: float = signf(opponent.position.x - fighter.position.x)
+	match target:
+		CancelRule.Target.LIGHT:
+			_walk(0.0)
+			_press(A_LIGHT, true)
+		CancelRule.Target.HEAVY:
+			_walk(0.0)
+			_press(A_HEAVY, true)
+		CancelRule.Target.SPECIAL:
+			var roll := _randf()
+			if roll < difficulty.launcher_rate:
+				_walk(toward) # forward: the launcher
+			elif roll < difficulty.launcher_rate + difficulty.stun_rate:
+				_walk(0.0) # neutral: the stun special
+			else:
+				return false # declined: neither flavor rolled in
+			_press(A_SPECIAL, true)
+		CancelRule.Target.EX:
+			# The authored EX punish shape: the engine pays meter_cost or
+			# falls back to the base forward special.
+			_walk(toward)
+			_press(A_HEAVY, true)
+			_press(A_SPECIAL, true)
+	return true
+
+# Safety on a blocked move (§12): burn 25 meter to Clip Cancel out of the
+# recovery (decision #8), or keep pressure with an authored BLOCK-condition
+# blockstring.
+func _blocked_route() -> void:
+	if fighter.current_move == null:
+		return
+	var in_recovery: bool = fighter.state_frame \
+			>= fighter.current_move.startup + fighter.current_move.active
+	if in_recovery and fighter.meter >= FighterBase.CLIP_CANCEL_COST \
+			and _randf() < difficulty.clip_cancel_rate:
+		_press(A_GRAB, true)
+		_press(A_SPECIAL, true)
+		return
+	_continue_route(CancelRule.Condition.BLOCK)
+
+# Phase 4 defense (§12): is a PAID break worth the meter here? The free
+# break is always worth it; meter breaks only when the stakes are real —
+# low health, cornered, or a long combo already paid into. The combo damage
+# gauge is the fighter's OWN defender-side tracker (hits THIS fighter took).
+func _worth_breaking() -> bool:
+	if fighter.breaker_free_uses_left > 0:
+		return true
+	if fighter.meter < 40.0:
+		return false
+	if fighter.health <= fighter.max_health * 0.25:
+		return true
+	if fighter._pinned_at_stage_wall(signf(opponent.position.x
+			- fighter.position.x)):
+		return true
+	return fighter.combo_tracker.total_damage >= 60.0
 
 func _threat_active() -> bool:
 	if opponent.state != FighterBase.State.ATTACK \
@@ -435,6 +639,9 @@ func serialize() -> Dictionary:
 		"last_opp_state": _last_opp_state,
 		"last_own_state": _last_own_state,
 		"last_opp_grounded": _last_opp_grounded,
+		"combo_depth": combo_depth,
+		"break_armed": break_armed,
+		"juggle_step": juggle_step,
 	}
 
 func load_state(data: Dictionary) -> void:
@@ -447,6 +654,9 @@ func load_state(data: Dictionary) -> void:
 	_last_opp_state = data.get("last_opp_state", -1)
 	_last_own_state = data.get("last_own_state", -1)
 	_last_opp_grounded = data.get("last_opp_grounded", true)
+	combo_depth = data.get("combo_depth", 0)
+	break_armed = data.get("break_armed", 0)
+	juggle_step = data.get("juggle_step", 0)
 	var bits: int = data.get("held", 0)
 	for action in ACTIONS.size():
 		_press(action, (bits >> action) & 1 == 1)

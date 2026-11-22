@@ -11,7 +11,7 @@ const METER_Y := 168.0
 const METER_H := 5.0
 const PIP_GAP := 7.0
 const PAUSE_OPTIONS := ["RESUME", "SETTINGS", "RESTART MATCH",
-	"BACK TO CHARACTER SELECT", "MAIN MENU", "QUIT TO DESKTOP"]
+	"CHARACTER SELECT", "MAIN MENU", "QUIT TO DESKTOP"]
 const UI_THEME := preload("res://resources/ui_theme.tres")
 
 var p1_fill: ColorRect
@@ -36,6 +36,7 @@ var counter_flash_frames: int = 0
 var hud_root: Control
 var pause_root: Control
 var pause_options: Array[Label] = []
+var pause_bars: Array[ColorRect] = []
 var pips_p1: Array[ColorRect] = []
 var pips_p2: Array[ColorRect] = []
 
@@ -127,21 +128,35 @@ func _build() -> void:
 	pause_root.visible = false
 	pause_root.theme = UI_THEME
 	root.add_child(pause_root)
-	_rect(pause_root, Vector2.ZERO, Vector2(320, 180), Color(0, 0, 0, 0.65))
-	# Phase 1 polish: one small centered ui_panel, items in Sidewalk
-	# Marker, the focused item yellow with a ">" marker, no per-item
-	# buttons and no Godot outline on the pixel font (docs/UI_SCREENS.md).
+	# The same #1C160D 55% declutter overlay the title and main menu use
+	# (docs/UI_SCREENS.md review fixes).
+	pause_root.add_child(UiText.dim_overlay())
+	# Phase 1 polish: one small centered ui_panel sized to its longest item
+	# plus 8 px padding on each side; items in Sidewalk Marker dark ink; the
+	# focused item rides a full-width yellow bar with the darkest ink
+	# (contrast rules). No per-item buttons, no Godot outline on the font.
+	var longest := 0.0
+	for option in PAUSE_OPTIONS:
+		longest = maxf(longest, UiText.marker_width(option))
+	var panel_w := int(longest) + 16
+	var panel_x := 160 - panel_w / 2
 	var pause_panel := Panel.new()
-	pause_panel.position = Vector2(80, 24)
-	pause_panel.size = Vector2(160, 116)
+	pause_panel.position = Vector2(panel_x, 24)
+	pause_panel.size = Vector2(panel_w, 116)
 	pause_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pause_root.add_child(pause_panel)
-	var header := UiText.marker("PAUSED", Vector2(80, 30), Color(0.96, 0.91, 0.83))
-	header.size = Vector2(160, UiText.MARKER_LINE_HEIGHT)
+	var header := UiText.marker("PAUSED", Vector2(panel_x, 30), UiText.INK)
+	header.size = Vector2(panel_w, UiText.MARKER_LINE_HEIGHT)
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pause_root.add_child(header)
 	for i in PAUSE_OPTIONS.size():
-		var option := _pause_option_label(PAUSE_OPTIONS[i], Vector2(88, 48 + i * 14))
+		var row_y := 47 + i * 14
+		var bar := UiText.focus_bar(Vector2(panel_x + 8, row_y - 1),
+			Vector2(panel_w - 16, 12))
+		pause_root.add_child(bar)
+		pause_bars.append(bar)
+		var option := _pause_option_label(PAUSE_OPTIONS[i],
+			Vector2(panel_x + 8, row_y), panel_w - 16)
 		pause_root.add_child(option)
 		pause_options.append(option)
 	pause_root.add_child(UiPromptLine.new("SELECT", ""))
@@ -270,21 +285,21 @@ func set_paused(paused: bool) -> void:
 func pause_option_count() -> int:
 	return PAUSE_OPTIONS.size()
 
-# One pause-menu row: a plain Sidewalk Marker label. Selection is the
-# yellow text plus a ">" marker; input stays in match_root's hands.
-func _pause_option_label(text: String, at: Vector2) -> Label:
-	var option := UiText.marker(text, at, Color(0.96, 0.91, 0.83))
-	option.size = Vector2(144, UiText.MARKER_LINE_HEIGHT)
+# One pause-menu row: a plain Sidewalk Marker label in dark ink, centered
+# on its row; input stays in match_root's hands.
+func _pause_option_label(text: String, at: Vector2, width: float) -> Label:
+	var option := UiText.marker(text, at, UiText.INK)
+	option.size = Vector2(width, UiText.MARKER_LINE_HEIGHT)
+	option.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	return option
 
 func set_pause_selection(index: int) -> void:
-	# Selection rides the ui_button focus stylebox (warm yellow modulate)
-	# so the button art itself shows the choice; input stays in
-	# match_root's hands.
-	# The focused item turns yellow and gains a ">" marker; the rest stay
-	# cream. match_root owns the selection index.
+	# The focused item rides the full-width yellow bar with the darkest
+	# ink; the rest stay dark ink on the cardboard. match_root owns the
+	# selection index.
 	for i in pause_options.size():
 		var selected := i == index
-		pause_options[i].text = "> %s" % PAUSE_OPTIONS[i] if selected else PAUSE_OPTIONS[i]
+		pause_bars[i].visible = selected
+		pause_options[i].text = PAUSE_OPTIONS[i]
 		pause_options[i].add_theme_color_override("font_color",
-			Color(0.949, 0.816, 0.227) if selected else Color(0.96, 0.91, 0.83))
+			UiText.INK_DARK if selected else UiText.INK)

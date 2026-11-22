@@ -1,11 +1,11 @@
 # SettingsOverlay — the settings screen (an overlay: pushed without freeing
 # the screen below). One centered ui_panel (280x148) with a tab row in
-# Sidewalk Marker across the top (active tab yellow with a 1 px underline,
-# inactive tabs muted), option rows (label left, value right-aligned, both
-# m5x7; the focused row gets a 1 px yellow left marker and brighter text,
-# no per-row boxes), RESET TO DEFAULTS last, and the one-line plain
-# description inside the panel bottom. Max 7 visible rows; the window
-# scrolls if a tab ever grows past that (none does today).
+# Sidewalk Marker across the top (the active tab rides a yellow highlight
+# bar with the darkest ink, inactive tabs muted), option rows (label left,
+# value right-aligned, both m5x7 in dark ink; the focused row rides a
+# full-width yellow bar), RESET TO DEFAULTS last, and the one-line plain
+# description in muted ink inside the panel bottom. Max 7 visible rows;
+# the window scrolls if a tab ever grows past that (none does today).
 #
 # Opening the screen never saves: values are READ from the Settings autoload
 # into the row list; nothing writes back until the player changes something
@@ -136,10 +136,10 @@ var tab_index := 0
 var row_index := 0  # 0 = tab header, 1.. options, last = reset
 
 var _tab_labels: Array[Label] = []
-var _tab_underlines: Array[ColorRect] = []
+var _tab_bars: Array[ColorRect] = []
 var _row_labels: Array[Label] = []
 var _value_labels: Array[Label] = []
-var _row_markers: Array[ColorRect] = []
+var _row_bars: Array[ColorRect] = []
 var _desc_label: Label
 
 
@@ -162,6 +162,8 @@ func _ready() -> void:
 	add_child(panel)
 
 	# Tab row: Sidewalk Marker titles distributed across the panel top.
+	# The active tab sits on a yellow highlight bar with the darkest ink
+	# (contrast rules); inactive tabs use the muted cardboard ink.
 	var widths: Array[int] = []
 	var total_w := 0
 	for tab in TABS:
@@ -170,44 +172,37 @@ func _ready() -> void:
 	var gap := (TAB_ROW_W - total_w) / float(TABS.size() - 1) if TABS.size() > 1 else 0.0
 	var x := float(TAB_ROW_X)
 	for tab in TABS.size():
+		var bar := UiText.focus_bar(Vector2(roundi(x) - 2, TAB_Y - 1),
+			Vector2(widths[tab] + 4, 12))
+		add_child(bar)
+		_tab_bars.append(bar)
 		var label := UiText.marker(str(TABS[tab]["title"]), Vector2(roundi(x), TAB_Y),
-			UiText.MUTED)
+			UiText.INK_MUTED)
 		label.size = Vector2(widths[tab], UiText.MARKER_LINE_HEIGHT)
 		add_child(label)
 		_tab_labels.append(label)
-		var underline := ColorRect.new()
-		underline.color = UiText.YELLOW
-		underline.position = Vector2(roundi(x), TAB_Y + UiText.MARKER_LINE_HEIGHT)
-		underline.size = Vector2(widths[tab], 1)
-		underline.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		underline.visible = false
-		add_child(underline)
-		_tab_underlines.append(underline)
 		x += widths[tab] + gap
 
-	# Option rows: m5x7 label left, value right-aligned, 1 px focus marker.
+	# Option rows: m5x7 label left, value right-aligned. The focused row
+	# rides a full-width yellow bar with the darkest ink.
 	for row in MAX_VISIBLE_ROWS:
-		var row_label := UiText.body("", Vector2(ROW_X_LABEL, 0), UiText.MUTED)
+		var row_bar := UiText.focus_bar(
+			Vector2(TAB_ROW_X - 4, 0), Vector2(ROW_X_VALUE_RIGHT - TAB_ROW_X + 4, 12))
+		add_child(row_bar)
+		_row_bars.append(row_bar)
+		var row_label := UiText.body("", Vector2(ROW_X_LABEL, 0), UiText.INK)
 		row_label.size = Vector2(150, UiText.M5X7_LINE_HEIGHT)
 		add_child(row_label)
 		_row_labels.append(row_label)
-		var value_label := UiText.body("", Vector2(0, 0), UiText.MUTED)
+		var value_label := UiText.body("", Vector2(0, 0), UiText.INK_MUTED)
 		value_label.size = Vector2(ROW_X_VALUE_RIGHT - ROW_X_LABEL - 8,
 			UiText.M5X7_LINE_HEIGHT)
 		value_label.position = Vector2(ROW_X_VALUE_RIGHT - value_label.size.x, 0)
 		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		add_child(value_label)
 		_value_labels.append(value_label)
-		var marker_rect := ColorRect.new()
-		marker_rect.color = UiText.YELLOW
-		marker_rect.position = Vector2(ROW_X_LABEL - 8, 0)
-		marker_rect.size = Vector2(1, 10)
-		marker_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		marker_rect.visible = false
-		add_child(marker_rect)
-		_row_markers.append(marker_rect)
 
-	_desc_label = UiText.body("", Vector2(ROW_X_LABEL, DESC_Y), UiText.MUTED)
+	_desc_label = UiText.body("", Vector2(ROW_X_LABEL, DESC_Y), UiText.INK_MUTED)
 	_desc_label.size = Vector2(232, UiText.M5X7_LINE_HEIGHT)
 	add_child(_desc_label)
 
@@ -302,14 +297,16 @@ func _row_window() -> int:
 func _refresh() -> void:
 	var tab: Dictionary = TABS[tab_index]
 
-	# Tab row: active tab yellow + underline.
+	# Tab row: the active tab rides a yellow bar with the darkest ink;
+	# inactive tabs stay muted on the cardboard.
 	for t in TABS.size():
 		var active := t == tab_index
+		_tab_bars[t].visible = active
 		_tab_labels[t].add_theme_color_override("font_color",
-			UiText.YELLOW if active else UiText.MUTED)
-		_tab_underlines[t].visible = active
+			UiText.INK_DARK if active else UiText.INK_MUTED)
 
-	# Option rows (options + RESET), windowed to MAX_VISIBLE_ROWS.
+	# Option rows (options + RESET), windowed to MAX_VISIBLE_ROWS. The
+	# focused row rides a full-width yellow bar with the darkest ink.
 	var rows: Array = tab["rows"]
 	var option_count := rows.size() + 1  # options + reset
 	var window := _row_window()
@@ -320,22 +317,22 @@ func _refresh() -> void:
 		var y := ROW_Y + slot * ROW_STEP
 		var row_label := _row_labels[slot]
 		var value_label := _value_labels[slot]
-		var marker_rect := _row_markers[slot]
+		var row_bar := _row_bars[slot]
 		row_label.position.y = y
 		value_label.position.y = y
-		marker_rect.position.y = y + 3
+		row_bar.position.y = y - 1
 		if option >= option_count:
 			row_label.text = ""
 			value_label.text = ""
-			marker_rect.visible = false
+			row_bar.visible = false
 			continue
 		var focused_row := row_index == option + 1
-		var color := UiText.CREAM_TEXT if focused_row else UiText.MUTED
+		var color := UiText.INK_DARK if focused_row else UiText.INK
 		if option == reset_row_index:
 			row_label.text = "RESET TO DEFAULTS"
 			value_label.text = ""
 			if not focused_row:
-				color = UiText.MUTED
+				color = UiText.INK_MUTED
 		else:
 			var definition: Dictionary = rows[option]
 			row_label.text = str(definition["label"])
@@ -343,7 +340,7 @@ func _refresh() -> void:
 			value_label.text = _format_value(definition, value)
 		row_label.add_theme_color_override("font_color", color)
 		value_label.add_theme_color_override("font_color", color)
-		marker_rect.visible = focused_row
+		row_bar.visible = focused_row
 
 	# Description line inside the panel bottom.
 	if row_index == 0:

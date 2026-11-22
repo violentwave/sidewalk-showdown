@@ -29,6 +29,10 @@ func _ready() -> void:
 	var background: Node2D = STAGE_SCENE.instantiate()
 	add_child(background)
 
+	# Declutter: the stage art sits behind a #1C160D 55% overlay so the logo
+	# and PRESS START carry the screen (docs/UI_SCREENS.md review fixes).
+	add_child(UiText.dim_overlay())
+
 	var logo := TextureRect.new()
 	logo.texture = LOGO
 	logo.position = LOGO_POS
@@ -37,13 +41,12 @@ func _ready() -> void:
 	logo.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_child(logo)
 
+	# No prompt line: PRESS START is the prompt (review fix 2026-11-22).
 	_press_start = UiText.marker("PRESS START", Vector2(0, PRESS_START_Y - 6),
 		UiText.YELLOW, true)
 	_press_start.size = Vector2(320, UiText.MARKER_LINE_HEIGHT)
 	_press_start.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(_press_start)
-
-	add_child(UiPromptLine.new("START", "QUIT"))
 
 
 func _physics_process(_delta: float) -> void:

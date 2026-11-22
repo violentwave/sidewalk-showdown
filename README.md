@@ -110,14 +110,15 @@ godot --headless --path game --script res://tests/b6_landing_whiff_test.gd
 godot --headless --path game --script res://tests/ui_flow_test.gd
 godot --headless --path game --script res://tests/settings_test.gd
 godot --headless --path game --script res://tests/ui_assets_test.gd
+godot --headless --path game --script res://tests/ui_typography_test.gd
 ```
 
 Current suites: **combat 408 checks**, round flow 34, character select 54,
 locomotion speed 7, stage select 94, stage floor 9, CPU opponent 27,
 combo system 68, combo fuzz 118, stun & breaker 55, The Clip 23,
 serialization 24, B6
-landing-whiff 5, UI flow 48, settings 16, UI assets 4 — all
-green in CI (`tests.yml`, every step under a `timeout-minutes`).
+landing-whiff 5, UI flow 52, settings 16, UI assets 4, UI typography 10
+— all green in CI (`tests.yml`, every step under a `timeout-minutes`).
 `tests/air_probe.gd` and `tests/juggle_probe.gd` print balance metrics and
 assert nothing; `tests/juggle_route_probe.gd` brute-forces real-hitbox juggle
 route timing (slow, not in CI).
@@ -129,15 +130,27 @@ drives P2, using either the d-pad or the left stick to move. The pad layout is
 GDD §4.2's: X light, Y heavy, B special, A grab, right shoulder for the
 METHtality finisher.
 
-The front-end flow (UI Phase 1, see `docs/UI_SCREENS.md`): boot shows a
-one-time **content warning**, then The Clip, then the **title screen**
-(PRESS START), then the **main menu** — Tripp's gas-station price board
-with VERSUS, TRAINING (coming soon), SETTINGS, EXTRAS (coming soon), and
-QUIT over the Gas-N-Go night art, plus a fake stream chat on the right.
+The front-end flow (UI Phase 1 + the polish pass, see
+`docs/UI_SCREENS.md` for the typography rules and
+`docs/assets/ui/` for screenshots): boot shows a one-time **content
+warning** (press confirm to continue — it never skips itself), then The
+Clip, then the **title screen** (PRESS START), then the **main menu** —
+Tripp's gas-station price board, centered over the Gas-N-Go night art
+with its pole planted on the stage floor: VERSUS, TRAINING (coming
+soon), SETTINGS, EXTRAS (coming soon) on the slats, and QUIT on a
+button taped to the pole. Menus are set in the project's own Sidewalk
+Marker pixel font with m5x7 body text; nothing is outlined or smoothed.
 Menus run on the P1 keys below; a pad can confirm (A) and back (B) with
 its face buttons. SETTINGS opens the settings overlay (video, audio,
 gameplay, accessibility, stream tabs; saved to `user://settings.cfg`), and
 QUIT asks "Leave the sidewalk?" with NO as the safe default.
+
+![Content warning](docs/assets/ui/content_warning.png)
+![Title](docs/assets/ui/title.png)
+![Main menu](docs/assets/ui/main_menu.png)
+![Settings](docs/assets/ui/settings_video.png)
+![Pause](docs/assets/ui/pause.png)
+![Quit confirm](docs/assets/ui/quit_confirm.png)
 
 - **VERSUS** opens mode select on `1 PLAYER` (solo) with `2 PLAYERS` one
   keypress away (W/S or A/D to move, J or click to start; Backspace

@@ -1,9 +1,11 @@
 # SettingsOverlay — the settings screen (an overlay: pushed without freeing
-# the screen below). Six-section layout on one ui_panel 9-slice: a TAB row at
-# the top (left/right switches sections), the section's option rows below
-# (up/down moves, left/right adjusts, confirm also steps right), RESET TO
-# DEFAULTS last, and a one-line plain description of the focused row at the
-# bottom so the joke copy never hides what an option does.
+# the screen below). One centered ui_panel (280x148) with a tab row in
+# Sidewalk Marker across the top (the active tab rides a yellow highlight
+# bar with the darkest ink, inactive tabs muted), option rows (label left,
+# value right-aligned, both m5x7 in dark ink; the focused row rides a
+# full-width yellow bar), RESET TO DEFAULTS last, and the one-line plain
+# description in muted ink inside the panel bottom. Max 7 visible rows;
+# the window scrolls if a tab ever grows past that (none does today).
 #
 # Opening the screen never saves: values are READ from the Settings autoload
 # into the row list; nothing writes back until the player changes something
@@ -16,14 +18,22 @@ signal selection_moved
 signal selection_confirmed
 
 const THEME_RESOURCE := preload("res://resources/ui_theme.tres")
-const MUTED := Color(0.75, 0.72, 0.68)
-const ITEM_TEXT := Color(0.96, 0.91, 0.83)
-const WARM_YELLOW := Color(0.949, 0.82, 0.227)
+const PANEL_POS := Vector2(20, 16)
+const PANEL_SIZE := Vector2(280, 148)
+const TAB_Y := 22
+const TAB_ROW_X := 28
+const TAB_ROW_W := 264
+const ROW_X_LABEL := 32
+const ROW_X_VALUE_RIGHT := 264
+const ROW_Y := 44
 const ROW_STEP := 14
-const FIRST_ROW_Y := 38
+const MAX_VISIBLE_ROWS := 7
+const DESC_Y := 144
 
-# Tab 0 is the header row; rows are data-driven over the Settings schema.
-# "desc" is the plain one-line description shown at the bottom.
+# Row data over the Settings schema. "desc" is the plain one-line
+# description shown at the panel bottom. Tab titles use Sidewalk Marker;
+# ACCESSIBILITY is abbreviated to ACCESS. to fit the row (the full name
+# shows in the description line when the tab row is focused).
 const TABS := [
 	{
 		"title": "VIDEO",
@@ -86,7 +96,7 @@ const TABS := [
 		],
 	},
 	{
-		"title": "ACCESSIBILITY",
+		"title": "ACCESS.",
 		"section": "accessibility",
 		"rows": [
 			{"key": "reduce_flashing", "label": "REDUCE FLASHING",
@@ -123,17 +133,19 @@ const TABS := [
 ]
 
 var tab_index := 0
-var row_index := 0  # 0 = tab header, 1.. rows, last = reset
-var _title_label: Label
+var row_index := 0  # 0 = tab header, 1.. options, last = reset
+
+var _tab_labels: Array[Label] = []
+var _tab_bars: Array[ColorRect] = []
 var _row_labels: Array[Label] = []
 var _value_labels: Array[Label] = []
+var _row_bars: Array[ColorRect] = []
 var _desc_label: Label
 
 
 func _ready() -> void:
 	# Above a paused match the tree is frozen; this overlay must still run.
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	theme = THEME_RESOURCE
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var dim := ColorRect.new()
@@ -143,32 +155,55 @@ func _ready() -> void:
 	add_child(dim)
 
 	var panel := Panel.new()
-	panel.position = Vector2(20, 14)
-	panel.size = Vector2(280, 142)
+	panel.theme = THEME_RESOURCE
+	panel.position = PANEL_POS
+	panel.size = PANEL_SIZE
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(panel)
 
-	_title_label = _make_label("", Vector2(32, 20), Vector2(256, 16), ITEM_TEXT)
-	add_child(_title_label)
+	# Tab row: Sidewalk Marker titles distributed across the panel top.
+	# The active tab sits on a yellow highlight bar with the darkest ink
+	# (contrast rules); inactive tabs use the muted cardboard ink.
+	var widths: Array[int] = []
+	var total_w := 0
+	for tab in TABS:
+		widths.append(UiText.marker_width(str(tab["title"])))
+		total_w += widths.back()
+	var gap := (TAB_ROW_W - total_w) / float(TABS.size() - 1) if TABS.size() > 1 else 0.0
+	var x := float(TAB_ROW_X)
+	for tab in TABS.size():
+		var bar := UiText.focus_bar(Vector2(roundi(x) - 2, TAB_Y - 1),
+			Vector2(widths[tab] + 4, 12))
+		add_child(bar)
+		_tab_bars.append(bar)
+		var label := UiText.marker(str(TABS[tab]["title"]), Vector2(roundi(x), TAB_Y),
+			UiText.INK_MUTED)
+		label.size = Vector2(widths[tab], UiText.MARKER_LINE_HEIGHT)
+		add_child(label)
+		_tab_labels.append(label)
+		x += widths[tab] + gap
 
-	for row in 9:  # header + up to 7 options + reset
-		var row_label := _make_label("", Vector2(32, FIRST_ROW_Y + row * ROW_STEP),
-			Vector2(150, 16), ITEM_TEXT)
+	# Option rows: m5x7 label left, value right-aligned. The focused row
+	# rides a full-width yellow bar with the darkest ink.
+	for row in MAX_VISIBLE_ROWS:
+		var row_bar := UiText.focus_bar(
+			Vector2(TAB_ROW_X - 4, 0), Vector2(ROW_X_VALUE_RIGHT - TAB_ROW_X + 4, 12))
+		add_child(row_bar)
+		_row_bars.append(row_bar)
+		var row_label := UiText.body("", Vector2(ROW_X_LABEL, 0), UiText.INK)
+		row_label.size = Vector2(150, UiText.M5X7_LINE_HEIGHT)
 		add_child(row_label)
 		_row_labels.append(row_label)
-		var value_label := _make_label("", Vector2(184, FIRST_ROW_Y + row * ROW_STEP),
-			Vector2(96, 16), WARM_YELLOW)
+		var value_label := UiText.body("", Vector2(0, 0), UiText.INK_MUTED)
+		value_label.size = Vector2(ROW_X_VALUE_RIGHT - ROW_X_LABEL - 8,
+			UiText.M5X7_LINE_HEIGHT)
+		value_label.position = Vector2(ROW_X_VALUE_RIGHT - value_label.size.x, 0)
 		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		add_child(value_label)
 		_value_labels.append(value_label)
 
-	_desc_label = Label.new()
-	_desc_label.position = Vector2(12, 160)
-	_desc_label.size = Vector2(296, 16)
-	_desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_desc_label.add_theme_font_size_override("font_size", 16)
-	_desc_label.add_theme_color_override("font_color", MUTED)
-	_desc_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_desc_label = UiText.body("", Vector2(ROW_X_LABEL, DESC_Y), UiText.INK_MUTED)
+	_desc_label.size = Vector2(232, UiText.M5X7_LINE_HEIGHT)
 	add_child(_desc_label)
 
 	add_child(UiPromptLine.new("SELECT", "BACK"))
@@ -206,7 +241,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func row_count() -> int:
-	# header + options + reset
+	# tab header + options + reset
 	return 1 + TABS[tab_index]["rows"].size() + 1
 
 
@@ -250,41 +285,66 @@ func _adjust(direction: int) -> void:
 	_refresh()
 
 
+func _row_window() -> int:
+	# First option row shown when more than MAX_VISIBLE_ROWS exist.
+	var option_count := row_count() - 1
+	if option_count <= MAX_VISIBLE_ROWS:
+		return 0
+	return clampi(row_index - 1 - (MAX_VISIBLE_ROWS - 1), 0,
+		option_count - MAX_VISIBLE_ROWS)
+
+
 func _refresh() -> void:
 	var tab: Dictionary = TABS[tab_index]
-	_title_label.text = "SETTINGS"
-	var header_row := 0
-	_row_labels[header_row].text = "TAB"
-	_value_labels[header_row].text = "< %s >" % tab["title"]
 
+	# Tab row: the active tab rides a yellow bar with the darkest ink;
+	# inactive tabs stay muted on the cardboard.
+	for t in TABS.size():
+		var active := t == tab_index
+		_tab_bars[t].visible = active
+		_tab_labels[t].add_theme_color_override("font_color",
+			UiText.INK_DARK if active else UiText.INK_MUTED)
+
+	# Option rows (options + RESET), windowed to MAX_VISIBLE_ROWS. The
+	# focused row rides a full-width yellow bar with the darkest ink.
 	var rows: Array = tab["rows"]
-	for row in rows.size():
-		var definition: Dictionary = rows[row]
-		var value = _settings().get_value(tab["section"], definition["key"])
-		_row_labels[row + 1].text = str(definition["label"])
-		_value_labels[row + 1].text = _format_value(definition, value)
+	var option_count := rows.size() + 1  # options + reset
+	var window := _row_window()
+	var reset_row_index := rows.size()  # option index of the reset row
 
-	var reset_row := rows.size() + 1
-	_row_labels[reset_row].text = "RESET TO DEFAULTS"
-	_value_labels[reset_row].text = ""
+	for slot in MAX_VISIBLE_ROWS:
+		var option := window + slot
+		var y := ROW_Y + slot * ROW_STEP
+		var row_label := _row_labels[slot]
+		var value_label := _value_labels[slot]
+		var row_bar := _row_bars[slot]
+		row_label.position.y = y
+		value_label.position.y = y
+		row_bar.position.y = y - 1
+		if option >= option_count:
+			row_label.text = ""
+			value_label.text = ""
+			row_bar.visible = false
+			continue
+		var focused_row := row_index == option + 1
+		var color := UiText.INK_DARK if focused_row else UiText.INK
+		if option == reset_row_index:
+			row_label.text = "RESET TO DEFAULTS"
+			value_label.text = ""
+			if not focused_row:
+				color = UiText.INK_MUTED
+		else:
+			var definition: Dictionary = rows[option]
+			row_label.text = str(definition["label"])
+			var value = _settings().get_value(tab["section"], definition["key"])
+			value_label.text = _format_value(definition, value)
+		row_label.add_theme_color_override("font_color", color)
+		value_label.add_theme_color_override("font_color", color)
+		row_bar.visible = focused_row
 
-	# Hide unused rows (max 9 built, tabs have at most 8 used).
-	for unused in range(row_count(), _row_labels.size()):
-		_row_labels[unused].text = ""
-		_value_labels[unused].text = ""
-
-	# Selection styling and the description line.
-	for row in row_count():
-		var selected := row == row_index
-		var color: Color = WARM_YELLOW if selected else ITEM_TEXT
-		if row == row_count() - 1 and not selected:
-			color = MUTED
-		_row_labels[row].add_theme_color_override("font_color", color)
-		if row == 0:
-			_value_labels[row].add_theme_color_override("font_color", color)
-
+	# Description line inside the panel bottom.
 	if row_index == 0:
-		_desc_label.text = "Left and right change the section."
+		_desc_label.text = "Tab: %s. Left and right change the section." % tab["title"]
 	elif row_index == row_count() - 1:
 		_desc_label.text = "Put every option back the way it shipped."
 	else:
@@ -303,14 +363,3 @@ func _format_value(definition: Dictionary, value) -> String:
 		"slider":
 			return str(int(value)) + "/10"
 	return str(value)
-
-
-func _make_label(text: String, at: Vector2, dimensions: Vector2, color: Color) -> Label:
-	var label := Label.new()
-	label.text = text
-	label.position = at
-	label.size = dimensions
-	label.add_theme_font_size_override("font_size", 16)
-	label.add_theme_color_override("font_color", color)
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return label

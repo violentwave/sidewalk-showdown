@@ -75,4 +75,4 @@ theme-default font is used for intro copy or UI hints.
 
 Bundled file: `game/assets/fonts/m5x7.ttf` (CC0 needs no license text
 beside it; this credit line covers the "attribution appreciated" request).
-Bangers stays for big headers and banner words, applied per label.
+Bangers now appears only inside the logo art (2026-11-21 polish); banner words are Sidewalk Marker rendered to sprites.

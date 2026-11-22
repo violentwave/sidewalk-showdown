@@ -1,18 +1,22 @@
 # Title — the logo over the Gas-N-Go night art with PRESS START pulsing
 # at most once per second (a 60-frames-on / 60-frames-off frame counter;
 # UI timers count frames, never wall-clock). No attract demo in Phase 1.
-# Confirm goes to the main menu; back opens the quit confirm.
+# Nothing else is on screen (owner playtest change, 2026-11-21: the
+# tagline is gone). PRESS START is Sidewalk Marker with its baked outline,
+# in yellow, over the stage art. Confirm goes to the main menu; back opens
+# the quit confirm.
 extends Control
 
 signal start_pressed
 signal back_requested
 
-const THEME_RESOURCE := preload("res://resources/ui_theme.tres")
 const STAGE_SCENE := preload("res://scenes/stages/gas_n_go.tscn")
 const LOGO := preload("res://art/ui/ui/ui_logo.png")
 const PULSE_ON_FRAMES := 60
 const PULSE_OFF_FRAMES := 60
-const MUTED := Color(0.75, 0.72, 0.68)
+
+const LOGO_POS := Vector2(90, 16)  # 139x74, centred in the upper third
+const PRESS_START_Y := 140
 
 var _pulse_frame := 0
 var _press_start: Label
@@ -20,41 +24,29 @@ var _done := false
 
 
 func _ready() -> void:
-	theme = THEME_RESOURCE
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var background: Node2D = STAGE_SCENE.instantiate()
 	add_child(background)
 
+	# Declutter: the stage art sits behind a #1C160D 55% overlay so the logo
+	# and PRESS START carry the screen (docs/UI_SCREENS.md review fixes).
+	add_child(UiText.dim_overlay())
+
 	var logo := TextureRect.new()
 	logo.texture = LOGO
-	logo.position = Vector2(90, 26)  # 139x74 centred on 320
+	logo.position = LOGO_POS
 	logo.size = Vector2(139, 74)
 	logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	logo.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_child(logo)
 
-	_press_start = Label.new()
-	_press_start.text = "PRESS START"
-	_press_start.position = Vector2(20, 118)
-	_press_start.size = Vector2(280, 16)
+	# No prompt line: PRESS START is the prompt (review fix 2026-11-22).
+	_press_start = UiText.marker("PRESS START", Vector2(0, PRESS_START_Y - 6),
+		UiText.YELLOW, true)
+	_press_start.size = Vector2(320, UiText.MARKER_LINE_HEIGHT)
 	_press_start.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_press_start.add_theme_font_size_override("font_size", 16)
-	_press_start.add_theme_color_override("font_color", Color(0.96, 0.91, 0.83))
-	_press_start.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_press_start)
-
-	var tagline := Label.new()
-	tagline.text = "A TRIPP VLOGS JOINT - $100K SIDEWALK TOURNAMENT"
-	tagline.position = Vector2(8, 138)
-	tagline.size = Vector2(304, 16)
-	tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tagline.add_theme_font_size_override("font_size", 16)
-	tagline.add_theme_color_override("font_color", MUTED)
-	tagline.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(tagline)
-
-	add_child(UiPromptLine.new("START", "QUIT"))
 
 
 func _physics_process(_delta: float) -> void:

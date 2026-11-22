@@ -129,10 +129,12 @@ phase exit criteria:
   Space advances the current beat or panel (dense copy may take extra presses),
   Esc skips, and no timer advances the story. **UI Phase 1 (2026-11-21):**
   the front end is now the planned hub flow — content warning (once per
-  launch), title, main menu (price-board + chat strip), quit confirm — on a
+  launch, press-required), title, main menu (price board; the chat strip
+  was removed in the same day's polish pass), quit confirm — on a
   ScreenRouter with a persistent Settings autoload and audio buses;
-  `docs/UI_SCREENS.md` documents what shipped, and the sixteen-suite CI
-  adds ui_flow (48), settings (16), and ui_assets (4). Procedural
+  `docs/UI_SCREENS.md` documents what shipped (typography rules included),
+  and the seventeen-suite CI adds ui_flow (52), settings (16),
+  ui_assets (4), and ui_typography (10). Procedural
   newsprint/halftone and bundled OFL comic fonts are used throughout. Mode
   select (added 2026-11-17) offers 1 PLAYER or 2 PLAYERS: solo sends P1 to a
   difficulty pick (added 2026-11-19) and then lets P1 pick both fighters, with

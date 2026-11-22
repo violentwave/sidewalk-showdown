@@ -1,10 +1,16 @@
 # UI Screens — Router, Screen List, and Settings (Phase 1)
 
-**Status: implemented 2026-11-21 (UI Phase 1).** This file documents what
-actually shipped: the router, the screen flow with every back path, the
-Settings keys and where each one is (or is not yet) consumed, and the UI
-art pipeline command. Companion docs: `docs/UI_HUD_SCREENS_PLAN.md` (the
-original plan), `docs/UI_ASSETS.md` (art manifest), `docs/PM_BRIEF.md`.
+**Status: implemented 2026-11-21 (UI Phase 1); polished 2026-11-21 from
+owner playtest feedback** (cleaner typography via the Sidewalk Marker
+font, no chat strip on the main menu, a press-required content warning).
+This file documents what actually shipped: the router, the screen flow
+with every back path, the **typography rules**, the Settings keys and
+where each one is (or is not yet) consumed, and the UI art pipeline
+command. Companion docs: `docs/UI_HUD_SCREENS_PLAN.md` (the original
+plan), `docs/UI_ASSETS.md` (art manifest), `docs/PM_BRIEF.md`.
+
+Screenshots of every polished screen live in `docs/assets/ui/`
+(regenerate with the command under "Screenshots").
 
 ## The router
 
@@ -43,12 +49,12 @@ boot -> ContentWarning -> The Clip -> Title -> MainMenu
 CharacterSelect <-> StageSelect -> MatchRoot
    `-- back -> ModeSelect `-- back -> MainMenu
 MatchRoot pause: RESUME / SETTINGS (overlay) / RESTART MATCH /
-   BACK TO CHARACTER SELECT / MAIN MENU / QUIT TO DESKTOP (QuitConfirm)
+   CHARACTER SELECT / MAIN MENU / QUIT TO DESKTOP (QuitConfirm)
 ```
 
 | Screen | Enter | Back / exit |
 | --- | --- | --- |
-| ContentWarning (once per launch) | boot | confirm or 180 frames -> The Clip |
+| ContentWarning (once per launch) | boot | confirm only (ignored for the first 30 frames so a held key cannot skip it) -> The Clip |
 | The Clip (unchanged) | warning | Space advance, Esc skip -> Title |
 | Title | Clip, MainMenu back | confirm -> MainMenu; back -> QuitConfirm |
 | MainMenu | Title | back -> Title; items below |
@@ -65,12 +71,22 @@ still-paused match** (`match_root.modal_open` blocks the pause key and menu
 input underneath; the overlays run `PROCESS_MODE_ALWAYS`); MAIN MENU
 unpauses, frees the match, and shows the hub. QuitConfirm defaults to NO.
 
-The five MainMenu slats are measured from `menu_price_sign.png`
+The MainMenu sign geometry is measured from `menu_price_sign.png`
 (79x124, art space): cream board x 1..73, content rows 35-43, 46-51,
-54-60, 63-69, 72-73, dividers at 44-45, 52-53, 61-62, 70-71; the lit
-slat (66x7) sits at x 6, y 36/45/54/63/69. The constants live in
-`game/scripts/ui/screens/main_menu.gd`. The chat strip cycles the five
-owner-seed lines on a 75-frame counter in a fixed order — no RNG.
+54-60, 63-69, dividers at 44-45, 52-53, 61-62, 70-71; the pole runs art
+x 36..43 to the art bottom. The sign is centered horizontally
+(`SIGN_POS` 120,34) with the pole bottom on the Gas-N-Go floor line
+(158). Slats 1-4 carry VERSUS, TRAINING (greyed), SETTINGS, EXTRAS
+(greyed) in m5x7 dark ink `#2A2418` (focused `#1C160D`, greyed
+`#9C8F70`); the focused slat shows the lit overlay (66x7 at x 6, y
+36/45/54/63). QUIT left the board in the polish pass: it is a 48x16
+`ui_button.png` "taped" to the pole below the slats (screen 136,116),
+labeled in Sidewalk Marker, yellow-modulated when focused. **The chat
+strip is gone (owner decision, 2026-11-21 playtest): no chat panel, LIVE
+tag, or fake chat lines — the menu is the price board only.** One m5x7
+description line sits on a dark plate bottom-left (greyed items say
+"Coming soon."); the prompt line is bottom-right. The constants live in
+`game/scripts/ui/screens/main_menu.gd`.
 
 ## Settings
 
@@ -112,12 +128,89 @@ Gameplay, Accessibility, Stream) plus a RESET TO DEFAULTS row, one-line
 plain descriptions at the bottom, up/down moves, left/right adjusts or
 switches tabs.
 
-## Fonts and theme
+## Typography and contrast rules (every Phase 1 screen)
 
-- **m5x7** (Daniel Linssen, CC0) is the default theme font at its native
-  size 16 — 1 game pixel per font pixel, antialiasing and subpixel
-  positioning disabled in the import. Bangers remains for big headers,
-  applied per label.
+- **Two fonts.** Sidewalk Marker (`game/assets/fonts/sidewalk_marker.fnt`,
+  `sidewalk_marker_outline.fnt` where text sits over art) at its native
+  size **10** for headers, menu items, button labels and short labels.
+  m5x7 at its native size **16** for body text and descriptions. Bangers
+  appears only inside the logo art. The shared helpers live in
+  `game/scripts/ui/ui_text.gd` (`UiText`), and
+  `game/tests/ui_typography_test.gd` enforces the rules in CI.
+- **BMFont import**: both Marker pages are nearest-filtered, no
+  mipmaps (project-wide `default_texture_filter=0`). The plain page PNG
+  must be **RGBA8** — Godot's BMFont loader rejects grayscale+alpha pages
+  ("Unsupported BMFont texture format"); it was re-encoded on this branch
+  and `art/tools/font/build.js` should emit PNG32 going forward.
+- **Contrast (PR #86 review).** Text on a cardboard panel (ui_panel /
+  ui_button) is always dark ink: `#2A2418` normal, `#7A6A48` inactive or
+  greyed, and the focused item is `#1C160D` on a full-row-width
+  `#F2D13A` highlight bar with 1 px padding top and bottom (the lit price
+  slat look) — never cream or white on cardboard. Text drawn directly
+  over stage art uses `sidewalk_marker_outline`. Cream `#F4EEDC` and
+  muted `#9C8F70` are only for text on dark plates.
+- **Declutter.** Title and MainMenu draw the Gas-N-Go art, then a
+  `#1C160D` overlay at 55% alpha, then the UI. The pause menu dims the
+  match behind it with the same overlay.
+- **Key prompts (PR #86 review).** Keyboard prompts show the bracketed
+  key name as text — "[ENTER]", "[BKSP]" — in m5x7 (Sidewalk Marker now
+  ships `[` and `]`); pad prompts keep the A/B glyph sprites. The prompt
+  line rides a full-width `#1C160D` plate at 80% alpha, 12 px tall, flush
+  with the bottom of the 320x180 frame, so it never collides with stage
+  art. The main menu's description line shares that plate on the left.
+- **Never a Godot theme outline or shadow on a pixel font.** For
+  contrast use the `_outline` font or a plate behind the text. Recolor
+  with `font_color`; the baked dark outline stays dark.
+- **Integer positions only**, no scaling on text nodes, and 1 px letter
+  spacing exactly as each font defines it (no extra tracking).
+- **No clipping and no overflow.** A control's theme overrides only
+  reach its cached metrics on `NOTIFICATION_THEME_CHANGED`, so
+  `UiText._make_label` refreshes that cache before any position/size is
+  set and pins `custom_minimum_size` to the ink box — the rect set at
+  build time is the rect that renders, and every label fits inside its
+  container (`ui_typography_test` enforces it).
+- **Spacing:** 8 px screen margins, a 4 px grid, fixed line heights
+  (Sidewalk Marker 12, m5x7 16), body text left-aligned, at most about
+  36 characters per m5x7 line.
+- **At most one panel per screen;** no empty decorative boxes and no
+  boxes nested inside boxes.
+- **Prompt line:** one row on the bottom plate
+  (`UiPromptLine.new(confirm, back, left_text = "")`), right-aligned.
+
+Per-screen layouts (positions are 320x180 screen space):
+
+| Screen | Layout |
+| --- | --- |
+| ContentWarning | dim; ui_panel (40,42) 240x96; "HEADS UP" Marker ink; two m5x7 ink lines; "PRESS [ENTER] TO CONTINUE" centered inside the panel (pad shows the A glyph). No auto-advance; confirm ignored for the first 30 frames. |
+| Title | Gas-N-Go art; 55% #1C160D overlay; logo (90,16) 139x74; "PRESS START" Marker-outline yellow centered y140, 60f on / 60f off. Nothing else — PRESS START is the prompt, no prompt line. |
+| MainMenu | Gas-N-Go art; 55% overlay; sign in the left third at (24,34) — pole base on the stage floor line — with a white outlined "MENU" in the sign's measured orange header band (art x 5..72 / y 5..29); slats per the geometry above in dark ink; QUIT button (40,116) 48x16 taped to the pole, focused = yellow bar + darkest ink; description on the bottom plate's left, prompt on its right. |
+| SettingsOverlay | ui_panel (20,16) 280x148; tab row Marker at y22 (active tab on a small yellow bar, inactive `#7A6A48`); rows m5x7 ink label left / ink value right (step 14, max 7 visible, scrolls if ever needed); focused row = full-width yellow bar + `#1C160D`; RESET in `#7A6A48`; description `#7A6A48` inside the panel bottom (32,144). |
+| Pause | 55% #1C160D dim; ui_panel centered on the longest item + 8 px padding each side, (24) 116 tall; "PAUSED" Marker ink; items Marker ink centered, focused on a full-width yellow bar + `#1C160D`; "BACK TO CHARACTER SELECT" is "CHARACTER SELECT" now. No per-item buttons. |
+| QuitConfirm | dim; ui_panel (66,54) sized to the question; "LEAVE THE SIDEWALK?" Marker ink; YES / NO one row on 40x12 slots, focused slot = yellow bar + `#1C160D`, default NO. |
+
+## Screenshots
+
+`docs/assets/ui/` holds one 320x180 PNG per polished screen:
+`content_warning`, `title`, `main_menu`, `main_menu_settings` (SETTINGS
+focused), `main_menu_quit` (QUIT focused), `settings_video`,
+`settings_audio`, `settings_gameplay`, `pause`, `quit_confirm`.
+Regenerate by driving the real scenes:
+
+```bash
+DISPLAY=:0 godot --path game --resolution 1280x720 \
+    --script res://tools/ui_polish_capture.gd
+```
+
+(`game/tools/ui_polish_capture.gd` captures the window and
+nearest-resizes to 320x180.)
+
+## Fonts and theme (background)
+
+- **m5x7** (Daniel Linssen, CC0) remains the theme default at its native
+  size 16, one game pixel per font pixel, antialiasing and subpixel
+  positioning disabled in the import. **Sidewalk Marker is the project's
+  own BMFont** (`art/tools/font/`, uppercase-only with lowercase mapped,
+  line height 12). Bangers stays inside the logo art only.
 - `game/resources/ui_theme.tres`: panel = 9-slice `ui/ui_panel.png`
   (8 px corners); button = 9-slice `ui/ui_button.png` with focus (warm
   yellow), pressed (darker), and disabled (50% grey) as modulate tints.
@@ -145,10 +238,19 @@ on an approved file missing from the table, and exits non-zero.
 
 ## Tests
 
-- `game/tests/ui_flow_test.gd` — 48 checks: router semantics, every
+- `game/tests/ui_flow_test.gd` — 52 checks: router semantics, every
   forward/back path, the confirm-leak guard, pause overlay flow, greyed
-  items, QuitConfirm default, warning auto-continue, title pulse.
+  items, QuitConfirm default, the press-required warning (no
+  auto-advance, 30-frame guard), the chat-free main menu, wrap order,
+  title pulse.
 - `game/tests/settings_test.gd` — 16 checks: defaults, fill-in, round
   trip, opening never saves, reset applies + saves, 0 dB defaults.
 - `game/tests/ui_assets_test.gd` — 4 checks: sizes + byte identity.
-- All three run in CI (`tests.yml`) alongside the existing twelve suites.
+- `game/tests/ui_typography_test.gd` — 10 checks: every label in the six
+  Phase 1 surfaces (five screens + the pause menu) uses a pixel font at
+  its native size with every glyph present, no theme outline/shadow,
+  integer positions, no scaling; labels on cardboard (ui_panel /
+  ui_button) fit their container and use the dark inks; over-art
+  lettering uses the outlined marker; the pause panel sizes itself to
+  its longest item plus padding.
+- All four run in CI (`tests.yml`) alongside the existing suites.

@@ -144,6 +144,39 @@ ignored for the first 30 frames. Every option unpauses and routes;
 REMATCH goes back through the VsScreen with the same fighters and
 stage.
 
+## The match HUD (UI Phase 2, 2026-11-22)
+
+`game/scripts/ui/match_hud.gd` (`MatchHUD`, art table in
+`game/scripts/ui/hud/hud_art.gd`). The HUD **reads** match/fighter state
+and signals and writes nothing back; it holds no state
+`MatchRoot.serialize()` needs, and every timer counts **SIM frames**
+through the presentation-only `hud.sim_tick()` hook in
+`MatchRoot._physics_process` — so the whole HUD freezes with pause (the
+hook's paused gate) and with hitstop (the HUD reads the two public
+`hitstop_frames` counters, the same ones that hold the round clock). A
+`sim_frame` discontinuity — a `serialize()/load()` restore or a debug
+frame-step — makes the HUD resync from current state: ghosts snap,
+banners and callouts clear.
+
+| Element | Position / art | Behavior |
+| --- | --- | --- |
+| Portraits | `hud_portrait_frame.png` 24x24 at (4,4)/(292,4); the 22x22 `hud_portrait_<id>_<state>.png` inside at +1,+1 | normal / **hurt** below 25% health / **ko** after losing the round (an opponent pip that grew while yours didn't; a refill clears it). Missing art = empty frame, no crash. |
+| Health | `hud_health_frame.png` 118x10 at (30,8)/(172,8); code-drawn 116x8 fill, P1 `#f29e26` / P2 `#e5473a`, draining toward the timer | a `#ff6b5a` ghost segment remembers the combo's damage point and drains to match **20 sim frames after the combo clears**; one flash per hit (never strobing); a gentle pulse under 20%. `reduce_flashing` makes the flash a 1-frame tint. |
+| Names | outlined Marker cream at y 19 (P1 left from x 30, P2 right to x 290) | static per fighter |
+| Round pips | y 31 from each bar's outer end; P1 `hud_pip_square_*`, P2 `hud_pip_diamond_*` | grow with double-KO pips. **No win-type letters: MatchRoot keeps no per-round win history** (TODO: the K/T/M/D pip art is approved and waits on a sim-side decision). |
+| Timer | `hud_timer_box.png` at (148,3); two 8x12 cells from `hud_timer_digits.png` (0-9, cell 10 = infinity), centered | under 10 s the box tints dirty yellow and the digits tick one shade per 15 sim frames |
+| Meter | `hud_meter_frame.png` 106x8 at (4,170)/(210,170); 104x6 fill `#5ac8ff`, tick marks at 25 and 50 | at full the fill turns `#ff3d9a`, "METH READY" in outlined Marker pink sits beside the bar (P1 edge x 114, P2 edge x 206) and the 8x8 skull frames alternate every **15 sim frames** |
+| Banners | 160x32 `hud_banner_plate.png` centered (y 74) with the word sprite: round_1-5, decisive, fight, ko, time, double_ko, methtality | stamp in over **6 sim frames** from 8 px above in integer steps; spriteless messages (TAKES THE ROUND, WINS THE MATCH, DRAW, SUDDEN DEATH, ROUND 6+) render in outlined Marker cream on the plate. FIGHT auto-removes after 30 sim frames, METH after 120; round/KO banners persist until replaced (today's timing). |
+| Callouts | outlined Marker cream on the attacker's side at y 80 | COUNTER HIT / TECH, one at a time, **30 sim frames** each |
+| Combo counter | today's position (attacker's side, y 64), "<n> HITS" in outlined Marker `#f2d13a` | combo damage under it in m5x7 cream only while `gameplay.show_combo_damage` is on (reads `combo_tracker.total_damage`) |
+| Commentary | `stream_commentary_box.png` 240x16 at (40,44), m5x7 dark ink on the tape | `gameplay.commentary`: full = as today, minimal = round lines only, off = hidden; `stream.hide_tripp_text` hides it. |
+| Accessibility | — | `reduce_flashing`: every flash becomes a 1-frame tint. `high_contrast_hud`: solid `#1C160D` plates behind bars, names and timer. Screen shake and hold-to-confirm have no HUD-side hook yet (see KNOWN_ISSUES). |
+
+The pause menu, the Results hand-off and the 90-frame Results delay are
+untouched. `match_root.gd` is touched only in the banner call swaps and
+the one-line hook; `serialize()/load()` and every combat number are
+unchanged (pinned by `hud_test`).
+
 ## Settings
 
 Autoload `Settings` (`game/scripts/ui/settings.gd`), stored in
@@ -168,15 +201,15 @@ refreshes, and saves. Audio sliders are 0-10 with the default at exactly
 | audio | `ui` | `6` | UI bus |
 | audio | `mute_when_unfocused` | `true` | mutes Master on focus loss |
 | gameplay | `input_display` | `off` | **stored, not yet consumed** |
-| gameplay | `commentary` | `full` | **stored, not yet consumed** (Phase 2 HUD pass) |
-| gameplay | `show_combo_damage` | `true` | **stored, not yet consumed** (Phase 2 HUD pass) |
-| accessibility | `reduce_flashing` | `false` | **stored, not yet consumed** |
-| accessibility | `screen_shake` | `full` | **stored, not yet consumed** |
-| accessibility | `high_contrast_hud` | `false` | **stored, not yet consumed** (Phase 2 HUD pass) |
+| gameplay | `commentary` | `full` | **consumed by the HUD (UI Phase 2)**: full = as today, minimal = round lines only, off = hidden |
+| gameplay | `show_combo_damage` | `true` | **consumed by the HUD (UI Phase 2)**: the m5x7 damage total under the combo counter |
+| accessibility | `reduce_flashing` | `false` | **consumed by the HUD (UI Phase 2)**: every flash becomes a 1-frame tint |
+| accessibility | `screen_shake` | `full` | **stored, not yet consumed** (no camera-shake hook yet) |
+| accessibility | `high_contrast_hud` | `false` | **consumed by the HUD (UI Phase 2)**: solid `#1C160D` plates behind bars, names, timer |
 | accessibility | `readable_font` | `false` | **stored, not yet consumed** |
-| accessibility | `hold_to_confirm_meth` | `false` | **stored, not yet consumed** |
+| accessibility | `hold_to_confirm_meth` | `false` | **stored, not yet consumed** (input-side, not HUD-side) |
 | stream | `streamer_safe_music` | `false` | **stored, not yet consumed** (music rights pending) |
-| stream | `hide_tripp_text` | `false` | **stored, not yet consumed** (Phase 2 HUD pass) |
+| stream | `hide_tripp_text` | `false` | **consumed by the HUD (UI Phase 2)**: hides Tripp's commentary tape |
 
 The overlay itself is `game/scenes/menus/settings_overlay.tscn`
 (`game/scripts/ui/screens/settings_overlay.gd`): five tabs (Video, Audio,
@@ -252,9 +285,11 @@ focused), `main_menu_quit` (QUIT focused), `settings_video`,
 `settings_audio`, `settings_gameplay`, `pause`, `quit_confirm`, the
 PR A select screens: `mode_select`, `difficulty`,
 `character_select_p1` (solo), `character_select_both` (versus),
-`stage_select`, `stage_select_random` (RANDOM focused), and the PR B
+`stage_select`, `stage_select_random` (RANDOM focused), the PR B
 match wrap: `vs_screen` (after the slide-in), `results`,
-`results_rematch_focus`.
+`results_rematch_focus`, and the PR C HUD: `hud_round_start`,
+`hud_fight`, `hud_midfight`, `hud_low_health`, `hud_meth_ready`,
+`hud_ko`, `hud_high_contrast`.
 Regenerate by driving the real scenes:
 
 ```bash
@@ -264,6 +299,8 @@ DISPLAY=:0 godot --path game --resolution 1280x720 \
     --script res://tools/ui_select_capture.gd
 DISPLAY=:0 godot --path game --resolution 1280x720 \
     --script res://tools/ui_match_capture.gd
+DISPLAY=:0 godot --path game --resolution 1280x720 \
+    --script res://tools/ui_hud_capture.gd
 ```
 
 (`game/tools/ui_polish_capture.gd` and `ui_select_capture.gd` capture
@@ -311,7 +348,7 @@ on an approved file missing from the table, and exits non-zero.
 - `game/tests/settings_test.gd` — 16 checks: defaults, fill-in, round
   trip, opening never saves, reset applies + saves, 0 dB defaults.
 - `game/tests/ui_assets_test.gd` — 4 checks: sizes + byte identity.
-- `game/tests/ui_typography_test.gd` — 38 checks: every label in the
+- `game/tests/ui_typography_test.gd` — 42 checks: every label in the
   eleven UI surfaces (screens + the pause menu) uses a pixel font at
   its native size with every glyph present, no theme outline/shadow,
   integer positions, no scaling; labels on cardboard (ui_panel /
@@ -320,7 +357,8 @@ on an approved file missing from the table, and exits non-zero.
   its longest item plus padding; no two visible labels overlap
   (measured on drawn ink extents) and every label over a TextureRect
   card (rap sheet, tickets) lies inside it — the PM review's two bugs
-  both fail these checks on the pre-fix code.
+  both fail these checks on the pre-fix code — and the HUD labels pass
+  the same rules at round start and mid-fight.
 - `game/tests/select_screens_test.gd` — 24 checks (PR A): the Mode and
   Difficulty choices are unchanged (names, order, defaults, emits, back
   paths); the difficulty rows draw 1/2/3 tally marks; the rap sheet
@@ -339,4 +377,14 @@ on an approved file missing from the table, and exits non-zero.
   up; the 30-frame Results guard; REMATCH routes through the VS bumper
   and keeps fighters and stage; CHARACTER SELECT / STAGE SELECT /
   MAIN MENU all route correctly and unpause.
-- All six run in CI (`tests.yml`) alongside the existing suites.
+- `game/tests/hud_test.gd` — 45 checks (UI Phase 2, against a scratch
+  settings.cfg): portrait states; health and the 20-frame ghost drain;
+  the HUD tick frozen while paused; pip sprites; timer digit cells and
+  the under-10 tint; meter width, the METH-pink full state and the
+  15-frame skull alternation; banner sprites per message with the text
+  fallback, stamp settle and auto-remove timing; attacker-side callouts
+  for 30 sim frames; the combo counter with its gated damage total;
+  commentary full/minimal/off and hide_tripp_text; reduce_flashing and
+  high-contrast; the serialize/load resync; and serialize() identical
+  with the HUD bound and unbound.
+- All seven run in CI (`tests.yml`) alongside the existing suites.

@@ -579,7 +579,7 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   `art/tools/prepare_ui.gd` and re-runs its size table in verify-only mode
   (manifest and test cannot drift), plus a byte-identity check of every
   `game/art/ui/` copy against its approved source.
-- `game/tests/ui_typography_test.gd` — **38 checks** (2026-11-21 polish, extended by the PR #86 review fixes, the PR A select screens, and the PR B match wrap):
+- `game/tests/ui_typography_test.gd` — **42 checks** (2026-11-21 polish, extended by the PR #86 review fixes, the PR A select screens, the PR B match wrap, and the UI Phase 2 HUD):
   every label in the ten UI surfaces (nine screens + the pause menu)
   uses Sidewalk Marker at 10 or m5x7 at 16 with every glyph present, carries
   no theme outline or shadow, sits at an integer position, and is never
@@ -605,6 +605,28 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   up; the 30-frame Results input guard; REMATCH routes through the VS
   bumper and keeps fighters and stage; CHARACTER SELECT / STAGE SELECT /
   MAIN MENU all route correctly and unpause.
+- `game/tests/hud_test.gd` — **45 checks** (UI Phase 2, 2026-11-22; runs
+  against a scratch settings.cfg): portrait states (normal, hurt under
+  25%, ko after the round, refill restores); health fills and the
+  20-sim-frame combo ghost drain; the HUD tick frozen while paused; pip
+  sprites; timer digit-strip cells and the dirty-yellow under-10 tint;
+  meter width, the METH-pink READY state and the 15-frame skull
+  alternation; banner sprites per message with the text fallback,
+  subtitle and stamp timing; attacker-side callouts for 30 sim frames;
+  the combo counter with its gated damage total; commentary
+  full/minimal/off and hide_tripp_text; reduce_flashing and
+  high_contrast_hud; the serialize/load resync; and serialize()
+  identical with the HUD bound and unbound.
+- UI Phase 2 deferred, recorded here so they are not lost: **win-type
+  pip letters (K/T/M/D)** need a per-round win-type history MatchRoot
+  does not keep — a sim-side decision (the approved letter art waits on
+  it); `hud_banner_time` has no call site today (timeouts announce
+  DRAW / TAKES THE ROUND); the ∞ timer digit is unused (no infinite
+  clock); `screen_shake` and `hold_to_confirm_meth` have no HUD-side
+  hook; the `stun_started`/`stun_ended`/`breaker_used`/
+  `meth_started`/`clip_cancelled`/`macro_step_replayed` fighter signals
+  are not displayed yet (stun/breaker HUD cues are combo Phase 4+
+  work).
 - `game/tests/combo_fuzz_test.gd` — **118 checks**: seeded fuzz over the
   combo layer — route search and 12-hit/550-damage caps on BOTH
   stages, infinite-loop and corner-carry termination, macros (clean dial,
@@ -642,12 +664,12 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   actionability. Prints a report and exits 0 on success; `docs/PROPOSALS.md` §3
   documents the coarse grid, before/after metrics, and target limitations. Its
   numbers are informational measurements, not passing balance assertions.
-- `.github/workflows/tests.yml` runs the nineteen headless suites — combat,
+- `.github/workflows/tests.yml` runs the twenty headless suites — combat,
   round-flow, mode/character-select, stage-select/ambience, stage-floor-guard,
   locomotion-speed, CPU opponent, combo system, combo fuzz, stun & breaker,
   The Clip intro,
   serialization, B6 landing-whiff, UI flow, settings, UI assets,
-  UI typography, select screens, and results flow — plus
+  UI typography, select screens, results flow, and the match HUD — plus
   the air probe on push, pull
   the air probe on push, pull
   request and manual

@@ -114,13 +114,14 @@ godot --headless --path game --script res://tests/ui_assets_test.gd
 godot --headless --path game --script res://tests/ui_typography_test.gd
 godot --headless --path game --script res://tests/select_screens_test.gd
 godot --headless --path game --script res://tests/results_flow_test.gd
+godot --headless --path game --script res://tests/hud_test.gd
 ```
 
-Current suites: **combat 408 checks**, round flow 34, character select 55,
+Current suites: **combat 408 checks**, round flow 35, character select 55,
 locomotion speed 7, stage select 94, stage floor 9, CPU opponent 41,
 combo system 68, combo fuzz 118, stun & breaker 55, The Clip 23,
 serialization 24, B6
-landing-whiff 5, UI flow 53, settings 16, UI assets 4, UI typography 38, select screens 24, results flow 20
+landing-whiff 5, UI flow 53, settings 16, UI assets 4, UI typography 42, select screens 24, results flow 20, match HUD 45
 — all green in CI (`tests.yml`, every step under a `timeout-minutes`).
 `tests/air_probe.gd` and `tests/juggle_probe.gd` print balance metrics and
 assert nothing; `tests/juggle_route_probe.gd` brute-forces real-hitbox juggle
@@ -159,6 +160,8 @@ QUIT asks "Leave the sidewalk?" with NO as the safe default.
 ![Stage select](docs/assets/ui/stage_select.png)
 ![VS bumper](docs/assets/ui/vs_screen.png)
 ![Results](docs/assets/ui/results.png)
+![HUD mid-fight](docs/assets/ui/hud_midfight.png)
+![HUD METH READY](docs/assets/ui/hud_meth_ready.png)
 
 - **VERSUS** opens mode select on `1 PLAYER` (solo) with `2 PLAYERS` one
   keypress away (W/S or A/D to move, J or click to start; Backspace
@@ -190,6 +193,15 @@ When the match ends, the **Results screen** replaces the old
 tally on a cardboard panel, and REMATCH / CHARACTER SELECT /
 STAGE SELECT / MAIN MENU below it. REMATCH runs the same matchup through
 the VS bumper again.
+
+The **match HUD** is street-junk too (UI Phase 2): taped-photo portraits
+that bruise and KO, health bars with a red ghost that catches up after
+every combo, pip sprites, a pump-digit timer that ticks dirty yellow
+under 10 seconds, hype meters that flip METH-pink with a wobbling skull
+at full, stamp-in round/K.O./FIGHT banners, and Tripp's commentary on a
+tape. Every HUD counter runs on the 60 Hz sim tick — pause or hitstop
+freezes the whole thing — and the accessibility settings
+(reduce-flashing, high-contrast HUD) apply live.
 
 | Action | P1 keyboard / mouse | P2 controller |
 |---|---|---|

@@ -2,19 +2,20 @@
 
 > **Keep this file current: every PR that changes features, tests, commands, or
 > rules must update PM_BRIEF.md.**
->
-> Last verified: **2026-11-22**, against `origin/main` at `fe1f551`
-> (PR #86 polish + #88 VS/Results lettering + #89 CPU combos) plus this
-> branch's **UI PR A (select screens)**: Mode/Difficulty restyled onto
-> cardboard panels, Character Select reskinned as the mugshot board
-> (rap sheet + scribble cursors), Stage Select reskinned as scratch
-> tickets with the 18-frame RANDOM reveal; new suite select_screens 23
-> checks, ui_typography grew 10 -> 14.
-> (PR #83, UI Phase 1 + combo Phase 2) plus this branch's **combo Phase 3
-> (stuns + breaker)**: authored StunEffect rows on both neutral specials
-> (Richard Taser Belch 105→40 + 240f immunity, Peggy Peg-Lock 95 + 60f
+> Last verified: **2026-11-22**, against `origin/main` at `1462c40`
+> (PR #90, UI PR A select screens) plus this branch's **PR A review
+> fix-ups + UI PR B (match wrap)**: the rap sheet carries only the
+> booking photo and tally marks (wall text below), stage-select short
+> labels, no-overlap + card-containment checks in ui_typography (now 38);
+> the VS bumper (12-frame bust slide-in, 150 frames, 20-frame skip
+> guard) between stage select and every match, and the Results screen
+> (REMATCH / CHARACTER SELECT / STAGE SELECT / MAIN MENU) replacing
+> "Enter restarts" above the frozen match; new suite results_flow 20
+> checks; select_screens grew to 24, character_select to 55, ui_flow to
+> 53. (Earlier on main: combo Phase 3 stuns + breaker — Richard Taser
+> Belch 105→40 + 240f immunity, Peggy Peg-Lock 95 + 60f
 > immunity), the free-per-round + 40-meter combo breaker, and Peggy's base
-> launcher raised 228→274 (owner call: the authored route now connects with
+> launcher raised 228→274 (owner call: the authored route now connects at
 > human timing). New suite: stun_breaker 55 checks; combo_fuzz grew to
 > 118 with stun/breaker fuzz and a re-measured soak (3092–5007 frames,
 > limit 6500). All claims below were checked
@@ -59,7 +60,7 @@ Slice, in progress**. Shipped features, each verified in code/data:
 | CPU opponent | Solo P2 driven by `CpuController` (deterministic seeded LCG, presses the same `p2_*` actions as a human, ticks at physics priority -100 on completed frames); difficulties are data: `game/resources/ai/cpu_{easy,normal,hard}.tres` (reaction 22/14/8f, block 0.35/0.65/0.90, idle watchdog 90/60/40, plus the Phase 4 combo knobs string/route/launcher/stun/juggle/breaker/clip/shake); debug `p1_cpu` enables AI-vs-AI; since Phase 4 the CPU walks the authored cancel graph, chases juggles, fishes stuns, breaks (free first, meter when worthwhile), Clip Cancels, and shakes out of stuns |
 | Stages | `gas_n_go` — "Everglades Gas-N-Go", `floor_y 158`, bounds 24-296, spawns 110/210; `bus_stop_night` — "Bus Stop", `floor_y 170`, bounds 24-296, spawns 110/210; each is a native 320x180 layered scene with visual-only ambience (clouds 5 px/s; Gas-N-Go 8 fps mosquitoes + breathing/blinking gator; Bus Stop 8 fps 4-frame fire + flickering liquor sign) |
 | Stage select | Shared pick after character select: every stage a `stage_scratch_ticket.png` (72x44) with its thumbnail **center-cropped** into the measured silver panel (36x16 AtlasTexture region, never scaled) and its name in outlined Marker; RANDOM last stays covered and confirms through an 18-frame integer-pixel scratch-off reveal before the same hand-off; the visual/meta RNG source is unchanged; resolved on the selector to a concrete stage id stored in `Main.last_stage_id`; empty/invalid roster stops `MatchRoot._ready()` before instantiating anything |
-| Menus & flow | Content warning (once per launch, press-required with a 30-frame input guard) -> The Clip (15 panels, Space-only advance, Esc skip) -> Title (PRESS START, 1 s pulse) -> Main Menu (price-board hub: VERSUS, TRAINING greyed, SETTINGS, EXTRAS greyed, QUIT, price board only — the chat strip was removed in the 2026-11-21 polish, QUIT rides a taped ui_button on the sign pole; no RNG) -> mode select (1 PLAYER default / 2 PLAYERS, cardboard panel with yellow focus bars over the dimmed Gas-N-Go) -> [solo] difficulty select (EASY/NORMAL/HARD, default NORMAL, ink tally marks) -> character select (mugshot wall, rap sheet with owner-editable booking copy, scribble cursors; solo: P1 picks both; versus: each player) -> stage select -> match; ScreenRouter (deferred pushes = confirm-leak guard) + FlowState; pause menu: Resume / Settings (overlay above the paused match) / Restart Match / Character Select / Main Menu / Quit to Desktop (through the quit confirm, default NO); Enter restarts after match end |
+| Menus & flow | Content warning (once per launch, press-required with a 30-frame input guard) -> The Clip (15 panels, Space-only advance, Esc skip) -> Title (PRESS START, 1 s pulse) -> Main Menu (price-board hub: VERSUS, TRAINING greyed, SETTINGS, EXTRAS greyed, QUIT, price board only — the chat strip was removed in the 2026-11-21 polish, QUIT rides a taped ui_button on the sign pole; no RNG) -> mode select (1 PLAYER default / 2 PLAYERS, cardboard panel with yellow focus bars over the dimmed Gas-N-Go) -> [solo] difficulty select (EASY/NORMAL/HARD, default NORMAL, ink tally marks) -> character select (mugshot wall, rap sheet with owner-editable booking copy, scribble cursors; solo: P1 picks both; versus: each player) -> stage select -> VS bumper (12-frame bust slide-in, 150 frames, skippable after 20) -> match -> Results (REMATCH / CHARACTER SELECT / STAGE SELECT / MAIN MENU, rematch through the VS again); ScreenRouter (deferred pushes = confirm-leak guard) + FlowState; pause menu: Resume / Settings (overlay above the paused match) / Restart Match / Character Select / Main Menu / Quit to Desktop (through the quit confirm, default NO); the finished match freezes (paused) under the Results screen |
 | Settings | `Settings` autoload -> `user://settings.cfg` (`[meta] version=1`, defaults fill missing keys, apply on boot, save on change only); overlay with Video / Audio / Gameplay / Accessibility / Stream tabs (no Controls yet); audio buses Master/Music/SFX/Voice/UI, defaults at exactly 0 dB |
 | Input policy | P1 keyboard + mouse only, P2 controller only (both `device = -1`); the map is generated by `game/tools/setup_input.gd`, never hand-edited; combat_test replays real keys (device 16) and pins the policy |
 | Round rules | 99 s rounds; 2 wins to take the match **and lead** (2-2 continues into DECISIVE ROUNDS); double KO = both take a pip; two timeout ties draw, the third starts a 30 s SUDDEN DEATH resolved by health -> round damage -> meter -> P1 |
@@ -84,6 +85,9 @@ Slice, in progress**. Shipped features, each verified in code/data:
 | `game/scripts/ui/screen_router.gd` | `ScreenRouter` — the front-end screen stack: push/pop/replace/clear, every push deferred (confirm-leak guard), overlays push without freeing below, last-input-device tracking for prompt glyphs |
 | `game/scripts/ui/flow_state.gd` | `FlowState` — flow context: solo/versus, cpu_level, last picks, last stage, pending fighter data |
 | `game/scripts/ui/settings.gd` | `Settings` autoload — `user://settings.cfg` persistence: defaults, version fill-in, apply on boot, save on change, reset applies+saves, `set_values_silently` for opening without saving; audio/video applied live |
+| `game/scripts/ui/screens/vs_screen.gd` | `VsScreen` — the "TONIGHT'S MATCHUP" bumper: code-drawn diagonal split (P1/P2 colors, 40% edge darkening), busts sliding in over 12 integer steps, 150 frames, 20-frame skip guard |
+| `game/scripts/ui/screens/results_screen.gd` | `ResultsScreen` — the match-end replacement for "Enter restarts": winner lettering + bust, stat rows from the tracker, REMATCH / CHARACTER SELECT / STAGE SELECT / MAIN MENU menu, 30-frame guard, runs above the frozen match |
+| `game/scripts/ui/match_stats_tracker.gd` | `MatchStatsTracker` — presentation-only Results stats source: accumulates round_damage deltas, tracks combo maxima and meth_started, samples wins/timer at the end; never writes simulation state |
 | `game/scripts/ui/screens/{content_warning,title,main_menu,quit_confirm,settings_overlay}.gd` | The Phase 1 screens (code-built, m5x7 theme, frame-counted timers, no RNG); price-sign slat rects are measured constants |
 | `game/scripts/ui/ui_prompt_line.gd` | `UiPromptLine` — the confirm/back prompt with keyboard/pad glyphs matching the last device used (one bottom row, baseline y 172) |
 | `game/scripts/ui/ui_text.gd` | `UiText` — the Phase 1 typography rules as helpers: Sidewalk Marker (native 10) / m5x7 (native 16), no theme outline/shadow on pixel fonts, integer positions, shared palette |
@@ -105,7 +109,7 @@ Counts are PASS+FAIL lines observed in real headless runs, not doc claims.
 |---|---|---:|---|
 | `combat_test.gd` | Combat engine end-to-end: boxes, damage, block/chip, throws/techs, wake-up invuln, EX/METH, landing, input-map device policy, side-switch/pass-through, counters, trades, juggle budget pins | **408**, 0 fail | yes |
 | `round_flow_test.gd` | Phases, commentary, KO, pips, timeouts, draws, sudden death, tiebreaks, hitstop-clock | **34**, 0 fail | yes |
-| `character_select_test.gd` | Boot/warning/title/menu navigation, mode/difficulty/character/stage flow, solo two-pick, back-outs, restore, music/cues | **54**, 0 fail | yes |
+| `character_select_test.gd` | Boot/warning/title/menu navigation, mode/difficulty/character/stage flow, solo two-pick, back-outs, restore, music/cues, the stage -> VS -> match hand-off | **55**, 0 fail | yes |
 | `stage_select_test.gd` | Stage ids/thumbnails/scenes, RANDOM, ambience of both stages, invalid-roster guards, no stale `BusStopNight` art | **94**, 0 fail | yes |
 | `stage_floor_test.gd` | Every roster stage's `floor_y` inside its measured band, pinned (158/170), bounds + spawns | **9**, 0 fail | yes |
 | `locomotion_speed_test.gd` | Peggy/Richard walk + jump parity (95/72/285 pinned) | **7**, 0 fail | yes |
@@ -116,20 +120,21 @@ Counts are PASS+FAIL lines observed in real headless runs, not doc claims.
 | `stun_breaker_test.gd` | Phase 3 stun and breaker rails end to end: window/shake-out/immunity/once-per-combo/step-3 scaling, blocked and airborne rails, buffer-freeze bounds, breaker free/meter/cooldown/once-per-combo economy, blockstun+neutral rejection, juggle breaks, the corner escape, mid-stun/mid-break serialize-restore, determinism | **55**, 0 fail | yes — **added 2026-11-21 (Phase 3)** |
 | `serialization_test.gd` | Match serializable-surface keys + round trip | **24**, 0 fail | yes — fixed 2026-11-20 (exits with `quit()`, correct exit code) |
 | `b6_landing_whiff_test.gd` | Superseded B6 rule: landing a whiffed air move awards 0 meter, move clears, recovery runs | **5**, 0 fail | yes — added 2026-11-20 (asserts current behavior; exits cleanly) |
-| `ui_flow_test.gd` | Phase 1 routing: router semantics, every forward/back path, confirm-leak guard, pause overlays, greyed items, QuitConfirm default, press-required warning (30-frame guard), chat-free menu, wrap order, title pulse | **52**, 0 fail | yes — 2026-11-21 polish pass (was 48; warning behavior pins updated with owner approval) |
+| `ui_flow_test.gd` | Phase 1 routing: router semantics, every forward/back path, confirm-leak guard, pause overlays, greyed items, QuitConfirm default, press-required warning (30-frame guard), chat-free menu, wrap order, the stage -> VS -> match hand-off, title pulse | **53**, 0 fail | yes — 2026-11-21 polish pass (was 48; warning behavior pins updated with owner approval) |
 | `settings_test.gd` | Settings persistence: defaults, fill-in, round trip, opening never saves, reset applies+saves, 0 dB defaults | **16**, 0 fail | yes — added 2026-11-21 (scratch config; player file untouched) |
 | `ui_assets_test.gd` | Runtime UI art: prepare_ui size table re-run in verify mode + byte identity vs approved sources | **4**, 0 fail | yes — added 2026-11-21 |
 | `ui_typography_test.gd` | Phase 1 + PR A typography and contrast rules: every label in the ten surfaces uses a pixel font at native size with every glyph present, no outline/shadow, integer positions, no scaling; cardboard labels fit their container and use the dark inks; prompt-line pairs never overlap | **14**, 0 fail | yes — added 2026-11-21 (polish pass), extended 2026-11-22 (review fixes, PR A select screens) |
-| `select_screens_test.gd` | PR A select reskins: Mode/Difficulty choices unchanged (names, order, defaults, emits, back paths), difficulty tallies, rap-sheet fields, per-player scribble cursors, ticket focus lift, the 18-frame RANDOM scratch-off and its hand-off | **23**, 0 fail | yes — added 2026-11-22 (PR A) |
+| `select_screens_test.gd` | PR A select reskins: Mode/Difficulty choices unchanged (names, order, defaults, emits, back paths), difficulty tallies, rap-sheet photo + wall copy, per-player scribble cursors, ticket focus lift, the 18-frame RANDOM scratch-off and its hand-off | **24**, 0 fail | yes — added 2026-11-22 (PR A) |
+| `results_flow_test.gd` | PR B match wrap: the VS slide-in (12 integer steps), 20-frame skip guard, 150-frame duration and hand-off; Results appears at match end above the frozen match with the real winner/stats; serialize() identical while Results is up; the 30-frame Results guard; every Results option routes (REMATCH keeps fighters and stage through the VS bumper) | **20**, 0 fail | yes — added 2026-11-22 (PR B) |
 | `air_probe.gd` | Balance metrics only, asserts nothing, always exits 0 | 0 (metrics) | yes (separate job) |
 | `juggle_probe.gd` | Juggle balance metrics (every budget-legal launcher route, jab-only reference, candidate ladders), asserts nothing | 0 (metrics) | no |
 | `juggle_route_probe.gd` | Real-hitbox juggle route timing search (human timing; ~7 min) | 0 (metrics) | no |
 | `idle_render_check`, `peggy/richard_clip_render_check`, `jump_block_render_check`, `jump_block_trace`, `attack_scale_check`, `peggy/richard_jump_check`, `peggy/richard_live_soak` | Manual rendered/soak review tools; need a display, write to `/tmp/opencode/` | n/a | no |
 
-CI (`.github/workflows/tests.yml`) runs import + the eighteen suites (combat,
+CI (`.github/workflows/tests.yml`) runs import + the nineteen suites (combat,
 round_flow, character_select, stage_select, stage_floor, locomotion_speed,
 cpu, combo, combo_fuzz, stun_breaker, the_clip, serialization, b6, ui_flow,
-settings, ui_assets, ui_typography, select_screens) plus the air-probe job
+settings, ui_assets, ui_typography, select_screens, results_flow) plus the air-probe job
 on push, PR, and manual dispatch; every step carries a `timeout-minutes` so
 a hang fails fast. `export.yml` builds both desktop targets on `main`/`v*`;
 `main_guard.yml` reverts unauthorized direct pushes to `main`.
@@ -291,7 +296,12 @@ Release blockers / decisions pending:
   18-frame RANDOM reveal; pinned by `select_screens_test` (23). Phase
   3b (VS and Results screens) follows; the HUD pass (Phase 2) and
   controls/extras (Phase 4) follow the plan in
-  `docs/UI_HUD_SCREENS_PLAN.md`.
+  `docs/UI_HUD_SCREENS_PLAN.md`. **Phase 3b (match wrap) — SHIPPED on
+  this branch (2026-11-22, PR B):** the VS bumper between stage select
+  and the match (and every rematch), and the Results screen replacing
+  "Enter restarts" with REMATCH / CHARACTER SELECT / STAGE SELECT /
+  MAIN MENU; pinned by `results_flow_test` (20). The HUD pass (Phase 2)
+  remains.
 
 - **Combo system** (design home: `docs/COMBO_SYSTEM_DESIGN.md`, merged
   2026-11-19 as PR #68): a four-component MK-style combo layer on the existing

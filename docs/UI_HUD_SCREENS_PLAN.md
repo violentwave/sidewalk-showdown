@@ -8,7 +8,13 @@
 > **Phase 3a (select screens) is implemented 2026-11-22 (PR A)**: Mode and
 > Difficulty restyled, Character Select reskinned as the mugshot board,
 > Stage Select reskinned as scratch-off tickets with an 18-frame RANDOM
-> reveal. Phase 3b (VS and Results screens) is the next slice.
+> reveal. **Phase 3b (VS and Results screens) is implemented
+> 2026-11-22 (PR B)**: the VS bumper plays between stage select and every
+> match (diagonal split, 12-frame bust slide-in, 150 frames, skippable
+> after a 20-frame guard), and Results replaces "Enter restarts" with
+> REMATCH / CHARACTER SELECT / STAGE SELECT / MAIN MENU above the frozen
+> match; per-round win-type letters are not recorded by MatchRoot, so the
+> Results panel shows the plain rounds tally.
 > See `docs/UI_SCREENS.md` for what actually shipped — it supersedes this
 > doc's Phase 1 section, and notes the deltas: The Clip runs right after
 > the content warning (before the title), there is no attract demo, the
@@ -83,11 +89,11 @@ Nine screens are new and two change shape; the biggest structural change is that
 | Difficulty | Exists | Versus setup (1P) | Versus setup | — |
 | Character Select | Exists, reskin | Versus setup / Difficulty, Results | Versus setup | 3 |
 | Stage Select | Exists, reskin | Character Select, Results | Character Select | 3 |
-| VS screen | New | Stage Select, Results (rematch) | none (non-interactive, about 2.5 s, skippable) | 3 |
+| VS screen | New | Stage Select, Results (rematch) | none (non-interactive, about 2.5 s, skippable) | 3 — **SHIPPED 2026-11-22 (PR B, Phase 3b)** |
 | Match + HUD | Exists, reskin | VS screen | Pause menu | 2 |
 | Pause menu | Exists, expand | Match | Match | 1 |
 | Settings (overlay) | New | Main Menu, Pause | Whatever opened it | 1 |
-| Results | New (today: Enter restarts) | Match end | Rematch / Character Select / Stage Select / Main Menu | 3 |
+| Results | New (today: Enter restarts) | Match end | Rematch / Character Select / Stage Select / Main Menu | 3 — **SHIPPED 2026-11-22 (PR B, Phase 3b)** |
 | Training mode + menu | New | Main Menu | Main Menu | after combo Phase 2 |
 | Extras: Credits, The Clip, Gallery | New | Main Menu | Main Menu | 4 |
 | Quit confirm | New | Main Menu, Title, Pause | Previous screen | 1 |
@@ -169,7 +175,7 @@ only (decision recorded).
 | Stage select | Scratch-off lottery tickets | Each stage is a ticket with its thumbnail; RANDOM is a ticket you scratch. Uses `ScratchOff.png` from `art/source/Items/` as reference. **SHIPPED 2026-11-22 (PR A, Phase 3a): integer-crop thumbnails in the silver panel, 2 px focus lift with a yellow frame, 18-frame RANDOM scratch-off reveal before the same hand-off.** |
 | VS screen | Tripp's "TONIGHT'S MATCHUP" bumper | Diagonal split, both portraits slam in, names, one trash-talk line per matchup, a fake sponsor bug ("brought to you by Swamp Juice"). About 2.5 s, any button skips. |
 | Pause | VHS pause | "▌▌ PAUSE" with faint tracking lines (static, no flicker). Resume, Move List (later), Settings, Restart Match, Character Select, Main Menu, Quit to Desktop (with confirm). |
-| Results | Tripp's clip of the match | Winner pose and win quote; stats: damage, max combo, METHtality yes/no, time left; viewer count change. Rematch, Character Select, Stage Select, Main Menu. Replaces today's "Enter restarts". |
+| Results | Tripp's clip of the match | Winner pose and win quote; stats: damage, max combo, METHtality yes/no, time left; viewer count change. Rematch, Character Select, Stage Select, Main Menu. Replaces today's "Enter restarts". **SHIPPED 2026-11-22 (PR B): stat rows are rounds / damage / max combo / METH / time left from a presentation-only tracker; per-round win-type letters are not recorded by MatchRoot, so the tally is plain; the viewer-count reaction stays with the HUD/audience work.** |
 | Credits | Stream end card | "Thanks for watching" layout; real credits and font licenses from `docs/ART_CREDITS.md`. |
 | Quit confirm | Small modal | "Leave the sidewalk?" YES / NO, defaults to NO. |
 

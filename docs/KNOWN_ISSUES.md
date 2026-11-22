@@ -561,7 +561,7 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   `art/tools/prepare_ui.gd` and re-runs its size table in verify-only mode
   (manifest and test cannot drift), plus a byte-identity check of every
   `game/art/ui/` copy against its approved source.
-- `game/tests/ui_typography_test.gd` — **16 checks** (2026-11-21 polish, extended by the PR #86 review fixes):
+- `game/tests/ui_typography_test.gd` — **10 checks** (2026-11-21 polish, extended by the PR #86 review fixes):
   every label in the six Phase 1 surfaces (five screens + the pause menu)
   uses Sidewalk Marker at 10 or m5x7 at 16 with every glyph present, carries
   no theme outline or shadow, sits at an integer position, and is never

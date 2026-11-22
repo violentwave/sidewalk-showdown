@@ -134,7 +134,7 @@ phase exit criteria:
   ScreenRouter with a persistent Settings autoload and audio buses;
   `docs/UI_SCREENS.md` documents what shipped (typography rules included),
   and the seventeen-suite CI adds ui_flow (52), settings (16),
-  ui_assets (4), and ui_typography (16). Procedural
+  ui_assets (4), and ui_typography (10). Procedural
   newsprint/halftone and bundled OFL comic fonts are used throughout. Mode
   select (added 2026-11-17) offers 1 PLAYER or 2 PLAYERS: solo sends P1 to a
   difficulty pick (added 2026-11-19) and then lets P1 pick both fighters, with

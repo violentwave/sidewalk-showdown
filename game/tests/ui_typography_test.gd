@@ -21,6 +21,7 @@ const SCREEN_SCENES := [
 const MATCH_SCENE := preload("res://scenes/match/MatchRoot.tscn")
 
 var failures := 0
+var cardboard_labels := 0
 var checks := 0
 
 
@@ -65,7 +66,39 @@ func _typography_problems(labels: Array) -> Array[String]:
 			problems.append("%s: fractional position %s" % [where, str(node.position)])
 		if node.scale != Vector2.ONE:
 			problems.append("%s: scaled %s" % [where, str(node.scale)])
+		# Every character exists in the label's font (no missing-glyph boxes).
+		var text_value: String = node.text
+		for i in text_value.length():
+			var code := text_value.unicode_at(i)
+			if code > 32 and not font.has_char(code):
+				problems.append("%s: font has no glyph for '%s'" % [where, text_value[i]])
+				break
+		# Labels on a cardboard Panel fit inside it and use the dark inks.
+		var panel := _panel_under(node)
+		if panel != null and node.is_visible_in_tree() and not text_value.is_empty():
+			cardboard_labels += 1
+			var panel_rect := Rect2(panel.global_position, panel.size)
+			var label_rect := Rect2(node.global_position, node.size)
+			if not panel_rect.encloses(label_rect):
+				problems.append("%s: %s spills out of its panel %s" % [where, str(label_rect), str(panel_rect)])
+			var c: Color = node.get_theme_color("font_color")
+			if not (c.is_equal_approx(UiText.INK) or c.is_equal_approx(UiText.INK_MUTED) or c.is_equal_approx(UiText.INK_DARK)):
+				problems.append("%s: light text %s on cardboard" % [where, c.to_html(false)])
 	return problems
+
+
+func _panel_under(node: Control) -> Panel:
+	# Panels are drawn as siblings behind their text, so a label belongs to
+	# the visible Panel its center sits on (the smallest one, if nested).
+	var center: Vector2 = node.global_position + node.size * 0.5
+	var best: Panel = null
+	for p in root.find_children("*", "Panel", true, false):
+		if not p.is_visible_in_tree():
+			continue
+		var r := Rect2(p.global_position, p.size)
+		if r.has_point(center) and (best == null or r.get_area() < best.size.x * best.size.y):
+			best = p
+	return best
 
 
 func _run() -> void:
@@ -85,6 +118,29 @@ func _run() -> void:
 		scene.free()
 		await process_frame
 
+	# The prompt line's key/label pairs never overlap each other (PR #86
+	# review: "[BKSP] BACK" was drawn on top of "[ENTER]").
+	var menu: Node = load("res://scenes/menus/main_menu.tscn").instantiate()
+	root.add_child(menu)
+	await process_frame
+	var prompt_labels: Array = []
+	for n in menu.find_children("*", "UiPromptLine", true, false):
+		for c in n.get_children():
+			if c is Label and c.visible and not c.text.is_empty():
+				prompt_labels.append(c)
+	var overlaps: Array[String] = []
+	for i in prompt_labels.size():
+		for j in range(i + 1, prompt_labels.size()):
+			var a: Label = prompt_labels[i]
+			var b: Label = prompt_labels[j]
+			if Rect2(a.global_position, a.size).intersects(Rect2(b.global_position, b.size)):
+				overlaps.append("'%s' overlaps '%s'" % [a.text, b.text])
+	_check("the main menu prompt line has visible labels (%d)" % prompt_labels.size(),
+		prompt_labels.size() >= 4, "found %d" % prompt_labels.size())
+	_check("no two prompt-line labels overlap", overlaps.is_empty(), "; ".join(overlaps))
+	menu.free()
+	await process_frame
+
 	# The pause menu (match_hud.gd pause_root) through a real MatchRoot.
 	var match_root: Node = MATCH_SCENE.instantiate()
 	root.add_child(match_root)
@@ -99,6 +155,8 @@ func _run() -> void:
 		pause_problems.is_empty(), "; ".join(pause_problems))
 	_check("the typography scan actually saw labels (%d)" % total_labels,
 		total_labels >= 25, "only %d label(s) found" % total_labels)
+	_check("the panel checks actually saw cardboard labels (%d)" % cardboard_labels,
+		cardboard_labels >= 15, "only %d" % cardboard_labels)
 	match_root.free()
 
 	print("ui_typography_test: %d checks, %d failure(s)" % [checks, failures])

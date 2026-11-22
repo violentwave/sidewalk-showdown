@@ -34,6 +34,9 @@ var _confirm_label: Label
 var _back_key: Label
 var _back_glyph: TextureRect
 var _back_label: Label
+var _confirm_text: String
+var _back_text: String
+var _laid_out_for_pad := false
 
 
 func _init(confirm_text: String, back_text: String, left_text: String = "") -> void:
@@ -49,7 +52,6 @@ func _init(confirm_text: String, back_text: String, left_text: String = "") -> v
 
 	if not left_text.is_empty():
 		_left_label = UiText.body(left_text, Vector2(LEFT_X, LABEL_Y), UiText.CREAM_TEXT)
-		_left_label.size = Vector2(224, 12)
 		add_child(_left_label)
 
 	# Confirm pair (rightmost): "[ENTER] SELECT" or [pad A] SELECT.
@@ -68,6 +70,9 @@ func _init(confirm_text: String, back_text: String, left_text: String = "") -> v
 	_back_glyph = _make_glyph(GLYPH_PAD_B, Vector2.ZERO)
 	add_child(_back_glyph)
 
+	_confirm_text = confirm_text
+	_back_text = back_text
+	_laid_out_for_pad = ScreenRouter.last_device_was_pad()
 	_layout(confirm_text, back_text)
 	_refresh_device()
 
@@ -82,8 +87,11 @@ func _layout(confirm_text: String, back_text: String) -> void:
 	_layout_key(_confirm_key, _confirm_glyph, "[ENTER]",
 		_confirm_label.position.x - KEY_TO_LABEL_GAP, confirm_text.is_empty())
 
-	# Back pair sits 8 px to the left of the confirm key.
-	var back_edge: float = _confirm_label.position.x - KEY_TO_LABEL_GAP
+	# Back pair sits PAIR_GAP px to the left of the confirm KEY (or pad
+	# glyph), not the confirm label: the key is drawn left of its label.
+	var back_edge: float = _confirm_key.position.x
+	if _laid_out_for_pad:
+		back_edge = _confirm_glyph.position.x
 	if confirm_text.is_empty():
 		back_edge = right_x
 	_back_label.size = Vector2(UiText.body_width(back_text), 12.0)
@@ -92,6 +100,13 @@ func _layout(confirm_text: String, back_text: String) -> void:
 	_back_label.visible = not back_text.is_empty()
 	_layout_key(_back_key, _back_glyph, "[BKSP]",
 		_back_label.position.x - KEY_TO_LABEL_GAP, back_text.is_empty())
+
+	# The left description gets only the room left of the back pair, so a
+	# long description can never run under the key prompts.
+	if _left_label != null:
+		var back_left: float = _back_glyph.position.x if _laid_out_for_pad else _back_key.position.x
+		_left_label.clip_text = true
+		_left_label.size = Vector2(maxf(0.0, back_left - PAIR_GAP - LEFT_X), 12.0)
 
 
 func _layout_key(key: Label, glyph: TextureRect, key_name: String,
@@ -118,6 +133,11 @@ func _process(_delta: float) -> void:
 
 func _refresh_device() -> void:
 	var pad := ScreenRouter.last_device_was_pad()
+	if pad != _laid_out_for_pad:
+		# The pad glyph (9 px) is narrower than "[ENTER]", so re-lay the
+		# pairs whenever the last-used device changes.
+		_laid_out_for_pad = pad
+		_layout(_confirm_text, _back_text)
 	_confirm_key.visible = not pad and _confirm_label.visible
 	_back_key.visible = not pad and _back_label.visible
 	_confirm_glyph.visible = pad and _confirm_label.visible

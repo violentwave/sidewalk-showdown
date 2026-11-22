@@ -246,7 +246,7 @@ on an approved file missing from the table, and exits non-zero.
 - `game/tests/settings_test.gd` — 16 checks: defaults, fill-in, round
   trip, opening never saves, reset applies + saves, 0 dB defaults.
 - `game/tests/ui_assets_test.gd` — 4 checks: sizes + byte identity.
-- `game/tests/ui_typography_test.gd` — 16 checks: every label in the six
+- `game/tests/ui_typography_test.gd` — 10 checks: every label in the six
   Phase 1 surfaces (five screens + the pause menu) uses a pixel font at
   its native size with every glyph present, no theme outline/shadow,
   integer positions, no scaling; labels on cardboard (ui_panel /

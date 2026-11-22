@@ -17,3 +17,6 @@ var last_stage_id := ""
 # Fighters picked on character select, waiting for the stage choice.
 var pending_p1_data: FighterData
 var pending_p2_data: FighterData
+# The stage confirmed on stage select (or kept for a rematch), waiting for
+# the match. The VS bumper and the rematch path both read it.
+var pending_stage: StageData

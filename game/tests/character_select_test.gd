@@ -195,10 +195,20 @@ func _run() -> void:
 		stage_select.index == 0, "index=%d" % stage_select.index)
 	_press(stage_select, "p2_light")
 	await process_frame
-	_check("confirming a stage starts the match and closes stage select",
-		main_scene.match_root != null and main_scene.stage_select == null,
-		"match=%s stage_select=%s" % [str(main_scene.match_root != null),
+	# Phase 3b: the VS bumper plays between stage select and the match.
+	_check("confirming a stage opens the VS bumper",
+		main_scene.vs_screen != null and main_scene.stage_select == null,
+		"vs=%s stage_select=%s" % [str(main_scene.vs_screen != null),
 			str(main_scene.stage_select != null)])
+	for _skip in 25:
+		await physics_frame
+	_press(main_scene.vs_screen, "ui_confirm")  # past the guard: skip
+	await process_frame
+	await process_frame
+	_check("skipping the VS bumper starts the match",
+		main_scene.match_root != null and main_scene.vs_screen == null,
+		"match=%s vs=%s" % [str(main_scene.match_root != null),
+			str(main_scene.vs_screen != null)])
 	if main_scene.match_root != null:
 		_check("selected fighter data reaches the match in P1/P2 order",
 			main_scene.match_root.p1.data.display_name == "Whiskey Richard"
@@ -305,6 +315,12 @@ func _run() -> void:
 			str(solo_main.match_root != null)])
 	_press(solo_main.stage_select, "p1_light")
 	await process_frame
+	# Phase 3b: skip the VS bumper to reach the match.
+	for _skip in 25:
+		await physics_frame
+	_press(solo_main.vs_screen, "ui_confirm")
+	await process_frame
+	await process_frame
 	_check("solo mode starts the match on the confirmed stage",
 		solo_main.match_root != null and solo_main.stage_select == null,
 		"match root was not created")
@@ -374,6 +390,12 @@ func _run() -> void:
 				str(solo_main.stage_select != null),
 				str(solo_main.stage_select.index if solo_main.stage_select != null else -1)])
 		_press(solo_main.stage_select, "p1_light")
+		await process_frame
+		# Phase 3b: skip the VS bumper before the rematch loads.
+		for _skip in 25:
+			await physics_frame
+		_press(solo_main.vs_screen, "ui_confirm")
+		await process_frame
 		await process_frame
 		_check("a new match starts from the returned select screen",
 			solo_main.match_root != null and solo_main.character_select == null,

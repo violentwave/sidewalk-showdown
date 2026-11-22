@@ -1,10 +1,11 @@
-# Main flow, Phase 1 (docs/UI_SCREENS.md): boot -> content warning ->
+# Main flow, Phases 1 + 3b (docs/UI_SCREENS.md): boot -> content warning ->
 # The Clip -> Title -> Main Menu -> VERSUS -> Mode Select (1P/2P) ->
-# [solo] Difficulty -> Character Select -> Stage Select -> Match.
-# The ScreenRouter owns the screen stack with deferred transitions (the
-# confirm-leak guard); FlowState owns the flow context. Everything here is
-# front-end presentation: nothing enters the 60 Hz sim or MatchRoot's
-# serialize()/load().
+# [solo] Difficulty -> Character Select -> Stage Select -> VS -> Match ->
+# Results -> { Rematch -> VS -> Match | Character Select | Stage Select |
+# Main Menu }. The ScreenRouter owns the screen stack with deferred
+# transitions (the confirm-leak guard); FlowState owns the flow context.
+# Everything here is front-end presentation: nothing enters the 60 Hz sim
+# or MatchRoot's serialize()/load().
 extends Node
 
 const CONTENT_WARNING_SCENE := preload("res://scenes/menus/content_warning.tscn")
@@ -17,6 +18,8 @@ const TITLE_SCENE := preload("res://scenes/menus/title.tscn")
 const MAIN_MENU_SCENE := preload("res://scenes/menus/main_menu.tscn")
 const QUIT_CONFIRM_SCENE := preload("res://scenes/menus/quit_confirm.tscn")
 const SETTINGS_SCENE := preload("res://scenes/menus/settings_overlay.tscn")
+const VS_SCENE := preload("res://scenes/menus/vs_screen.tscn")
+const RESULTS_SCENE := preload("res://scenes/menus/results_screen.tscn")
 const MATCH_SCENE := preload("res://scenes/match/MatchRoot.tscn")
 const AUDIO_MANAGER_SCRIPT := preload("res://scripts/audio/audio_manager.gd")
 const ROSTER_PATH := "res://resources/match_roster.tres"
@@ -33,7 +36,10 @@ var mode_select: Control
 var difficulty_select: Control
 var character_select: Control
 var stage_select: Control
+var vs_screen: Control
+var results_screen: Control
 var match_root: Node
+var stats_tracker: MatchStatsTracker
 var audio_manager
 var router: ScreenRouter
 var flow := FlowState.new()
@@ -262,7 +268,31 @@ func _on_stage_chosen(stage: StageData, stage_id: String) -> void:
 	# RANDOM has already been resolved by the selector, so this is always the
 	# concrete stage id the match will use.
 	last_stage_id = stage_id
-	_start_match(flow.pending_p1_data, flow.pending_p2_data, stage)
+	flow.pending_stage = stage
+	# Phase 3b: the VS bumper plays between stage select and the match
+	# (rematch goes through it too).
+	_show_vs(flow.pending_p1_data, flow.pending_p2_data)
+
+
+func _show_vs(p1_data: FighterData, p2_data: FighterData) -> void:
+	if stage_select != null:
+		router.pop()
+		stage_select = null
+	var vs: Control = VS_SCENE.instantiate()
+	vs.p1_data = p1_data
+	vs.p2_data = p2_data
+	vs.vs_done.connect(_on_vs_done)
+	router.push(vs)
+	vs_screen = vs
+
+
+func _on_vs_done() -> void:
+	if vs_screen != null:
+		router.pop()
+		vs_screen = null
+	if match_root != null:
+		return
+	_start_match(flow.pending_p1_data, flow.pending_p2_data, flow.pending_stage)
 
 
 func _on_stage_back() -> void:
@@ -313,7 +343,108 @@ func _start_match(p1_data: FighterData, p2_data: FighterData,
 	match_root.settings_requested.connect(_on_match_settings_requested)
 	match_root.main_menu_requested.connect(_on_match_main_menu_requested)
 	match_root.quit_requested.connect(_on_match_quit_requested)
+	match_root.match_results_requested.connect(_on_match_results_requested)
+	# Phase 3b: the presentation-only stats tracker reads the match for the
+	# Results screen; it never writes simulation state.
+	stats_tracker = MatchStatsTracker.new()
+	add_child(stats_tracker)
+	stats_tracker.attach(match_root)
 	router.push(match_root)
+
+
+# Match end (Phase 3b): pause the finished match and push the Results
+# screen above it. The match stays frozen underneath — serialize() is
+# byte-identical before and after the screen appears, and every Results
+# option unpauses and routes.
+func _on_match_results_requested() -> void:
+	if match_root == null or results_screen != null:
+		return
+	var snapshot: Dictionary = stats_tracker.snapshot()
+	var winner_index: int = snapshot["winner"]
+	var winner_data: FighterData = match_root.p1.data if winner_index == 0 \
+		else match_root.p2.data
+	var stage: StageData = match_root.selected_stage
+	match_root.modal_open = true
+	get_tree().paused = true
+	var results: Control = RESULTS_SCENE.instantiate()
+	results.stats = snapshot
+	results.winner_data = winner_data
+	results.stage = stage
+	results.rematch_requested.connect(_on_results_rematch)
+	results.character_select_requested.connect(_on_results_character_select)
+	results.stage_select_requested.connect(_on_results_stage_select)
+	results.main_menu_requested.connect(_on_results_main_menu)
+	router.push(results)
+	results_screen = results
+	# Kept for the rematch path: the same fighters and stage go through the
+	# VS bumper again.
+	flow.pending_p1_data = match_root.p1.data
+	flow.pending_p2_data = match_root.p2.data
+	flow.pending_stage = stage
+
+
+func _leave_match_to_results(action: Callable) -> void:
+	if match_root == null:
+		return
+	var leaving := match_root
+	match_root = null
+	router.pop()
+	get_tree().paused = false
+	if is_instance_valid(leaving):
+		leaving.modal_open = false
+	if stats_tracker != null:
+		stats_tracker.queue_free()
+		stats_tracker = null
+	if results_screen != null:
+		router.pop()
+		results_screen = null
+	action.call()
+
+
+func _on_results_rematch() -> void:
+	# Same fighters, same stage, through the VS bumper again.
+	_leave_match_to_results(func() -> void: _show_vs(flow.pending_p1_data, flow.pending_p2_data))
+
+
+func _on_results_character_select() -> void:
+	_leave_match_to_results(_push_results_character_select)
+
+
+func _push_results_character_select() -> void:
+	var select := _build_character_select()
+	router.push(select)
+	character_select = select
+
+
+func _on_results_stage_select() -> void:
+	_leave_match_to_results(_push_results_stage_select)
+
+
+func _push_results_stage_select() -> void:
+	var stage: Control = STAGE_SELECT_SCENE.instantiate()
+	stage.roster = roster
+	stage.initial_stage_id = last_stage_id
+	stage.stage_chosen.connect(_on_stage_chosen)
+	stage.back_requested.connect(_on_stage_back)
+	stage.selection_moved.connect(audio_manager.play_ui_move)
+	stage.selection_confirmed.connect(audio_manager.play_ui_confirm)
+	router.push(stage)
+	stage_select = stage
+
+
+func _on_results_main_menu() -> void:
+	_leave_match_to_results(_push_results_main_menu)
+
+
+func _push_results_main_menu() -> void:
+	main_menu = MAIN_MENU_SCENE.instantiate()
+	main_menu.versus_chosen.connect(_on_versus_chosen)
+	main_menu.settings_requested.connect(_on_menu_settings)
+	main_menu.quit_requested.connect(_on_menu_quit)
+	main_menu.back_requested.connect(_on_main_menu_back)
+	main_menu.selection_moved.connect(audio_manager.play_ui_move)
+	main_menu.selection_confirmed.connect(audio_manager.play_ui_confirm)
+	router.push(main_menu)
 
 
 # Pause menu -> BACK TO CHARACTER SELECT. Deferred by the router so the

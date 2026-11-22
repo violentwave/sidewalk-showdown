@@ -21,6 +21,8 @@ const SCREEN_SCENES := [
 	["difficulty select", "res://scenes/menus/DifficultySelect.tscn"],
 	["character select", "res://scenes/menus/CharacterSelect.tscn"],
 	["stage select", "res://scenes/menus/StageSelect.tscn"],
+	["vs screen", "res://scenes/menus/vs_screen.tscn"],
+	["results screen", "res://scenes/menus/results_screen.tscn"],
 ]
 const MATCH_SCENE := preload("res://scenes/match/MatchRoot.tscn")
 

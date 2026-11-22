@@ -261,19 +261,34 @@ that section by hand afterward — the simulation step comes from
   before public release. Tripp voice, crowd, hit sparks, screen shake,
   spatial/priority mixing, and the full GDD §12 SFX list remain.
 - **CPU depth is v0.1-level.** The solo P2 is now a real CPU opponent with
-  three difficulty levels ([`docs/CPU_OPPONENT.md`](CPU_OPPONENT.md)), but its
-  toolkit is deliberately simple: no fuzzy guard logic, no spacing
-  neutral-game, no character-specific gameplans, and difficulty is data-tuned
-  rates rather than distinct strategies. It plays a fair, readable match; it
-  is not a tournament opponent.
-- **Combo depth is Phase 1 + Phase 2 economics.** Blockstrings,
+  three difficulty levels ([`docs/CPU_OPPONENT.md`](CPU_OPPONENT.md)), and
+  since Phase 4 (2026-11-22) it uses the full combo system — authored
+  route walking, launcher strings with juggle chases, stun-then-string,
+  Clip Cancel, the breaker, stun shake-out, and juggle-fall drift — but its
+  toolkit is still deliberately simple: no fuzzy guard logic, no spacing
+  neutral-game, no character-specific gameplans, and difficulty is
+  data-tuned rates rather than distinct strategies. It plays a fair,
+  readable match; it is not a tournament opponent.
+- **CPU-side balance finding (2026-11-22, Phase 4 soak):** the CPU-vs-CPU
+  soak is **Peggy 24–0 Richard at NORMAL and 18–6 at HARD** (24 matches per
+  level: both pairings, both stages, 6 seeds). This is a CHARACTER-balance
+  problem, not AI bias: both CPUs run identical controller code and knobs;
+  Richard's average combo is BIGGER (148.1 vs 136.9 at NORMAL), so he
+  converts fine — he wins neutral half as often (216 combos landed vs
+  Peggy's 388; her faster pokes win the interaction war), and the split
+  predates the combo CPU (Phase 3's soak was already 8–0). HARD narrows it
+  (better blocking suppresses the jab war). Candidate data levers, all
+  `.tres`, none applied: Richard's stand-light startup (5f) toward Peggy's
+  (3f) parity, or a Richard walk-speed bump. Owner decision pending; jab
+  values untouched per the standing decision.
+- **Combo depth is Phases 1–3 plus CPU usage.** Blockstrings,
   counter-hit extensions, dial-a-combo macros (BENCH WARMER / LAST CALL),
-  the Clip Cancel, data-driven scaling with repeat/variety/caps, AND the
-  juggle point budget with authored launcher routes are in
-  ([`COMBO_SYSTEM_DESIGN.md`](COMBO_SYSTEM_DESIGN.md) §§9–10, 15.1) — but
-  there is no combo HUD readout yet, the CPU does not use the new routes,
-  and stuns and the breaker are still Phase 3 (the breaker's rejection-point
-  hook is placed).
+  the Clip Cancel, data-driven scaling with repeat/variety/caps, the
+  juggle point budget with authored launcher routes, stuns, the breaker,
+  AND CPU usage of all of it are in
+  ([`COMBO_SYSTEM_DESIGN.md`](COMBO_SYSTEM_DESIGN.md) §§9–12, 15.1) — but
+  there is no combo HUD readout yet (Phase 4's remaining half; the tracker
+  readouts and signals are exposed for it).
 - **METHtality presentation is minimal.** The trigger, spend and KO win are
   real, but the finisher is a single point-blank hit with a long freeze and a
   banner — no cinematic, camera, or choreography yet. The 30f freeze is a
@@ -521,12 +536,15 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   owner-script canon guards, panel ordering, boot-to-intro, Space-only
   beat/panel advancement, complete Space-only handoff, Esc skips from panels
   1/8/15, explicit bundled comic fonts, and monospaced livestream chat.
-- `game/tests/cpu_test.gd` — **27 checks**: CPU legality (no move out of
+- `game/tests/cpu_test.gd` — **41 checks**: CPU legality (no move out of
   hitstun, no unpayable EX), same-seed determinism with scripted human
-  inputs, mid-match AI-state save/restore, HARD-over-EASY defense ordering
-  and damage, and an 8-match AI-vs-AI soak (both pairings, both stages, two
-  seeds) asserting every match ends in bounds with no stuck states
-  (`docs/CPU_OPPONENT.md`).
+  inputs, mid-match AI-state save/restore plus mid-COMBO/mid-STUN/mid-BREAK
+  restores, HARD-over-EASY defense ordering (frontal + forced stale-facing
+  cross-ups), damage ordering, combo ordering (damage, launchers, stuns,
+  breakers, Clip Cancels), combo legality under full-pressure fire (no
+  breaker from blockstun), and an 8-match AI-vs-AI soak (both pairings, both
+  stages, two seeds) asserting every match ends inside the honest limit
+  with no stuck states (`docs/CPU_OPPONENT.md`).
 - `game/tests/combo_test.gd` — **68 checks**: legacy pins (exact ladder
   damage, cancel routes, authored launch, juggle budget, block economy),
   scaling arithmetic (repeat/variety/air decay), BLOCK/WHIFF outcome

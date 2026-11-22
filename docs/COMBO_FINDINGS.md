@@ -139,8 +139,15 @@ budget can pay, and nothing goes NaN or out of bounds.
   3092–5007 frames over the same 8 matches (both stages produce identical
   lengths per seed — shared bounds/spawns), avg ~3935, worst 5007 — a
   normal multi-round match, no stalls (mutual idle always < 240). Limit
-  reset worst + ~25%: **6500**. cpu_test's separate 40000 anti-hang
-  ceiling is generic and unchanged.
+  reset worst + ~25%: **6500**.
+- **Phase 4 (2026-11-22, the combo CPU):** 3282–3896 frames over the same 8
+  matches, avg ~3630, no stalls. Limits reset worst + ~25%:
+  **combo_fuzz 4900**, **cpu_test 5000** (the old generic 40000 anti-hang
+  ceiling is retired). Win split at NORMAL: Peggy 8–0. The bigger balance
+  probe (24 matches per level, 6 seeds): NORMAL Peggy 24–0, HARD Peggy
+  18–6 — recorded as a CHARACTER-balance finding in KNOWN_ISSUES
+  (identical AI code both sides; Richard's average combo is bigger, he
+  just wins neutral half as often).
 
 ## Notes
 

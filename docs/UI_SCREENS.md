@@ -49,7 +49,7 @@ boot -> ContentWarning -> The Clip -> Title -> MainMenu
 CharacterSelect <-> StageSelect -> MatchRoot
    `-- back -> ModeSelect `-- back -> MainMenu
 MatchRoot pause: RESUME / SETTINGS (overlay) / RESTART MATCH /
-   BACK TO CHARACTER SELECT / MAIN MENU / QUIT TO DESKTOP (QuitConfirm)
+   CHARACTER SELECT / MAIN MENU / QUIT TO DESKTOP (QuitConfirm)
 ```
 
 | Screen | Enter | Back / exit |
@@ -128,7 +128,7 @@ Gameplay, Accessibility, Stream) plus a RESET TO DEFAULTS row, one-line
 plain descriptions at the bottom, up/down moves, left/right adjusts or
 switches tabs.
 
-## Typography rules (every Phase 1 screen)
+## Typography and contrast rules (every Phase 1 screen)
 
 - **Two fonts.** Sidewalk Marker (`game/assets/fonts/sidewalk_marker.fnt`,
   `sidewalk_marker_outline.fnt` where text sits over art) at its native
@@ -142,36 +142,58 @@ switches tabs.
   must be **RGBA8** — Godot's BMFont loader rejects grayscale+alpha pages
   ("Unsupported BMFont texture format"); it was re-encoded on this branch
   and `art/tools/font/build.js` should emit PNG32 going forward.
+- **Contrast (PR #86 review).** Text on a cardboard panel (ui_panel /
+  ui_button) is always dark ink: `#2A2418` normal, `#7A6A48` inactive or
+  greyed, and the focused item is `#1C160D` on a full-row-width
+  `#F2D13A` highlight bar with 1 px padding top and bottom (the lit price
+  slat look) — never cream or white on cardboard. Text drawn directly
+  over stage art uses `sidewalk_marker_outline`. Cream `#F4EEDC` and
+  muted `#9C8F70` are only for text on dark plates.
+- **Declutter.** Title and MainMenu draw the Gas-N-Go art, then a
+  `#1C160D` overlay at 55% alpha, then the UI. The pause menu dims the
+  match behind it with the same overlay.
+- **Key prompts (PR #86 review).** Keyboard prompts show the bracketed
+  key name as text — "[ENTER]", "[BKSP]" — in m5x7 (Sidewalk Marker now
+  ships `[` and `]`); pad prompts keep the A/B glyph sprites. The prompt
+  line rides a full-width `#1C160D` plate at 80% alpha, 12 px tall, flush
+  with the bottom of the 320x180 frame, so it never collides with stage
+  art. The main menu's description line shares that plate on the left.
 - **Never a Godot theme outline or shadow on a pixel font.** For
   contrast use the `_outline` font or a plate behind the text. Recolor
   with `font_color`; the baked dark outline stays dark.
 - **Integer positions only**, no scaling on text nodes, and 1 px letter
   spacing exactly as each font defines it (no extra tracking).
+- **No clipping and no overflow.** A control's theme overrides only
+  reach its cached metrics on `NOTIFICATION_THEME_CHANGED`, so
+  `UiText._make_label` refreshes that cache before any position/size is
+  set and pins `custom_minimum_size` to the ink box — the rect set at
+  build time is the rect that renders, and every label fits inside its
+  container (`ui_typography_test` enforces it).
 - **Spacing:** 8 px screen margins, a 4 px grid, fixed line heights
   (Sidewalk Marker 12, m5x7 16), body text left-aligned, at most about
   36 characters per m5x7 line.
 - **At most one panel per screen;** no empty decorative boxes and no
   boxes nested inside boxes.
-- **Prompt line:** one row at the bottom (baseline y 172), right-aligned,
-  glyph + m5x7 label pairs with 8 px between pairs
-  (`UiPromptLine`).
+- **Prompt line:** one row on the bottom plate
+  (`UiPromptLine.new(confirm, back, left_text = "")`), right-aligned.
 
 Per-screen layouts (positions are 320x180 screen space):
 
 | Screen | Layout |
 | --- | --- |
-| ContentWarning | dim; ui_panel (40,42) 240x96; "HEADS UP" Marker; two m5x7 lines; "PRESS [glyph] TO CONTINUE" centered, muted. No auto-advance; confirm ignored for the first 30 frames. |
-| Title | Gas-N-Go art; logo (90,16) 139x74; "PRESS START" Marker-outline yellow centered y140, 60f on / 60f off. Nothing else. |
-| MainMenu | sign (120,34), slats per the geometry above; QUIT button (136,116) 48x16; description plate (8,150) 224x18; prompt bottom-right. |
-| SettingsOverlay | ui_panel (20,16) 280x148; tab row Marker at y22 (active yellow + 1px underline, inactive `#9C8F70`); rows m5x7 label left / value right (step 14, max 7 visible, scrolls if ever needed); focused row = 1px yellow left marker + `#F4EEDC`; description inside the panel bottom (32,144). |
-| Pause | dim; ui_panel (80,24) 160x116; "PAUSED" Marker; items Marker at x88 step 14, focused yellow with a ">" prefix, rest `#F4EEDC`; no per-item buttons. |
-| QuitConfirm | dim; ui_panel (76,54) 168x64; "LEAVE THE SIDEWALK?" Marker; YES / NO one row, focused yellow with ">", default NO. |
+| ContentWarning | dim; ui_panel (40,42) 240x96; "HEADS UP" Marker ink; two m5x7 ink lines; "PRESS [ENTER] TO CONTINUE" centered inside the panel (pad shows the A glyph). No auto-advance; confirm ignored for the first 30 frames. |
+| Title | Gas-N-Go art; 55% #1C160D overlay; logo (90,16) 139x74; "PRESS START" Marker-outline yellow centered y140, 60f on / 60f off. Nothing else — PRESS START is the prompt, no prompt line. |
+| MainMenu | Gas-N-Go art; 55% overlay; sign in the left third at (24,34) — pole base on the stage floor line — with a white outlined "MENU" in the sign's measured orange header band (art x 5..72 / y 5..29); slats per the geometry above in dark ink; QUIT button (40,116) 48x16 taped to the pole, focused = yellow bar + darkest ink; description on the bottom plate's left, prompt on its right. |
+| SettingsOverlay | ui_panel (20,16) 280x148; tab row Marker at y22 (active tab on a small yellow bar, inactive `#7A6A48`); rows m5x7 ink label left / ink value right (step 14, max 7 visible, scrolls if ever needed); focused row = full-width yellow bar + `#1C160D`; RESET in `#7A6A48`; description `#7A6A48` inside the panel bottom (32,144). |
+| Pause | 55% #1C160D dim; ui_panel centered on the longest item + 8 px padding each side, (24) 116 tall; "PAUSED" Marker ink; items Marker ink centered, focused on a full-width yellow bar + `#1C160D`; "BACK TO CHARACTER SELECT" is "CHARACTER SELECT" now. No per-item buttons. |
+| QuitConfirm | dim; ui_panel (66,54) sized to the question; "LEAVE THE SIDEWALK?" Marker ink; YES / NO one row on 40x12 slots, focused slot = yellow bar + `#1C160D`, default NO. |
 
 ## Screenshots
 
 `docs/assets/ui/` holds one 320x180 PNG per polished screen:
-`content_warning`, `title`, `main_menu`, `main_menu_quit` (QUIT
-focused), `settings_video`, `settings_audio`, `pause`, `quit_confirm`.
+`content_warning`, `title`, `main_menu`, `main_menu_settings` (SETTINGS
+focused), `main_menu_quit` (QUIT focused), `settings_video`,
+`settings_audio`, `settings_gameplay`, `pause`, `quit_confirm`.
 Regenerate by driving the real scenes:
 
 ```bash
@@ -224,8 +246,11 @@ on an approved file missing from the table, and exits non-zero.
 - `game/tests/settings_test.gd` — 16 checks: defaults, fill-in, round
   trip, opening never saves, reset applies + saves, 0 dB defaults.
 - `game/tests/ui_assets_test.gd` — 4 checks: sizes + byte identity.
-- `game/tests/ui_typography_test.gd` — 7 checks: every label in the six
+- `game/tests/ui_typography_test.gd` — 16 checks: every label in the six
   Phase 1 surfaces (five screens + the pause menu) uses a pixel font at
-  its native size, no theme outline/shadow, integer positions, no
-  scaling.
-- All four run in CI (`tests.yml`) alongside the existing twelve suites.
+  its native size with every glyph present, no theme outline/shadow,
+  integer positions, no scaling; labels on cardboard (ui_panel /
+  ui_button) fit their container and use the dark inks; over-art
+  lettering uses the outlined marker; the pause panel sizes itself to
+  its longest item plus padding.
+- All four run in CI (`tests.yml`) alongside the existing suites.

@@ -167,7 +167,7 @@ Every file in `art/source/UI/approved/` was produced and checked by the PM sessi
 | `select` | `select_mugshot_bg`, `select_portrait_pegleg_peg`, `select_portrait_whiskey_richard`, `select_rap_sheet` |
 | `stage` | `stage_scratch_ticket` |
 | `stream` | `stream_chat_panel`, `stream_commentary_box`, `stream_live_tag`, `stream_sponsor_bug` |
-| `ui` | `ui_button`, `ui_glyph_dpad`, `ui_glyph_key_blank`, `ui_glyph_pad_a`, `ui_glyph_pad_b`, `ui_glyph_pad_x`, `ui_glyph_pad_y`, `ui_logo`, `ui_panel` |
-| `vs` | `vs_bust_pegleg_peg`, `vs_bust_whiskey_richard` |
+| `ui` | `ui_button`, `ui_glyph_dpad`, `ui_glyph_key_blank`, `ui_glyph_pad_a`, `ui_glyph_pad_b`, `ui_glyph_pad_x`, `ui_glyph_pad_y`, `ui_logo`, `ui_panel`, `results_winner` (90x20), `results_rematch` (126x20) |
+| `vs` | `vs_bust_pegleg_peg`, `vs_bust_whiskey_richard`, `vs_matchup` (242x20), `vs_versus` (47x29, 3x) |
 
 Native sizes changed from the original manifest where the art came out better at its own proportions: price sign 79x124, lit slat 66x7, rap sheet 76x66, logo 139x74. Button focus/pressed/disabled states and the scratch-off reveal are left to code (modulate/shader or masking).

@@ -197,6 +197,17 @@ var breaker_push_dir := 0.0
 var breaker_push_self_px := 0.0
 var breaker_push_other_px := 0.0
 var breaker_push_frames := 0
+# Owner ruling on adversarial A2 (2026-11-22): the breaker pair persists
+# through HITSTOP like the tech window — a single grab+special press on the
+# impact frame of a long-hitstop hit (EX launchers 10f, METHtality 30f) must
+# still fire the breaker once hitstop ends, if the breaker is otherwise
+# legal. The 5-frame hitstop buffer freeze is unchanged for every other
+# input; this latch only bridges the pair across the frozen ticks. It
+# counts down ONLY past the hitstop early-return (so hitstop cannot expire
+# it), never survives past BREAKER_INPUT_WINDOW after hitstop, and is
+# consumed with the pair on a break or a meter-refused Clip Cancel, so it
+# can never fire twice.
+var breaker_pair_frames := 0
 # Design §11 constants: the 20f post-break invulnerability window and the
 # separating pushback (defender 30 px over 6 frames, attacker half that,
 # corner rule transferring the defender's share to the attacker).
@@ -420,6 +431,7 @@ func begin_round(spawn_pos: Vector2, opponent_x: float) -> void:
 	breaker_push_self_px = 0.0
 	breaker_push_other_px = 0.0
 	breaker_push_frames = 0
+	breaker_pair_frames = 0
 	_active_clip = {}
 	_transient_clip_key = ""
 	_transient_clip_tick = 0
@@ -458,6 +470,11 @@ func _physics_process(_delta: float) -> void:
 		breaker_cooldown_frames -= 1
 	if breaker_invuln_frames > 0:
 		breaker_invuln_frames -= 1
+	# A2 latch: ticks only past the hitstop early-return (frozen by hitstop
+	# exactly like the stun counters), and expires with the breaker's own
+	# input window once hitstop has served.
+	if breaker_pair_frames > 0:
+		breaker_pair_frames -= 1
 	# The break's separating push: a frame-counted displacement (applied in
 	# the tick, before state logic) so neither fighter's state machine can
 	# zero it. Both bodies stay clamped to the stage.
@@ -865,6 +882,15 @@ func _try_clip_cancel() -> bool:
 	if not (input_buffer.has("special") and input_buffer.has("grab")):
 		return false
 	if meter + 0.001 < CLIP_CANCEL_COST:
+		# Owner ruling on adversarial A3 (2026-11-22): a meter-refused clip
+		# cancel CONSUMES the buffered pair. Left buffered, a punished
+		# attempt would auto-convert into the defender's (free) breaker on
+		# its first hitstun frame — a safe-cancel/break option-select the
+		# owner ruled out. With meter the cancel resolves exactly as
+		# before (consumed here on success below).
+		input_buffer.erase("special")
+		input_buffer.erase("grab")
+		breaker_pair_frames = 0
 		return false
 	_consume("special", BUFFER_SPECIAL)
 	_consume("grab", BUFFER_GRAB)
@@ -1378,11 +1404,19 @@ func _try_breaker() -> bool:
 	# Decision #1 input: both authored actions live together in the buffer.
 	# Each press is already bounded by its own buffer window and the 5-frame
 	# hitstop freeze cap, so no buffered pair can outlive a freeze.
+	# A2 (owner ruling 2026-11-22): the pair ALSO lives on the
+	# breaker_pair_frames latch, which bridges hitstop like the tech window
+	# and expires with this same window once hitstop has served — so a
+	# single press on a long-hitstop impact frame still fires here, exactly
+	# once (both the buffers and the latch are consumed below).
 	for action in data.breaker_input:
-		if not input_buffer.has(action) or input_buffer[action] > BREAKER_INPUT_WINDOW:
+		var buffered: bool = input_buffer.has(action) \
+				and int(input_buffer[action]) <= BREAKER_INPUT_WINDOW
+		if not buffered and breaker_pair_frames <= 0:
 			return false
 	for action in data.breaker_input:
 		input_buffer.erase(action)
+	breaker_pair_frames = 0
 	if is_free:
 		breaker_free_uses_left -= 1
 	else:
@@ -1633,6 +1667,7 @@ func reset_state() -> void:
 	breaker_push_self_px = 0.0
 	breaker_push_other_px = 0.0
 	breaker_push_frames = 0
+	breaker_pair_frames = 0
 	grounded = true
 	hit_flash_frames = 0
 	block_flash_frames = 0
@@ -1693,6 +1728,14 @@ func _poll_input() -> void:
 		input_buffer[key] += 1
 		if input_buffer[key] > BUFFER_MAX_AGE:
 			input_buffer.erase(key)
+	# A2: arm the breaker-pair latch while both authored actions sit in the
+	# buffer fresh (either entry point — a real Input press above, or a
+	# direct buffer write from the CPU/tests). The latch bridges hitstop;
+	# the buffer ages are unchanged.
+	if input_buffer.has("grab") and input_buffer.has("special") \
+			and maxi(int(input_buffer["grab"]), int(input_buffer["special"])) \
+				<= BREAKER_INPUT_WINDOW:
+		breaker_pair_frames = BREAKER_INPUT_WINDOW
 
 func _consume(action: String, window: int) -> bool:
 	if input_buffer.has(action) and input_buffer[action] <= window + 1:
@@ -1861,6 +1904,7 @@ func serialize() -> Dictionary:
 		"breaker_push_self_px": breaker_push_self_px,
 		"breaker_push_other_px": breaker_push_other_px,
 		"breaker_push_frames": breaker_push_frames,
+		"breaker_pair_frames": breaker_pair_frames,
 		"input_buffer": input_buffer.duplicate(),
 		"input_history": input_history.duplicate(),
 	}
@@ -1924,6 +1968,7 @@ func load(data: Dictionary) -> void:
 	breaker_push_self_px = data.get("breaker_push_self_px", 0.0)
 	breaker_push_other_px = data.get("breaker_push_other_px", 0.0)
 	breaker_push_frames = data.get("breaker_push_frames", 0)
+	breaker_pair_frames = data.get("breaker_pair_frames", 0)
 	stun_tint = _authored_stun_tint(stun_id)
 	_update_silhouette_flash()
 	input_buffer = data["input_buffer"]

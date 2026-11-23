@@ -99,6 +99,11 @@ var grounded := true
 var crouching := false
 var health := 1000.0
 var max_health := 1000.0
+# Training mode only (GDD 6.4): the health floor damage application respects.
+# 0.0 everywhere else — versus/solo behavior is byte-identical with it unset.
+# Set by MatchRoot's TrainingController and serialized like any other
+# simulation guard so a training save cannot resume with KO re-enabled.
+var training_min_health := 0.0
 var meter := 0.0
 var max_meter := 100.0
 var hitstop_frames := 0
@@ -1150,7 +1155,9 @@ func receive_hit(attacker: FighterBase, move: MoveData, counter := false) -> boo
 	# still connects but pays nothing.
 	var scaled := _combo_damage_for(move)
 	var fresh_combo := combo_hits == 0
-	health = maxf(0.0, health - scaled)
+	# Training floor: maxf(training_min_health, ...) is maxf(0.0, ...)
+	# whenever training_min_health keeps its default 0.0.
+	health = maxf(training_min_health, health - scaled)
 	combo_hits += 1
 	# Phase 3 A1 (adversarial pass 2, COMBO_FINDINGS): the breaker's
 	# once-per-COMBO rail is combo-scoped — a fresh combo opening clears it,
@@ -1859,6 +1866,7 @@ func serialize() -> Dictionary:
 		"crouching": crouching,
 		"health": health,
 		"max_health": max_health,
+		"training_min_health": training_min_health,
 		"meter": meter,
 		"max_meter": max_meter,
 		"hitstop_frames": hitstop_frames,
@@ -1919,6 +1927,7 @@ func load(data: Dictionary) -> void:
 	crouching = data["crouching"]
 	health = data["health"]
 	max_health = data["max_health"]
+	training_min_health = float(data.get("training_min_health", 0.0))
 	meter = data["meter"]
 	max_meter = data["max_meter"]
 	hitstop_frames = data["hitstop_frames"]

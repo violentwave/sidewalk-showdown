@@ -6,6 +6,10 @@ extends RefCounted
 
 # Solo (1P vs CPU) or local versus.
 var solo_mode := false
+# Training (GDD 6.4): entered from the main menu's TRAINING slat. P1 picks
+# both fighters solo-style, the match runs under training rules, and the
+# flag routes the flow's back/hand-off paths.
+var training_mode := false
 # CPU level for solo mode (0 EASY / 1 NORMAL / 2 HARD); kept across
 # matches like the other flow choices.
 var cpu_level := 1

@@ -63,6 +63,18 @@ var cpu_p2: CpuController
 # When false, grounded bodies separate by pushbox as before; airborne fighters
 # pass through either way so a jump-over still works.
 @export var fighters_can_pass_through := true
+# Training mode (GDD 6.4): no timer, no rounds, no KO — the dummy is driven
+# by TrainingController and health refills per its options. Versus and solo
+# never set this; every branch below is training-only and default-false.
+@export var training_mode := false
+var training: TrainingController
+# Pause menu tab while training (0 = the system options, 1 = the training
+# tab). Serialized alongside pause_index like the rest of the pause state.
+var pause_tab := 0
+# The training tab's row list (rendered/owned by the HUD's training panel
+# logic; MatchRoot only routes input and stores the selection).
+const TRAINING_ROWS := ["DUMMY", "BLOCK", "TECH", "BREAKER", "SHAKE-OUT",
+	"METER", "HEALTH", "POSITION", "HITBOXES"]
 
 var phase: Phase = Phase.INTRO
 var phase_frame := 0
@@ -104,6 +116,11 @@ func _ready() -> void:
 	add_child(stage)
 
 	hud = HUD_SCENE.instantiate()
+	if training_mode:
+		# The HUD builds its training layout (pause tabs, readout panel,
+		# hidden pips, infinity timer) in _ready, so the flag must land
+		# before the child enters the tree.
+		hud.training_mode = true
 	add_child(hud)
 
 	p1 = _spawn_fighter(1, selected_p1_data)
@@ -120,8 +137,21 @@ func _ready() -> void:
 	debug_overlay = DEBUG_SCRIPT.new()
 	add_child(debug_overlay)
 	debug_overlay.bind(p1, p2)
+	if training_mode:
+		# The hitbox view is a menu toggle in training (F1 still works).
+		debug_overlay.show_boxes = false
 
 	_setup_cpus()
+	if training_mode:
+		training = TrainingController.new()
+		# Distinct priority makes the order explicit: training upkeep/random
+		# first, CPU dummy second, fighters third, MatchRoot last. No node-order
+		# tie between training and CpuController can affect a frame.
+		training.process_physics_priority = -200
+		training.process_mode = Node.PROCESS_MODE_PAUSABLE
+		add_child(training)
+		training.setup(self)
+		hud.set_training_controller(training)
 	_begin_round()
 
 # Roster-driven setup: a caller may set any subset of the selections; anything
@@ -179,6 +209,28 @@ func _make_cpu(who: FighterBase, foe: FighterBase, seed: int) -> CpuController:
 	cpu.setup(who, foe, self, CpuDifficulty.load_level(cpu_level), seed)
 	return cpu
 
+# ---------------- training CPU dummy -----------------------------------------
+
+# TrainingController calls these when the DUMMY stance asks for a CPU. The
+# dummy CPU reuses the solo opponent's whole machinery (seed, difficulty
+# data, serialization through the cpu_p2 slot) — only training ever drives
+# it this way, so versus/solo behavior is untouched.
+func ensure_training_cpu(level: int, seed: int) -> void:
+	if cpu_p2 != null:
+		cpu_p2.difficulty = CpuDifficulty.load_level(level)
+		return
+	cpu_seed = seed if seed != 0 else 1
+	cpu_p2 = _make_cpu(p2, p1, cpu_seed)
+	cpu_p2.difficulty = CpuDifficulty.load_level(level)
+
+
+func clear_training_cpu() -> void:
+	if cpu_p2 == null:
+		return
+	cpu_p2._release_all()
+	cpu_p2.queue_free()
+	cpu_p2 = null
+
 # ---------------- Round flow ----------------
 func _begin_round() -> void:
 	p1.begin_round(Vector2(stage.spawn_p1_x, stage.floor_y), stage.spawn_p2_x)
@@ -187,6 +239,21 @@ func _begin_round() -> void:
 	# until an attacker in active/recovery frames claims the top slot.
 	p1.z_index = 0
 	p2.z_index = 0
+	if training_mode:
+		# Training skips the round intro entirely: straight to FIGHT with
+		# both fighters live, no banner, no clock. begin_round() already
+		# restored health/meter/state above.
+		p1.input_enabled = true
+		p2.input_enabled = true
+		timer_frames = 0
+		phase = Phase.FIGHT
+		phase_frame = 0
+		ko_loser = null
+		ko_draw = false
+		ko_frame = -1
+		round_damage = [0.0, 0.0]
+		hud.set_timer_infinite()
+		return
 	p1.input_enabled = false
 	p2.input_enabled = false
 	timer_frames = (SUDDEN_DEATH_SECONDS if sudden_death else ROUND_SECONDS) * 60
@@ -229,6 +296,10 @@ func _on_meth_started(meth_name: String) -> void:
 		audio_manager.play_sfx("meth")
 
 func _on_fighter_ko(loser: FighterBase) -> void:
+	if training_mode:
+		# The training health floor makes this unreachable; keep the guard
+		# so a future rule change can never push training into round flow.
+		return
 	if phase == Phase.KO:
 		# A second KO inside the same simulation frame means both fighters died
 		# on the trade: make it a draw round instead of crediting the first signal.
@@ -391,6 +462,9 @@ func _physics_process(_delta: float) -> void:
 			# Hitstop freezes the whole exchange, so it must not burn the clock.
 			if p1.hitstop_frames > 0 or p2.hitstop_frames > 0:
 				return
+			if training_mode:
+				# No clock in training; the HUD shows the infinity digits.
+				return
 			timer_frames -= 1
 			hud.set_timer(float(timer_frames) / 60.0)
 			if timer_frames <= 0:
@@ -420,6 +494,21 @@ func _unhandled_input(event: InputEvent) -> void:
 	if modal_open:
 		# An overlay above the paused match owns all input right now.
 		return
+	# Training match keys (never while paused: the sim is frozen underneath
+	# the menu and the trainer should not stack resets on a frozen frame).
+	if training_mode and not get_tree().paused:
+		if event.is_action_pressed("training_reset"):
+			if training != null:
+				training.reset_positions()
+			return
+		if event.is_action_pressed("training_record"):
+			if training != null:
+				training.toggle_recording()
+			return
+		if event.is_action_pressed("training_playback"):
+			if training != null:
+				training.toggle_playback()
+			return
 	if event.is_action_pressed("p1_pause") or (p2_human and event.is_action_pressed("p2_pause")):
 		_toggle_pause()
 		return
@@ -431,6 +520,17 @@ func _unhandled_input(event: InputEvent) -> void:
 		_move_pause_selection(-1)
 	elif event.is_action_pressed("p1_down") or (p2_human and event.is_action_pressed("p2_down")):
 		_move_pause_selection(1)
+	elif training_mode and pause_tab == 1 \
+			and (event.is_action_pressed("p1_left") or event.is_action_pressed("p1_right")):
+		# The training tab adjusts the focused row's value in place; the tab
+		# row itself switches tabs.
+		_adjust_training_row(1 if event.is_action_pressed("p1_right") else -1)
+	elif training_mode and pause_tab == 0 \
+			and (event.is_action_pressed("p1_left") or event.is_action_pressed("p1_right")):
+		# On the system tab the tab row sits above the options: left/right
+		# switches tabs, everywhere else it is inert.
+		if pause_index < 0:
+			_switch_pause_tab(1)
 	elif (event.is_action_pressed("p1_light")
 			or (p2_human and event.is_action_pressed("p2_light"))
 			or event.is_action_pressed("ui_confirm")):
@@ -442,10 +542,13 @@ func _toggle_pause() -> void:
 	get_tree().paused = paused
 	pause_menu_open = paused
 	if paused:
-		pause_index = 0
+		pause_index = -1 if training_mode else 0
+		pause_tab = 1 if training_mode else 0
 	if audio_manager != null:
 		audio_manager.play_ui_confirm()
 	hud.set_paused(paused)
+	if paused and training_mode:
+		hud.set_training_pause(pause_tab, pause_index)
 
 func _unpause() -> void:
 	get_tree().paused = false
@@ -457,7 +560,29 @@ func _unpause() -> void:
 func is_pause_menu_open() -> bool:
 	return pause_menu_open
 
+# Rows visible on the current pause tab: the six system options, or the nine
+# training rows. The tab row itself is pause_index == -1.
+func _pause_row_count() -> int:
+	if training_mode and pause_tab == 1:
+		return TRAINING_ROWS.size()
+	return hud.pause_option_count()
+
+func _switch_pause_tab(tab: int) -> void:
+	pause_tab = tab
+	pause_index = -1
+	hud.set_training_pause(pause_tab, pause_index)
+	if audio_manager != null:
+		audio_manager.play_ui_move()
+
 func _move_pause_selection(dir: int) -> void:
+	if training_mode:
+		# Domain -1 (tab row) .. count-1, wrapping through the tab row.
+		var count := _pause_row_count()
+		pause_index = wrapi(pause_index + dir, -1, count)
+		hud.set_training_pause(pause_tab, pause_index)
+		if audio_manager != null:
+			audio_manager.play_ui_move()
+		return
 	var count := hud.pause_option_count()
 	if count <= 0:
 		return
@@ -466,9 +591,41 @@ func _move_pause_selection(dir: int) -> void:
 	if audio_manager != null:
 		audio_manager.play_ui_move()
 
+# Left/right on a training row cycles that row's value (the POSITION and
+# HITBOXES rows apply immediately through the controller).
+func _adjust_training_row(dir: int) -> void:
+	if training == null or pause_index < 0:
+		_switch_pause_tab(0 if pause_tab == 1 else 1)
+		return
+	var row := pause_index
+	var value: int = wrapi(training.option_value(row) + dir, 0,
+		training.option_value_count(row))
+	training.set_option_value(row, value)
+	hud.set_training_pause(pause_tab, pause_index)
+	if audio_manager != null:
+		audio_manager.play_ui_move()
+
 func _confirm_pause_selection() -> void:
 	if audio_manager != null:
 		audio_manager.play_ui_confirm()
+	if training_mode:
+		# The tab row enters its tab; the training tab's POSITION and
+		# HITBOXES rows also act on confirm.
+		if pause_index < 0:
+			pause_index = 0
+			hud.set_training_pause(pause_tab, pause_index)
+			return
+		if pause_tab == 1:
+			match pause_index:
+				7:
+					if training != null:
+						training.reset_positions()
+				8:
+					if training != null:
+						training.set_option_value(8,
+							1 - training.option_value(8))
+						hud.set_training_pause(pause_tab, pause_index)
+			return
 	match pause_index:
 		2:
 			# Start the new match unpaused so its intro frames actually run.
@@ -663,6 +820,9 @@ func serialize() -> Dictionary:
 		"cpu_p1": cpu_p1.serialize() if cpu_p1 != null else null,
 		"cpu_p2": cpu_p2.serialize() if cpu_p2 != null else null,
 		"fighters_can_pass_through": fighters_can_pass_through,
+		"training_mode": training_mode,
+		"pause_tab": pause_tab,
+		"training": training.serialize() if training != null else null,
 		"p1": p1.serialize(),
 		"p2": p2.serialize(),
 	}
@@ -690,13 +850,34 @@ func load(data: Dictionary) -> void:
 	p1_cpu = data.get("p1_cpu", p1_cpu)
 	cpu_level = data.get("cpu_level", cpu_level)
 	cpu_seed = data.get("cpu_seed", cpu_seed)
-	if cpu_p1 != null and typeof(data.get("cpu_p1")) == TYPE_DICTIONARY:
-		cpu_p1.load_state(data["cpu_p1"])
-	if cpu_p2 != null and typeof(data.get("cpu_p2")) == TYPE_DICTIONARY:
-		cpu_p2.load_state(data["cpu_p2"])
 	fighters_can_pass_through = data.get(
 		"fighters_can_pass_through", fighters_can_pass_through)
-	p1.load(data["p1"])
-	p2.load(data["p2"])
+	training_mode = bool(data.get("training_mode", false))
+	pause_tab = int(data.get("pause_tab", 0))
+	if training_mode and training != null:
+		# Fighter state first: TrainingController's load re-snapshots the
+		# prior-frame edge detectors from the restored fighters. It may
+		# create/remove the training CPU based on the restored dummy option.
+		p1.load(data["p1"])
+		p2.load(data["p2"])
+		if typeof(data.get("training")) == TYPE_DICTIONARY:
+			training.load_state(data["training"])
+		if cpu_p1 != null and typeof(data.get("cpu_p1")) == TYPE_DICTIONARY:
+			cpu_p1.load_state(data["cpu_p1"])
+		if cpu_p2 != null and typeof(data.get("cpu_p2")) == TYPE_DICTIONARY:
+			cpu_p2.load_state(data["cpu_p2"])
+	else:
+		# Keep the pre-training CPU -> fighter load order byte-for-byte for
+		# versus and solo. Non-training fighters carry the zero health floor.
+		if cpu_p1 != null and typeof(data.get("cpu_p1")) == TYPE_DICTIONARY:
+			cpu_p1.load_state(data["cpu_p1"])
+		if cpu_p2 != null and typeof(data.get("cpu_p2")) == TYPE_DICTIONARY:
+			cpu_p2.load_state(data["cpu_p2"])
+		p1.load(data["p1"])
+		p2.load(data["p2"])
+		p1.training_min_health = 0.0
+		p2.training_min_health = 0.0
+	if training_mode and pause_menu_open:
+		hud.set_training_pause(pause_tab, pause_index)
 
 # ---------------- Simulation ----------------

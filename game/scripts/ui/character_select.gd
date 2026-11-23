@@ -77,6 +77,9 @@ var FIGHTERS: Array[FighterData] = []
 # Set by Main when returning from a match so the cursor restores the matchup
 # that was just played. -1 means "use the defaults".
 @export var solo := false
+# Training (GDD 6.4): P1 picks their fighter, then the dummy — the same
+# three-step solo input flow with training-flavored copy only.
+@export var training := false
 @export var initial_p1_choice := -1
 @export var initial_p2_choice := -1
 
@@ -432,7 +435,8 @@ func _refresh() -> void:
 		_status.text = "STARTING MATCH..."
 	elif solo:
 		if p1_locked:
-			_status.text = "P1: CHOOSE YOUR OPPONENT - P2 IS IDLE"
+			_status.text = "P1: CHOOSE THE DUMMY" if training \
+				else "P1: CHOOSE YOUR OPPONENT - P2 IS IDLE"
 		else:
 			_status.text = "P1: CHOOSE YOUR FIGHTER"
 	elif p1_locked:

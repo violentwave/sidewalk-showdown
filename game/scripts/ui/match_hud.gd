@@ -17,6 +17,9 @@ extends CanvasLayer
 
 const PAUSE_OPTIONS := ["RESUME", "SETTINGS", "RESTART MATCH",
 	"CHARACTER SELECT", "MAIN MENU", "QUIT TO DESKTOP"]
+# The training pause tab's rows (values come from the TrainingController).
+const TRAINING_ROWS := ["DUMMY", "BLOCK", "TECH", "BREAKER", "SHAKE-OUT",
+	"METER", "HEALTH", "POSITION", "HITBOXES"]
 const UI_THEME := preload("res://resources/ui_theme.tres")
 
 # ---- palette (docs/UI_HUD_SCREENS_PLAN.md, tightened) --------------------
@@ -112,6 +115,13 @@ var _last_wins: Array[int] = [0, 0]
 # Sim-tick state.
 var _tick := 0
 var _last_sim_frame := -1
+# Training mode (set by MatchRoot BEFORE this node enters the tree, so _build
+# branches on it). All training presentation hangs off this flag; versus and
+# solo never set it.
+var training_mode := false
+var _training: TrainingController
+var training_panel: TrainingPanel
+var _pause_tab := 0
 var banner_id := ""
 var _banner_stamp := 0
 var _banner_auto := -1  # frames until auto-remove; -1 = persist (today's
@@ -162,7 +172,10 @@ var hud_root: Control
 var readout_root: Control
 var pause_root: Control
 var pause_options: Array[Label] = []
+var pause_values: Array[Label] = []
 var pause_bars: Array[ColorRect] = []
+var pause_tab_labels: Array[Label] = []
+var pause_tab_bars: Array[ColorRect] = []
 var high_contrast_plates: Array[ColorRect] = []
 
 
@@ -243,11 +256,18 @@ func _build() -> void:
 	for side in 2:
 		for i in 2:
 			_append_pip(root, side, i)
+	# Training has no rounds: the pip rows stay hidden for the whole match.
+	if training_mode:
+		for side in 2:
+			for pip in pips[side]:
+				pip.visible = false
 
-	# Timer: box art with two 8x12 digit cells centered inside.
+	# Timer: box art with two 8x12 digit cells centered inside. Training
+	# shows the strip's unused infinity cells instead — there is no clock.
 	timer_box_art = _art(root, HudArt.TIMER_BOX, TIMER_POS, TIMER_BOX_SIZE)
+	var first_digit := 10 if training_mode else 9
 	for i in 2:
-		var digit := _art(root, HudArt.digit_texture(9),
+		var digit := _art(root, HudArt.digit_texture(first_digit),
 			TIMER_POS + Vector2(4 + i * 8.0, 4), Vector2(8, 12))
 		timer_digits.append(digit)
 
@@ -343,6 +363,15 @@ func _build() -> void:
 	banner_plate.add_child(meth_banner)
 
 	_build_combo_readouts(root)
+	if training_mode:
+		# The readout plate; bound to the controller once MatchRoot creates
+		# it (set_training_controller below).
+		training_panel = TrainingPanel.new()
+		training_panel.position = Vector2.ZERO
+		training_panel.size = Vector2(320, 180)
+		training_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		training_panel.z_index = 4
+		root.add_child(training_panel)
 	_build_pause_menu(root)
 
 
@@ -659,6 +688,9 @@ func sim_tick() -> void:
 	if _tick % PULSE_STEP == 0:
 		_refresh_timer_tint()
 	_refresh_live_readouts()
+	# Training readouts ride the same presentation tick.
+	if training_mode and training_panel != null:
+		training_panel.sim_tick()
 
 
 func _resync() -> void:
@@ -1047,6 +1079,9 @@ func clear_message() -> void:
 # ---------------- timer -----------------------------------------------------
 
 func set_timer(seconds: float) -> void:
+	if training_mode:
+		set_timer_infinite()
+		return
 	var value := int(ceilf(seconds))
 	for i in 2:
 		var digit := value % 10 if i == 0 else (value / 10) % 10
@@ -1054,7 +1089,19 @@ func set_timer(seconds: float) -> void:
 	_refresh_timer_tint()
 
 
+# Training shows the digit strip's unused infinity cells: no clock runs.
+func set_timer_infinite() -> void:
+	for i in 2:
+		timer_digits[i].texture = HudArt.digit_texture(10)
+	timer_box_art.modulate = Color.WHITE
+	for digit in timer_digits:
+		digit.modulate = Color.WHITE
+
+
 func _refresh_timer_tint() -> void:
+	if training_mode:
+		# timer_frames is pinned at 0 in training; it must never read "low".
+		return
 	var low: bool = _health.size() == 2 and _match_root != null \
 		and _match_root.timer_frames < 10 * 60
 	if low:
@@ -1080,6 +1127,9 @@ func set_pips(p1_wins: int, p2_wins: int) -> void:
 	if p1_wins > _last_wins[0] and p2_wins == _last_wins[1]:
 		_round_lost[1] = true
 	_last_wins = [p1_wins, p2_wins]
+	if training_mode:
+		# No rounds in training: the rows stay hidden for the whole match.
+		return
 	# Double KOs award both fighters a pip, so a score can pass 2-2; grow
 	# the rows instead of hiding wins.
 	var count := maxi(2, maxi(p1_wins, p2_wins))
@@ -1135,16 +1185,27 @@ func apply_high_contrast(enabled: bool) -> void:
 		plate.visible = enabled
 
 
-# ---------------- pause menu (unchanged from the Phase 1 polish) ------------
+# ---------------- pause menu (system tab unchanged from the Phase 1 polish) ---
 
 func set_paused(paused: bool) -> void:
 	pause_root.visible = paused
-	if paused:
+	if paused and not training_mode:
 		set_pause_selection(0)
 
 
 func pause_option_count() -> int:
 	return PAUSE_OPTIONS.size()
+
+
+# MatchRoot hands the training controller over once it exists, so the panel
+# and the pause tab can render its option values (read-only, like the rest
+# of the HUD).
+func set_training_controller(tc: TrainingController) -> void:
+	_training = tc
+	if training_panel != null:
+		training_panel.bind(_match_root, tc)
+	if training_mode and pause_root != null and _match_root.pause_menu_open:
+		set_training_pause(_match_root.pause_tab, _match_root.pause_index)
 
 
 func _build_pause_menu(root: Control) -> void:
@@ -1161,32 +1222,76 @@ func _build_pause_menu(root: Control) -> void:
 	# plus 8 px padding on each side; items in Sidewalk Marker dark ink; the
 	# focused item rides a full-width yellow bar with the darkest ink
 	# (contrast rules). No per-item buttons, no Godot outline on the font.
+	# Training widens the panel for label+value rows and stacks a tab row
+	# (TRAINING / SYSTEM) above nine training rows.
 	var longest := 0.0
 	for option in PAUSE_OPTIONS:
 		longest = maxf(longest, UiText.marker_width(option))
+	var row_count := PAUSE_OPTIONS.size()
+	var panel_h := 116
+	var panel_y := 24
+	var first_row_y := 47
+	var row_step := 14
+	if training_mode:
+		for i in TRAINING_ROWS.size():
+			longest = maxf(longest, UiText.marker_width(TRAINING_ROWS[i])
+				+ UiText.marker_width("CPU NORMAL") + 24.0)
+		row_count = TRAINING_ROWS.size()
+		panel_h = 150
+		panel_y = 10
+		first_row_y = 42
+		row_step = 13
 	var panel_w := int(longest) + 16
 	var panel_x := 160 - panel_w / 2
 	var pause_panel := Panel.new()
-	pause_panel.position = Vector2(panel_x, 24)
-	pause_panel.size = Vector2(panel_w, 116)
+	pause_panel.position = Vector2(panel_x, panel_y)
+	pause_panel.size = Vector2(panel_w, panel_h)
 	pause_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pause_root.add_child(pause_panel)
-	var header := UiText.marker("PAUSED", Vector2(panel_x, 30), UiText.INK)
+	var header := UiText.marker("PAUSED", Vector2(panel_x, panel_y + 6),
+		UiText.INK)
 	header.size = Vector2(panel_w, UiText.MARKER_LINE_HEIGHT)
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pause_root.add_child(header)
-	for i in PAUSE_OPTIONS.size():
-		var row_y := 47 + i * 14
+	if training_mode:
+		# Tab row: TRAINING left, SYSTEM right, the active tab on a small
+		# yellow bar (the settings overlay's convention).
+		var half := Vector2(panel_w / 2.0 - 8.0, 12.0)
+		for tab in 2:
+			var bar := UiText.focus_bar(
+				Vector2(panel_x + 8.0 + tab * (panel_w / 2.0), 27.0), half)
+			pause_root.add_child(bar)
+			pause_tab_bars.append(bar)
+			var label := UiText.marker("SYSTEM" if tab == 0 else "TRAINING",
+				Vector2(panel_x + 8.0 + tab * (panel_w / 2.0), 28.0),
+				UiText.INK_DARK)
+			label.size = Vector2(panel_w / 2.0 - 8.0, UiText.MARKER_LINE_HEIGHT)
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			pause_root.add_child(label)
+			pause_tab_labels.append(label)
+	for i in row_count:
+		var row_y := first_row_y + i * row_step
 		var bar := UiText.focus_bar(Vector2(panel_x + 8, row_y - 1),
 			Vector2(panel_w - 16, 12))
 		pause_root.add_child(bar)
 		pause_bars.append(bar)
-		var option := _pause_option_label(PAUSE_OPTIONS[i],
-			Vector2(panel_x + 8, row_y), panel_w - 16)
+		var option := _pause_option_label("", Vector2(panel_x + 8, row_y),
+			panel_w - 16)
 		pause_root.add_child(option)
 		pause_options.append(option)
+		if training_mode:
+			# Value column, right-aligned muted ink (the training tab only).
+			var value := UiText.marker("", Vector2(panel_x + 8, row_y),
+				UiText.INK_MUTED)
+			value.size = Vector2(panel_w - 16, UiText.MARKER_LINE_HEIGHT)
+			value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			pause_root.add_child(value)
+			pause_values.append(value)
 	pause_root.add_child(UiPromptLine.new("SELECT", ""))
-	set_pause_selection(0)
+	if training_mode:
+		set_training_pause(1, -1)
+	else:
+		set_pause_selection(0)
 
 
 # One pause-menu row: a plain Sidewalk Marker label in dark ink, centered
@@ -1206,8 +1311,58 @@ func set_pause_selection(index: int) -> void:
 		var selected := i == index
 		pause_bars[i].visible = selected
 		pause_options[i].text = PAUSE_OPTIONS[i]
+		pause_options[i].horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		pause_options[i].add_theme_color_override("font_color",
 			UiText.INK_DARK if selected else UiText.INK)
+
+
+# Training pause rendering: tab 0 = the six system options (identical
+# behavior), tab 1 = the nine training rows with their live values. index
+# -1 is the tab row itself. MatchRoot owns tab and index; this only draws.
+func set_training_pause(tab: int, index: int) -> void:
+	_pause_tab = tab
+	for t in pause_tab_labels.size():
+		var active := t == tab
+		pause_tab_bars[t].visible = active and index < 0
+		pause_tab_labels[t].add_theme_color_override("font_color",
+			UiText.INK_DARK if active else UiText.INK_MUTED)
+	if tab == 0:
+		for i in pause_options.size():
+			var in_range := i < PAUSE_OPTIONS.size()
+			var selected := in_range and i == index
+			pause_bars[i].visible = selected
+			pause_options[i].visible = in_range
+			if in_range:
+				pause_options[i].text = PAUSE_OPTIONS[i]
+				pause_options[i].horizontal_alignment = \
+					HORIZONTAL_ALIGNMENT_CENTER
+			pause_options[i].add_theme_color_override("font_color",
+				UiText.INK_DARK if selected else UiText.INK)
+			if i < pause_values.size():
+				pause_values[i].visible = false
+		return
+	for i in pause_options.size():
+		var in_range := i < TRAINING_ROWS.size()
+		var selected := in_range and i == index
+		pause_bars[i].visible = selected
+		pause_options[i].visible = in_range
+		if not in_range:
+			continue
+		pause_options[i].text = TRAINING_ROWS[i]
+		pause_options[i].horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		pause_options[i].add_theme_color_override("font_color",
+			UiText.INK_DARK if selected else UiText.INK)
+		if i < pause_values.size():
+			pause_values[i].visible = true
+			pause_values[i].text = _training_value_label(i)
+			pause_values[i].add_theme_color_override("font_color",
+				UiText.INK_DARK if selected else UiText.INK_MUTED)
+
+
+func _training_value_label(row: int) -> String:
+	if _training == null:
+		return ""
+	return _training.option_value_label(row)
 
 
 # ---------------- small builders --------------------------------------------

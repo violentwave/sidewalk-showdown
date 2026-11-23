@@ -18,6 +18,7 @@
 extends Control
 
 signal versus_chosen
+signal training_chosen
 signal settings_requested
 signal quit_requested
 signal back_requested
@@ -58,7 +59,7 @@ const QUIT_SIZE := Vector2(48, 16)
 
 const ITEMS := [
 	{"name": "VERSUS", "detail": "Fight the CPU or a friend."},
-	{"name": "TRAINING", "detail": "Coming soon.", "disabled": true},
+	{"name": "TRAINING", "detail": "Practice on a dummy."},
 	{"name": "SETTINGS", "detail": "Tweak your settings."},
 	{"name": "EXTRAS", "detail": "Coming soon.", "disabled": true},
 	{"name": "QUIT", "detail": "Leave the sidewalk."},
@@ -177,6 +178,8 @@ func _choose() -> void:
 	match index:
 		0:
 			versus_chosen.emit()
+		1:
+			training_chosen.emit()
 		2:
 			settings_requested.emit()
 		4:

@@ -1,0 +1,146 @@
+{
+ "peggy_hit_light_sheet": {
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 5,
+  "ticks_per_frame": 2
+ },
+ "peggy_hit_heavy_sheet": {
+  "cell": [
+   40,
+   40
+  ],
+  "frames": 7,
+  "ticks_per_frame": 2
+ },
+ "peggy_hit_counter_sheet": {
+  "cell": [
+   40,
+   40
+  ],
+  "frames": 7,
+  "ticks_per_frame": 2
+ },
+ "peggy_block_sheet": {
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 5,
+  "ticks_per_frame": 2
+ },
+ "peggy_special_hit_sheet": {
+  "cell": [
+   48,
+   32
+  ],
+  "frames": 7,
+  "ticks_per_frame": 2
+ },
+ "peggy_ex_hit_sheet": {
+  "cell": [
+   48,
+   48
+  ],
+  "frames": 9,
+  "ticks_per_frame": 2
+ },
+ "peggy_heavy_whoosh_sheet": {
+  "cell": [
+   48,
+   24
+  ],
+  "frames": 5,
+  "ticks_per_frame": 2
+ },
+ "peggy_special_trail_sheet": {
+  "cell": [
+   64,
+   32
+  ],
+  "frames": 7,
+  "ticks_per_frame": 2
+ },
+ "richard_hit_light_sheet": {
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 5,
+  "ticks_per_frame": 2
+ },
+ "richard_hit_heavy_sheet": {
+  "cell": [
+   40,
+   40
+  ],
+  "frames": 7,
+  "ticks_per_frame": 2
+ },
+ "richard_hit_counter_sheet": {
+  "cell": [
+   40,
+   40
+  ],
+  "frames": 7,
+  "ticks_per_frame": 2
+ },
+ "richard_block_sheet": {
+  "cell": [
+   32,
+   32
+  ],
+  "frames": 5,
+  "ticks_per_frame": 2
+ },
+ "richard_special_hit_sheet": {
+  "cell": [
+   48,
+   32
+  ],
+  "frames": 7,
+  "ticks_per_frame": 2
+ },
+ "richard_ex_hit_sheet": {
+  "cell": [
+   48,
+   48
+  ],
+  "frames": 9,
+  "ticks_per_frame": 2
+ },
+ "richard_heavy_whoosh_sheet": {
+  "cell": [
+   48,
+   24
+  ],
+  "frames": 5,
+  "ticks_per_frame": 2
+ },
+ "richard_special_trail_sheet": {
+  "cell": [
+   64,
+   32
+  ],
+  "frames": 7,
+  "ticks_per_frame": 2
+ },
+ "landing_dust_sheet": {
+  "cell": [
+   64,
+   32
+  ],
+  "frames": 5,
+  "ticks_per_frame": 3
+ },
+ "fire_belch_sheet": {
+  "cell": [
+   104,
+   64
+  ],
+  "frames": 7,
+  "ticks_per_frame": 2
+ }
+}

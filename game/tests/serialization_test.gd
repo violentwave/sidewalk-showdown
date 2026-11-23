@@ -4,8 +4,12 @@
 extends SceneTree
 
 var failures := 0
+var checks := 0
+const FIGHTER_SCENE := preload("res://scenes/fighters/FighterBase.tscn")
+const PEGGY_DATA := preload("res://resources/fighters/peg_leg_peggy.tres")
 
 func _check(label: String, condition: bool, detail: String = "") -> void:
+	checks += 1
 	if condition:
 		print("PASS: ", label)
 	else:
@@ -69,7 +73,10 @@ func _run() -> void:
 	if mroot.phase == 0:
 		_check("MatchRoot phase is INTRO initially", true, "phase=" + str(mroot.phase))
 	_check_match_surface(mroot)
+	match_root.free()
+	await _check_pending_breaker_round_trip()
 	print("==========")
+	print("serialization_test: %d checks, %d failure(s)" % [checks, failures])
 	if failures == 0:
 		print("ALL PASS")
 	else:
@@ -79,5 +86,38 @@ func _run() -> void:
 	quit(1 if failures > 0 else 0)
 
 func _initialize() -> void:
-	# Run the test immediately.
-	_run()
+	# Defer to the main loop so the fighter subscene can enter the tree and
+	# exercise its real ready/load path.
+	_run.call_deferred()
+
+
+func _check_pending_breaker_round_trip() -> void:
+	var fighter: FighterBase = FIGHTER_SCENE.instantiate()
+	fighter.data = PEGGY_DATA
+	root.add_child(fighter)
+	await process_frame
+	fighter.state = FighterBase.State.HITSTUN
+	fighter.combo_hits = 1
+	fighter.hitstop_frames = 10
+	fighter.breaker_pending_hitstop_mask = 3
+	fighter.input_buffer = {"grab": 1, "special": 1}
+	var snapshot: Dictionary = fighter.serialize()
+	_check("fighter serializable surface includes the pending breaker chord",
+		snapshot.has("breaker_pending_hitstop_mask")
+			and snapshot["breaker_pending_hitstop_mask"] == 3,
+		"mask=%s" % str(snapshot.get("breaker_pending_hitstop_mask", "missing")))
+	fighter.breaker_pending_hitstop_mask = 0
+	fighter.hitstop_frames = 0
+	fighter.input_buffer.clear()
+	fighter.load(snapshot)
+	_check("fighter round-trip preserves a pending breaker chord during hitstop",
+		fighter.state == FighterBase.State.HITSTUN
+			and fighter.hitstop_frames == 10
+			and fighter.breaker_pending_hitstop_mask == 3
+			and fighter.input_buffer.get("grab", -1) == 1
+			and fighter.input_buffer.get("special", -1) == 1,
+		"state=%d hitstop=%d mask=%d buffer=%s" % [
+			fighter.state, fighter.hitstop_frames,
+			fighter.breaker_pending_hitstop_mask, str(fighter.input_buffer)])
+	fighter.free()
+	await process_frame

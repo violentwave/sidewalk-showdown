@@ -29,6 +29,7 @@ func _initialize() -> void:
 	await _stun_fairness_rails()
 	await _breaker_basics()
 	await _breaker_economy()
+	await _breaker_hitstop_buffering()
 	await _breaker_juggle_and_corner()
 	await _serialization_and_determinism()
 	print("stun_breaker: %d checks, %d failure(s)" % [checks, failures])
@@ -493,6 +494,176 @@ func _breaker_economy() -> void:
 	p2.breaker_free_uses_left = 1
 	_check("breaker_ready is true with the free use armed",
 		p2.breaker_ready(), "ready=%s" % p2.breaker_ready())
+	await _free_match(mroot)
+
+# ---------------------------------------------------------------------------
+# 4f. Breaker chord buffered through hitstop (A2 owner decision)
+# ---------------------------------------------------------------------------
+
+func _prepare_breaker_hit(mroot: Node, attacker: FighterBase,
+		defender: FighterBase, move: MoveData) -> void:
+	_reset_pair(mroot, 100.0, 140.0)
+	if attacker == mroot.p2:
+		attacker.position = Vector2(100.0, mroot.stage.floor_y)
+		defender.position = Vector2(140.0, mroot.stage.floor_y)
+		attacker.facing = 1
+		defender.facing = -1
+	_land_hit(mroot, attacker, defender, move)
+
+
+func _step_until_break(mroot: Node, who: FighterBase, max_frames: int = 24) -> bool:
+	for _frame in max_frames:
+		await _step(mroot, 1)
+		if who.breaker_invuln_frames > 0:
+			return true
+	return false
+
+
+func _breaker_hitstop_buffering() -> void:
+	var mroot: Node = await _build_match()
+	await _to_fight(mroot)
+	var heavy_p1: FighterBase = mroot.p1 # Richard
+	var heavy_p2: FighterBase = mroot.p2 # Peggy
+	var heavy_6f: MoveData = heavy_p1.data.find_move(
+		MoveData.InputType.HEAVY, MoveData.Stance.STAND)
+	var heavy_6f_p2: MoveData = heavy_p2.data.find_move(
+		MoveData.InputType.HEAVY, MoveData.Stance.STAND)
+	var ex_10f_p1: MoveData = heavy_p1.data.find_ex_move(
+		MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+	var ex_10f_p2: MoveData = heavy_p2.data.find_ex_move(
+		MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+	_check("the focused hitstop cases are the authored 6f heavy and 10f EX",
+		heavy_6f.hitstop == 6 and ex_10f_p1.hitstop == 10
+			and ex_10f_p2.hitstop == 10,
+		"heavy=%d EX=%d/%d" % [heavy_6f.hitstop, ex_10f_p1.hitstop,
+			ex_10f_p2.hitstop])
+
+	# Single pair press at 6f and 10f impacts, with each fighter as the
+	# defender. The A2 adversarial check covers one 10f direction unchanged;
+	# these focused checks pin both hitstop lengths and P1/P2 symmetry.
+	var cases: Array = [
+		[mroot.p1, mroot.p2, heavy_6f, "P2 defender, 6f heavy"],
+		[mroot.p1, mroot.p2, ex_10f_p1, "P2 defender, 10f EX"],
+		[mroot.p2, mroot.p1, heavy_6f_p2, "P1 defender, 6f heavy"],
+		[mroot.p2, mroot.p1, ex_10f_p2, "P1 defender, 10f EX"],
+	]
+	for entry in cases:
+		var attacker: FighterBase = entry[0]
+		var defender: FighterBase = entry[1]
+		var move: MoveData = entry[2]
+		var label: String = entry[3]
+		_prepare_breaker_hit(mroot, attacker, defender, move)
+		var expected_hitstop: int = move.hitstop
+		var free_before: int = defender.breaker_free_uses_left
+		var meter_before: float = defender.meter
+		var broke: bool = await _break_out(mroot, defender, 24)
+		_check("one impact-frame breaker chord works — " + label,
+			broke and defender.breaker_invuln_frames > 0
+				and defender.breaker_free_uses_left == free_before - 1
+				and is_equal_approx(defender.meter, meter_before),
+			"hitstop=%d broke=%s free=%d->%d meter=%.1f->%.1f" % [
+				expected_hitstop, str(broke), free_before,
+				defender.breaker_free_uses_left, meter_before, defender.meter])
+
+	# A chord one sim frame BEFORE impact is not eligible for the pending
+	# mask. The fighter poll runs before MatchRoot's resolver, so after the
+	# press frame and the next (impact) frame the buffer age is 2; the
+	# hitstop poll must not turn it into a current-combo break.
+	_reset_pair(mroot, 100.0, 140.0)
+	mroot.p2.input_buffer["grab"] = 0
+	mroot.p2.input_buffer["special"] = 0
+	await _step(mroot, 2) # press frame, then the immediately-following frame
+	_land_hit(mroot, mroot.p1, mroot.p2, ex_10f_p1)
+	var prehit_broke: bool = await _step_until_break(mroot, mroot.p2, 20)
+	_check("a breaker chord pressed one frame before the hit does not break",
+		not prehit_broke and mroot.p2.breaker_invuln_frames == 0
+			and mroot.p2.breaker_free_uses_left == 1
+			and is_equal_approx(mroot.p2.meter, 0.0),
+		"broke=%s free=%d meter=%.1f" % [str(prehit_broke),
+			mroot.p2.breaker_free_uses_left, mroot.p2.meter])
+
+	# The pending chord does not bypass the combo-used or cooldown rails and
+	# does not consume either the free use or meter when the guard refuses.
+	_reset_pair(mroot, 100.0, 140.0)
+	mroot.p2.breaker_free_uses_left = 0
+	mroot.p2.meter = 100.0
+	mroot.p2.breaker_cooldown_frames = 60
+	_land_hit(mroot, mroot.p1, mroot.p2, ex_10f_p1)
+	mroot.p2.input_buffer["grab"] = 0
+	mroot.p2.input_buffer["special"] = 0
+	var cooldown_broke: bool = await _step_until_break(mroot, mroot.p2, 20)
+	_check("an impact-frame pending chord cannot break through cooldown",
+		not cooldown_broke and mroot.p2.breaker_free_uses_left == 0
+			and is_equal_approx(mroot.p2.meter, 100.0)
+			and mroot.p2.breaker_cooldown_frames > 0,
+		"broke=%s meter=%.1f cooldown=%d" % [str(cooldown_broke),
+			mroot.p2.meter, mroot.p2.breaker_cooldown_frames])
+
+	_reset_pair(mroot, 100.0, 140.0)
+	mroot.p2.breaker_free_uses_left = 1
+	mroot.p2.meter = 40.0
+	_land_hit(mroot, mroot.p1, mroot.p2, ex_10f_p1)
+	# A fresh-combo hit clears the prior combo's once-per-combo rail (A1);
+	# simulate a break already used in THIS new combo after impact.
+	mroot.p2.breaker_used_this_combo = true
+	mroot.p2.input_buffer["grab"] = 0
+	mroot.p2.input_buffer["special"] = 0
+	var used_broke: bool = await _step_until_break(mroot, mroot.p2, 20)
+	_check("an impact-frame pending chord cannot break twice in one combo",
+		not used_broke and mroot.p2.breaker_free_uses_left == 1
+			and is_equal_approx(mroot.p2.meter, 40.0)
+			and mroot.p2.breaker_invuln_frames == 0,
+		"broke=%s free=%d meter=%.1f" % [str(used_broke),
+			mroot.p2.breaker_free_uses_left, mroot.p2.meter])
+
+	# Mashing keeps working but resolves exactly once (no repeat spending or
+	# re-trigger after the break moves the defender to neutral).
+	_reset_pair(mroot, 100.0, 140.0)
+	_land_hit(mroot, mroot.p1, mroot.p2, ex_10f_p1)
+	var break_signals := [0]
+	mroot.p2.breaker_used.connect(func(_free: bool): break_signals[0] += 1)
+	for _frame in 24:
+		await _step(mroot, 1, "p2_grab+p2_special")
+	_check("mashing the pair still breaks exactly once",
+		break_signals[0] == 1 and mroot.p2.breaker_used_this_combo
+			and mroot.p2.breaker_free_uses_left == 0,
+		"signals=%d free=%d used=%s" % [break_signals[0],
+			mroot.p2.breaker_free_uses_left, str(mroot.p2.breaker_used_this_combo)])
+
+	# Save/restore DURING hitstop after the chord is pending. An uninterrupted
+	# run and the restored run must break on the same frame with identical
+	# fighter state (the pending mask is part of serialize()/load()).
+	var uninterrupted: Node = await _build_match()
+	await _to_fight(uninterrupted)
+	_prepare_breaker_hit(uninterrupted, uninterrupted.p1, uninterrupted.p2,
+		uninterrupted.p1.data.find_ex_move(
+			MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND))
+	uninterrupted.p2.input_buffer["grab"] = 0
+	uninterrupted.p2.input_buffer["special"] = 0
+	await _step(uninterrupted, 1)
+	var pending_snapshot: Dictionary = uninterrupted.serialize()
+	_check("the impact-frame chord is serialized as pending during hitstop",
+		pending_snapshot["p2"]["breaker_pending_hitstop_mask"] == 3
+			and pending_snapshot["p2"]["hitstop_frames"] > 0,
+		"pending=%d hitstop=%d" % [
+			pending_snapshot["p2"]["breaker_pending_hitstop_mask"],
+			pending_snapshot["p2"]["hitstop_frames"]])
+	var uninterrupted_broke: bool = await _step_until_break(
+		uninterrupted, uninterrupted.p2, 20)
+	var uninterrupted_state: Dictionary = uninterrupted.p2.serialize()
+
+	var restored: Node = await _build_match()
+	await _to_fight(restored)
+	restored.load(pending_snapshot)
+	var restored_broke: bool = await _step_until_break(restored, restored.p2, 20)
+	_check("a pending hitstop chord survives serialize/load with identical outcome",
+		restored_broke == uninterrupted_broke and restored_broke
+			and restored.p2.serialize() == uninterrupted_state,
+		"uninterrupted=%s restored=%s pending=%d" % [
+			str(uninterrupted_broke), str(restored_broke),
+			restored.p2.breaker_pending_hitstop_mask])
+	await _free_match(uninterrupted)
+	await _free_match(restored)
 	await _free_match(mroot)
 
 # ---------------------------------------------------------------------------

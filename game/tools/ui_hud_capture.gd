@@ -104,9 +104,8 @@ func _run() -> void:
 	p2.health_changed.emit(p2.health, p2.max_health)
 	_light(p1)
 	await _step(24)
-	p1.combo_tracker.record("probe_a", 120.0)
-	p1.combo_tracker.record("probe_b", 80.0)
-	p1.combo_changed.emit(2)
+	p2.combo_tracker.record("probe_a", 120.0)
+	p2.combo_tracker.record("probe_b", 80.0)
 	p1.counter_hit_landed.emit()
 	await _step(8)
 	await _grab("hud_midfight")
@@ -139,6 +138,90 @@ func _run() -> void:
 	match_root = await _new_match()
 	await _step(30)
 	await _grab("hud_high_contrast")
+	match_root.free()
+	await process_frame
+	# The remaining shots show the default HUD, not high contrast.
+	if settings != null:
+		settings.set_value("accessibility", "high_contrast_hud", false)
+
+	# 8. Combo scaling on the attacker's side; base ladder only.
+	match_root = await _new_match()
+	await _step(200)
+	p1 = match_root.p1
+	p2 = match_root.p2
+	for i in 4:
+		p2.combo_tracker.record("capture_%d" % i, 80.0)
+	await _step(1)
+	await _grab("hud_combo_scaled")
+	match_root.free()
+	await process_frame
+
+	# 9. The defender's remaining juggle budget under the attacker's counter.
+	match_root = await _new_match()
+	await _step(200)
+	p1 = match_root.p1
+	p2 = match_root.p2
+	for i in 3:
+		p2.combo_tracker.record("juggle_%d" % i, 80.0)
+	p2.juggle_points = 3
+	await _step(1)
+	await _grab("hud_juggle")
+	match_root.free()
+	await process_frame
+
+	# 10. Macro step 0 flashes on the fighter performing the macro.
+	match_root = await _new_match()
+	await _step(200)
+	p1 = match_root.p1
+	p1.macro_step_replayed.emit("BENCH WARMER", 0)
+	await _step(1)
+	await _grab("hud_macro")
+	match_root.free()
+	await process_frame
+
+	# 11. Active stun on P2, with the readout on P2's own side.
+	match_root = await _new_match()
+	await _step(200)
+	p2 = match_root.p2
+	p2.stun_id = &"taser"
+	p2.stun_window_applied = 45
+	p2.stun_frames_remaining = 30
+	p2.stun_started.emit(&"taser", 30)
+	await _step(1)
+	await _grab("hud_stun")
+	match_root.free()
+	await process_frame
+
+	# 12. BREAK! with unavailable P1 and affordable paid P2 pips.
+	match_root = await _new_match()
+	await _step(200)
+	p1 = match_root.p1
+	p2 = match_root.p2
+	p1.breaker_free_uses_left = 0
+	p1.breaker_used_this_combo = true
+	p1.breaker_cooldown_frames = 300
+	p2.breaker_free_uses_left = 0
+	p2.meter = p2.data.breaker_meter_cost
+	p2.meter_changed.emit(p2.meter, p2.max_meter)
+	p1.breaker_used.emit(true)
+	await _step(1)
+	await _grab("hud_breaker")
+	match_root.free()
+	await process_frame
+
+	# 13. Full meter / METH READY with paid and free breaker pips at the
+	# opposite outer ends; neither touches the READY text or skull.
+	match_root = await _new_match()
+	await _step(200)
+	p1 = match_root.p1
+	p2 = match_root.p2
+	p1.add_meter(100.0)
+	p2.add_meter(100.0)
+	p1.breaker_free_uses_left = 0
+	match_root.hud._update_breaker_pip(0)
+	match_root.hud._update_breaker_pip(1)
+	await _step(1)
+	await _grab("hud_breaker_meth")
 	match_root.free()
 	await process_frame
 

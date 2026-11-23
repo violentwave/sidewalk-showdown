@@ -104,6 +104,10 @@ func _run() -> void:
 	await _test_meter_and_ready()
 	await _test_banners()
 	await _test_callouts_and_combo()
+	await _test_macro_flash()
+	await _test_juggle_readouts()
+	await _test_stun_readouts()
+	await _test_breaker_readouts()
 	await _test_commentary_modes()
 	await _test_accessibility()
 	await _test_resync_and_isolation()
@@ -274,6 +278,31 @@ func _test_meter_and_ready() -> void:
 		"ready=%s skull=%s" % [str(hud.meter_ready[1].visible),
 			str(hud.meter_skulls[1].visible)])
 
+	# Both meters full at once: the two METH READY labels, both skulls and
+	# both BRK labels must all stay apart (PM review of PR #96: the old
+	# beside-the-meter layout collided in the middle of the screen).
+	p1.add_meter(100.0)
+	var full_rects: Array[Rect2] = []
+	var full_names: Array[String] = []
+	for side in 2:
+		full_rects.append(Rect2(hud.meter_ready[side].position,
+			Vector2(UiText.marker_width("METH READY"), hud.meter_ready[side].size.y)))
+		full_names.append("METH READY %d" % side)
+		full_rects.append(Rect2(hud.meter_skulls[side].position, hud.meter_skulls[side].size))
+		full_names.append("skull %d" % side)
+		var brk: Label = hud.breaker_labels[side]
+		full_rects.append(Rect2(brk.position, Vector2(UiText.body_width("BRK"), brk.size.y)))
+		full_names.append("BRK %d" % side)
+	var clashes: Array[String] = []
+	for i in full_rects.size():
+		for j in range(i + 1, full_rects.size()):
+			if full_rects[i].intersects(full_rects[j]):
+				clashes.append("%s x %s" % [full_names[i], full_names[j]])
+	_check("both METH READY labels, skulls and BRK labels stay apart at full meter",
+		hud.meter_ready[0].visible and hud.meter_ready[1].visible and clashes.is_empty(),
+		"; ".join(clashes))
+	p1.add_meter(-100.0)
+
 	# Skull alternation on the sim tick: two alternating frames, 15 apart.
 	var first: Texture2D = hud.meter_skulls[1].texture
 	for _frame in 16:
@@ -368,27 +397,224 @@ func _test_callouts_and_combo() -> void:
 	_check("the callout clears after its 30 sim frames",
 		not hud.counter_flash.visible, "still visible")
 
-	# Combo counter + damage total from the fighter's combo record.
-	p1.combo_tracker.record("probe_a", 120.0)
-	p1.combo_tracker.record("probe_b", 80.0)
-	p1.combo_changed.emit(2)
-	_check("a combo shows '<n> HITS' with its damage total under it",
-		hud.p1_combo.text == "2 HITS"
+	# The record is on the defender; the HUD deliberately mirrors it to the
+	# opposite (attacker's) side.
+	p2.combo_tracker.record("probe_a", 120.0)
+	p2.combo_tracker.record("probe_b", 80.0)
+	_check("a defender combo record appears on the opposite attacker side",
+		hud.p1_combo.text == "2 HITS" and hud.p2_combo.text == ""
 			and hud.combo_damages[0].visible
-			and hud.combo_damages[0].text == "200",
-		"label=%s damage=%s" % [hud.p1_combo.text, hud.combo_damages[0].text])
+			and hud.combo_damages[0].text == "200"
+			and hud.combo_scales[0].text == "x1.00",
+		"p1=%s p2=%s damage=%s scale=%s" % [hud.p1_combo.text,
+			hud.p2_combo.text, hud.combo_damages[0].text,
+			hud.combo_scales[0].text])
+	_check("the 1.00 base ladder tint is yellow",
+		hud.p1_combo.get_theme_color("font_color") == Color("f2d13a"))
+
+	p2.combo_tracker.record("probe_c", 80.0)
+	_check("the 0.85 base ladder tint and scale text are orange",
+		hud.p1_combo.text == "3 HITS"
+			and hud.p1_combo.get_theme_color("font_color") == Color("f29e26")
+			and hud.combo_scales[0].text == "x0.85")
+	p2.combo_tracker.record("probe_d", 70.0)
+	_check("the 0.70 base ladder tint and scale text are red",
+		hud.p1_combo.text == "4 HITS"
+			and hud.p1_combo.get_theme_color("font_color") == Color("e5473a")
+			and hud.combo_scales[0].text == "x0.70")
+	p2.combo_tracker.record("probe_e", 60.0)
+	_check("the 0.55 floor tint and scale text are pink",
+		hud.p1_combo.text == "5 HITS"
+			and hud.p1_combo.get_theme_color("font_color") == Color("ff3d9a")
+			and hud.combo_scales[0].text == "x0.55")
 
 	_set_setting("gameplay", "show_combo_damage", false)
-	p1.combo_changed.emit(2)
-	_check("combo damage hides when show_combo_damage is off",
-		not hud.combo_damages[0].visible,
-		"still visible")
+	_check("show_combo_damage gates both damage and scale text",
+		not hud.combo_damages[0].visible and not hud.combo_scales[0].visible)
 	_set_setting("gameplay", "show_combo_damage", true)
+	_check("damage and scale text return when show_combo_damage is enabled",
+		hud.combo_damages[0].visible and hud.combo_scales[0].visible)
+	p1.counter_hit_landed.emit()
+	_check("the scale tag yields to its side's one-at-a-time callout",
+		not hud.combo_damages[0].visible
+			and not hud.combo_scales[0].visible
+			and hud.counter_flash.text == "COUNTER HIT")
+	await _step(31)
+	_check("damage and scale tags return after the callout expires",
+		hud.combo_damages[0].visible and hud.combo_scales[0].visible)
 
-	p1.combo_changed.emit(0)
-	_check("the combo counter clears with the combo",
+	p2.combo_tracker.reset()
+	_check("the defender reset clears the attacker's combo readouts",
 		hud.p1_combo.text == "" and not hud.combo_damages[0].visible,
 		"label=%s" % hud.p1_combo.text)
+	scene.free()
+	await process_frame
+
+
+func _test_macro_flash() -> void:
+	await _new_match()
+	p1.macro_step_replayed.emit("BENCH WARMER", 1)
+	_check("a nonzero macro step does not start a name flash",
+		not hud.macro_flash_labels[0].visible
+			and not hud.macro_flash_labels[1].visible)
+	p1.macro_step_replayed.emit("BENCH WARMER", 0)
+	_check("macro step 0 flashes the macro user's name",
+		hud.macro_flash_labels[0].visible
+			and hud.macro_flash_labels[0].text == "BENCH WARMER"
+			and not hud.macro_flash_labels[1].visible)
+	p2.macro_step_replayed.emit("LAST CALL", 0)
+	_check("only one macro name flash is visible at a time",
+		not hud.macro_flash_labels[0].visible
+			and hud.macro_flash_labels[1].visible
+			and hud.macro_flash_labels[1].text == "LAST CALL")
+	p2.counter_hit_landed.emit()
+	_check("macro flash stays below and clear of the y80 callout row",
+		hud.macro_flash_labels[1].position.y
+			>= hud.CALLOUT_Y + UiText.MARKER_LINE_HEIGHT
+			and hud.macro_flash_labels[1].position.y == 92.0)
+	scene._toggle_pause()
+	var paused_frames: int = hud._macro_flash_frames
+	await _step(10)
+	_check("the macro flash timer freezes while paused",
+		hud._macro_flash_frames == paused_frames
+			and hud.macro_flash_labels[1].visible)
+	scene._unpause()
+	await _step(44)
+	_check("the macro name remains visible through 44 sim frames",
+		hud._macro_flash_frames == 1 and hud.macro_flash_labels[1].visible,
+		"frames=%d" % hud._macro_flash_frames)
+	await _step(1)
+	_check("the macro name clears on its 45th sim frame",
+		hud._macro_flash_frames == 0
+			and not hud.macro_flash_labels[1].visible)
+	scene.free()
+	await process_frame
+
+
+func _visible_juggle_fill_count(side: int) -> int:
+	var count := 0
+	for fill in hud.juggle_pip_fills[side]:
+		if fill.visible:
+			count += 1
+	return count
+
+
+func _test_juggle_readouts() -> void:
+	await _new_match()
+	p2.juggle_points = 5
+	hud._update_juggle_readout(1)
+	_check("juggle pips appear on the attacker's side while the defender is juggled",
+		hud.juggle_pip_outlines[0].size() == 5
+			and hud.juggle_pip_outlines[0][0].visible
+			and _visible_juggle_fill_count(0) == 5
+			and not hud.juggle_pip_outlines[1][0].visible)
+	p2.juggle_points = 3
+	hud._update_juggle_readout(1)
+	var hollow := 0
+	for i in hud.juggle_pip_outlines[0].size():
+		if hud.juggle_pip_outlines[0][i].visible \
+				and not hud.juggle_pip_fills[0][i].visible:
+			hollow += 1
+	_check("juggle pips count down and spent points become hollow",
+		_visible_juggle_fill_count(0) == 3 and hollow == 2)
+	p2.juggle_points = -1
+	hud._update_juggle_readout(1)
+	_check("juggle pips hide when the defender is no longer juggled",
+		not hud.juggle_pip_outlines[0][0].visible
+			and not hud.juggle_pip_fills[0][0].visible)
+	scene.free()
+	await process_frame
+
+
+func _test_stun_readouts() -> void:
+	await _new_match()
+	p2.stun_id = &"taser"
+	p2.stun_frames_remaining = 45
+	p2.stun_window_applied = 45
+	p2.stun_started.emit(&"taser", 45)
+	_check("stun_started shows STUNNED on the stunned fighter's side",
+		hud.stun_labels[1].visible
+			and hud.stun_labels[0].visible == false
+			and hud.stun_bar_fills[1].size.x == hud.STUN_BAR_INNER_WIDTH)
+	_check("new readouts draw above every opaque HUD frame they can cross",
+		hud.readout_root.z_index > _frame_z(HudArt.COMMENTARY_BOX)
+			and hud.readout_root.z_index > _frame_z(HudArt.BANNER_PLATE)
+			and hud.pause_root.z_index > hud.readout_root.z_index)
+	p2.stun_frames_remaining = 30
+	hud._update_stun_readout(1)
+	_check("the stun bar follows stun_frames_remaining",
+		hud.stun_bar_fills[1].size.x == 40.0,
+		"width=%s" % str(hud.stun_bar_fills[1].size.x))
+	scene._toggle_pause()
+	var paused_width: float = hud.stun_bar_fills[1].size.x
+	var paused_remaining: int = p2.stun_frames_remaining
+	await _step(10)
+	_check("the stun bar and countdown freeze while paused",
+		hud.stun_bar_fills[1].size.x == paused_width
+			and p2.stun_frames_remaining == paused_remaining)
+	scene._unpause()
+	p2.stun_id = &""
+	p2.stun_frames_remaining = 0
+	p2.stun_ended.emit()
+	_check("stun_ended hides the label and outlined bar",
+		not hud.stun_labels[1].visible
+			and not hud.stun_bar_borders[1].visible
+			and not hud.stun_bar_fills[1].visible)
+	scene.free()
+	await process_frame
+
+
+func _test_breaker_readouts() -> void:
+	await _new_match()
+	hud._update_breaker_pip(0)
+	_check("a ready free breaker uses the bright filled pip",
+		hud.breaker_pip_states[0] == "free"
+			and hud.breaker_pip_centers[0].color == Color("f2d13a"))
+	p1.breaker_free_uses_left = 0
+	p1.meter = p1.data.breaker_meter_cost
+	hud._update_breaker_pip(0)
+	_check("an affordable paid breaker uses an outline-only pip",
+		hud.breaker_pip_states[0] == "paid"
+			and hud.breaker_pip_borders[0].color == Color("f2d13a")
+			and hud.breaker_pip_centers[0].color.a == 0.0)
+	p1.meter = p1.data.breaker_meter_cost - 1.0
+	hud._update_breaker_pip(0)
+	_check("a paid breaker below its meter cost is unavailable",
+		hud.breaker_pip_states[0] == "unavailable")
+	p1.meter = 100.0
+	p1.breaker_cooldown_frames = 1
+	hud._update_breaker_pip(0)
+	_check("breaker cooldown locks both free and paid pip states",
+		hud.breaker_pip_states[0] == "unavailable")
+	p1.breaker_cooldown_frames = 0
+	p1.breaker_used_this_combo = true
+	hud._update_breaker_pip(0)
+	_check("breaker-used-this-combo locks both free and paid pip states",
+		hud.breaker_pip_states[0] == "unavailable")
+
+	p1.breaker_used.emit(false)
+	_check("BREAK! callout appears on the breaker user's side",
+		hud.counter_flash.text == "BREAK!"
+			and hud.counter_flash.position.x < 160.0
+			and hud._callout_frames == hud.CALLOUT_FRAMES)
+	p2.clip_cancelled.emit()
+	_check("CLIP CANCEL replaces BREAK! on the canceller's side",
+		hud.counter_flash.text == "CLIP CANCEL"
+			and hud.counter_flash.position.x > 160.0
+			and hud._callout_frames == hud.CALLOUT_FRAMES)
+
+	p1.add_meter(100.0)
+	p1.breaker_used_this_combo = false
+	p1.breaker_free_uses_left = 0
+	hud._update_breaker_pip(0)
+	var pip_rect := Rect2(hud.BREAKER_PIP_POS[0], Vector2(5, 5))
+	var meth_rect := Rect2(hud.meter_ready[0].position, hud.meter_ready[0].size)
+	var skull_rect := Rect2(hud.meter_skulls[0].position, hud.meter_skulls[0].size)
+	_check("the paid breaker pip stays clear of METH READY and its skull",
+		hud.meter_ready[0].visible and hud.meter_skulls[0].visible
+			and hud.breaker_pip_states[0] == "paid"
+			and not pip_rect.intersects(meth_rect)
+			and not pip_rect.intersects(skull_rect))
 	scene.free()
 	await process_frame
 
@@ -472,12 +698,29 @@ func _test_accessibility() -> void:
 
 func _test_resync_and_isolation() -> void:
 	await _new_match()
-	# Leave some presentation state dirty, then restore a snapshot.
+	# Leave state-backed readouts populated, then restore their snapshot.
 	_set_p2_health(300.0)
+	p2.combo_tracker.record("restore_a", 100.0)
+	p2.combo_tracker.record("restore_b", 80.0)
+	p2.juggle_points = 3
+	p2.stun_id = &"taser"
+	p2.stun_window_applied = 45
+	p2.stun_frames_remaining = 24
+	p2.breaker_free_uses_left = 0
+	p2.breaker_cooldown_frames = 20
+	hud._refresh_live_readouts()
 	hud.show_banner_text("DIRTY")
 	p1.teched.emit()
 	var snapshot: Dictionary = scene.serialize()
 
+	p2.combo_tracker.reset()
+	p2.juggle_points = -1
+	p2.stun_id = &""
+	p2.stun_window_applied = 0
+	p2.stun_frames_remaining = 0
+	p2.breaker_free_uses_left = 1
+	p2.breaker_cooldown_frames = 0
+	hud._refresh_live_readouts()
 	scene.load(snapshot)
 	await process_frame
 	hud.sim_tick()  # the restore's sim_frame jump triggers the resync
@@ -489,6 +732,17 @@ func _test_resync_and_isolation() -> void:
 		hud.ghost_fills[1].size.x <= hud.health_fills[1].size.x + 1.0,
 		"ghost=%s health=%s" % [str(hud.ghost_fills[1].size.x),
 			str(hud.health_fills[1].size.x)])
+	_check("load resync restores combo readouts on the attacker's side",
+		hud.p1_combo.text == "2 HITS"
+			and hud.p1_combo.text != hud.p2_combo.text)
+	_check("load resync restores the remaining juggle pips",
+		_visible_juggle_fill_count(0) == 3
+			and hud.juggle_pip_outlines[0][0].visible)
+	_check("load resync restores the active stun readout",
+		hud.stun_labels[1].visible
+			and hud.stun_bar_fills[1].size.x > 0.0)
+	_check("load resync restores the breaker cooldown pip state",
+		hud.breaker_pip_states[1] == "unavailable")
 
 	# Isolation: the serializable surface is identical with the HUD bound
 	# and ticking.

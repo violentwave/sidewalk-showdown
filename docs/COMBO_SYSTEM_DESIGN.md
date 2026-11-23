@@ -1,10 +1,10 @@
 # Combo System Design — Sidewalk Showdown
 
-**Version:** v0.2 — **Phase 1 implemented** (merged 2026-11-19 as PR #69,
-commit `c2e99bb`)
-**Status:** Phase 1 shipped (§14: cancel graph, strings, macros, scaling,
-combo tracker, Clip Cancel). Phase 2 (juggle points), Phase 3 (stuns,
-breaker), Phase 4 (combo HUD, CPU usage) pending.
+**Version:** v0.3 — **Phases 1–4 implemented** (Phase 1 merged 2026-11-19;
+Phase 4 HUD completed on `feat/combo-hud`, 2026-11-22)
+**Status:** Phases 1–3 and both Phase 4 halves (combo HUD and CPU usage)
+are shipped. The HUD is presentation-only and reads the existing tracker,
+fighter state, and signals.
 **Goal:** A Mortal Kombat-style combo system, made our own: dial-a-combo
 macros, chain strings into specials, launchers and juggles, and themed
 stuns — deterministic, data-driven, rollback/replay-ready, on the fixed
@@ -612,14 +612,15 @@ data):
   (not in blockstun), free-tier accounting, cooldown, separation and
   invuln reuse, CPU breaker determinism.
 
-**Phase 4 — Combo HUD and CPU usage**:
-- HUD: combo damage readout, macro name flash, scaling tint on the
-  counter, stun and juggle-point pips, breaker-ready pip (all data-driven
-  from the tracker signals).
+**Phase 4 — Combo HUD and CPU usage (IMPLEMENTED)**:
+- HUD: attacker-side combo count/damage, base-ladder tint and gated scale
+  tag, macro name flash, juggle-point pips, stun label/bar, breaker-ready
+  pip, and BREAK!/CLIP CANCEL callouts. These read the existing tracker
+  signals and public fighter state; see §15.3.
 - CPU: §12 knobs wired into `cpu_*.tres`; soak re-run at HARD; difficulty
   ordering re-verified (HARD strings better than EASY).
-- Tests: HUD label correctness headlessly; CPU legality unchanged (no
-  inputs a human could not make); soak win-rate sanity.
+- Tests: `hud_test.gd` (82 checks) and `ui_typography_test.gd` (46 checks)
+  pin the HUD; CPU legality is unchanged and the soak remains covered.
 
 ## 15. Open decisions — RESOLVED (owner-approved 2026-11-20)
 
@@ -755,8 +756,8 @@ exactly like the wake-up windows. HUD-facing readouts
 (`breaker_ready()`, `breaker_free_remaining()`,
 `breaker_cooldown_left()`, `stun_active()`, `stun_frames_left()`,
 `stun_immunity_left()`) and signals (`stun_started`, `stun_ended`,
-`breaker_used`) are exposed for the Phase 4 HUD; no HUD elements shipped
-here. Impact "sparks" are the authored stun tint on the existing
+`breaker_used`) were exposed for the later Phase 4 HUD; Phase 3 itself shipped
+no HUD elements. Impact "sparks" are the authored stun tint on the existing
 silhouette/sprite flash path — no new art required. All new state is
 serialized (`docs/SAVESTATE_PLAN.md`).
 
@@ -764,6 +765,35 @@ Not shipped and not planned for Phase 3: the combo HUD (Phase 4), CPU
 usage of stuns/breakers (Phase 4: `stun_rate`/`breaker_rate`/shake-out
 mashing), and jab-value changes (deferred until after this phase's
 playtest, per the owner decision above).
+
+### 15.3 Phase 4 HUD implementation (2026-11-22)
+
+**Shipped in `game/scripts/ui/match_hud.gd` without changing combat or
+MatchRoot gameplay.** `ComboTracker.changed(hits, total_damage)` is the
+combo display source. The tracker remains on the defender; the HUD mirrors
+the count, damage, scale tag, and juggle pips onto the opposite (attacker's)
+side. Macro flashes remain on the macro user, stun and breaker readouts on
+their fighter, and event callouts on the signal emitter.
+
+The tint and `x0.70`-style tag show the **base `ComboTuning.scaling_curve`
+tier for the latest hit**. They do not claim to include repeat-move or
+variety modifiers: those depend on the move and there is no single
+move-independent current multiplier to read. `gameplay.show_combo_damage`
+gates both the damage total and scale tag. The combo damage/scale line yields
+to a same-side callout, and the scale tag also clears over the central banner
+to avoid label/art overlap.
+
+Macro step 0 flashes for 45 sim frames; juggle pips show the defender's
+remaining/spent budget; the stun bar follows `stun_frames_remaining`; breaker
+pips distinguish free, affordable paid, and unavailable states from the
+existing resource, meter, cooldown and once-per-combo fields. BREAK! and
+CLIP CANCEL join the existing 30-frame one-at-a-time callout slot. All timers
+use the HUD sim tick (paused and hitstop-frozen); readouts resync after load,
+while transient flashes clear. The HUD holds no state in `serialize()`.
+
+**Verification:** `hud_test.gd` has 82 checks; `ui_typography_test.gd` has 46.
+Rendered captures are listed in `docs/UI_SCREENS.md`. The A2/A3/A4 owner
+rulings in §11 and §10.3/§10.5 remain unchanged.
 
 ## 16. Risks in the current code (combo-readiness)
 

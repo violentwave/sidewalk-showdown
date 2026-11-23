@@ -28,7 +28,10 @@ const METH_PINK := Color("ff3d9a")
 const DIRTY_YELLOW := Color("f2d13a")
 const CREAM := Color("F4EEDC")
 const INK_DARK := Color("1C160D")
+const INK_WARM := Color("2A2418")
 const COMBO_YELLOW := Color("f2d13a")
+const COMBO_ORANGE := Color("f29e26")
+const COMBO_RED := Color("e5473a")
 
 # ---- layout (320x180 game pixels; P2 mirrors P1) ---------------------------
 const PORTRAIT_POS := [Vector2(4, 4), Vector2(292, 4)]
@@ -53,11 +56,30 @@ const METER_FILL_OFFSET := Vector2(7, 2)
 const METER_INTERIOR := Vector2(90, 4)
 const COMBO_POS := [Vector2(8, 64), Vector2(202, 64)]
 const COMBO_DAMAGE_Y := 77.0
+const COMBO_SCALE_POS := [Vector2(56, 77), Vector2(212, 77)]
 const CALLOUT_Y := 80.0
 const CALLOUT_X := [60.0, 200.0]  # attacker's side, outside the banner text
 const BANNER_POS := Vector2(80, 74)  # 160x32 plate centered in y 70..110
 const COMMENTARY_POS := Vector2(40, 44)
 const COMMENTARY_SIZE := Vector2(240, 16)
+const MACRO_FLASH_Y := 92.0
+const JUGGLE_PIP_Y := 106.0
+const JUGGLE_PIP_SIZE := 3.0
+const JUGGLE_PIP_PITCH := 5.0
+const STUN_LABEL_Y := 36.0
+const STUN_BAR_X := [80.0, 180.0]
+const STUN_BAR_Y := 40.0
+const STUN_BAR_WIDTH := 62.0
+const STUN_BAR_INNER_WIDTH := 60.0
+const BREAKER_PIP_POS := [Vector2(4, 163), Vector2(311, 163)]
+# BRK sits between its pip and the meter-row METH READY label on both sides.
+const BREAKER_LABEL_POS := [Vector2(12, 152), Vector2(292, 152)]
+# METH READY sits ABOVE its own meter, flush with the meter's inner end, with
+# the skull just past that end. Beside-the-meter placement collided in the
+# middle whenever both meters were full (PM review of PR #96).
+const METH_READY_Y := 157.0
+const METH_SKULL_Y := 159.0
+const BREAKER_LABEL_SIZE := Vector2(36, UiText.M5X7_LINE_HEIGHT)
 
 # ---- timing (all SIM frames, counted in sim_tick) --------------------------
 const GHOST_DRAIN_FRAMES := 20
@@ -78,7 +100,11 @@ var _max_health: Array[float] = [1000.0, 1000.0]
 var _ghost: Array[float] = [1000.0, 1000.0]
 var _ghost_drain: Array[int] = [0, 0]
 var _ghost_step: Array[float] = [0.0, 0.0]
-var _combo_active: Array[bool] = [false, false]
+# Combo state is indexed by attacker-side HUD position. The tracker itself
+# belongs to the defender, so its side is inverted when rendered.
+var _combo_hits_by_side: Array[int] = [0, 0]
+var _combo_damage_by_side: Array[float] = [0.0, 0.0]
+var _combo_active: Array[bool] = [false, false]  # defender-side health ghosts
 var _flash: Array[int] = [0, 0]
 var _round_lost: Array[bool] = [false, false]
 var _last_wins: Array[int] = [0, 0]
@@ -91,6 +117,9 @@ var _banner_stamp := 0
 var _banner_auto := -1  # frames until auto-remove; -1 = persist (today's
 # round/KO banner behavior: they sit until the next banner replaces them)
 var _callout_frames := 0
+var _callout_side := -1
+var _macro_flash_frames := 0
+var _macro_flash_side := -1
 var _commentary_frames := 0
 var _settings_cache: Node
 var _match_root: Node
@@ -110,6 +139,18 @@ var timer_box_art: TextureRect
 var p1_combo: Label
 var p2_combo: Label
 var combo_damages: Array[Label] = []
+var combo_scales: Array[Label] = []
+var macro_flash_labels: Array[Label] = []
+var juggle_pip_outlines: Array = [[], []]
+var juggle_pip_fills: Array = [[], []]
+var stun_labels: Array[Label] = []
+var stun_bar_borders: Array[ColorRect] = []
+var stun_bar_backgrounds: Array[ColorRect] = []
+var stun_bar_fills: Array[ColorRect] = []
+var breaker_pip_borders: Array[ColorRect] = []
+var breaker_pip_centers: Array[ColorRect] = []
+var breaker_pip_states: Array[String] = ["unavailable", "unavailable"]
+var breaker_labels: Array[Label] = []
 var commentary_panel: TextureRect
 var commentary_label: Label
 var message: Label
@@ -118,6 +159,7 @@ var counter_flash: Label
 var banner_plate: TextureRect
 var banner_word: TextureRect
 var hud_root: Control
+var readout_root: Control
 var pause_root: Control
 var pause_options: Array[Label] = []
 var pause_bars: Array[ColorRect] = []
@@ -134,6 +176,8 @@ func _ready() -> void:
 
 func _on_settings_changed(_section: String, _key: String) -> void:
 	_apply_accessibility_settings()
+	for side in 2:
+		_update_combo_visibility(side)
 
 
 func _apply_accessibility_settings() -> void:
@@ -298,6 +342,7 @@ func _build() -> void:
 	meth_banner.visible = false
 	banner_plate.add_child(meth_banner)
 
+	_build_combo_readouts(root)
 	_build_pause_menu(root)
 
 
@@ -314,6 +359,209 @@ func _append_pip(root: Control, side: int, index: int) -> TextureRect:
 	root.add_child(pip)
 	pips[side].append(pip)
 	return pip
+
+
+func _build_combo_readouts(root: Control) -> void:
+	# One presentation-only layer keeps every new readout above the opaque HUD
+	# art it may touch. The pause root is added after this layer and stays above
+	# it.
+	readout_root = Control.new()
+	readout_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	readout_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	readout_root.z_index = 4
+	root.add_child(readout_root)
+
+	for side in 2:
+		var scale_label := UiText.body("", COMBO_SCALE_POS[side], CREAM)
+		scale_label.size = Vector2(52, UiText.M5X7_LINE_HEIGHT)
+		if side == 1:
+			scale_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		scale_label.visible = false
+		readout_root.add_child(scale_label)
+		combo_scales.append(scale_label)
+
+		var macro_label := UiText.marker("", Vector2(COMBO_POS[side].x,
+			MACRO_FLASH_Y), CREAM, true)
+		macro_label.size = Vector2(110, UiText.MARKER_LINE_HEIGHT)
+		if side == 1:
+			macro_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		macro_label.visible = false
+		readout_root.add_child(macro_label)
+		macro_flash_labels.append(macro_label)
+
+		# The actual text ink lands at y38-46; the bar is beside it on the same
+		# row, just clear of the commentary tape's ink band.
+		var stun_label := UiText.marker("STUNNED",
+			Vector2(30 if side == 0 else 240, STUN_LABEL_Y),
+			METH_PINK, true)
+		stun_label.size = Vector2(50, UiText.MARKER_LINE_HEIGHT)
+		if side == 1:
+			stun_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		stun_label.visible = false
+		readout_root.add_child(stun_label)
+		stun_labels.append(stun_label)
+
+		var bar_x: float = STUN_BAR_X[side]
+		var bar_border := _rect(readout_root,
+			Vector2(bar_x, STUN_BAR_Y), Vector2(STUN_BAR_WIDTH, 4), INK_DARK)
+		bar_border.visible = false
+		stun_bar_borders.append(bar_border)
+		var bar_background := _rect(readout_root,
+			Vector2(bar_x + 1, STUN_BAR_Y + 1),
+			Vector2(STUN_BAR_INNER_WIDTH, 2), INK_WARM)
+		bar_background.visible = false
+		stun_bar_backgrounds.append(bar_background)
+		var bar_fill := _rect(readout_root,
+			Vector2(bar_x + 1, STUN_BAR_Y + 1),
+			Vector2(STUN_BAR_INNER_WIDTH, 2), METH_PINK)
+		bar_fill.visible = false
+		stun_bar_fills.append(bar_fill)
+
+		var breaker_border := _rect(readout_root,
+			BREAKER_PIP_POS[side], Vector2(5, 5), INK_DARK)
+		breaker_pip_borders.append(breaker_border)
+		var breaker_center := _rect(readout_root,
+			BREAKER_PIP_POS[side] + Vector2.ONE, Vector2(3, 3), Color.TRANSPARENT)
+		breaker_pip_centers.append(breaker_center)
+
+		var breaker_label := UiText.body("BRK", BREAKER_LABEL_POS[side], CREAM)
+		breaker_label.size = BREAKER_LABEL_SIZE
+		if side == 1:
+			# Ink ends 2 px before the P2 pip (x 311), leaving the inner
+			# space to METH READY.
+			breaker_label.position.x = BREAKER_PIP_POS[1].x - 2.0 - UiText.body_width("BRK")
+		readout_root.add_child(breaker_label)
+		breaker_labels.append(breaker_label)
+
+
+func _ensure_juggle_pips(attacker_side: int, count: int) -> void:
+	var pip_list: Array = juggle_pip_outlines[attacker_side]
+	var fill_list: Array = juggle_pip_fills[attacker_side]
+	var total_width := count * int(JUGGLE_PIP_PITCH) - 2
+	var start_x: float = COMBO_POS[0].x if attacker_side == 0 \
+		else COMBO_POS[1].x + 110.0 - total_width
+	while pip_list.size() < count:
+		var index := pip_list.size()
+		var at := Vector2(start_x + index * JUGGLE_PIP_PITCH, JUGGLE_PIP_Y)
+		var outline := _rect(readout_root, at,
+			Vector2(JUGGLE_PIP_SIZE, JUGGLE_PIP_SIZE), INK_DARK)
+		var fill := _rect(readout_root, at + Vector2.ONE, Vector2.ONE, CREAM)
+		outline.visible = false
+		fill.visible = false
+		pip_list.append(outline)
+		fill_list.append(fill)
+
+
+func _juggle_points_start(fighter: FighterBase) -> int:
+	if fighter == null or fighter.data == null \
+			or fighter.data.combo_tuning == null:
+		return 5
+	return fighter.data.combo_tuning.juggle_points_start
+
+
+func _refresh_live_readouts() -> void:
+	if _match_root == null or not is_instance_valid(_match_root):
+		return
+	for defender_side in 2:
+		_update_juggle_readout(defender_side)
+		_update_stun_readout(defender_side)
+		_update_breaker_pip(defender_side)
+
+
+func _update_juggle_readout(defender_side: int) -> void:
+	var defender: FighterBase = _match_root.p1 if defender_side == 0 else _match_root.p2
+	if defender == null:
+		return
+	var attacker_side := 1 - defender_side
+	var count := _juggle_points_start(defender)
+	_ensure_juggle_pips(attacker_side, count)
+	var active := defender.juggle_points >= 0
+	for i in juggle_pip_outlines[attacker_side].size():
+		var outline: ColorRect = juggle_pip_outlines[attacker_side][i]
+		var fill: ColorRect = juggle_pip_fills[attacker_side][i]
+		outline.visible = active
+		fill.visible = active and i < defender.juggle_points
+
+
+func _on_stun_started(defender_side: int) -> void:
+	var defender: FighterBase = _match_root.p1 if defender_side == 0 else _match_root.p2
+	if defender != null:
+		# A stun seeds the existing tracker at ladder step 3 without emitting
+		# ComboTracker.changed; resample it here for the attacker's readout.
+		_on_combo_changed(defender_side, defender.combo_tracker.hits,
+			defender.combo_tracker.total_damage)
+	_update_stun_readout(defender_side)
+
+
+func _update_stun_readout(side: int) -> void:
+	if _match_root == null:
+		return
+	var fighter: FighterBase = _match_root.p1 if side == 0 else _match_root.p2
+	if fighter == null:
+		return
+	var active := fighter.stun_active() and fighter.stun_frames_remaining > 0
+	stun_labels[side].visible = active
+	stun_bar_borders[side].visible = active
+	stun_bar_backgrounds[side].visible = active
+	stun_bar_fills[side].visible = active
+	if not active:
+		return
+	var total := maxi(fighter.stun_window_applied,
+		fighter.stun_frames_remaining)
+	var fraction := clampf(float(fighter.stun_frames_remaining) / float(maxi(1, total)),
+		0.0, 1.0)
+	var width := roundf(STUN_BAR_INNER_WIDTH * fraction)
+	var fill := stun_bar_fills[side]
+	fill.size.x = width
+	if side == 1:
+		fill.position.x = STUN_BAR_X[side] + 1.0 \
+			+ STUN_BAR_INNER_WIDTH - width
+
+
+func _update_breaker_pip(side: int) -> void:
+	if side < 0 or side >= breaker_pip_borders.size() or _match_root == null:
+		return
+	var fighter: FighterBase = _match_root.p1 if side == 0 else _match_root.p2
+	if fighter == null or fighter.data == null:
+		breaker_pip_states[side] = "unavailable"
+	else:
+		var unlocked := fighter.breaker_cooldown_frames <= 0 \
+			and not fighter.breaker_used_this_combo
+		if unlocked and fighter.breaker_free_uses_left > 0:
+			breaker_pip_states[side] = "free"
+		elif unlocked and fighter.meter + 0.001 >= fighter.data.breaker_meter_cost:
+			breaker_pip_states[side] = "paid"
+		else:
+			breaker_pip_states[side] = "unavailable"
+
+	match breaker_pip_states[side]:
+		"free":
+			breaker_pip_borders[side].color = INK_DARK
+			breaker_pip_centers[side].color = DIRTY_YELLOW
+		"paid":
+			breaker_pip_borders[side].color = DIRTY_YELLOW
+			breaker_pip_centers[side].color = Color.TRANSPARENT
+		_:
+			breaker_pip_borders[side].color = INK_WARM
+			breaker_pip_centers[side].color = INK_WARM
+
+
+func _on_macro_step(side: int, macro_name: String, step_index: int) -> void:
+	if step_index != 0:
+		return
+	for label in macro_flash_labels:
+		label.visible = false
+	macro_flash_labels[side].text = macro_name.to_upper()
+	macro_flash_labels[side].visible = true
+	_macro_flash_side = side
+	_macro_flash_frames = 45
+
+
+func _clear_macro_flash() -> void:
+	_macro_flash_frames = 0
+	_macro_flash_side = -1
+	for label in macro_flash_labels:
+		label.visible = false
 
 
 # ---------------- settings (read live; never written) -----------------------
@@ -366,6 +614,17 @@ func sim_tick() -> void:
 		_callout_frames -= 1
 		if _callout_frames == 0:
 			counter_flash.visible = false
+			_callout_side = -1
+			for side in 2:
+				_update_combo_visibility(side)
+	# Macro names are presentation-only flashes. Like callouts, they use the
+	# HUD sim tick, so they freeze during pause and hitstop.
+	if _macro_flash_frames > 0:
+		_macro_flash_frames -= 1
+		if _macro_flash_frames == 0:
+			for label in macro_flash_labels:
+				label.visible = false
+			_macro_flash_side = -1
 	# Commentary tape.
 	if _commentary_frames > 0:
 		_commentary_frames -= 1
@@ -399,6 +658,7 @@ func sim_tick() -> void:
 	# Under-10s timer digits tick (one shade per 15 sim frames).
 	if _tick % PULSE_STEP == 0:
 		_refresh_timer_tint()
+	_refresh_live_readouts()
 
 
 func _resync() -> void:
@@ -416,14 +676,22 @@ func _resync() -> void:
 		_layout_health_fill(side)
 		_layout_ghost(side)
 		_on_meter(side, fighter.meter, fighter.max_meter)
-		_on_combo(side, fighter.combo_tracker.hits)
+		_on_combo_changed(side, fighter.combo_tracker.hits,
+			fighter.combo_tracker.total_damage)
+		_update_stun_readout(side)
+		_update_juggle_readout(side)
+		_update_breaker_pip(side)
 		_refresh_portrait(side)
 	_hide_banner()
 	counter_flash.visible = false
 	_callout_frames = 0
+	_callout_side = -1
+	_clear_macro_flash()
 	commentary_panel.visible = false
 	commentary_label.visible = false
 	_commentary_frames = 0
+	for side in 2:
+		_update_combo_visibility(side)
 
 
 # ---------------- bind -------------------------------------------------------
@@ -436,8 +704,26 @@ func bind(p1: FighterBase, p2: FighterBase) -> void:
 	p2.health_changed.connect(_on_p2_health)
 	p1.meter_changed.connect(_on_p1_meter)
 	p2.meter_changed.connect(_on_p2_meter)
-	p1.combo_changed.connect(_on_p1_combo)
-	p2.combo_changed.connect(_on_p2_combo)
+	p1.combo_tracker.changed.connect(
+		func(hits: int, total_damage: float):
+			_on_combo_changed(0, hits, total_damage))
+	p2.combo_tracker.changed.connect(
+		func(hits: int, total_damage: float):
+			_on_combo_changed(1, hits, total_damage))
+	p1.macro_step_replayed.connect(
+		func(name: String, index: int): _on_macro_step(0, name, index))
+	p2.macro_step_replayed.connect(
+		func(name: String, index: int): _on_macro_step(1, name, index))
+	p1.stun_started.connect(
+		func(_id: StringName, _frames: int): _on_stun_started(0))
+	p2.stun_started.connect(
+		func(_id: StringName, _frames: int): _on_stun_started(1))
+	p1.stun_ended.connect(func(): _update_stun_readout(0))
+	p2.stun_ended.connect(func(): _update_stun_readout(1))
+	p1.breaker_used.connect(func(_was_free: bool): _on_breaker_used(0))
+	p2.breaker_used.connect(func(_was_free: bool): _on_breaker_used(1))
+	p1.clip_cancelled.connect(func(): _show_callout(0, "CLIP CANCEL"))
+	p2.clip_cancelled.connect(func(): _show_callout(1, "CLIP CANCEL"))
 	# Attacker-side callouts need the side, so each fighter connects its
 	# own teched / counter signal.
 	p1.teched.connect(func(): _on_teched(0))
@@ -449,15 +735,22 @@ func bind(p1: FighterBase, p2: FighterBase) -> void:
 	_on_p2_health(p2.health, p2.max_health)
 	_on_p1_meter(p1.meter, p1.max_meter)
 	_on_p2_meter(p2.meter, p2.max_meter)
-	_on_p1_combo(p1.combo_tracker.hits)
-	_on_p2_combo(p2.combo_tracker.hits)
-	# Meter-ready geometry (static): P1 text at x 114, P2 right edge 206,
-	# the skull beside it.
-	var skull_1_x: float = 114.0 + UiText.marker_width("METH READY") + 2.0
-	meter_skulls[0].position = Vector2(skull_1_x, 170.0)
-	meter_ready[1].position = Vector2(206.0 - meter_ready[1].size.x, 168.0)
-	meter_skulls[1].position = Vector2(
-		206.0 - meter_ready[1].size.x - 10.0, 170.0)
+	_ensure_juggle_pips(1, _juggle_points_start(p2))
+	_ensure_juggle_pips(0, _juggle_points_start(p1))
+	_on_combo_changed(0, p1.combo_tracker.hits, p1.combo_tracker.total_damage)
+	_on_combo_changed(1, p2.combo_tracker.hits, p2.combo_tracker.total_damage)
+	_refresh_live_readouts()
+	# Meter-ready geometry (static): each label sits above its own meter,
+	# flush with the meter's inner end (P1 right edge x 110, P2 left edge
+	# x 210); each skull sits just past that inner end, in the empty middle.
+	var ready_w: float = UiText.marker_width("METH READY")
+	for side in 2:
+		meter_ready[side].horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		meter_ready[side].size = Vector2(ready_w, UiText.MARKER_LINE_HEIGHT)
+	meter_ready[0].position = Vector2(110.0 - ready_w, METH_READY_Y)
+	meter_skulls[0].position = Vector2(112.0, METH_SKULL_Y)
+	meter_ready[1].position = Vector2(210.0, METH_READY_Y)
+	meter_skulls[1].position = Vector2(200.0, METH_SKULL_Y)
 
 
 # ---------------- health, ghost, portraits ----------------------------------
@@ -569,60 +862,105 @@ func _on_meter(side: int, value: float, max_value: float) -> void:
 	meter_skulls[side].visible = full
 	if not full:
 		meter_skulls[side].texture = HudArt.SKULL_F1
+	_update_breaker_pip(side)
 
 
 # ---------------- combo ------------------------------------------------------
 
-func _on_p1_combo(count: int) -> void:
-	_on_combo(0, count)
-
-
-func _on_p2_combo(count: int) -> void:
-	_on_combo(1, count)
-
-
-func _on_combo(side: int, count: int) -> void:
-	var label := p1_combo if side == 0 else p2_combo
-	label.text = "%d HITS" % count if count >= 2 else ""
+func _on_combo_changed(defender_side: int, count: int, total_damage: float) -> void:
+	var attacker_side := 1 - defender_side
+	_combo_hits_by_side[attacker_side] = count
+	_combo_damage_by_side[attacker_side] = total_damage
+	# Health ghost ownership stays with the defender; the combo readout itself
+	# is deliberately shown on the opposite (attacker's) side.
 	if count >= 1:
-		_combo_active[side] = true
-		_ghost_drain[side] = 0
+		_combo_active[defender_side] = true
+		_ghost_drain[defender_side] = 0
 	else:
-		_combo_active[side] = false
-		if _ghost[side] > _health[side] + 0.5:
-			_ghost_drain[side] = GHOST_DRAIN_FRAMES
-			_ghost_step[side] = (_ghost[side] - _health[side]) / float(GHOST_DRAIN_FRAMES)
-	# Combo damage under the counter, only while the setting is on.
-	var damage_label := combo_damages[side]
-	if count >= 2 and _show_combo_damage():
-		var fighter: FighterBase = _match_root.p1 if side == 0 else _match_root.p2
-		damage_label.text = "%d" % int(roundi(fighter.combo_tracker.total_damage))
-		damage_label.visible = true
-	else:
-		damage_label.text = ""
-		damage_label.visible = false
+		_combo_active[defender_side] = false
+		if _ghost[defender_side] > _health[defender_side] + 0.5:
+			_ghost_drain[defender_side] = GHOST_DRAIN_FRAMES
+			_ghost_step[defender_side] = (
+				_ghost[defender_side] - _health[defender_side]
+			) / float(GHOST_DRAIN_FRAMES)
+	_render_combo_readout(attacker_side)
+
+
+func _render_combo_readout(attacker_side: int) -> void:
+	var count := _combo_hits_by_side[attacker_side]
+	var damage := _combo_damage_by_side[attacker_side]
+	var combo_label := p1_combo if attacker_side == 0 else p2_combo
+	combo_label.text = "%d HITS" % count if count >= 2 else ""
+	var defender_side := 1 - attacker_side
+	var scale := _base_combo_scale(defender_side, count)
+	combo_label.add_theme_color_override("font_color", _combo_color(scale))
+	combo_damages[attacker_side].text = (
+		"%d" % int(roundi(damage)) if count >= 2 else "")
+	combo_scales[attacker_side].text = (
+		"x%.2f" % scale if count >= 2 else "")
+	_update_combo_visibility(attacker_side)
+
+
+func _base_combo_scale(defender_side: int, hits: int) -> float:
+	if hits <= 0:
+		return 1.0
+	var fighter: FighterBase = _match_root.p1 if defender_side == 0 else _match_root.p2
+	if fighter == null or fighter.data == null \
+			or fighter.data.combo_tuning == null:
+		return 1.0
+	# This intentionally reports the base ladder tier for the most recent hit.
+	# Repeat-move penalties and variety bonuses are move-specific and are not
+	# represented as one current HUD multiplier.
+	return fighter.data.combo_tuning.ladder_for(hits)
+
+
+func _combo_color(scale: float) -> Color:
+	if scale >= 0.95:
+		return COMBO_YELLOW
+	if scale >= 0.775:
+		return COMBO_ORANGE
+	if scale >= 0.625:
+		return COMBO_RED
+	return METH_PINK
+
+
+func _update_combo_visibility(side: int) -> void:
+	var has_combo := _combo_hits_by_side[side] >= 2
+	var show_damage := has_combo and _show_combo_damage()
+	var callout_collision := _callout_frames > 0 and _callout_side == side
+	# Keep the damage/scale line clear of the shared callout row and keep the
+	# scale tag off the opaque central banner. Both return after the transient.
+	combo_damages[side].visible = show_damage and not callout_collision
+	combo_scales[side].visible = show_damage and not callout_collision \
+		and not banner_plate.visible
 
 
 # ---------------- callouts ---------------------------------------------------
 
 func _on_teched(side: int) -> void:
-	counter_flash.text = "TECH"
-	counter_flash.position = Vector2(
-		CALLOUT_X[0] if side == 0 else CALLOUT_X[1], CALLOUT_Y)
-	counter_flash.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if side == 0 \
-		else HORIZONTAL_ALIGNMENT_RIGHT
-	counter_flash.visible = true
-	_callout_frames = CALLOUT_FRAMES
+	_show_callout(side, "TECH")
 
 
 func _on_counter_hit(side: int) -> void:
-	counter_flash.text = "COUNTER HIT"
+	_show_callout(side, "COUNTER HIT")
+
+
+func _on_breaker_used(side: int) -> void:
+	_update_breaker_pip(side)
+	_show_callout(side, "BREAK!")
+
+
+func _show_callout(side: int, text: String) -> void:
+	counter_flash.text = text
 	counter_flash.position = Vector2(
 		CALLOUT_X[0] if side == 0 else CALLOUT_X[1], CALLOUT_Y)
 	counter_flash.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if side == 0 \
 		else HORIZONTAL_ALIGNMENT_RIGHT
 	counter_flash.visible = true
 	_callout_frames = CALLOUT_FRAMES
+	_callout_side = side
+	for combo_side in 2:
+		_update_combo_visibility(combo_side)
 
 
 # ---------------- banners ----------------------------------------------------
@@ -647,6 +985,8 @@ func show_banner(id: String, subtitle := "") -> void:
 	_show_banner_subtitle(subtitle)
 	_banner_auto = FIGHT_BANNER_FRAMES if id == "fight" else (
 		METH_BANNER_FRAMES if id == "methtality" else -1)
+	for side in 2:
+		_update_combo_visibility(side)
 
 
 func show_banner_text(text: String) -> void:
@@ -659,6 +999,8 @@ func show_banner_text(text: String) -> void:
 	message.visible = true
 	_show_banner_subtitle("")
 	_banner_auto = -1
+	for side in 2:
+		_update_combo_visibility(side)
 
 
 func _show_banner_subtitle(subtitle: String) -> void:
@@ -682,6 +1024,8 @@ func _hide_banner() -> void:
 	meth_banner.visible = false
 	banner_id = ""
 	_banner_auto = -1
+	for side in 2:
+		_update_combo_visibility(side)
 
 
 # Backward-compatible aliases for the pre-Phase-2 call sites.
@@ -808,6 +1152,7 @@ func _build_pause_menu(root: Control) -> void:
 	pause_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	pause_root.visible = false
 	pause_root.theme = UI_THEME
+	pause_root.z_index = 5
 	root.add_child(pause_root)
 	# The same #1C160D 55% declutter overlay the title and main menu use
 	# (docs/UI_SCREENS.md review fixes).

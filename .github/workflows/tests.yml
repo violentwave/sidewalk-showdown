@@ -81,6 +81,9 @@ jobs:
       - name: Match HUD tests
         run: godot --headless --path game --script res://tests/hud_test.gd
         timeout-minutes: 5
+      - name: Training mode tests
+        run: godot --headless --path game --script res://tests/training_test.gd
+        timeout-minutes: 10
 
   air-probe:
     # Metrics only (docs/PROPOSALS.md section 3): the probe asserts nothing and

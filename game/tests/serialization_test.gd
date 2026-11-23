@@ -40,17 +40,22 @@ func _check_match_surface(match_root: Node) -> void:
 		"commentary_sample_shown": mroot.commentary_sample_shown,
 		"p2_human": mroot.p2_human,
 		"fighters_can_pass_through": mroot.fighters_can_pass_through,
+		"training_mode": mroot.training_mode,
+		"pause_tab": mroot.pause_tab,
+		"training": mroot.training,
 	}
 	var expected_keys: Array = [
 		"phase", "phase_frame", "round_number", "wins", "timer_frames",
 		"ko_loser", "ko_draw", "ko_frame", "sim_frame", "timeout_ties",
 		"sudden_death", "round_damage", "pause_index", "pause_menu_open",
 		"commentary_sample_shown", "p2_human", "fighters_can_pass_through",
+		"training_mode", "pause_tab", "training",
 	]
 	_check("MatchRoot has all expected keys", surface is Dictionary, "surface is not a Dictionary")
 	if surface is Dictionary:
 		for key in expected_keys:
 			_check("  key present: " + key, surface.has(key), "key '" + key + "' missing")
+
 
 func _run() -> void:
 	var match_root: Node = _new_match_root()

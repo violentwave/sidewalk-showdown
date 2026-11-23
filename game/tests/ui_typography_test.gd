@@ -319,11 +319,45 @@ func _run() -> void:
 	_check("no two HUD labels overlap during P2 CLIP CANCEL with a combo",
 		p2_callout_overlaps.is_empty(), "; ".join(p2_callout_overlaps))
 
+	match_root.free()
+	await process_frame
+
+	# Training mode (GDD 6.4): its pause tabs and the readout plate follow the
+	# same rules — the tab row and nine option rows sit on the cardboard
+	# pause panel, the TrainingPanel rows ride a dark plate above the fight
+	# space, and nothing overlaps.
+	var training_root: Node = MATCH_SCENE.instantiate()
+	training_root.training_mode = true
+	root.add_child(training_root)
+	await process_frame
+	await physics_frame
+	training_root._toggle_pause()
+	var training_pause_labels: Array = []
+	_collect_labels(training_root.hud.pause_root, training_pause_labels)
+	var training_pause_problems := _typography_problems(training_pause_labels)
+	var training_pause_overlaps := _overlap_problems(training_pause_labels)
+	total_labels += training_pause_labels.size()
+	_check("every label in the training pause tabs follows the typography rules",
+		training_pause_problems.is_empty(), "; ".join(training_pause_problems))
+	_check("no two training pause labels overlap",
+		training_pause_overlaps.is_empty(), "; ".join(training_pause_overlaps))
+	training_root._unpause()
+	var training_hud_labels: Array = []
+	_collect_labels(training_root.hud.hud_root, training_hud_labels)
+	var training_hud_problems := _typography_problems(training_hud_labels)
+	var training_hud_overlaps := _overlap_problems(training_hud_labels)
+	total_labels += training_hud_labels.size()
+	_check("every training HUD label follows the typography rules",
+		training_hud_problems.is_empty(), "; ".join(training_hud_problems))
+	_check("no two training HUD labels overlap",
+		training_hud_overlaps.is_empty(), "; ".join(training_hud_overlaps))
+	training_root.free()
+	await process_frame
+
 	_check("the typography scan actually saw labels (%d)" % total_labels,
 		total_labels >= 25, "only %d label(s) found" % total_labels)
 	_check("the panel checks actually saw cardboard labels (%d)" % cardboard_labels,
 		cardboard_labels >= 15, "only %d" % cardboard_labels)
-	match_root.free()
 
 	print("ui_typography_test: %d checks, %d failure(s)" % [checks, failures])
 	quit(1 if failures > 0 else 0)

@@ -41,7 +41,7 @@ hud_test:              ... checks, ... failure(s)
 air probe:            metrics only, job must still pass
 ```
 
-- [ ] All twenty CI suites run locally with the commands in `README.md`
+- [ ] Every CI suite run locally (the loop in `README.md` → "For developers")
 - [ ] Rendered review done for visual changes (note the captures/screens and both facings)
 
 ## Docs

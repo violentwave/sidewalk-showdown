@@ -25,8 +25,8 @@ Every coding agent working in this repo follows these rules. Read
    but still run hanging-prone tooling under a shell timeout locally.
 5. Paste **real output** in the PR (checks + failures per suite), not claims.
    If your change alters a suite's check count, update the count **everywhere**
-   it is written: `README.md`, `docs/PHASE_STATUS.md`, `docs/KNOWN_ISSUES.md`,
-   and `docs/PM_BRIEF.md`.
+   it is written: `docs/PHASE_STATUS.md`, `docs/KNOWN_ISSUES.md`,
+   and `docs/PM_BRIEF.md`. (`README.md` deliberately lists no per-suite counts.)
 6. Visual changes need a rendered review: capture with
    `DISPLAY=:0 godot --path game --resolution 1280x720 --script ...`, check
    both facings, and attach before/after evidence.

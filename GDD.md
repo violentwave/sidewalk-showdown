@@ -1226,7 +1226,7 @@ Visual ingredients:
 
 | Screen | Purpose | Status (2026-11-21, UI Phase 1) |
 |---|---|---|
-| Splash / Content Warning | Mature tone warning | **Shipped** (once per launch, confirm or 3 s auto) |
+| Splash / Content Warning | Mature tone warning | **Shipped** (once per launch; press confirm to continue) |
 | Main Menu | Mode selection | **Shipped** (price board + chat strip hub: VERSUS, TRAINING*, SETTINGS, EXTRAS*, QUIT; *greyed) |
 | Title | Branding / start | **Shipped** (PRESS START, pulsing once per second) |
 | Character Select | Select fighter and palette | **Shipped** (2026-11-22, PR A: mugshot wall, portraits, rap-sheet booking, scribble cursors; palette cycling not yet built) |

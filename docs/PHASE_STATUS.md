@@ -135,14 +135,17 @@ phase exit criteria:
   was removed in the same day's polish pass), quit confirm — on a
   ScreenRouter with a persistent Settings autoload and audio buses;
   `docs/UI_SCREENS.md` documents what shipped (typography rules included),
-  and the nineteen-suite CI adds ui_flow (53), settings (16),
-  ui_assets (4), ui_typography (38), select screens (24), and results flow
-  (20). **PR A + PR B (2026-11-22):** the select screens are street-junk
+  and the twenty-suite CI adds ui_flow (53), settings (16),
+  ui_assets (4), ui_typography (42), select screens (24), results flow
+  (20), and match HUD (45). **PR A + PR B (2026-11-22):** the select screens are street-junk
   reskins (cardboard mode/difficulty, mugshot-wall booking with scribble
   cursors, scratch-ticket stages with the 18-frame RANDOM reveal), and the
   match wrap ships — the VS bumper before every match and the Results
   screen (REMATCH / CHARACTER SELECT / STAGE SELECT / MAIN MENU) replacing
-  "Enter restarts" above the frozen match. Procedural
+  "Enter restarts" above the frozen match. **UI Phase 2 (2026-11-22):**
+  the match HUD reskinned on the approved art with every timer on the
+  sim tick (frozen by pause and hitstop) and five stored settings
+  consumed. Procedural
   newsprint/halftone and bundled OFL comic fonts are used throughout. Mode
   select (added 2026-11-17) offers 1 PLAYER or 2 PLAYERS: solo sends P1 to a
   difficulty pick (added 2026-11-19) and then lets P1 pick both fighters, with
@@ -309,7 +312,7 @@ phase exit criteria:
   keyboard, hitbox accuracy, AI, progression/unlocks, performance, exports,
   content/accessibility review. Exit: no progression blockers/crashes, stable
   match flow, usable modes, and builds on target PC specs.
-- **Status:** **In progress; exit not met.** CI runs the nineteen headless suites
+- **Status:** **In progress; exit not met.** CI runs the twenty headless suites
   (combat, round_flow, character_select, stage_select, stage_floor,
   locomotion_speed, cpu, combo, combo_fuzz, the_clip, serialization, b6) and
   the air

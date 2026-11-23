@@ -20,6 +20,14 @@
 > the content warning (before the title), there is no attract demo, the
 > main menu's slat rects are measured constants, QUIT rides a taped
 > ui_button on the sign pole, and Settings has no Controls tab yet.
+> **Phase 2 (HUD) is implemented 2026-11-22**: ghost bar, pip sprites,
+> timer warning, meter ticks and READY state, side callouts, banner
+> plates, the commentary toggle, and every HUD counter on the sim tick
+> (frozen by pause and hitstop, resyncing on restore) — see the HUD
+> section in `docs/UI_SCREENS.md`. **Deferred from this doc's HUD plan:
+> win-type letters in pips (MatchRoot keeps no per-round win history),
+> the viewer-count/Tripp audience layer, and the ∞ timer cell (no
+> infinite-clock mode exists).**
 > Phases 2-5 below remain the plan. The Phase 1 prompt at the bottom is
 > kept for history; it predates the "audience model" and pixel-font
 > decisions in `docs/UI_DESIGN_RESEARCH.md`. Diagrams from the original
@@ -243,7 +251,7 @@ Phase 1 (router, settings, title, main menu) can start now in its own worktree, 
 | Phase | Scope | Model | Depends on |
 | --- | --- | --- | --- |
 | 1. Foundation | `ScreenRouter` + `FlowState`; Settings autoload, audio buses, `settings.cfg`; Settings overlay (all tabs but Controls); content warning, Title, Main Menu, Quit confirm; pause gains Settings and Main Menu | GLM-5.3 | Nothing; avoids combat files |
-| 2. HUD pass | Ghost bar, shape-coded pips with win letters, timer warning, meter ticks and READY state, side callouts, Tripp layer toggle; HUD timers onto the sim tick; folds in combo HUD (Prompt 5) | GLM-5.3 | Phase 1; combo Phase 2 merged first, since both touch HUD signals |
+| 2. HUD pass | Ghost bar, shape-coded pips with win letters, timer warning, meter ticks and READY state, side callouts, Tripp layer toggle; HUD timers onto the sim tick; folds in combo HUD (Prompt 5) | GLM-5.3 | Phase 1; combo Phase 2 merged first, since both touch HUD signals — **SHIPPED 2026-11-22 (win letters deferred: no per-round win history)** |
 | 3. Match wrap | VS screen, Results screen, Versus RULES row (rounds, timer, METHtality) through `MatchRoot` config + `serialize()` | GLM-5.3 | Phase 1; your rules decision |
 | 4. Controls + extras | Remap tab with `user://input.cfg`, button test, conflict check; Credits; The Clip in Extras | GLM-5.3 (remap), DeepSeek V4.1 Flash (credits) | Phase 1 |
 | 5. Art wiring | `art/tools/prepare_ui.gd`, `ui_theme.tres`, PixelLab assets into every screen | DeepSeek V4.1 Flash | Assets from you |

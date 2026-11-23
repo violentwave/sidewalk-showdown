@@ -234,6 +234,46 @@ func _run() -> void:
 	var pause_problems := _typography_problems(pause_labels)
 	_check("every label in the pause menu follows the typography rules",
 		pause_problems.is_empty(), "; ".join(pause_problems))
+	match_root._unpause()
+
+	# UI Phase 2: every HUD label at round start and mid-fight follows the
+	# same rules (native pixel fonts, glyphs, integer positions), and no
+	# two of them overlap.
+	var round_start_labels: Array = []
+	_collect_labels(match_root.hud.hud_root, round_start_labels)
+	var hud_start_problems := _typography_problems(round_start_labels)
+	var hud_start_overlaps := _overlap_problems(round_start_labels)
+	_check("every HUD label at round start follows the typography rules",
+		hud_start_problems.is_empty(), "; ".join(hud_start_problems))
+	_check("no two HUD labels overlap at round start",
+		hud_start_overlaps.is_empty(), "; ".join(hud_start_overlaps))
+
+	# Mid-fight typography: banner text, commentary (fonts and glyphs).
+	await physics_frame
+	match_root.hud.show_banner_text("PEG LEG PEGGY\nTAKES THE ROUND")
+	match_root.hud.show_commentary("TRIPP: THE CROWD IS GOING INSANE!")
+	var midfight_labels: Array = []
+	_collect_labels(match_root.hud.hud_root, midfight_labels)
+	var hud_mid_problems := _typography_problems(midfight_labels)
+	_check("every HUD label mid-fight follows the typography rules",
+		hud_mid_problems.is_empty(), "; ".join(hud_mid_problems))
+	total_labels += midfight_labels.size()
+
+	# Mid-fight overlap: the live set a frame of fighting actually shows
+	# together — a callout, a combo with its damage, the commentary tape.
+	# (Round-end text banners replace callouts by then; their band is
+	# checked separately above.)
+	match_root.hud.clear_message()
+	match_root.p1.counter_hit_landed.emit()
+	match_root.p1.combo_tracker.record("probe_a", 120.0)
+	match_root.p1.combo_tracker.record("probe_b", 80.0)
+	match_root.p1.combo_changed.emit(2)
+	var live_labels: Array = []
+	_collect_labels(match_root.hud.hud_root, live_labels)
+	var hud_mid_overlaps := _overlap_problems(live_labels)
+	_check("no two HUD labels overlap mid-fight",
+		hud_mid_overlaps.is_empty(), "; ".join(hud_mid_overlaps))
+
 	_check("the typography scan actually saw labels (%d)" % total_labels,
 		total_labels >= 25, "only %d label(s) found" % total_labels)
 	_check("the panel checks actually saw cardboard labels (%d)" % cardboard_labels,

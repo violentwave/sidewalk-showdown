@@ -75,6 +75,9 @@ jobs:
       - name: VS and Results flow tests
         run: godot --headless --path game --script res://tests/results_flow_test.gd
         timeout-minutes: 10
+      - name: Match HUD tests
+        run: godot --headless --path game --script res://tests/hud_test.gd
+        timeout-minutes: 5
 
   air-probe:
     # Metrics only (docs/PROPOSALS.md section 3): the probe asserts nothing and

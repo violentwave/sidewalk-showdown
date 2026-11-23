@@ -2,12 +2,14 @@
 
 **Version:** v0.2
 **Date:** 2026-11-21
-**Status:** Phase 1 wired. The approved street-junk set is generated into
+**Status:** Phases 1-3b + the HUD wired (2026-11-22). The approved street-junk set is generated into
 `game/art/ui/` by `art/tools/prepare_ui.gd` and the front-end screens
-(content warning, title, main menu, quit confirm, settings) plus the pause
-panel and the shared theme consume it (see `docs/UI_SCREENS.md`). HUD
-portraits/banners and the select-screen art are staged in
-`game/art/ui/` but not yet wired into the HUD visuals (Phase 2). The
+(content warning, title, main menu, quit confirm, settings), the select
+screens, the pause panel and the full match HUD consume it (see
+`docs/UI_SCREENS.md`). The HUD set wired in UI Phase 2: portrait
+frames and state photos, health and meter frames, timer box + digit
+strip, pip sprites (letters unused — no win-type history), meth
+skulls, banner plate + word sprites, and the commentary tape. The
 select screens (mugshot wall, portraits, rap sheet, tickets) are wired
 as of PR A, 2026-11-22.
 
@@ -149,7 +151,7 @@ Style references: **A** = `art/source/UI/HealthFull.png`, **B** =
 | `stage_scratch_ticket` | 72x44 | PixelLab + hand | — | 160 | `stage/scratch_ticket 72×44` | approved (covered state only) — **wired (PR A, stage select; the 18-frame reveal is code-drawn)** |
 | `vs_bust` | 96x128 per fighter | PixelLab | F | — | `vs/bust 96×128` | From final fighter art. | approved (Peg, Whiskey) |
 | `ui_logo` | 139x74 | PixelLab + hand | — | — | (Screens / 02 Title) | approved (Bangers, scripted) |
-| `hud_banner_words` | ~160x32 each | Hand (lettering) | — | 172/173 | — | Sidewalk Marker at 2x with a 1 px outline; DECISIVE ROUND at 1x so it fits the plate. Bangers v1 kept in generated/hand_drawn_review/bangers_v1/. | approved (Sidewalk Marker, scripted) |
+| `hud_banner_words` | ~160x32 each | Hand (lettering) | — | 172/173 | — | Sidewalk Marker at 2x with a 1 px outline; DECISIVE ROUND at 1x so it fits the plate. Bangers v1 kept in generated/hand_drawn_review/bangers_v1/. | approved (Sidewalk Marker, scripted) — **wired (UI Phase 2 HUD banners; hud_banner_time waits on a timeout call site)** |
 
 ## 5. Open owner decisions that affect art
 

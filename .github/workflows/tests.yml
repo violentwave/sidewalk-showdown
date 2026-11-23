@@ -66,6 +66,9 @@ jobs:
       - name: Settings persistence tests
         run: godot --headless --path game --script res://tests/settings_test.gd
         timeout-minutes: 5
+      - name: Input remapping tests
+        run: godot --headless --path game --script res://tests/remap_test.gd
+        timeout-minutes: 5
       - name: UI asset size tests
         run: godot --headless --path game --script res://tests/ui_assets_test.gd
         timeout-minutes: 5

@@ -196,6 +196,21 @@ func _run() -> void:
 		var card_problems := _card_problems(labels, scene)
 		_check("every label over a card in the %s lies inside it" % entry[0],
 			card_problems.is_empty(), "; ".join(card_problems))
+		if entry[0] == "settings overlay":
+			scene.tab_index = 5
+			scene._refresh()
+			var control_labels: Array = []
+			_collect_labels(scene, control_labels)
+			total_labels += control_labels.size()
+			var control_typography := _typography_problems(control_labels)
+			_check("every label in the Controls tab follows the typography rules",
+				control_typography.is_empty(), "; ".join(control_typography))
+			var control_overlaps := _overlap_problems(control_labels)
+			_check("no two visible labels overlap in the Controls tab",
+				control_overlaps.is_empty(), "; ".join(control_overlaps))
+			var control_cards := _card_problems(control_labels, scene)
+			_check("every Controls-tab label over a card lies inside it",
+				control_cards.is_empty(), "; ".join(control_cards))
 		scene.free()
 		await process_frame
 

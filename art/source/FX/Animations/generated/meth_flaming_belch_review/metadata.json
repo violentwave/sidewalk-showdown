@@ -1,0 +1,122 @@
+{
+  "batch": 1,
+  "asset": "fire_belch_sheet",
+  "status": "review-only; isolated-FX check failed; not runtime-ready or approved",
+  "metadata_recorded_at": "2026-11-23T19:02:31Z",
+  "dimensions_px": [96, 64],
+  "stored_frames": 7,
+  "ticks_per_frame": 2,
+  "identity_reference": null,
+  "pose_reference": {
+    "source": "game/art/characters/whiskey_richard/clips/neutral.png",
+    "alias": "R-N3, cel 3 (1-based)",
+    "input_file_attempt01": "pose_ref_R-N3_c3_padded96x64.png",
+    "preparation": "66x63 source cel centered on a 96x64 transparent canvas; padding only, no scaling or resampling",
+    "pixellab_upload_attempt01": "upload:91116b32-10b8-4c9b-b271-e22869fc900c",
+    "retry_decision": "Omitted from attempt 2 because the first composite showed fighter imagery."
+  },
+  "palette": {
+    "reference_file": "richard_vfx_palette_reference.png",
+    "pixellab_upload": "upload:a1923d30-c318-4d4e-9c7d-4829cc9d07c9",
+    "source_paths": [
+      "art/source/Characters/Animations/generated/richard_idle_review/richard_idle_01.png",
+      "game/art/characters/whiskey_richard/clips/heavy.png (cel 3)",
+      "game/art/characters/whiskey_richard/clips/neutral.png (cel 3)",
+      "game/art/characters/whiskey_richard/clips/meth.png (cel 2)"
+    ],
+    "hex": [
+      "#000000", "#0B0200", "#28140C", "#1F2B3A", "#273645",
+      "#731711", "#89281C", "#CB8A60", "#DDA074", "#E3CEB4",
+      "#F16A2D", "#FFD34F", "#FFF2DA"
+    ]
+  },
+  "jobs": [
+    {
+      "attempt": 1,
+      "tool": "create_image_pixflux",
+      "job_id": "973d44dc-e609-4a4e-8a5b-018b11b33db7",
+      "asset_id": "5ebe7fdf-750d-5806-8fc7-46ac3fed7c8d",
+      "charged_generations": 1,
+      "prompt": "short absurd cone of warm fire/air, three broad pixel lobes, no background, no face. Use the 96x64 padded reference only for side-view scale and style; redraw an isolated flame effect, with no character pixels. Sidewalk Showdown, fictional Sidewalk Florida, mature-rated retro 2D arcade fighting game, chunky readable pixels, bold dark outline, nearest-neighbor pixel edges, exact listed palette only, native 1:1 pixels, transparent background, no antialiasing, no watermark, no readable lettering, no logos, no real brand/town/person, no gore, no photorealism, no tiny clutter, no full fighter, no foreground block of the combatants.",
+      "settings": {
+        "width": 96,
+        "height": 64,
+        "no_background": true,
+        "outline": "single color outline",
+        "shading": "basic shading",
+        "detail": "medium detail",
+        "text_guidance_scale": 8,
+        "init_image_strength": 1,
+        "forced_palette": true
+      },
+      "superseded_reason": "First composite showed fighter imagery around the flame.",
+      "outputs": [
+        "fire_belch_base_attempt01.png",
+        "fire_belch_sheet_attempt01.png",
+        "fire_belch_sheet_attempt01_4x.png"
+      ]
+    },
+    {
+      "attempt": 1,
+      "tool": "animate_image",
+      "job_id": "8182ea9e-29fe-4ff2-9266-e19283266bfd",
+      "asset_id": "47599b3f-a876-546c-a8b8-160f4e147f2c",
+      "charged_generations": 1,
+      "action": "short flame cone blooms forward then folds back",
+      "frame_count_generated": 6,
+      "stored_frames_including_input": 7,
+      "no_background": true,
+      "outputs": [
+        "fire_belch_sheet_f00_attempt01.png",
+        "fire_belch_sheet_f01_attempt01.png",
+        "fire_belch_sheet_f02_attempt01.png",
+        "fire_belch_sheet_f03_attempt01.png",
+        "fire_belch_sheet_f04_attempt01.png",
+        "fire_belch_sheet_f05_attempt01.png",
+        "fire_belch_sheet_f06_attempt01.png"
+      ]
+    },
+    {
+      "attempt": 2,
+      "tool": "create_image_pixflux",
+      "job_id": "f1a39306-eabf-4284-9345-dc20f418d5dc",
+      "asset_id": "29f02aa3-3672-5027-9ba1-2c893d939c14",
+      "charged_generations": 1,
+      "prompt": "short absurd cone of warm fire/air, three broad pixel lobes. Isolated flame effect only; do not draw any character, face, head, arm, hand, or body. Sidewalk Showdown, fictional Sidewalk Florida, mature-rated retro 2D arcade fighting game, chunky readable pixels, bold dark outline, nearest-neighbor pixel edges, exact listed palette only, native 1:1 pixels, transparent background, no antialiasing, no watermark, no readable lettering, no logos, no real brand/town/person, no gore, no photorealism, no tiny clutter, no full fighter, no foreground block of the combatants.",
+      "settings": {
+        "width": 96,
+        "height": 64,
+        "no_background": true,
+        "outline": "single color outline",
+        "shading": "basic shading",
+        "detail": "medium detail",
+        "text_guidance_scale": 12,
+        "forced_palette": true
+      },
+      "output": "fire_belch_base.png"
+    },
+    {
+      "attempt": 2,
+      "tool": "animate_image",
+      "job_id": "9e0ae5d9-95a2-4104-bbca-67816ced2bff",
+      "asset_id": "d75974fd-bc7d-55a4-9563-3634993672e9",
+      "charged_generations": 1,
+      "action": "short flame cone blooms forward then folds back",
+      "frame_count_generated": 6,
+      "stored_frames_including_input": 7,
+      "no_background": true,
+      "outputs": [
+        "fire_belch_sheet_f00.png",
+        "fire_belch_sheet_f01.png",
+        "fire_belch_sheet_f02.png",
+        "fire_belch_sheet_f03.png",
+        "fire_belch_sheet_f04.png",
+        "fire_belch_sheet_f05.png",
+        "fire_belch_sheet_f06.png",
+        "fire_belch_sheet.png",
+        "fire_belch_sheet_4x.png"
+      ]
+    }
+  ],
+  "validation_note": "The final composite still shows fighter imagery around the flame in attempt 2; attempt 1 had the same issue. Both are retained for review, but neither is acceptable as isolated FX. The 10-generation batch cap is reached; do not retry without a new owner-approved budget. PixelLab animation has no hard-palette parameter. Do not integrate."
+}

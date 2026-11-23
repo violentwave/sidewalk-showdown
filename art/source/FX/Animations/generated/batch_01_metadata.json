@@ -1,0 +1,68 @@
+{
+  "batch": 1,
+  "name": "style pilot",
+  "status": "complete; review-only; awaiting owner approval",
+  "metadata_recorded_at": "2026-11-23T19:02:31Z",
+  "hard_generation_cap": 10,
+  "balance_before": {
+    "generations_remaining": 613,
+    "credits_usd": 0
+  },
+  "balance_after": {
+    "generations_remaining": 603,
+    "credits_usd": 0
+  },
+  "charged_generations": 10,
+  "charge_breakdown": {
+    "peggy_hit_heavy_sheet": 2,
+    "richard_hit_heavy_sheet_attempt01_and_attempt02": 4,
+    "fire_belch_sheet_attempt01_and_attempt02": 4
+  },
+  "planned_base_cost": 6,
+  "retry_cost": 4,
+  "jobs": [
+    "f27d6660-4354-4317-b6c6-b30ca76bae25",
+    "2951d237-568f-4d5e-9369-188655c20e5c",
+    "f8802f1e-13b0-4b87-a5f5-b0dac15be6e5",
+    "74bad346-1ec4-450d-96a0-421923ecde16",
+    "973d44dc-e609-4a4e-8a5b-018b11b33db7",
+    "8182ea9e-29fe-4ff2-9266-e19283266bfd",
+    "aaaea1d7-762e-4fc7-9b8b-87a05160d909",
+    "39e343d8-b924-4327-8cfe-c65a930a5277",
+    "f1a39306-eabf-4284-9345-dc20f418d5dc",
+    "9e0ae5d9-95a2-4104-bbca-67816ced2bff"
+  ],
+  "assets": [
+    {
+      "name": "peggy_hit_heavy_sheet",
+      "review_folder": "peggy_hit_fx_review",
+      "generations": 2,
+      "contact_sheet_status": "blocky horizontal form; owner should confirm the impact read",
+      "identify_unique_colors_rgba": 27
+    },
+    {
+      "name": "richard_hit_heavy_sheet",
+      "review_folder": "richard_hit_fx_review",
+      "generations": 4,
+      "contact_sheet_status": "attempt 2 still contains fighter/body imagery; isolated-FX check failed",
+      "identify_unique_colors_rgba": 36
+    },
+    {
+      "name": "fire_belch_sheet",
+      "review_folder": "meth_flaming_belch_review",
+      "generations": 4,
+      "contact_sheet_status": "attempt 2 still contains fighter imagery around the flame; isolated-FX check failed",
+      "identify_unique_colors_rgba": 96
+    }
+  ],
+  "palette_check": "The animation tool does not enforce palettes. ImageMagick unique-color counts are recorded above; perform exact per-frame palette and transparency checks in Pixelorama before approval.",
+  "composite_contact_sheet": "batch_01_contact_sheet.png",
+  "fighter_mock": "batch_01_mock_320x180.png",
+  "hard_gate": "The 10-generation cap is reached. Submit no more Batch 1 jobs or any Batch 2 jobs until the owner responds. Keep this branch/PR draft and unmerged.",
+  "scope": {
+    "runtime_assets_changed": false,
+    "game_art_changed": false,
+    "code_changed": false,
+    "pixel_lab_animations_have_hard_palette_enforcement": false
+  }
+}

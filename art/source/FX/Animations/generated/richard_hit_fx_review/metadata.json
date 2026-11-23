@@ -1,0 +1,122 @@
+{
+  "batch": 1,
+  "asset": "richard_hit_heavy_sheet",
+  "status": "review-only; isolated-FX check failed; not runtime-ready or approved",
+  "metadata_recorded_at": "2026-11-23T19:01:40Z",
+  "dimensions_px": [32, 32],
+  "stored_frames": 7,
+  "ticks_per_frame": 2,
+  "identity_reference": null,
+  "pose_reference": {
+    "source": "game/art/characters/whiskey_richard/clips/heavy.png",
+    "alias": "R-H3, cel 3 (1-based)",
+    "input_file_attempt01": "pose_ref_R-H3_c3_crop.png",
+    "preparation": "32x32 crop at source offset x=179,y=25; no scaling or resampling",
+    "pixellab_upload_attempt01": "upload:90114ae9-9c58-452d-afb1-511f70d04e26",
+    "retry_decision": "Omitted from attempt 2 after the first composite looked bottle-like."
+  },
+  "palette": {
+    "reference_file": "richard_vfx_palette_reference.png",
+    "pixellab_upload": "upload:a1923d30-c318-4d4e-9c7d-4829cc9d07c9",
+    "source_paths": [
+      "art/source/Characters/Animations/generated/richard_idle_review/richard_idle_01.png",
+      "game/art/characters/whiskey_richard/clips/heavy.png (cel 3)",
+      "game/art/characters/whiskey_richard/clips/neutral.png (cel 3)",
+      "game/art/characters/whiskey_richard/clips/meth.png (cel 2)"
+    ],
+    "hex": [
+      "#000000", "#0B0200", "#28140C", "#1F2B3A", "#273645",
+      "#731711", "#89281C", "#CB8A60", "#DDA074", "#E3CEB4",
+      "#F16A2D", "#FFD34F", "#FFF2DA"
+    ]
+  },
+  "jobs": [
+    {
+      "attempt": 1,
+      "tool": "create_image_pixflux",
+      "job_id": "f8802f1e-13b0-4b87-a5f5-b0dac15be6e5",
+      "asset_id": "51b95470-d93e-5311-80ca-8620e53faf56",
+      "charged_generations": 1,
+      "prompt": "barfly heavy impact, broad amber splash, two bottle-glass glints, one tiny warm-cream flame lick, no bottle redesign, no body. Use the 32x32 reference only for pixel scale and style; redraw an isolated FX sprite, with no character pixels. Sidewalk Showdown, fictional Sidewalk Florida, mature-rated retro 2D arcade fighting game, chunky readable pixels, bold dark outline, nearest-neighbor pixel edges, exact listed palette only, native 1:1 pixels, transparent background, no antialiasing, no watermark, no readable lettering, no logos, no real brand/town/person, no gore, no photorealism, no tiny clutter, no full fighter, no foreground block of the combatants.",
+      "settings": {
+        "width": 32,
+        "height": 32,
+        "no_background": true,
+        "outline": "single color outline",
+        "shading": "basic shading",
+        "detail": "medium detail",
+        "text_guidance_scale": 8,
+        "init_image_strength": 1,
+        "forced_palette": true
+      },
+      "superseded_reason": "First composite showed an overly bottle-like read.",
+      "outputs": [
+        "richard_hit_heavy_base_attempt01.png",
+        "richard_hit_heavy_sheet_attempt01.png",
+        "richard_hit_heavy_sheet_attempt01_4x.png"
+      ]
+    },
+    {
+      "attempt": 1,
+      "tool": "animate_image",
+      "job_id": "74bad346-1ec4-450d-96a0-421923ecde16",
+      "asset_id": "171a599d-bbdd-5dec-afc1-90b27893b2c2",
+      "charged_generations": 1,
+      "action": "impact expands, debris arcs out, then settles",
+      "frame_count_generated": 6,
+      "stored_frames_including_input": 7,
+      "no_background": true,
+      "outputs": [
+        "richard_hit_heavy_sheet_f00_attempt01.png",
+        "richard_hit_heavy_sheet_f01_attempt01.png",
+        "richard_hit_heavy_sheet_f02_attempt01.png",
+        "richard_hit_heavy_sheet_f03_attempt01.png",
+        "richard_hit_heavy_sheet_f04_attempt01.png",
+        "richard_hit_heavy_sheet_f05_attempt01.png",
+        "richard_hit_heavy_sheet_f06_attempt01.png"
+      ]
+    },
+    {
+      "attempt": 2,
+      "tool": "create_image_pixflux",
+      "job_id": "aaaea1d7-762e-4fc7-9b8b-87a05160d909",
+      "asset_id": "c2fe2ac9-0b37-53f7-9046-63c19572f9c4",
+      "charged_generations": 1,
+      "prompt": "compact wide radial barfly heavy impact: broad amber splash, two tiny separated bottle-glass glints, one small warm-cream flame lick. Isolated FX sprite only; do not draw any bottle, full character, arm, face, or hand. Sidewalk Showdown, fictional Sidewalk Florida, mature-rated retro 2D arcade fighting game, chunky readable pixels, bold dark outline, nearest-neighbor pixel edges, exact listed palette only, native 1:1 pixels, transparent background, no antialiasing, no watermark, no readable lettering, no logos, no real brand/town/person, no gore, no photorealism, no tiny clutter, no full fighter, no foreground block of the combatants.",
+      "settings": {
+        "width": 32,
+        "height": 32,
+        "no_background": true,
+        "outline": "single color outline",
+        "shading": "basic shading",
+        "detail": "medium detail",
+        "text_guidance_scale": 12,
+        "forced_palette": true
+      },
+      "output": "richard_hit_heavy_base.png"
+    },
+    {
+      "attempt": 2,
+      "tool": "animate_image",
+      "job_id": "39e343d8-b924-4327-8cfe-c65a930a5277",
+      "asset_id": "c576c364-b30c-5242-8051-656d3bcc7b61",
+      "charged_generations": 1,
+      "action": "impact expands, debris arcs out, then settles",
+      "frame_count_generated": 6,
+      "stored_frames_including_input": 7,
+      "no_background": true,
+      "outputs": [
+        "richard_hit_heavy_sheet_f00.png",
+        "richard_hit_heavy_sheet_f01.png",
+        "richard_hit_heavy_sheet_f02.png",
+        "richard_hit_heavy_sheet_f03.png",
+        "richard_hit_heavy_sheet_f04.png",
+        "richard_hit_heavy_sheet_f05.png",
+        "richard_hit_heavy_sheet_f06.png",
+        "richard_hit_heavy_sheet.png",
+        "richard_hit_heavy_sheet_4x.png"
+      ]
+    }
+  ],
+  "validation_note": "The final composite still shows fighter/body imagery in attempt 2; attempt 1 also read too bottle-like. Both are retained for review but neither is acceptable as isolated FX. The 10-generation batch cap is reached; do not retry without a new owner-approved budget. PixelLab animation has no hard-palette parameter. Do not integrate."
+}

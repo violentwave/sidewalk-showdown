@@ -1,0 +1,79 @@
+{
+  "batch": 1,
+  "asset": "peggy_hit_heavy_sheet",
+  "status": "review-only; not runtime-ready or approved",
+  "metadata_recorded_at": "2026-11-23T19:00:24Z",
+  "dimensions_px": [32, 32],
+  "stored_frames": 7,
+  "ticks_per_frame": 2,
+  "identity_reference": null,
+  "pose_reference": {
+    "source": "game/art/characters/peg_leg_peggy/clips/heavy.png",
+    "alias": "P-H3, cel 3 (1-based)",
+    "input_file": "pose_ref_P-H3_c3_crop.png",
+    "preparation": "32x32 crop at source offset x=129,y=24; no scaling or resampling",
+    "pixellab_upload": "upload:24e5a56e-2393-4874-8512-6e4d39f0c6f5"
+  },
+  "palette": {
+    "reference_file": "peggy_vfx_palette_reference.png",
+    "pixellab_upload": "upload:12e74f68-bc17-4c2a-9509-7ed9ca1b11a8",
+    "source_paths": [
+      "art/source/Characters/Animations/generated/peggy_idle_review/peggy_idle_01.png",
+      "game/art/characters/peg_leg_peggy/clips/heavy.png (cel 3)",
+      "game/art/characters/peg_leg_peggy/clips/forward.png (cel 3)"
+    ],
+    "hex": [
+      "#211711", "#251913", "#2F1D14", "#442C1F", "#464834",
+      "#70281D", "#BF7E4B", "#DA9259", "#DD965D", "#CD854F",
+      "#C9D1CC", "#FFF2B3", "#E9822A"
+    ]
+  },
+  "jobs": [
+    {
+      "attempt": 1,
+      "tool": "create_image_pixflux",
+      "job_id": "f27d6660-4354-4317-b6c6-b30ca76bae25",
+      "asset_id": "2bc14e6a-d2ab-508d-a89c-522cc729f25f",
+      "charged_generations": 1,
+      "prompt": "hardware-store heavy impact, broad splinter fan and two bent nails, blunt wood/metal read, no body. Use the 32x32 reference only for pixel scale and style; redraw an isolated FX sprite, with no character pixels. Sidewalk Showdown, fictional Sidewalk Florida, mature-rated retro 2D arcade fighting game, chunky readable pixels, bold dark outline, nearest-neighbor pixel edges, exact listed palette only, native 1:1 pixels, transparent background, no antialiasing, no watermark, no readable lettering, no logos, no real brand/town/person, no gore, no photorealism, no tiny clutter, no full fighter, no foreground block of the combatants.",
+      "settings": {
+        "width": 32,
+        "height": 32,
+        "no_background": true,
+        "outline": "single color outline",
+        "shading": "basic shading",
+        "detail": "medium detail",
+        "text_guidance_scale": 8,
+        "init_image_strength": 1,
+        "forced_palette": true
+      },
+      "output": "peggy_hit_heavy_base.png"
+    },
+    {
+      "attempt": 1,
+      "tool": "animate_image",
+      "job_id": "2951d237-568f-4d5e-9369-188655c20e5c",
+      "asset_id": "f3e882e1-b876-5dc4-bc7c-5503041b99cb",
+      "charged_generations": 1,
+      "action": "impact expands, debris arcs out, then settles",
+      "frame_count_generated": 6,
+      "stored_frames_including_input": 7,
+      "no_background": true,
+      "outputs": [
+        "peggy_hit_heavy_sheet_f00.png",
+        "peggy_hit_heavy_sheet_f01.png",
+        "peggy_hit_heavy_sheet_f02.png",
+        "peggy_hit_heavy_sheet_f03.png",
+        "peggy_hit_heavy_sheet_f04.png",
+        "peggy_hit_heavy_sheet_f05.png",
+        "peggy_hit_heavy_sheet_f06.png"
+      ]
+    }
+  ],
+  "review_files": [
+    "peggy_hit_heavy_sheet.png",
+    "peggy_hit_heavy_sheet_4x.png",
+    "metadata.json"
+  ],
+  "validation_note": "The final composite shows a broad, blocky horizontal form; confirm with the owner whether it reads as the intended splinter impact. PixelLab animation has no hard-palette parameter. Do not integrate; verify palette, transparency, and isolated-FX content in Pixelorama before approval."
+}

@@ -265,14 +265,59 @@ func _run() -> void:
 	# checked separately above.)
 	match_root.hud.clear_message()
 	match_root.p1.counter_hit_landed.emit()
-	match_root.p1.combo_tracker.record("probe_a", 120.0)
-	match_root.p1.combo_tracker.record("probe_b", 80.0)
-	match_root.p1.combo_changed.emit(2)
+	match_root.p2.combo_tracker.record("probe_a", 120.0)
+	match_root.p2.combo_tracker.record("probe_b", 80.0)
 	var live_labels: Array = []
 	_collect_labels(match_root.hud.hud_root, live_labels)
 	var hud_mid_overlaps := _overlap_problems(live_labels)
-	_check("no two HUD labels overlap mid-fight",
+	_check("no two HUD labels overlap mid-fight with attacker-side combo readouts",
 		hud_mid_overlaps.is_empty(), "; ".join(hud_mid_overlaps))
+
+	# Juggle pips sit below the attacker's combo readout at the side edges.
+	match_root.hud.counter_flash.visible = false
+	match_root.hud._callout_frames = 0
+	match_root.p2.juggle_points = 3
+	match_root.hud._update_juggle_readout(1)
+	var juggle_labels: Array = []
+	_collect_labels(match_root.hud.hud_root, juggle_labels)
+	var juggle_overlaps := _overlap_problems(juggle_labels)
+	_check("no two HUD labels overlap in a juggle state",
+		juggle_overlaps.is_empty(), "; ".join(juggle_overlaps))
+
+	# Stun state uses the fighter's own side, above the commentary ink band.
+	match_root.p2.stun_id = &"taser"
+	match_root.p2.stun_window_applied = 45
+	match_root.p2.stun_frames_remaining = 30
+	match_root.p2.stun_started.emit(&"taser", 30)
+	var stun_labels: Array = []
+	_collect_labels(match_root.hud.hud_root, stun_labels)
+	var stun_overlaps := _overlap_problems(stun_labels)
+	_check("no two HUD labels overlap in a stun state",
+		stun_overlaps.is_empty(), "; ".join(stun_overlaps))
+
+	# Full meter keeps the breaker pip and BRK label at the outer meter ends,
+	# away from METH READY and the skull.
+	match_root.p2.stun_id = &""
+	match_root.p2.stun_frames_remaining = 0
+	match_root.p2.stun_ended.emit()
+	match_root.p2.juggle_points = -1
+	match_root.p1.add_meter(100.0)
+	match_root.hud._update_breaker_pip(0)
+	var full_meter_labels: Array = []
+	_collect_labels(match_root.hud.hud_root, full_meter_labels)
+	var full_meter_overlaps := _overlap_problems(full_meter_labels)
+	_check("no two HUD labels overlap at full meter with a breaker pip",
+		full_meter_overlaps.is_empty(), "; ".join(full_meter_overlaps))
+
+	# P2's long callout must not cover its own defender-tracker combo readout.
+	match_root.p1.combo_tracker.record("p2_side_a", 80.0)
+	match_root.p1.combo_tracker.record("p2_side_b", 70.0)
+	match_root.p2.clip_cancelled.emit()
+	var p2_callout_labels: Array = []
+	_collect_labels(match_root.hud.hud_root, p2_callout_labels)
+	var p2_callout_overlaps := _overlap_problems(p2_callout_labels)
+	_check("no two HUD labels overlap during P2 CLIP CANCEL with a combo",
+		p2_callout_overlaps.is_empty(), "; ".join(p2_callout_overlaps))
 
 	_check("the typography scan actually saw labels (%d)" % total_labels,
 		total_labels >= 25, "only %d label(s) found" % total_labels)

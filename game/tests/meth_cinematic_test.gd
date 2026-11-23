@@ -44,10 +44,10 @@ func _step(frames: int) -> void:
 
 
 func _new_match(training := false, stage_index := 0,
-		cpus := false) -> void:
+		cpus := false, p1_index := 0, p2_index := 1) -> void:
 	scene = MATCH_SCENE.instantiate()
-	scene.selected_p1_data = ROSTER.fighters[0]
-	scene.selected_p2_data = ROSTER.fighters[1]
+	scene.selected_p1_data = ROSTER.fighters[p1_index]
+	scene.selected_p2_data = ROSTER.fighters[p2_index]
 	scene.selected_stage = ROSTER.stages[stage_index]
 	scene.training_mode = training
 	if cpus:
@@ -118,6 +118,7 @@ func _run() -> void:
 	await _test_both_stages()
 	await _test_wall_clamp()
 	await _test_victim_masking()
+	await _test_prop_visibility_and_anchors()
 	await _test_serialize_load_mid_cinematic()
 	await _test_training_restore_and_skip()
 	await _test_cpu_vs_cpu_completes()
@@ -293,7 +294,7 @@ func _test_walk_the_plank_sequence() -> void:
 		scene.phase == scene.Phase.KO and scene.ko_loser == p2,
 		"phase=%s" % str(scene.phase))
 	_check("the cinematic presentation is torn down after the finish",
-		driver._cinematic_root == null and not driver.active
+		driver.presentation_roots_cleared() and not driver.active
 			and hud._cinematic_hidden.is_empty()
 			and not p1.cinematic_hold and not p2.cinematic_hold,
 		"presentation leak")
@@ -468,11 +469,18 @@ func _test_victim_masking() -> void:
 	_prime_meth(p1, p2)
 	await _step(12)
 	await _await_frame(167)
-	var mask_z: int = 5
+	var mask: Sprite2D = driver.prop_sprite("water_drop_mask_sheet")
 	_check("after the drop the front water mask is up and above the victim",
 		driver.prop_visible("water_drop_mask_sheet")
-			and p2.z_index <= mask_z,
-		"victim z=%d" % p2.z_index)
+			and mask != null and mask.texture != null
+			and driver.prop_layer("water_drop_mask_sheet") == "front"
+			and mask.z_index > p2.z_index,
+		"mask layer=%s z=%d victim z=%d" % [
+			driver.prop_layer("water_drop_mask_sheet"),
+			mask.z_index if mask != null else -1, p2.z_index])
+	_check("the mask covers the victim's sinking column",
+		mask != null and absf(mask.global_position.x - p2.position.x) <= 48.0,
+		"mask x=%f victim x=%f" % [mask.global_position.x, p2.position.x])
 	_check("the victim has sunk fully behind the rim line",
 		p2.position.y >= scene.stage.floor_y + 12.0,
 		"vic y=%f floor=%f" % [p2.position.y, scene.stage.floor_y])
@@ -486,6 +494,165 @@ func _test_victim_masking() -> void:
 		ticks += 1
 	_check("the masked sequence completes",
 		ticks == LENGTH - 200, "ticks=%d" % ticks)
+	scene.queue_free()
+	await _step(2)
+
+
+# ---------------- numeric prop visibility (review-bug regressions) ----------
+# Every check below asserts the prop is actually drawn where the storyboard
+# says: sprite alive with a texture, visible, on the correct ordered layer
+# (back = between the stage and the fighters; front = above them), its
+# manifest anchor within a few pixels of the intended world point, inside
+# the 320x180 viewport, and mirrored correctly for the attacker's facing.
+# These FAILED on 5587b1c (props on negative z behind the stage; fire cone
+# anchored/mirrored wrong) and must pass after the fix.
+
+const ANCHOR_TOL := 3.0
+# Richard's mouth and the raised bottle (estimates from the neutral/heavy
+# active cels), matching the driver's staging constants. Kept local so this
+# suite degrades cleanly against an unfixed driver: the checks then FAIL on
+# layer/anchor/mirroring instead of parse-erroring on missing members.
+const MOUTH_FWD_PX := 10.0
+const MOUTH_UP_PX := 50.0
+const FUME_FWD_PX := 10.0
+const FUME_UP_PX := 54.0
+const SIGN_AHEAD_PX := 8.0
+const BELCH_PUSH_PX := 56.0
+const SIGN_HANG_Y := -60.0
+
+
+func _check_prop(label: String, id: String, expected_point: Vector2,
+		layer: String, mirrored: bool) -> void:
+	if not driver.has_method("prop_anchor_point"):
+		# The visibility introspection is part of the visual-fix contract;
+		# an unfixed driver fails every check right here.
+		_check(label + " [visibility introspection]", false,
+			"driver lacks the numeric prop visibility API")
+		return
+	var sprite: Sprite2D = driver.prop_sprite(id)
+	if sprite == null:
+		_check(label + " [sprite exists]", false, "prop node missing")
+		return
+	var ok_visible: bool = sprite.visible and sprite.texture != null
+	_check(label + " [visible with texture]", ok_visible,
+		"visible=%s texture=%s" % [str(sprite.visible),
+			str(sprite.texture != null)])
+	var ok_layer: bool = driver.prop_layer(id) == layer
+	if layer == "back":
+		# Tree order between the stage and the fighters — the review bug
+		# was negative z drawing behind the whole stage.
+		var stage_idx: int = scene.stage.get_index()
+		var back_idx: int = driver.back_root_index(scene)
+		ok_layer = ok_layer and back_idx > stage_idx and back_idx < p1.get_index()
+	else:
+		ok_layer = ok_layer and sprite.z_index > maxi(p1.z_index, p2.z_index)
+	_check(label + " [layer " + layer + "]", ok_layer,
+		"layer=%s back_idx=%d stage_idx=%d z=%d" % [
+			driver.prop_layer(id), driver.back_root_index(scene),
+			scene.stage.get_index(), sprite.z_index])
+	var at: Vector2 = driver.prop_anchor_point(id)
+	_check(label + " [anchor at intended point]",
+		at.distance_to(expected_point) <= ANCHOR_TOL,
+		"anchor=%s expected=%s" % [str(at), str(expected_point)])
+	_check(label + " [anchor inside the 320x180 viewport]",
+		at.x >= 0.0 and at.x <= 320.0 and at.y >= 0.0 and at.y <= 180.0,
+		"anchor=%s" % str(at))
+	_check(label + " [mirroring]",
+		sprite.flip_h == mirrored,
+		"flip_h=%s expected=%s" % [str(sprite.flip_h), str(mirrored)])
+	_check(label + " [never scaled]",
+		sprite.scale == Vector2.ONE, "scale=%s" % str(sprite.scale))
+
+
+func _test_prop_visibility_and_anchors() -> void:
+	# --- Walk the Plank, attacker LEFT (Peggy facing right) ---
+	await _new_match()
+	_prime_meth(p1, p2)
+	await _step(12)
+	await _await_frame(45)
+	var vic_x := driver.cap_vic_pos.x + driver.group_shift
+	var floor_y: float = scene.stage.floor_y
+	_check_prop("WTP f45 plank_base (settled under the victim)",
+		"plank_base", Vector2(vic_x - 44.0, floor_y), "back", false)
+	await _await_frame(100)
+	_check_prop("WTP f100 plank_snap", "plank_snap_sheet",
+		Vector2(vic_x, floor_y), "back", false)
+	_check("WTP f100 plank_snap frame index",
+		driver.prop_frame("plank_snap_sheet") == (100 - 90) / 3,
+		"frame=%d" % driver.prop_frame("plank_snap_sheet"))
+	_check_prop("WTP f100 sewer_open", "sewer_open_sheet",
+		Vector2(vic_x, floor_y), "back", false)
+	_check("WTP f100 sewer frame index",
+		driver.prop_frame("sewer_open_sheet") == (100 - 96) / 3,
+		"frame=%d" % driver.prop_frame("sewer_open_sheet"))
+	await _await_frame(125)
+	_check_prop("WTP f125 water mask", "water_drop_mask_sheet",
+		Vector2(vic_x, floor_y), "front", false)
+	_check("WTP f125 sewer still open under the mask",
+		driver.prop_visible("sewer_open_sheet"),
+		"sewer hidden at the drop beat")
+	scene.queue_free()
+	await _step(2)
+
+	# --- Flaming Belch, Richard attacker on the RIGHT facing LEFT ---
+	await _new_match()
+	_prime_meth(p2, p1, 150.0, 120.0)
+	await _step(12)
+	await _await_frame(35)
+	var r_att_x := driver.cap_att_pos.x + driver.group_shift
+	var r_floor: float = scene.stage.floor_y
+	_check_prop("FB f35 whiskey fumes (mirrored, at the bottle)",
+		"whiskey_fumes_sheet",
+		Vector2(r_att_x - FUME_FWD_PX, r_floor - FUME_UP_PX), "back", true)
+	await _await_frame(100)
+	_check_prop("FB f100 fire cone (mirrored, out of the mouth)",
+		"fire_belch_sheet",
+		Vector2(r_att_x - MOUTH_FWD_PX, r_floor - MOUTH_UP_PX),
+		"front", true)
+	_check("FB f100 fumes still fill the space at the ignite beat",
+		driver.prop_visible("whiskey_fumes_sheet")
+			and driver.prop_frame("whiskey_fumes_sheet") == 6,
+		"fumes frame=%d" % driver.prop_frame("whiskey_fumes_sheet"))
+	await _await_frame(125)
+	var push_dir := -1.0
+	var sign_x := driver.cap_vic_pos.x + driver.group_shift \
+		+ push_dir * (BELCH_PUSH_PX + SIGN_AHEAD_PX)
+	_check_prop("FB f125 bar sign base", "fictional_bar_sign_base",
+		Vector2(sign_x, r_floor + SIGN_HANG_Y), "back", false)
+	await _await_frame(155)
+	_check_prop("FB f155 shatter back plane", "bar_sign_shatter_back_sheet",
+		Vector2(sign_x, r_floor + SIGN_HANG_Y), "back", false)
+	_check_prop("FB f155 shatter front layer", "bar_sign_shatter_front_sheet",
+		Vector2(sign_x, r_floor + SIGN_HANG_Y), "front", false)
+	var fire_gone: bool = not driver.prop_visible("fire_belch_sheet")
+	_check("FB f155 the fire cone has folded back",
+		fire_gone, "fire still visible past f134")
+	scene.queue_free()
+	await _step(2)
+
+	# --- Flaming Belch, Richard attacker on the LEFT facing RIGHT
+	# (unmirrored anchors) ---
+	await _new_match(false, 0, false, 1, 0)  # P1 Richard, P2 Peggy
+	_prime_meth(p1, p2)
+	await _step(12)
+	await _await_frame(35)
+	var l_att_x := driver.cap_att_pos.x + driver.group_shift
+	var l_floor: float = scene.stage.floor_y
+	_check_prop("FB(R) f35 whiskey fumes (unmirrored)",
+		"whiskey_fumes_sheet",
+		Vector2(l_att_x + FUME_FWD_PX, l_floor - FUME_UP_PX), "back", false)
+	await _await_frame(100)
+	_check_prop("FB(R) f100 fire cone (unmirrored, out of the mouth)",
+		"fire_belch_sheet",
+		Vector2(l_att_x + MOUTH_FWD_PX, l_floor - MOUTH_UP_PX),
+		"front", false)
+	var ticks := 0
+	while scene.phase == scene.Phase.METH_CINEMATIC and ticks < 220:
+		await physics_frame
+		ticks += 1
+	_check("FB(R) the corrected-prop sequence still completes",
+		p1.data.id == "whiskey_richard" and ticks >= 100,
+		"ticks=%d" % ticks)
 	scene.queue_free()
 	await _step(2)
 

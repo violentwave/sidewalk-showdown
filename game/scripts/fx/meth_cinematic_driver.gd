@@ -51,44 +51,61 @@ const SHAKE_BIG: Array[int] = [4, 3, 2, 1, -1, -2, -3, -4]
 
 # Prop table — mirrors art/source/FX/meth_props/props_manifest.json (and
 # the fire belch row of fx_manifest.json); art/tools/prepare_fx.sh validates
-# the PNGs against those manifests. z is relative to the fighters' 0/1 slots:
-# back layers sit behind the victim, front masks cover them.
+# the PNGs against those manifests.
+#
+# Draw order is BY LAYER, not by z hack: "back" props (everything the
+# storyboards draw BEHIND a fighter) live on a dedicated back root that is
+# inserted in MatchRoot's tree order BETWEEN the stage and the fighters —
+# negative z_index would push them behind the entire opaque stage, which is
+# exactly the "invisible plank/sewer/fumes" review bug. "front" props
+# (masks covering the victim, the fire cone) live on a front root appended
+# AFTER the fighters, with z above the fighters' 0/1 slots. Inside a layer,
+# the table order below is the draw order (sewer under the plank, fumes over
+# the sewer, plank over the fumes' floor, sign base over the plank).
+#
+# `mirror: true` marks sheets drawn facing right whose anchor must mirror
+# with the attacker's facing (offset AND flip_h together — a flipped
+# Sprite2D mirrors its region inside the rect, so the anchor x becomes
+# cell_w - anchor.x or the sprite lands one cell-width off target).
 const PROPS := {
-	"plank_base": {
-		"path": "res://art/fx/plank_base.png", "frames": 1,
-		"anchor": Vector2(8, 27), "z": -4,
-	},
-	"plank_snap_sheet": {
-		"path": "res://art/fx/plank_snap_sheet.png", "frames": 7,
-		"anchor": Vector2(48, 27), "z": -4,
-	},
 	"sewer_open_sheet": {
 		"path": "res://art/fx/sewer_open_sheet.png", "frames": 7,
-		"anchor": Vector2(48, 46), "z": -5,
-	},
-	"water_drop_mask_sheet": {
-		"path": "res://art/fx/water_drop_mask_sheet.png", "frames": 7,
-		"anchor": Vector2(48, 46), "z": 5,
+		"anchor": Vector2(48, 46), "layer": "back", "mirror": false,
 	},
 	"whiskey_fumes_sheet": {
 		"path": "res://art/fx/whiskey_fumes_sheet.png", "frames": 7,
-		"anchor": Vector2(10, 70), "z": -6,
+		"anchor": Vector2(10, 70), "layer": "back", "mirror": true,
+	},
+	"plank_base": {
+		"path": "res://art/fx/plank_base.png", "frames": 1,
+		"anchor": Vector2(8, 27), "layer": "back", "mirror": false,
+	},
+	"plank_snap_sheet": {
+		"path": "res://art/fx/plank_snap_sheet.png", "frames": 7,
+		"anchor": Vector2(48, 27), "layer": "back", "mirror": false,
 	},
 	"fictional_bar_sign_base": {
 		"path": "res://art/fx/fictional_bar_sign_base.png", "frames": 1,
-		"anchor": Vector2(48, 26), "z": -5,
+		"anchor": Vector2(48, 26), "layer": "back", "mirror": false,
 	},
 	"bar_sign_shatter_back_sheet": {
 		"path": "res://art/fx/bar_sign_shatter_back_sheet.png", "frames": 7,
-		"anchor": Vector2(48, 26), "z": -5,
+		"anchor": Vector2(48, 26), "layer": "back", "mirror": false,
+	},
+	"water_drop_mask_sheet": {
+		"path": "res://art/fx/water_drop_mask_sheet.png", "frames": 7,
+		"anchor": Vector2(48, 46), "layer": "front", "mirror": false,
 	},
 	"bar_sign_shatter_front_sheet": {
 		"path": "res://art/fx/bar_sign_shatter_front_sheet.png", "frames": 7,
-		"anchor": Vector2(48, 26), "z": 5,
+		"anchor": Vector2(48, 26), "layer": "front", "mirror": false,
 	},
 	"fire_belch_sheet": {
+		# Mouth point per fx_manifest: near the cell's left edge, drawn
+		# facing right; comes straight out of Richard's mouth, no rotation,
+		# no scaling, above the victim and the fumes.
 		"path": "res://art/fx/fire_belch_sheet.png", "frames": 7,
-		"anchor": Vector2(12, 40), "z": 4,
+		"anchor": Vector2(3, 36), "layer": "front", "mirror": true,
 	},
 }
 
@@ -97,6 +114,13 @@ const PROPS := {
 const BELCH_PUSH_PX := 56.0
 const SIGN_AHEAD_PX := 8.0
 const SIGN_HANG_Y := -60.0
+# Richard's mouth and the raised bottle during the drench, as offsets from
+# the attacker root along the facing (front of face). Estimates from the
+# neutral/heavy active cels; the review strips tune these.
+const MOUTH_FWD_PX := 10.0
+const MOUTH_UP_PX := 50.0
+const FUME_FWD_PX := 10.0
+const FUME_UP_PX := 54.0
 # Walk the Plank: how far the victim sinks below the rim line once the
 # front water mask owns the opening (fully behind the 64px mask cell).
 const PLANK_SINK_MAX_PX := 16.0
@@ -118,7 +142,10 @@ var training_snapshot: Dictionary = {}
 var attacker: FighterBase
 var victim: FighterBase
 var meth_move: MoveData
-var _cinematic_root: Node2D
+# Prop roots (see _build_presentation): back = between stage and fighters,
+# front = after the fighters, above their 0/1 z slots.
+var _back_root: Node2D
+var _front_root: Node2D
 var _props: Dictionary = {}
 var _overlay: Array[Control] = []
 var _tex_cache: Dictionary = {}
@@ -181,9 +208,12 @@ func tick(root: Node) -> void:
 # training skip). Frees props/overlay, unholds both machines, clears
 # buffers and the deferred hitstop, and hands the HUD back.
 func end_presentation(root: Node) -> void:
-	if _cinematic_root != null:
-		_cinematic_root.queue_free()
-		_cinematic_root = null
+	if _back_root != null:
+		_back_root.queue_free()
+		_back_root = null
+	if _front_root != null:
+		_front_root.queue_free()
+		_front_root = null
 	_props.clear()
 	for overlay_node in _overlay:
 		overlay_node.queue_free()
@@ -313,11 +343,22 @@ func load_state(root: Node, data: Dictionary) -> void:
 # ---------------- presentation build ----------------
 
 func _build_presentation(root: Node, reshow_banner := false) -> void:
-	_cinematic_root = Node2D.new()
-	root.add_child(_cinematic_root)
+	# Two world-space prop roots, ordered BY TREE POSITION (the review bug:
+	# negative z_index on a late sibling draws behind the whole opaque
+	# stage, so "back" props vanished):
+	#   _back_root  — inserted in MatchRoot's child order right after the
+	#                 stage: back props draw over the stage, under the
+	#                 fighters ("sewer behind the victim", plank under him).
+	#   _front_root — appended after the fighters: front masks draw over
+	#                 the victim; its children sit at z 5/6, above the
+	#                 fighters' 0/1 slots.
+	_back_root = Node2D.new()
+	root.add_child(_back_root)
+	root.move_child(_back_root, root.stage.get_index() + 1)
+	_front_root = Node2D.new()
+	root.add_child(_front_root)
 	_props.clear()
-	var ids: Array = _prop_ids()
-	for id in ids:
+	for id: String in PROPS:
 		_props[id] = _make_prop(id)
 	# Dim + letterbox live on the FX CanvasLayer (above the world, below
 	# the HUD's banner) for the whole sequence.
@@ -354,30 +395,45 @@ func _build_presentation(root: Node, reshow_banner := false) -> void:
 		anim.freeze_ambient = true
 
 
-func _prop_ids() -> Array:
-	if seq == SEQ_WALK_THE_PLANK:
-		return ["plank_base", "plank_snap_sheet", "sewer_open_sheet",
-			"water_drop_mask_sheet"]
-	return ["whiskey_fumes_sheet", "fictional_bar_sign_base",
-		"bar_sign_shatter_back_sheet", "bar_sign_shatter_front_sheet",
-		"fire_belch_sheet"]
-
-
 func _make_prop(id: String) -> Sprite2D:
 	var prop: Dictionary = PROPS[id]
 	var sprite := Sprite2D.new()
 	sprite.texture = _texture(str(prop["path"]))
 	sprite.hframes = int(prop["frames"])
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	# Anchor convention shared with the fighter clip renderer: with
-	# centered=false and offset=-anchor, node.position IS the manifest's
-	# anchor point on screen. Native pixels, never scaled.
 	sprite.centered = false
-	sprite.offset = -prop["anchor"]
-	sprite.z_index = int(prop["z"])
+	# Anchor convention shared with the fighter clip renderer: with
+	# centered=false, node.position IS the manifest's anchor point on
+	# screen. A mirrored sheet must mirror the ANCHOR too: flip_h mirrors
+	# the cel inside its own rect, so the anchor's x becomes cell_w - x or
+	# the sprite lands one cell-width off target (the misplaced fire cone).
+	var anchor: Vector2 = prop["anchor"]
+	var mirrored := bool(prop["mirror"]) and cap_att_facing < 0
+	_apply_prop_anchor(sprite, anchor, mirrored)
 	sprite.visible = false
-	_cinematic_root.add_child(sprite)
+	if str(prop["layer"]) == "front":
+		sprite.z_index = 5 if id != "fire_belch_sheet" else 6
+		_front_root.add_child(sprite)
+	else:
+		sprite.z_index = 0
+		_back_root.add_child(sprite)
 	return sprite
+
+
+# Anchor math, isolated so tests can reuse it: with centered=false the
+# drawn cel's top-left sits at position+offset, so the anchor pixel lands
+# exactly on node.position when offset = -anchor (unmirrored) or
+# -(cell_w - anchor.x) horizontally when the cel is flipped.
+func _apply_prop_anchor(sprite: Sprite2D, anchor: Vector2, mirrored: bool) -> void:
+	var cell_w := 0.0
+	if sprite.texture != null and sprite.hframes > 0:
+		cell_w = sprite.texture.get_width() / float(sprite.hframes)
+	if mirrored:
+		sprite.offset = Vector2(-(cell_w - anchor.x), -anchor.y)
+		sprite.flip_h = true
+	else:
+		sprite.offset = -anchor
+		sprite.flip_h = false
 
 
 func _texture(path: String) -> Texture2D:
@@ -532,15 +588,23 @@ func _apply_flaming_belch() -> void:
 	fumes.visible = f >= 30
 	if fumes.visible:
 		fumes.frame = mini((f - 30) / 3, 6)
-		fumes.position = Vector2(_att_x() + float(cap_att_facing) * 10.0,
-			floor_y - 44.0)
+		# Anchor = bottle mouth (manifest [10,70]): the raised bottle during
+		# the drench; the sheet grows up-right, mirrored with facing at
+		# build time. Holds its last frame through the ignite beat.
+		fumes.position = Vector2(
+			_att_x() + float(cap_att_facing) * FUME_FWD_PX,
+			floor_y - FUME_UP_PX)
 	var fire: Sprite2D = _props["fire_belch_sheet"]
 	fire.visible = f >= 90 and f < 134
 	if fire.visible:
 		fire.frame = mini((f - 90) / 2, 6)
-		fire.flip_h = cap_att_facing < 0
-		fire.position = Vector2(_att_x() + float(cap_att_facing) * 16.0,
-			floor_y - 42.0)
+		# Anchor = the mouth point (manifest [3,36]): straight out of
+		# Richard's mouth toward the victim, no rotation, no scaling, above
+		# the victim and the fumes (front root, z 6). Mirroring (offset +
+		# flip_h together) was fixed at build time.
+		fire.position = Vector2(
+			_att_x() + float(cap_att_facing) * MOUTH_FWD_PX,
+			floor_y - MOUTH_UP_PX)
 	# The sign hangs ahead of the victim's landing spot, pair-anchored.
 	var sign_x := _vic_x() + push_dir * (BELCH_PUSH_PX + SIGN_AHEAD_PX)
 	var sign_y := floor_y + SIGN_HANG_Y
@@ -571,8 +635,10 @@ func _apply_shake() -> void:
 	else:
 		offsets = _shake_at([[90, SHAKE_SMALL], [150, SHAKE_SMALL]])
 	var off := Vector2(float(offsets[0]) if not offsets.is_empty() else 0.0, 0.0)
-	if _cinematic_root != null:
-		_cinematic_root.position = off
+	if _back_root != null:
+		_back_root.position = off
+	if _front_root != null:
+		_front_root.position = off
 	for f: FighterBase in [attacker, victim]:
 		if f != null:
 			f.visual_root.position = off
@@ -650,3 +716,35 @@ func prop_frame(id: String) -> int:
 func prop_scale(id: String) -> Vector2:
 	var sprite: Sprite2D = _props.get(id, null)
 	return sprite.scale if sprite != null else Vector2.ONE
+
+
+# --- numeric visibility checks (meth_cinematic_test) --------------------------
+
+func prop_sprite(id: String) -> Sprite2D:
+	return _props.get(id, null)
+
+
+# "back" props draw between the stage and the fighters (tree order), never
+# behind the stage; "front" props draw above the fighters.
+func prop_layer(id: String) -> String:
+	var prop: Dictionary = PROPS.get(id, {})
+	return str(prop.get("layer", "back"))
+
+
+# The world point the prop's manifest anchor currently sits on. With
+# centered=false and the (possibly mirrored) offset convention above, the
+# anchor pixel always lands exactly on the sprite's global position, shake
+# offsets included.
+func prop_anchor_point(id: String) -> Vector2:
+	var sprite: Sprite2D = _props.get(id, null)
+	if sprite == null:
+		return Vector2(-9999.0, -9999.0)
+	return sprite.global_position
+
+
+func back_root_index(root: Node) -> int:
+	return _back_root.get_index() if _back_root != null else -1
+
+
+func presentation_roots_cleared() -> bool:
+	return _back_root == null and _front_root == null

@@ -109,21 +109,69 @@ const PROPS := {
 	},
 }
 
-# Flaming Belch staging: how far the belch launches the victim toward the
-# sign, and where the sign hangs relative to the victim's landing spot.
-const BELCH_PUSH_PX := 56.0
-const SIGN_AHEAD_PX := 8.0
-const SIGN_HANG_Y := -60.0
-# Richard's mouth and the raised bottle during the drench, as offsets from
-# the attacker root along the facing (front of face). Estimates from the
-# neutral/heavy active cels; the review strips tune these.
-const MOUTH_FWD_PX := 10.0
-const MOUTH_UP_PX := 50.0
-const FUME_FWD_PX := 10.0
-const FUME_UP_PX := 54.0
-# Walk the Plank: how far the victim sinks below the rim line once the
-# front water mask owns the opening (fully behind the 64px mask cell).
-const PLANK_SINK_MAX_PX := 16.0
+# Flaming Belch staging. From BELCH_LAUNCH_FRAME the victim flies a
+# pixel-snapped ballistic arc away from Richard (up, then down) and lands
+# exactly ARC_FRAMES later. The bar sign hangs on that arc, SIGN_DIST px out
+# at chest/head height; the shatter starts on the frame the victim reaches
+# it (SIGN_HIT_FRAME).
+const BELCH_LAUNCH_FRAME := 120
+const ARC_VX := 1.75
+const ARC_VY0 := 3.6
+const ARC_G := 0.18
+const ARC_FRAMES := 40
+const BELCH_PUSH_PX := 70.0   # landing distance = ARC_VX * ARC_FRAMES
+const SIGN_DIST_PX := 44.0
+const SIGN_HANG_Y := -64.0
+const SIGN_HIT_FRAME := 145
+const SIGN_SHOW_FRAME := 116
+const SHATTER_END_FRAME := 172
+# Measured cel points (pixels from the cel's top-left; drawn facing right):
+# Richard's mouth in the neutral belch cels 1-4 and the bottle mouth in the
+# first `heavy` drench cel (the pour point the fumes start from).
+const NEUTRAL_MOUTH_CEL := {1: Vector2(44, 22), 2: Vector2(44, 19),
+	3: Vector2(44, 18), 4: Vector2(44, 21)}
+const HEAVY_BOTTLE_MOUTH_CEL := Vector2(68, 26)
+# Fire cone: 7 frames over the ignite beat; the fumes ignite (flash) as it
+# reaches them and are consumed shortly after.
+const FIRE_START_FRAME := 97
+const FIRE_TICKS_PER_FRAME := 3
+const IGNITE_FLASH_FRAME := 103
+const IGNITE_FLASH_LEN := 9
+const FUMES_END_FRAME := 114
+const IGNITE_TINT := Color(1.0, 0.55, 0.15)
+# Walk the Plank: the victim drops into the opening from DROP_FRAME under
+# PLANK_DROP_G (px/frame^2), clipped below the front-rim arc (a shader
+# discard — no per-frame image work). The arc sags RIM_DEPTH below the floor
+# line at the centre and meets it RIM_HALF_W out (measured from
+# water_drop_mask_sheet's front rim).
+const DROP_FRAME := 108
+const PLANK_DROP_G := 0.075
+const RIM_DEPTH := 12.0
+const RIM_HALF_W := 37.0
+const PLANK_APPEAR_FRAME := 54
+const SPLASH_FRAME := 124
+# The METHTALITY banner centres for the opening hold, then rides the top
+# band (below the 8px letterbox) so nothing in the action sits under it.
+const BANNER_TOP_Y := 10.0
+const BANNER_MOVE_FRAMES := 12
+const CLIP_SHADER := """
+shader_type canvas_item;
+uniform float clip_on = 0.0;
+uniform vec4 rim = vec4(0.0, 0.0, 37.0, 12.0);
+varying vec2 world_pos;
+void vertex() {
+	world_pos = (MODEL_MATRIX * vec4(VERTEX, 0.0, 1.0)).xy;
+}
+void fragment() {
+	if (clip_on > 0.5) {
+		float dx = (world_pos.x - rim.x) / rim.z;
+		float rim_y = rim.y + (abs(dx) < 1.0 ? rim.w * (1.0 - dx * dx) : 0.0);
+		if (world_pos.y > rim_y) {
+			discard;
+		}
+	}
+}
+"""
 
 # --- serialized state ----------------------------------------------------------
 var active := false
@@ -150,6 +198,9 @@ var _props: Dictionary = {}
 var _overlay: Array[Control] = []
 var _tex_cache: Dictionary = {}
 var _prev_freeze_ambient := false
+var _clip_material: ShaderMaterial
+var _flash: ColorRect
+var _shake_off := Vector2.ZERO
 # Last applied clip keys (test introspection only).
 var _att_pose_key := ""
 var _vic_pose_key := ""
@@ -218,6 +269,13 @@ func end_presentation(root: Node) -> void:
 	for overlay_node in _overlay:
 		overlay_node.queue_free()
 	_overlay.clear()
+	_flash = null
+	if victim != null and is_instance_valid(victim) and victim.idle_sprite != null:
+		victim.idle_sprite.material = null
+	_clip_material = null
+	root.hud.banner_plate.position.y = MatchHUD.BANNER_POS.y
+	if victim != null and is_instance_valid(victim) and victim.position.y > floor_y:
+		victim.position.y = floor_y
 	for f: FighterBase in [root.p1, root.p2]:
 		f.cinematic_hold = false
 		f.clear_cinematic_pose()
@@ -360,6 +418,14 @@ func _build_presentation(root: Node, reshow_banner := false) -> void:
 	_props.clear()
 	for id: String in PROPS:
 		_props[id] = _make_prop(id)
+	# The victim's art is clipped by a single reusable shader material (the
+	# Walk the Plank rim); parameters change per frame, nothing is allocated.
+	var shader := Shader.new()
+	shader.code = CLIP_SHADER
+	_clip_material = ShaderMaterial.new()
+	_clip_material.shader = shader
+	if victim != null and victim.idle_sprite != null:
+		victim.idle_sprite.material = _clip_material
 	# Dim + letterbox live on the FX CanvasLayer (above the world, below
 	# the HUD's banner) for the whole sequence.
 	var fx: FxLayer = root.fx
@@ -371,6 +437,16 @@ func _build_presentation(root: Node, reshow_banner := false) -> void:
 		dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		fx.add_child(dim)
 		_overlay.append(dim)
+		# Ignition tint (Flaming Belch): a warm full-screen flash whose
+		# alpha is a pure function of the sequence frame.
+		_flash = ColorRect.new()
+		_flash.color = Color(IGNITE_TINT.r, IGNITE_TINT.g, IGNITE_TINT.b, 0.0)
+		_flash.position = Vector2.ZERO
+		_flash.size = Vector2(VIEW_W, VIEW_H)
+		_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_flash.visible = false
+		fx.add_child(_flash)
+		_overlay.append(_flash)
 		for top in [true, false]:
 			var bar := ColorRect.new()
 			bar.color = Color.BLACK
@@ -453,6 +529,45 @@ func _apply(root: Node) -> void:
 	else:
 		_apply_flaming_belch()
 	_apply_shake()
+	_update_clip()
+	_apply_banner(root)
+
+
+# The METHTALITY banner stays centred through the opening hold, then slides
+# up into the top band so it never sits over the action.
+func _apply_banner(root: Node) -> void:
+	var t := clampf(float(frame - OPENING_HOLD) / float(BANNER_MOVE_FRAMES), 0.0, 1.0)
+	if frame >= OPENING_HOLD:
+		root.hud.banner_plate.position.y = roundf(
+			lerpf(MatchHUD.BANNER_POS.y, BANNER_TOP_Y, t))
+
+
+# Rim clip for the victim's art (Walk the Plank only). The rim is expressed
+# in the same shaken canvas space as the front mask prop.
+func _update_clip() -> void:
+	if _clip_material == null:
+		return
+	var on := seq == SEQ_WALK_THE_PLANK and frame >= DROP_FRAME
+	_clip_material.set_shader_parameter("clip_on", 1.0 if on else 0.0)
+	_clip_material.set_shader_parameter("rim", Vector4(
+		_vic_x() + _shake_off.x, floor_y + _shake_off.y, RIM_HALF_W, RIM_DEPTH))
+
+
+# World point of a cel pixel (measured from the cel's top-left, drawn facing
+# right) of `clip_key` on fighter `f`: mirrors the fighter renderer's own
+# transform (offset = -anchor, flip_h mirroring inside the cel rect, scale
+# derived from the displayed clip's scale and the two clips' h_ref).
+func _clip_point_world(f: FighterBase, clip_key: String, p: Vector2) -> Vector2:
+	var clip: Dictionary = f.cinematic_clip(clip_key)
+	var cur: Dictionary = f.cinematic_clip(_att_pose_key if f == attacker else _vic_pose_key)
+	if clip.is_empty() or cur.is_empty():
+		return f.position
+	var tex := _texture(str(clip.path))
+	var cell_w: float = tex.get_width() / float(int(clip.frames)) if tex != null else 64.0
+	var s: float = f.idle_sprite.scale.x * float(cur.h_ref) / float(clip.h_ref)
+	var anchor: Vector2 = clip.anchor
+	var lx := (cell_w - p.x) if f.facing < 0 else p.x
+	return f.position + Vector2((-anchor.x + lx) * s, (-anchor.y + p.y) * s)
 
 
 # Anchors after the one-group clamp: the whole composition (fighters and
@@ -508,24 +623,28 @@ func _apply_walk_the_plank() -> void:
 	var vic_y := floor_y
 	if f < 45:
 		_set_pose(victim, "hitstun_stand", 0 if f < OPENING_HOLD else 2)
-	elif f < 120:
+	elif f < DROP_FRAME:
 		_set_pose(victim, "knockdown",
-			0 if f < 60 else (1 if f < 90 else 3))
-	elif f < 150:
-		# ko_air tumbles into the opening
-		_set_pose(victim, "ko_air", (f - 120) / 10)
-		vic_y = floor_y - 8.0 + float(f - 120) * (8.0 / 30.0)
+			0 if f < 48 else (1 if f < 54 else (2 if f < 60 else 3)))
 	else:
-		# below the rim: the front water mask (z +5) owns the opening and
-		# covers the sinking silhouette.
-		_set_pose(victim, "ko_ground", 2)
-		vic_y = floor_y + minf(float(f - 150) * 0.8, PLANK_SINK_MAX_PX)
+		# The stomp snaps the plank and the victim drops DOWN into the
+		# opening, feet first, centred on the sewer anchor, under gravity
+		# (pixel-snapped). Everything below the front-rim arc is clipped by
+		# the victim sprite's rim shader; by ~f160 the whole sprite rect is
+		# beneath the rim.
+		var t := float(f - DROP_FRAME)
+		_set_pose(victim, "knockdown" if f < DROP_FRAME + 4 else "ko_air",
+			2 if f < DROP_FRAME + 4 else (0 if f < DROP_FRAME + 20 else 2))
+		vic_y = floor_y + roundf(0.5 * PLANK_DROP_G * t * t)
 	_place(victim, Vector2(_vic_x(), vic_y), cap_vic_facing)
 	# --- props (anchored to the pair, frames are pure functions of f) ---
+	# The plank is brought in only as the victim lands on it (f45): a short
+	# slide from the attacker's side, never under the standing victim.
 	var plank: Sprite2D = _props["plank_base"]
-	plank.visible = f >= 30
+	plank.visible = f >= PLANK_APPEAR_FRAME and f < 90  # the snap sheet takes over
 	if plank.visible:
-		var slide: float = -20.0 * clampf(float(40 - f) / 10.0, 0.0, 1.0)
+		var slide: float = -24.0 * float(cap_att_facing) * clampf(
+			float(PLANK_APPEAR_FRAME + 8 - f) / 8.0, 0.0, 1.0)
 		plank.position = Vector2(_vic_x() - 44.0 + slide, floor_y)
 	var snap: Sprite2D = _props["plank_snap_sheet"]
 	snap.visible = f >= 90 and f < 111
@@ -538,15 +657,18 @@ func _apply_walk_the_plank() -> void:
 		sewer.frame = mini((f - 96) / 3, 6)
 		sewer.position = Vector2(_vic_x(), floor_y)
 	var water: Sprite2D = _props["water_drop_mask_sheet"]
-	water.visible = f >= 120
+	water.visible = f >= 100
 	if water.visible:
-		water.frame = mini((f - 120) / 2, 6)
+		# Rim only until the victim reaches it, then the splash plays as he
+		# goes under and settles on its last cel.
+		water.frame = 0 if f < SPLASH_FRAME else mini((f - SPLASH_FRAME) / 2, 6)
 		water.position = Vector2(_vic_x(), floor_y)
 
 
 func _apply_flaming_belch() -> void:
 	var f := frame
 	# --- attacker beat map (owner 2026-11-23, existing clips only) ---
+	var neutral_cel := 2
 	if f < OPENING_HOLD:
 		_set_pose(attacker, "neutral", 2)
 	elif f < 60:
@@ -556,72 +678,107 @@ func _apply_flaming_belch() -> void:
 		_set_pose(attacker, "heavy", 2)
 	elif f < 120:
 		# belch/ignite: neutral cels 2-5
-		_set_pose(attacker, "neutral", 1 + mini((f - 90) / 7, 3))
+		neutral_cel = 1 + mini((f - 90) / 7, 3)
+		_set_pose(attacker, "neutral", neutral_cel)
 	elif f < 180:
 		# follow-through: the last neutral cel
 		_set_pose(attacker, "neutral", 5)
 	else:
 		_set_pose(attacker, "win", ((f - 180) / 9) % 4)
 	_place(attacker, Vector2(_att_x(), floor_y), cap_att_facing)
-	# --- victim (existing clips only, masked by props) ---
-	var push_dir := signf(_vic_x() - _att_x()) if _vic_x() != _att_x() \
-		else float(cap_att_facing)
+	# --- victim (existing clips only) ---
+	var push_dir := belch_push_dir()
 	var vic_x := _vic_x()
 	var vic_y := floor_y
-	if f < 120:
+	if f < BELCH_LAUNCH_FRAME:
 		_set_pose(victim, "hitstun_stand",
 			0 if f < OPENING_HOLD else mini((f - 30) / 10, 2))
-	elif f < 150:
-		_set_pose(victim, "ko_air", (f - 120) / 10)
-		vic_x = _vic_x() + push_dir * float(f - 120) * (BELCH_PUSH_PX / 30.0)
-		vic_y = floor_y - 10.0 + float(f - 120) * (10.0 / 30.0)
-	elif f < 160:
-		_set_pose(victim, "ko_air", 2)
-		vic_x = _vic_x() + push_dir * BELCH_PUSH_PX
 	else:
-		# behind the sign mask: the front shards (z +5) cover the landing.
-		_set_pose(victim, "ko_ground", 2 if f >= 180 else 0)
-		vic_x = _vic_x() + push_dir * BELCH_PUSH_PX
+		# Ballistic launch away from Richard: pixel-snapped, up then down,
+		# landing exactly ARC_FRAMES later in ko_ground.
+		var t := mini(f - BELCH_LAUNCH_FRAME, ARC_FRAMES)
+		vic_x = _vic_x() + push_dir * roundf(ARC_VX * float(t))
+		vic_y = floor_y - roundf(ARC_VY0 * float(t) - 0.5 * ARC_G * float(t) * float(t))
+		if f - BELCH_LAUNCH_FRAME < ARC_FRAMES:
+			_set_pose(victim, "ko_air", mini((f - BELCH_LAUNCH_FRAME) / 10, 2))
+		else:
+			_set_pose(victim, "ko_ground",
+				mini((f - BELCH_LAUNCH_FRAME - ARC_FRAMES) / 12, 2))
 	_place(victim, Vector2(vic_x, vic_y), cap_vic_facing)
 	# --- props ---
+	# Fumes: the anchor (manifest [10,70], bottle mouth) sits at the bottle
+	# mouth of Richard's first drench cel — the pour point — and the cloud
+	# billows across the pair at head/torso height, mirrored with facing.
+	# It holds its last frame until the belch ignites it, then is consumed.
 	var fumes: Sprite2D = _props["whiskey_fumes_sheet"]
-	fumes.visible = f >= 30
+	fumes.visible = f >= 30 and f < FUMES_END_FRAME
 	if fumes.visible:
 		fumes.frame = mini((f - 30) / 3, 6)
-		# Anchor = bottle mouth (manifest [10,70]): the raised bottle during
-		# the drench; the sheet grows up-right, mirrored with facing at
-		# build time. Holds its last frame through the ignite beat.
-		fumes.position = Vector2(
-			_att_x() + float(cap_att_facing) * FUME_FWD_PX,
-			floor_y - FUME_UP_PX)
+		fumes.position = fume_anchor_point()
+	# Fire cone: 7 frames over the ignite beat from the mouth point of the
+	# current belch cel (manifest [3,36]), full size, no rotation, no scale,
+	# in the front root (above both fighters and the fumes).
 	var fire: Sprite2D = _props["fire_belch_sheet"]
-	fire.visible = f >= 90 and f < 134
+	var fire_frame := (f - FIRE_START_FRAME) / FIRE_TICKS_PER_FRAME
+	fire.visible = f >= FIRE_START_FRAME and fire_frame <= 6
 	if fire.visible:
-		fire.frame = mini((f - 90) / 2, 6)
-		# Anchor = the mouth point (manifest [3,36]): straight out of
-		# Richard's mouth toward the victim, no rotation, no scaling, above
-		# the victim and the fumes (front root, z 6). Mirroring (offset +
-		# flip_h together) was fixed at build time.
-		fire.position = Vector2(
-			_att_x() + float(cap_att_facing) * MOUTH_FWD_PX,
-			floor_y - MOUTH_UP_PX)
-	# The sign hangs ahead of the victim's landing spot, pair-anchored.
-	var sign_x := _vic_x() + push_dir * (BELCH_PUSH_PX + SIGN_AHEAD_PX)
-	var sign_y := floor_y + SIGN_HANG_Y
+		fire.frame = fire_frame
+		fire.position = mouth_point(clampi(neutral_cel, 1, 4))
+	# The ignition flash as the cone reaches the fumes.
+	if _flash != null:
+		var ft := f - IGNITE_FLASH_FRAME
+		_flash.visible = ft >= 0 and ft < IGNITE_FLASH_LEN
+		if _flash.visible:
+			_flash.color.a = 0.4 * (1.0 - float(ft) / float(IGNITE_FLASH_LEN))
+	# The sign hangs on the victim's arc at chest/head height; the shatter
+	# starts on the frame he reaches it. Back shards draw behind him, front
+	# shards in front.
+	var sign_pos := sign_point()
 	var sign: Sprite2D = _props["fictional_bar_sign_base"]
-	sign.visible = f >= 120 and f < 150
+	sign.visible = f >= SIGN_SHOW_FRAME and f < SIGN_HIT_FRAME
 	if sign.visible:
-		sign.position = Vector2(sign_x, sign_y)
+		sign.position = sign_pos
+	var shatter := f >= SIGN_HIT_FRAME and f < SHATTER_END_FRAME
 	var back: Sprite2D = _props["bar_sign_shatter_back_sheet"]
-	back.visible = f >= 150
-	if back.visible:
-		back.frame = mini((f - 150) / 2, 6)
-		back.position = Vector2(sign_x, sign_y)
+	back.visible = shatter
 	var front: Sprite2D = _props["bar_sign_shatter_front_sheet"]
-	front.visible = f >= 150
-	if front.visible:
-		front.frame = mini((f - 150) / 2, 6)
-		front.position = Vector2(sign_x, sign_y)
+	front.visible = shatter
+	if shatter:
+		var sf := mini((f - SIGN_HIT_FRAME) / 2, 6)
+		back.frame = sf
+		back.position = sign_pos
+		front.frame = sf
+		front.position = sign_pos
+
+
+# --- Flaming Belch geometry (also used by the test suite) ----------------------
+
+func belch_push_dir() -> float:
+	return signf(cap_vic_pos.x - cap_att_pos.x) \
+		if cap_vic_pos.x != cap_att_pos.x else float(cap_att_facing)
+
+
+# Richard's mouth in the given neutral cel, in world space.
+func mouth_point(neutral_cel: int) -> Vector2:
+	return _clip_point_world(attacker, "neutral",
+		NEUTRAL_MOUTH_CEL[clampi(neutral_cel, 1, 4)])
+
+
+# The fume emission point: the bottle mouth of the first drench cel.
+func fume_anchor_point() -> Vector2:
+	return _clip_point_world(attacker, "heavy", HEAVY_BOTTLE_MOUTH_CEL)
+
+
+# The sign's anchor: on the victim's arc, chest/head height.
+func sign_point() -> Vector2:
+	return Vector2(_vic_x() + belch_push_dir() * SIGN_DIST_PX, floor_y + SIGN_HANG_Y)
+
+
+# The victim's arc position at launch tick t (pure function; mirrors _apply).
+func arc_point(t: int) -> Vector2:
+	var tt := float(clampi(t, 0, ARC_FRAMES))
+	return Vector2(_vic_x() + belch_push_dir() * roundf(ARC_VX * tt),
+		floor_y - roundf(ARC_VY0 * tt - 0.5 * ARC_G * tt * tt))
 
 
 # Presentation-only shake on the prop group and both fighters' visual roots
@@ -635,6 +792,7 @@ func _apply_shake() -> void:
 	else:
 		offsets = _shake_at([[90, SHAKE_SMALL], [150, SHAKE_SMALL]])
 	var off := Vector2(float(offsets[0]) if not offsets.is_empty() else 0.0, 0.0)
+	_shake_off = off
 	if _back_root != null:
 		_back_root.position = off
 	if _front_root != null:
@@ -667,9 +825,12 @@ func _composition_bounds() -> Vector2:
 	else:
 		var push_dir := signf(cap_vic_pos.x - cap_att_pos.x) \
 			if cap_vic_pos.x != cap_att_pos.x else float(cap_att_facing)
-		var sign_x := cap_vic_pos.x + push_dir * (BELCH_PUSH_PX + SIGN_AHEAD_PX)
+		var sign_x := cap_vic_pos.x + push_dir * SIGN_DIST_PX
 		hi = maxf(hi, sign_x + 48.0)
 		lo = minf(lo, sign_x - 48.0)
+		var land_x := cap_vic_pos.x + push_dir * BELCH_PUSH_PX
+		hi = maxf(hi, land_x + 33.0)
+		lo = minf(lo, land_x - 33.0)
 	return Vector2(lo, hi)
 
 

@@ -813,9 +813,39 @@ untouched.
     visibility checks (sprite + texture + ordered layer + anchor within
     3px + viewport + mirroring, both facings) FAIL on the pre-fix
     driver and pin the contract.
+- **Pass-2 choreography contract (PM frame-by-frame review, 2026-11-23):**
+  - *Walk the Plank:* the plank slides in at f54 as the victim lands (never
+    under the standing victim) and hands over to the snap sheet at f90. From
+    the stomp (f108) the victim drops feet-first under gravity
+    (`y = floor + round(0.5*0.075*t^2)`), centred on the sewer anchor; a
+    `canvas_item` shader on his sprite (one reusable `ShaderMaterial`,
+    parameters only per frame) discards every pixel below the front-rim arc
+    (`y > floor + 12*(1-(dx/37)^2)`, measured from `water_drop_mask_sheet`),
+    so by f160 the whole sprite is below the rim. The splash plays from f124
+    as he goes under and settles; the open sewer stays to the end; Peggy
+    plays `win` from f168.
+  - *Flaming Belch:* the fire cone's mouth point (3,36) sits on Richard's
+    measured mouth in the `neutral` belch cels (cel points 44,22/19/18/21,
+    transformed through the fighter's own sprite offset/flip/scale), mirrored
+    with the anchor, full size, in the front root above both fighters and the
+    fumes, stepping all 7 frames over f97-117. The fumes' anchor (10,70) sits
+    on the bottle mouth of the first `heavy` drench cel (68,26, the pour
+    point), mirrored with facing, holding frame 7 until the belch hits them
+    (warm tint flash f103-111) and consumed at f114. From f120 the victim
+    flies a pixel-snapped ballistic arc away from Richard (vx 1.75, vy0 3.6,
+    g 0.18: peak 36px, lands f160 in `ko_ground`, clamped with the prop
+    group); the sign hangs on that arc 44px out at chest/head height and the
+    shatter starts on the frame he reaches it (f145): back shards behind him,
+    front shards in front, gone by f172.
+  - *Banner:* centred through the 30f hold, then moved into the top band
+    (y 10, below the 8px letterbox) over 12 frames so it never overlaps a
+    fighter.
+  - *Capture tooling:* `meth_capture.gd` pauses the tree during each grab
+    (the old strips drifted up to ~6 frames per grab) and takes optional
+    `<step> <start>` arguments for close-up review frames.
 - **Tests:** `fx_events_test` (46 checks) and `meth_cinematic_test`
-  (158 checks — the visual-review fix pass added the per-beat numeric prop
-  visibility/anchor/mirroring checks) pin the whole contract;
+  (187 checks — pass 1 added the per-beat numeric prop
+  visibility/anchor/mirroring checks; pass 2 added the per-frame contract: drop + rim clip, plank timing, cone/fume anchors, launch arc + sign shatter, banner clearance, both facings) pin the whole contract;
   `combo_adversarial_test`'s A2
   METH ruling now asserts the cinematic hold (no hitstun → no break, no
   ghost pair) and `training_test`'s landed-METH check pins the training

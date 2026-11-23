@@ -262,20 +262,45 @@ that section by hand afterward — the simulation step comes from
 
 ## Deliberate gaps (next phases)
 
-- **METH cinematic visual review (fixed 2026-11-23; strips pending owner
-  sign-off).** The owner's visual review of PR #102's captures found the
-  Walk-the-Plank stomp beat showing **no plank, snap, or sewer** and the
-  Flaming Belch cone **floating, angled and offset** with no visible
-  fumes. Root causes: "behind the victim" props carried negative
-  `z_index` on a late sibling, sorting behind the entire opaque stage;
-  the fire cone's anchor was wrong (12,40 vs the manifest mouth point
-  3,36) and its `flip_h` was applied without mirroring the offset, which
-  displaces a `centered=false` sprite by one cell width. Shipped fix:
-  ordered back/front prop roots (back = between the stage and the
-  fighters in tree order), manifest-exact anchors with mirrored-offset
-  math, fume/fire staging constants; pinned by `meth_cinematic_test`'s
-  numeric prop visibility checks (158 checks now), which fail on the
-  pre-fix driver. Review strips for the owner/PM:
+- **METH cinematic visual review (two fix passes, 2026-11-23; strips pending
+  owner/PM sign-off).** Pass 1 (props invisible / cone misplaced): "behind the
+  victim" props carried negative `z_index` on a late sibling, sorting behind
+  the opaque stage, and the fire cone's anchor/mirroring was wrong; fixed with
+  ordered back/front prop roots and manifest-exact mirrored anchors. Pass 2
+  (the PM's frame-by-frame review of pass 1's strips) found seven more bugs,
+  all fixed in `meth_cinematic_driver.gd` with no gameplay/damage/meter
+  change and the 210-frame length intact: (1) Walk the Plank's victim popped
+  UP at f126 and lay on the hole from f162 — he now drops feet-first from the
+  stomp (f108) under gravity, centred on the sewer anchor, and a reusable
+  `canvas_item` shader on his sprite discards every pixel below the
+  front-rim arc (12px sag, 37px half-width, measured from
+  `water_drop_mask_sheet`; no per-frame image work), fully gone by f160; the
+  splash plays as he goes under (f124) and settles with the open sewer to
+  the end; (2) the plank is no longer under the standing victim (f36) — it
+  slides in at f54 as he lands and hands over to the snap sheet at f90;
+  (3) the fire cone's mouth anchor now follows Richard's measured mouth in
+  each `neutral` belch cel (via the fighter's real sprite transform,
+  mirrored with facing), full size, drawn above both fighters and the fumes,
+  stepping all 7 frames over f97-117; (4) the fumes anchor is Richard's
+  measured bottle mouth in the first `heavy` drench cel (the pour point,
+  mirrored), billowing across the pair, holding frame 7 until the belch
+  ignites them (warm tint flash f103-111), then consumed at f114; (5) the
+  victim is now launched on a pixel-snapped ballistic arc (peak 36px, lands
+  f160 in `ko_ground`), passing through the bar sign hung on that arc at
+  chest/head height — the shatter starts on the frame he reaches it (f145),
+  back shards behind him, front in front; (6) the METHTALITY banner centres
+  for the opening hold and then rides the top band (y 10-42) so it never
+  covers a fighter; (7) all props/FX re-audited for attacker LEFT and RIGHT
+  (near the right wall). Pinned by `meth_cinematic_test` (187 checks; 34 of
+  them fail on the pass-1 head). Also fixed: `meth_capture.gd` labelled strip
+  frames drifted by up to ~6 sim frames per grab (physics kept ticking
+  during the draw wait) — it now pauses the tree around each grab, so the
+  strip labels are exact. Residual: after the sequence the ordinary KO flow
+  restores the victim's art, so the KO'd victim reappears at the sewer
+  (presentation-only; the damage/KO state is unchanged). The fume sheet is
+  authored as a rising arc from its anchor, so with the anchor at the bottle
+  (chin height) most of the cloud sits at head height and above rather than
+  down at the torso. Review strips:
   `docs/assets/fx_meth/walk_the_plank{,_mirrored}_strip.png`,
   `flaming_belch{,_mirrored}_strip.png`; README key-beat stills
   regenerated. Contact-beat hit sparks are deliberately absent (the FX
@@ -730,7 +755,7 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   startup-attached whoosh/trail; landing/knockdown/wall dust with the
   one-shot wall latch; hitstop/pause freezing; and serialize() identical
   with FX spawning on vs off.
-- `game/tests/meth_cinematic_test.gd` — **158 checks** (Phase C, METH
+- `game/tests/meth_cinematic_test.gd` — **187 checks** (Phase C, METH
   cinematic): whiff/block/below-full-meter gates; the exact 210-frame
   Walk the Plank and Flaming Belch beat maps (clips and props per frame);
   both finishers, both stages, both facing sides; wall-clamped,

@@ -15,6 +15,8 @@
 #   *_strip            — 12 raw frames (f0..f198 step 18) of the sequence,
 #                        attacker on the LEFT, for the review strips.
 #   *_strip_mirrored   — same, attacker on the RIGHT near the right wall.
+#   Optional extra args after the mode: <step> <start> (default 18 0) sample
+#   the strip frames at start + i*step for close-up review.
 #
 # The raw strip frames are assembled into the labeled 4x3 review sheets by
 # the caller (see art/tools/meth_strip.sh).
@@ -29,6 +31,8 @@ const STRIP_STEP := 18
 const STRIP_FRAMES := 12
 
 var _mode := "plank"
+var _step := STRIP_STEP
+var _start := 0
 var _scene: Node
 
 func _initialize() -> void:
@@ -36,15 +40,24 @@ func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	if args.size() > 0:
 		_mode = str(args[0])
+	if args.size() > 1:
+		_step = int(args[1])
+	if args.size() > 2:
+		_start = int(args[2])
 	_scene = load("res://scenes/match/MatchRoot.tscn").instantiate()
 	_scene.selected_stage = ROSTER.stages[0]
 	root.add_child(_scene)
 	_run.call_deferred()
 
 func _grab(tag: String) -> void:
+	# Pause the tree while the frame renders: physics would otherwise
+	# keep ticking during the draw wait and the labelled frame would drift.
+	paused = true
+	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
 	root.get_texture().get_image().save_png("%s/%s.png" % [OUT, tag])
-	print("saved ", tag)
+	paused = false
+	print("saved ", tag, " driver_frame=", _scene.meth_driver.frame if _scene.meth_driver != null else -1)
 
 # Attacker LEFT (x 120, victim at 150) or RIGHT near the right wall
 # (attacker 250, victim 224 so the whole group exercises the wall clamp).
@@ -95,7 +108,7 @@ func _run() -> void:
 		_prime_pair(attacker, defender, not mirrored)
 		await _await_sequence()
 		for i in STRIP_FRAMES:
-			var target: int = i * STRIP_STEP
+			var target: int = _start + i * _step
 			while _scene.meth_driver.frame < target:
 				await physics_frame
 			await _grab("strip_%s_%02d" % [_mode, i])

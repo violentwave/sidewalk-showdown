@@ -3,14 +3,17 @@
 > **Keep this file current: every PR that changes features, tests, commands, or
 > rules must update PM_BRIEF.md.**
 > Last verified: **2026-11-23**, against `origin/main` at `982d5e3`
-> (PR #99 UI Playtest Fixes) plus this branch's **Phase A FX/METH design**
-> (`docs/FX_AND_METH_DESIGN.md`): owner-approved base fighter palettes stay
-> closed; three FX-only accent colors per fighter and a gated five-batch
-> generation plan are documented. No engine changes or PixelLab jobs have run.
-> The audit contact sheet uses existing runtime clips; two pure palette strips
-> are in `docs/assets/fx_meth/`.
-> Live read-only PixelLab balance: **613/2000 generations, $0.00 credits**
-> (resets 2026-12-13); this PR’s upper estimate including retry margin is 114.
+> (PR #99 UI Playtest Fixes) plus the design/audit history: PR #100's
+> FX/METH design (`docs/FX_AND_METH_DESIGN.md`) and **Phase C — SHIPPED
+> (this branch, 2026-11-23)**: per-character hit/block FX and the two
+> deterministic METH cinematics are wired from the owner's **procedurally
+> drawn, palette-locked art** (PixelLab Batch 1 draft PR #101 abandoned and
+> closed; branch kept as the spend record). The FX layer (CanvasLayer 5) is
+> presentation-only from `FighterData.fx_set`; the METH driver owns a new
+> serialized `METH_CINEMATIC` phase (210 frames, existing clips only, per
+> the owner beat maps). Two new suites: `fx_events_test` 46,
+> `meth_cinematic_test` 85; serialization_test 28. **CI runs 26 headless
+> suites.**
 >
 > The merged **UI Playtest Fixes**
 > (owner batch 2026-11-23): m5x7 HUD names on dark plates under the health
@@ -87,6 +90,7 @@ progress**. Shipped features, each verified in code/data:
 | Round rules | 99 s rounds; 2 wins to take the match **and lead** (2-2 continues into DECISIVE ROUNDS); double KO = both take a pip; two timeout ties draw, the third starts a 30 s SUDDEN DEATH resolved by health -> round damage -> meter -> P1 |
 | Training Mode (GDD §6.4) | P1 picks both fighters, selects a stage, and enters training rules without the VS/round flow. `TrainingController` reads fighters, supplies dummy behavior through P2 actions, owns the seeded block RNG/recording/options, and serializes under MatchRoot. The only combat change is a zero-default, serialized training health floor. |
 | Match HUD (UI Phase 2 + Combo Phase 4 HUD) | Street-junk HUD on the approved art: portrait/health/meter/timer frames, banners, round pips and commentary tape; m5x7 names on dark plates under the health bars; BREAK beside its pip in the meter band; a separate-line METHtality title/subtitle. Plus attacker-side combo count/damage/base-ladder tint and gated scale tag, 45-frame macro flash, remaining/spent juggle pips, stunned-fighter bar, free/paid/unavailable breaker pip, and 30-frame BREAK!/CLIP CANCEL callouts. Training adds a top-center DMG/advantage/startup/juggle/stun panel at y 29-51, hidden while a fighter overlaps it, pause tabs, and REC/PLAY state. All timers use `hud.sim_tick()`; state-backed readouts resync after load. |
+| Hit FX + METH cinematics (Phase C) | Presentation-only FX on CanvasLayer 5, sheets from `FighterData.fx_set` (`game/resources/fighters/{peggy,richard}_fx_set.tres`, generated from the owner manifests): per-character light/heavy/counter/special/EX/block one-shots at the overlap center (one per contact, EX>counter>special>heavy>light), startup-attached whoosh/trail, shared landing/knockdown/wall dust; frozen by hitstop/pause, never serialized. Confirmed, unblocked METH contact starts the deterministic `METH_CINEMATIC` phase (210 frames, the 30f contact hitstop as the opening hold): both fighters puppeted from `sequence_frame` on the owner beat maps (existing clips only), props pair-anchored and clamped as one group inside 44-276 (never scaled), dim+letterbox, held banner, HUD clutter hidden; damage once on the boundary through the ordinary KO flow. Training restores the snapshot (full meter back) with a UI-confirm skip after 30f; serialize/load resumes mid-sequence; the CPU just waits. Pinned by `fx_events_test` (46) and `meth_cinematic_test` (85). |
 | Combat core | 5f normal / 7f special+grab+METH buffers; hitstop per move (+2 on counter-hit); chip floors at 1 HP; damage scaling 100/100/85/70/55% (55% floor, data in `ComboTuning`); juggle POINT BUDGET: a grounded launcher grants 5 points, air normals cost 2, air specials 3, an unpayable hit rejects and stays live, with x0.7 knockback decay / x1.25 gravity / x0.9 hitstun decay per air hit (combo window gated on landing); knockdown 30f -> wake-up 12f with 6f strike / 8f throw invulnerability; knockdown rejects all throws and non-METH strikes (K1/R1); throws techable in 7f, whiff recovery 22f; command grabs untechable, in-front only; whiffed air moves lock 8f/12f un-blockable landing recovery |
 
 ## 3. Architecture map
@@ -123,6 +127,8 @@ progress**. Shipped features, each verified in code/data:
 | `game/scripts/debug/debug_overlay.gd` | F1 boxes, F2 frame state/advantage/invuln countdown, F3 input history, F4 slow-mo, F5 frame-step, F6 refill; mutes itself headless |
 | `game/scripts/audio/audio_manager.gd` | Intro/fight track looping + hit/block/UI/round/KO/METH cues (temporary audio) |
 | `game/scripts/combat/peggy_clip_library.gd`, `richard_clip_library.gd` | Authored per-state/per-move clip tables (presentation only; cadence + `h_ref` scale) |
+| `game/scripts/fx/fx_layer.gd` | `FxLayer` — CanvasLayer-5 presentation FX: contact one-shots from `FighterData.fx_set`, startup whoosh/trail, landing/knockdown/wall dust; sim-clock stepping frozen by hitstop/pause; never serialized |
+| `game/scripts/fx/meth_cinematic_driver.gd` | `MethCinematicDriver` — the deterministic, serialized METH sequence: owner beat maps over existing clips, pair-anchored clamped props, dim/letterbox/shake, training snapshot restore + skip; MatchRoot owns the `METH_CINEMATIC` phase gate and the single deferred damage application |
 | `game/tools/gen_fighter_data.gd` | Regenerates both fighter `.tres` from code — the source of truth for frame data |
 | `game/tools/setup_input.gd` | Generates the whole `[input]` map from fixed tables |
 | Serialization entry points | `MatchRoot.serialize()/load()` (flow + rules + CPU state + both fighters), `FighterBase.serialize()/load()`, `CpuController.serialize()/load_state()`; covered by `serialization_test.gd` and `cpu_test.gd`; inventory in `docs/SAVESTATE_PLAN.md` |
@@ -145,7 +151,7 @@ Counts are PASS+FAIL lines observed in real headless runs, not doc claims.
 | `combo_fuzz_test.gd` | Seeded fuzz over the combo layer: route search, 12/550 caps, macros/Clip-Cancel/blocked-macro/counter edges, two-build determinism, mid-combo serialize/restore, cross-up on both stages, juggle budget/routes/seeded juggle fuzz on both stages, Phase 3 stun/breaker fuzz (both matchups, both fighters as the breaking side), 8-match CPU-vs-CPU soak (3282–3896 frames after the Phase 4 CPU, limit 4900 = worst + ~25%) | **118**, 0 fail | yes — repaired 2026-11-21 (PR #76 harness port); Phase 2 juggle coverage added 2026-11-21; Phase 3 stun/breaker fuzz added 2026-11-21; **Phase 4 soak re-measured 2026-11-22** |
 | `stun_breaker_test.gd` | Phase 3 stun and breaker rails end to end: window/shake-out/immunity/once-per-combo/step-3 scaling, blocked and airborne rails, buffer-freeze bounds, breaker free/meter/cooldown/once-per-combo economy, blockstun+neutral rejection, juggle breaks, the corner escape, mid-stun/mid-break serialize-restore, determinism | **55**, 0 fail | yes — **added 2026-11-21 (Phase 3)** |
 | `combo_adversarial_test.gd` | INDEPENDENT audit of the combo layer (adversarial pass 2): breaker abuse, the shared grab+special pair, stun edges, seeded combined-loop fuzz, every-frame serialize/restore, P1/P2 symmetry, meter — plus the owner-ruling matrix (A2 hitstop-bridging for hitstop 6/10/30, A3 refused-pair consumption) on both stages, both slots | **102**, 0 fail | yes — **added 2026-11-22; rulings landed in `fix/adversarial-rulings`** |
-| `serialization_test.gd` | Match serializable-surface keys (training mode/tab/controller and fighter health floor) + round trip | **27**, 0 fail | yes |
+| `serialization_test.gd` | Match serializable-surface keys (training mode/tab/controller, fighter health floor, and the Phase C `meth_cinematic` driver state) + round trip | **28**, 0 fail | yes |
 | `b6_landing_whiff_test.gd` | Superseded B6 rule: landing a whiffed air move awards 0 meter, move clears, recovery runs | **5**, 0 fail | yes — added 2026-11-20 (asserts current behavior; exits cleanly) |
 | `ui_flow_test.gd` | Phase 1 routing: router semantics, every forward/back path, confirm-leak guard, pause overlays and freed Settings overlays, greyed items, QuitConfirm default, press-required warning (30-frame guard), chat-free menu, wrap order, the stage -> VS -> match hand-off, title pulse | **55**, 0 fail | yes — 2026-11-21 polish pass (was 48; warning behavior pins updated with owner approval) |
 | `settings_test.gd` | Settings persistence: defaults, fill-in, round trip, opening never saves, reset applies+saves, 0 dB defaults | **16**, 0 fail | yes — added 2026-11-21 (scratch config; player file untouched) |
@@ -155,18 +161,20 @@ Counts are PASS+FAIL lines observed in real headless runs, not doc claims.
 | `select_screens_test.gd` | PR A select reskins: Mode/Difficulty choices unchanged (names, order, defaults, emits, back paths), difficulty tallies, rap-sheet photo + wall copy, per-player scribble cursors, ticket focus lift, the 18-frame RANDOM scratch-off and its hand-off | **24**, 0 fail | yes — added 2026-11-22 (PR A) |
 | `results_flow_test.gd` | PR B match wrap: the VS slide-in (12 integer steps), 20-frame skip guard, 150-frame duration and hand-off; Results appears at match end above the frozen match with the real winner/stats, the match HUD hidden and the pause key consumed (never opens the pause menu); no Settings overlay; serialize() identical while Results is up; the 30-frame Results guard; every Results option routes (REMATCH keeps fighters and stage through the VS bumper) | **23**, 0 fail | yes — PR B plus playtest fixes |
 | `hud_test.gd` | UI Phase 2 + Combo Phase 4 HUD: combo side-mirroring, ladder tint/scale setting, macro flash, juggle/stun/breaker readouts, event callouts, pause/load resync, and unchanged MatchRoot serialization | **82**, 0 fail | yes |
-| `training_test.gd` | Training flow/rules, dummy states/blocks/CPU, record/playback side-switch mirroring, resets, frame readouts, hitbox toggle, determinism and serialize/restore | **79**, 0 fail | yes — new GDD §6.4 suite |
+| `training_test.gd` | Training flow/rules, dummy states/blocks/CPU, record/playback side-switch mirroring, resets, frame readouts, hitbox toggle, determinism and serialize/restore | **79**, 0 fail | yes — new GDD §6.4 suite; landed-METH training cinematic pinned 2026-11-23 |
+| `fx_events_test.gd` | Phase C FX layer: z-order, FxSet-vs-manifest data + byte-identical runtime art, per-kind sheets per character, precedence, mirroring, attached streaks, landing/knockdown/wall dust, hitstop/pause freeze, serialize() unchanged by FX | **46**, 0 fail | yes — added 2026-11-23 (Phase C) |
+| `meth_cinematic_test.gd` | Phase C METH driver: whiff/block/meter gates, exact 210-frame beat maps for both finishers, both stages/sides/walls, victim masking, mid-cinematic serialize/load, training restore + skip, CPU completion, pause freeze | **85**, 0 fail | yes — added 2026-11-23 (Phase C) |
 | `remap_test.gd` | Runtime key/pad rebinding, swaps/safety, persistence/corrupt fallback, per-player reset, deadzone, current prompts, and CPU/training/macro/breaker/Clip Cancel action-name paths | **36**, 0 fail | yes — new GDD §§4.1/4.6/14 suite |
 | `air_probe.gd` | Balance metrics only, asserts nothing, always exits 0 | 0 (metrics) | yes (separate job) |
 | `juggle_probe.gd` | Juggle balance metrics (every budget-legal launcher route, jab-only reference, candidate ladders), asserts nothing | 0 (metrics) | no |
 | `juggle_route_probe.gd` | Real-hitbox juggle route timing search (human timing; ~7 min) | 0 (metrics) | no |
 | `idle_render_check`, `peggy/richard_clip_render_check`, `jump_block_render_check`, `jump_block_trace`, `attack_scale_check`, `peggy/richard_jump_check`, `peggy/richard_live_soak` | Manual rendered/soak review tools; need a display, write to `/tmp/opencode/` | n/a | no |
 
-CI (`.github/workflows/tests.yml`) runs import + the twenty-four suites (combat,
+CI (`.github/workflows/tests.yml`) runs import + the twenty-six suites (combat,
 round_flow, character_select, stage_select, stage_floor, locomotion_speed,
 cpu, combo, combo_fuzz, stun_breaker, combo_adversarial, the_clip, serialization, b6, ui_flow,
  settings, remap, ui_assets, ui_typography, ui_layout, select_screens, results_flow,
- hud_test, training_test) plus the air-probe job
+ hud_test, training_test, fx_events_test, meth_cinematic_test) plus the air-probe job
 on push, PR, and manual dispatch; every step carries a `timeout-minutes` so
 a hang fails fast. `export.yml` builds both desktop targets on `main`/`v*`;
 `main_guard.yml` reverts unauthorized direct pushes to `main`.
@@ -218,6 +226,17 @@ godot --headless --path game --script res://tools/gen_fighter_data.gd
 
 # regenerate the input map, then hand-restore the [physics] 60 Hz section
 godot --headless --path game --script res://tools/setup_input.gd
+
+# validate the owner-approved FX/METH art against its manifests and copy
+# byte-identical runtime sheets into game/art/fx/ (never edits a PNG)
+art/tools/prepare_fx.sh
+
+# regenerate the per-fighter FxSet resources from fx_manifest.json
+godot --headless --path game --script res://tools/gen_fx_sets.gd
+
+# rendered captures of the METH cinematics at their key beats (needs DISPLAY)
+DISPLAY=:0 godot --path game --resolution 1280x720 --script res://tools/meth_capture.gd -- plank
+DISPLAY=:0 godot --path game --resolution 1280x720 --script res://tools/meth_capture.gd -- belch
 
 # local export (templates installed)
 godot --headless --path game --import
@@ -383,10 +402,17 @@ Release blockers / decisions pending:
   `user://controls.cfg`, and leave generated defaults / `project.godot`
   untouched. `remap_test` (36) covers swaps, safety, persistence, deadzone,
   prompts, and named-action consumers.
-- **METHtality presentation** — only the engine core + banner exist on main.
-  This branch contains a Phase A design proposal for hit FX and full
-  cinematics; all implementation/generation remains future work and requires
-  owner approval (`docs/FX_AND_METH_DESIGN.md`).
+- **METHtality presentation** — **SHIPPED (Phase C, 2026-11-23).** The full
+  meter gate, spend, whiff/block rules and banner are unchanged; a confirmed,
+  unblocked METH contact now plays the deterministic 210-frame cinematic
+  (`MethCinematicDriver`, serialized as the `METH_CINEMATIC` phase) from the
+  owner's procedurally drawn, palette-locked FX/props, with damage applied
+  once at the boundary through the ordinary KO/round/Results flow; training
+  restores the snapshot with a UI-confirm skip. Pinned by
+  `fx_events_test` (46) and `meth_cinematic_test` (85); see
+  `docs/FX_AND_METH_DESIGN.md` §7 for the as-implemented beat maps and the
+  procedural-art decision (PixelLab Batch 1 draft PR #101 closed, branch kept
+  as the spend record).
 - **More stages** — the GDD §8 stage list is mostly unwired; the
   add-a-stage recipe (scene + `StageData` + roster append) is in
   `docs/STAGES.md`; no rotation/tournament order or per-stage music yet.
@@ -417,7 +443,7 @@ Release blockers / decisions pending:
 | `docs/PROPOSALS.md` | Historical combat-system proposals with measured results (§§1-7) | Current (2026-11-20): §§1/7 whiff-meter passages now carry inline "superseded" notes pointing to the landed-hits economy (§5); history preserved |
 | `docs/PIXELORAMA_PIPELINE.md` | Idle-sheet + authored-clip pipeline for both fighters (§8-§9b) | Current (integration status matches the clip libraries) |
 | `docs/PIXELLAB_ASSET_ORG.md` | PixelLab MCP project rules, style anchors, generation locks, walk-test proposal | Current (subscription counters will drift) |
-| `docs/FX_AND_METH_DESIGN.md` | Phase A audit/design for separate Peggy/Richard hit FX and canon METH cinematics, with reference-locked generation plan | Proposal only; no jobs or implementation |
+| `docs/FX_AND_METH_DESIGN.md` | Phase A audit/design + Phase C as-implemented record for the separate Peggy/Richard hit FX and canon METH cinematics, incl. the procedural-art decision and owner beat maps | Current: Phase A (design, PR #100) and Phase C (implementation) shipped; the §5 PixelLab plan is superseded history |
 | `docs/UI_ASSETS.md` | UI art pipeline (generated -> approved -> runtime folders), Figma layout file link, per-asset manifest with native sizes | Current (2026-11-22): Phase 1 + select screens wired; `prepare_ui.gd` documented in §2 |
 | `docs/UI_SCREENS.md` | Shipped front-end, select/match-wrap screens, HUD, typography/contrast rules and captures | Current: includes the training pause tabs and training readout capture |
 | `docs/UI_HUD_SCREENS_PLAN.md` | Original HUD/screens plan, routing, ScreenRouter/Settings design, build phases and open decisions | Plan; UI Phases 1–3 and GDD §6.4 Training Mode now shipped—see `docs/UI_SCREENS.md` for actual deltas |

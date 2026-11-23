@@ -30,6 +30,8 @@
 
 **Solo and local versus.** Fight the CPU on EASY, NORMAL or HARD. It plays by the same input rules as a human and uses the whole combo system ([CPU](docs/CPU_OPPONENT.md)). Or grab a controller for 2-player versus.
 
+**Training mode.** Choose a fighter and dummy, pick a stage, then practice without a clock, rounds, KO or Results. Set the dummy to stand, crouch, jump or CPU; configure blocking/tech/breaker, meter and health; record/loop up to 10 seconds of P2 input; and read last-hit damage, frame advantage, startup, juggle and stun state above the fight. R resets positions/resources, T records and P plays back (pad: LB / R3 / L3). The [training capture](docs/assets/ui/training.png) shows the readout panel.
+
 **A street-junk front end.** A content warning, The Clip (a 15-panel comic intro), a title screen, a gas-station price-board menu, a mugshot booking wall, scratch-off stage tickets, a VS bumper and a Results screen. The game uses its own pixel font, Sidewalk Marker.
 
 **A HUD made of junk.** Taped photo portraits that bruise and get KO'd, duct-tape health bars with a red ghost that catches up after each combo, a gas-pump timer, hype meters that flip pink with a wobbling skull at METH READY, cardboard round banners, and Tripp's commentary on masking tape. The combo readout sits on the attacker's side and changes colour as damage scaling kicks in, with macro-name flashes, juggle pips, a STUNNED bar, breaker-ready pips by each meter, and BREAK! / CLIP CANCEL callouts.
@@ -50,6 +52,8 @@
 | **K.O.** | **Results** |
 | <img src="docs/assets/readme/combo_hud.png" alt="A 4-hit combo readout in red with its damage and x0.70 scaling tag on the attacker's side" width="420"> | <img src="docs/assets/readme/settings.png" alt="The settings overlay: a cardboard panel with tabs and dark-ink rows" width="420"> |
 | **Combo HUD:** scaling tint | **Settings** |
+| <img src="docs/assets/ui/training.png" alt="Training match with the training readout panel showing last-hit damage, frame advantage, startup, and juggle points" width="420"> | |
+| **Training:** live readouts | |
 
 ## Play it
 
@@ -77,6 +81,9 @@ P1 plays on keyboard + mouse; P2 plays on any controller (d-pad or left stick).
 | Grab / throw | U | A |
 | METHtality | I | Right shoulder (RB / R1) |
 | Pause | Esc | Start / Menu |
+| Training reset | R | Left shoulder (LB / L1) |
+| Record dummy inputs | T | Right stick click (R3) |
+| Play back dummy inputs | P | Left stick click (L3) |
 
 - **Block** by holding away from your opponent; hold down-away to block lows.
 - **EX specials:** hold Heavy while pressing Special to spend 50 meter.
@@ -85,11 +92,11 @@ P1 plays on keyboard + mouse; P2 plays on any controller (d-pad or left stick).
 - **METHtality:** press METHtality with a full meter.
 - **Stunned?** Mash Up to shake out.
 - **Menus:** confirm with Enter, J or pad A; go back with Backspace or pad B.
-- **Debug keys:** F1 hit/push boxes (on by default), F2 frame state, F3 input history, F4 slow motion, F5 frame step, F6 refill.
+- **Debug keys:** F1 hit/push boxes (on by default outside training), F2 frame state, F3 input history, F4 slow motion, F5 frame step, F6 refill.
 
 ## Roadmap
 
-- **Next:** control remapping, Extras and Credits, a training mode, and per-round win letters on the round pips.
+- **Next:** control remapping, Extras and Credits, and per-round win letters on the round pips.
 - **Later:** the rest of the 15-fighter roster, more stages, the arcade ladder up to Tripp Vlogs, METHtality cinematics, final audio and voice, and rollback netcode (the simulation is already deterministic and fully serializable).
 
 The full plan is in the [GDD](GDD.md); story and world canon are in the [Game Bible](GAME_BIBLE.md) and [Characters](CHARACTERS.md).

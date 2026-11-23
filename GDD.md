@@ -760,19 +760,36 @@ Features:
 
 ### 6.4 Training Mode
 
-Required for a fighting game.
+**Implemented (2026-11-23, `feat/training-mode`; see
+`docs/PM_BRIEF.md` §8).** Entry from Main Menu → Training reuses the
+P1-picks-both Character Select and shared Stage Select, then starts a
+training-rule match directly (no VS bumper, round intro, timer, rounds,
+KO, or Results). Versus and solo continue through their existing flows
+unchanged.
 
 Features:
 
-- dummy behavior settings
-- input display
-- hitbox display
-- frame data display
-- damage readout
-- combo counter
-- meter controls
-- reset position
-- record/replay dummy input, later
+- Dummy stance: STAND / CROUCH / JUMP, or the existing CPU at EASY /
+  NORMAL / HARD. Block: NONE / ALL / AFTER FIRST HIT / seeded RANDOM;
+  throw tech, stun shake-out, and breaker behavior are individually
+  configurable.
+- Meter: normal landed-hit economy or always full. Health: refill after
+  each combo ends or HOLD. Training hits floor at 1 HP so a dummy cannot
+  KO; position reset restores both fighters' health and meter.
+- Readout panel: last-hit damage and hit/block frame advantage, startup,
+  current juggle points, and stun frames. The existing combo HUD supplies
+  hit count and combo damage. F1 still toggles hitboxes; the training pause
+  menu also has a HITBOXES option.
+- One 10-second dummy-input recording slot, looped playback, and
+  side-switch-aware left/right mirroring. Recording/playback goes through
+  the ordinary P2 input path.
+- Reset: **R** (P1 keyboard) or **LB** (pad); record: **T** / **R3**;
+  playback: **P** / **L3**. The three actions are dedicated match-level
+  bindings and do not replace any fighter action.
+- All options, the training RNG state, recording slot, readout state and
+  dummy CPU state are serialized. Training RANDOM uses its own recorded
+  LCG; no global RNG, wall-clock, delta or node-order dependency is added
+  to the sim.
 
 ### 6.5 Survival Mode
 

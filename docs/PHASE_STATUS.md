@@ -135,9 +135,9 @@ phase exit criteria:
   was removed in the same day's polish pass), quit confirm — on a
   ScreenRouter with a persistent Settings autoload and audio buses;
   `docs/UI_SCREENS.md` documents what shipped (typography rules included),
-   and the twenty-one-suite CI adds ui_flow (53), settings (16),
-   ui_assets (4), ui_typography (46), select screens (24), results flow
-   (20), and match HUD (82). **PR A + PR B (2026-11-22):** the select screens are street-junk
+    and the twenty-two-suite CI adds ui_flow (53), settings (16),
+    ui_assets (4), ui_typography (50), select screens (24), results flow
+    (20), match HUD (82), and training (79). **PR A + PR B (2026-11-22):** the select screens are street-junk
   reskins (cardboard mode/difficulty, mugshot-wall booking with scribble
   cursors, scratch-ticket stages with the 18-frame RANDOM reveal), and the
   match wrap ships — the VS bumper before every match and the Results
@@ -145,10 +145,13 @@ phase exit criteria:
   "Enter restarts" above the frozen match. **UI Phase 2 (2026-11-22):**
   the match HUD reskinned on the approved art with every timer on the
    sim tick (frozen by pause and hitstop) and five stored settings
-   consumed. **Combo Phase 4 HUD half (this branch):** attacker-side combo
+    consumed. **Combo Phase 4 HUD half (merged):** attacker-side combo
    count/damage/base scale, macro flash, juggle pips, stun bar, breaker pip
    and BREAK!/CLIP CANCEL callouts; readouts resync after load without
-   changing match serialization or combat. Procedural
+   changing match serialization or combat. **Training Mode (this branch):**
+   P1-picks-both flow, training rules, configurable dummy, saved record/playback,
+   frame readouts and hitbox toggle, pinned by training_test (79).
+   Procedural
   newsprint/halftone and bundled OFL comic fonts are used throughout. Mode
   select (added 2026-11-17) offers 1 PLAYER or 2 PLAYERS: solo sends P1 to a
   difficulty pick (added 2026-11-19) and then lets P1 pick both fighters, with
@@ -228,8 +231,8 @@ phase exit criteria:
   match, and an unresolvable roster stops `MatchRoot._ready()` before anything
   is instantiated.
   Gamepad play is implemented (2026-11-16): P1 keyboard + mouse, P2 controller,
-  with the standard pad attack layout. There is no remapping UI; training is
-  limited to debug controls; AI,
+   with the standard pad attack layout. There is no remapping UI; GDD §6.4
+   training mode is shipped by this branch; AI,
   save/unlock, a full audio manager/mixer, and an authored hitbox editor workflow
   are missing. A small Phase 2 audio service plays the temporary track and cues.
   Dash/backdash states are absent.
@@ -249,7 +252,7 @@ phase exit criteria:
   are implemented where marked; additional systems listed above remain gaps.
 - **Exit verification:** partially met. Fighters and stages now load through the
   roster, and frame data is resource-driven, but the remaining listed systems
-  (input remapping, training tools, AI, save/unlock, hitbox editor) do not exist.
+   (input remapping, save/unlock, hitbox editor) remain incomplete.
 
 ### Phase 4 — Art Direction Lock
 
@@ -315,7 +318,7 @@ phase exit criteria:
   keyboard, hitbox accuracy, AI, progression/unlocks, performance, exports,
   content/accessibility review. Exit: no progression blockers/crashes, stable
   match flow, usable modes, and builds on target PC specs.
-- **Status:** **In progress; exit not met.** CI runs the twenty-one headless suites
+- **Status:** **In progress; exit not met.** CI runs the twenty-two headless suites
   (combat, round_flow, character_select, stage_select, stage_floor,
   locomotion_speed, cpu, combo, combo_fuzz, the_clip, serialization, b6) and
   the air

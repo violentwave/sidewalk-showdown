@@ -288,6 +288,13 @@ that section by hand afterward — the simulation step comes from
   The HUD displays the base ladder tier for the latest hit; per-move
   repeat/variety modifiers are intentionally not represented as a single
   current scale value.
+- **Training Mode v1 is implemented (GDD §6.4; see
+  `docs/PM_BRIEF.md`).** Dedicated input-history display is deferred (the
+  v1 task required recording/playback, not an input viewer). The TECH option
+  handles the existing throw-tech path, including wake-up; there is no
+  separate wake-up reversal/quick-rise mechanic in the combat core, so none
+  was invented. Breaker training preserves the 300-frame cooldown and
+  once-per-combo rail while restoring the free-use budget.
 - **METHtality presentation is minimal.** The trigger, spend and KO win are
   real, but the finisher is a single point-blank hit with a long freeze and a
   banner — no cinematic, camera, or choreography yet. The 30f freeze is a
@@ -556,8 +563,9 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   MatchRoot save/restore with per-frame hash comparison, mid-combo
   save/restore, scripted-dial determinism, and a seeded route fuzz
   (`docs/COMBO_SYSTEM_DESIGN.md`).
-- `game/tests/serialization_test.gd` — **24 checks**: the MatchRoot
-  serializable surface carries every expected key and round-trips cleanly;
+- `game/tests/serialization_test.gd` — **27 checks**: the MatchRoot
+  serializable surface (including training mode/tab/controller keys) carries
+  every expected key and round-trips cleanly;
   exits 0/1 like the other suites.
 - `game/tests/b6_landing_whiff_test.gd` — **5 checks**: the superseded B6
   rule pinned to the current meter economy — landing a whiffed air move
@@ -579,14 +587,15 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   `art/tools/prepare_ui.gd` and re-runs its size table in verify-only mode
   (manifest and test cannot drift), plus a byte-identity check of every
   `game/art/ui/` copy against its approved source.
-- `game/tests/ui_typography_test.gd` — **46 checks** (2026-11-21 polish, extended by the PR #86 review fixes, select screens, match wrap, and Combo Phase 4 HUD):
+- `game/tests/ui_typography_test.gd` — **50 checks** (2026-11-21 polish, extended by review fixes, select screens, match wrap, Combo Phase 4 HUD and Training Mode):
   every label in the ten UI surfaces (nine screens + the pause menu)
   uses Sidewalk Marker at 10 or m5x7 at 16 with every glyph present, carries
   no theme outline or shadow, sits at an integer position, and is never
   scaled; labels on cardboard (ui_panel/ui_button) lie fully inside their
   container and use the dark inks (#2A2418/#7A6A48/#1C160D); over-stage-art
   lettering uses the outlined marker; and HUD label overlap is checked at
-  round start, mid-fight, juggle, stun, full meter, and P2 callout+combo states.
+  round start, mid-fight, juggle, stun, full meter, P2 callout+combo, training
+  pause tabs, and the training HUD panel.
 - `game/tests/select_screens_test.gd` — **24 checks** (PR A, 2026-11-22; extended by the PM review fix-ups):
   the Mode and Difficulty choices are unchanged (names, order, defaults,
   emits, back paths); the difficulty rows draw 1/2/3 ink tally marks; the
@@ -617,6 +626,12 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   pips; stun bar and pause behavior; free/paid/unavailable breaker states;
   BREAK!/CLIP CANCEL callouts; commentary modes; accessibility settings;
   load resync; and serialize() identical with the HUD bound and unbound.
+- `game/tests/training_test.gd` — **79 checks** (GDD §6.4): Main Menu flow
+  and back; no timer/round/KO; health refill/HOLD and meter modes; STAND/
+  CROUCH/JUMP/CPU dummies; NONE/ALL/AFTER FIRST HIT/RANDOM block (including
+  cross-up); throw-tech, shake-out, breaker; record/loop playback and facing
+  mirror; position resets; frame advantage versus authored rows; hitboxes;
+  input collisions; deterministic RNG and serialize/restore.
 - UI deferred, recorded here so they are not lost: **win-type
   pip letters (K/T/M/D)** need a per-round win-type history MatchRoot
   does not keep — a sim-side decision (the approved letter art waits on
@@ -674,13 +689,13 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   actionability. Prints a report and exits 0 on success; `docs/PROPOSALS.md` §3
   documents the coarse grid, before/after metrics, and target limitations. Its
   numbers are informational measurements, not passing balance assertions.
-- `.github/workflows/tests.yml` runs the twenty-one headless suites — combat,
+- `.github/workflows/tests.yml` runs the twenty-two headless suites — combat,
   round-flow, mode/character-select, stage-select/ambience, stage-floor-guard,
   locomotion-speed, CPU opponent, combo system, combo fuzz, stun & breaker,
   combo adversarial,
   The Clip intro,
   serialization, B6 landing-whiff, UI flow, settings, UI assets,
-  UI typography, select screens, results flow, and the match HUD — plus
+  UI typography, select screens, results flow, match HUD, and training — plus
   the air probe on push, pull
   the air probe on push, pull
   request and manual

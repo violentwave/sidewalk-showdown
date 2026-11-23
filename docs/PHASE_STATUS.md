@@ -83,7 +83,7 @@ phase exit criteria:
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
   The current suites contain 408 combat, 68 combo-system, 118 combo-fuzz,
-  55 stun-&-breaker,
+  55 stun-&-breaker, 102 combo-adversarial,
   34 round-flow,
   55 mode/character-select integration, 7 locomotion-speed,
   94 stage-select/ambience, 9 stage-floor, 23 intro, and 41 CPU-opponent

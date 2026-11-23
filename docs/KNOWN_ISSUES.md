@@ -647,6 +647,19 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   5-second cooldown, once per combo, blockstun/neutral rejection), juggle
   breaks, the wall-pinned corner escape, mid-stun and mid-break
   serialize/restore, and a two-run determinism hash.
+- `game/tests/combo_adversarial_test.gd` — **102 checks** (adversarial
+  pass 2, in CI): an INDEPENDENT audit of the combo layer — breaker abuse
+  (re-hit, cooldown-edge, 0-meter, stun, juggle, budget-rejection, KO,
+  blockstun, hitstop, round transition, new-combo meter break), the
+  shared grab+special pair, stun edges, seeded combined-loop fuzz,
+  every-frame serialize/restore, P1/P2 symmetry, and meter accounting;
+  plus the 2026-11-22 owner-ruling matrix (A2: the pair bridges hitstop —
+  single presses break at hitstop 6 and 10, the METHtality's 30 stays
+  unbreakable and leaves no ghost; A3: a meter-refused Clip Cancel
+  consumes the pair and never converts on punish; with meter the cancel
+  still fires) on both stages, both characters, both P1/P2 slots. The
+  findings and rulings are recorded in
+  `docs/COMBO_FINDINGS.md` ("Adversarial pass 2").
 - Rendered/live verification harnesses (not run by CI; require a display
   because they read back the framebuffer, so they are manual review tools):
   `richard_clip_render_check.gd` (27 captures) and

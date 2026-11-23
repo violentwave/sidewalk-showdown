@@ -157,3 +157,184 @@ budget can pay, and nothing goes NaN or out of bounds.
   launcher route and the candidate ladder retunes;
   `juggle_route_probe.gd` brute-forces real-hitbox route timing with
   human-timing constraints (~7 min, not in CI).
+
+## Adversarial pass 2 (2026-11-22, `combo_adversarial_test.gd`)
+
+An INDEPENDENT audit of the Phase 1-3 combo layer by an agent that did not
+build those features. Suite: `game/tests/combo_adversarial_test.gd`, run on
+the #76 harness (copied from `stun_breaker_test.gd`), test-local seeded
+LCG only, both characters as P1/P2, both stages, both sides, pass-through
+on. Local runtime ~30 s; CI step timeout 5 min.
+
+**RULINGS LANDED (2026-11-22, `fix/adversarial-rulings`):** the suite now
+runs **102 checks, 0 failure(s)**. Pre-ruling on the then-main it ran 74
+checks with 4 failures; after the #89 breaker-rail fix (A1) and before the
+A2/A3 rulings it ran 74 checks with 2 failures. The owner ruled on all four
+findings; every ruling is implemented and pinned by new checks:
+
+- **A1 — FIXED by #89** (the once-per-combo breaker rail clears with each
+  fresh combo opening). This suite's A1 checks pass on current main and
+  stay as regression pins.
+- **A2 — FIXED BY OWNER RULING:** the breaker pair now persists through
+  HITSTOP like the tech window — a single grab+special press on the impact
+  frame of a long-hitstop hit (EX launchers, 10f) fires the breaker once
+  hitstop ends, if the breaker is otherwise legal. Implemented as a
+  serialized `breaker_pair_frames` latch that hitstop freezes (like the
+  stun counters) and that expires with the breaker's own input window once
+  hitstop serves; consumed with the pair on a break or a refused Clip
+  Cancel, so it can never fire twice or ghost past the window. The 5-frame
+  hitstop buffer freeze is unchanged for every other input. The landed
+  METHtality (hitstop 30) is a KNOCKDOWN, so it stays unbreakable by the
+  "otherwise legal" qualifier — pinned as a no-ghost case.
+- **A3 — FIXED BY OWNER RULING:** a Clip Cancel refused for lack of meter
+  CONSUMES the buffered grab+special pair, so a punish in that window can
+  no longer convert it into the (free) breaker — the safe-cancel/break
+  option-select is ruled out. With meter the cancel resolves exactly as
+  before (25 meter, recovery-only).
+- **A4 — ACCEPTED AS INTENDED:** an immunity-blocked stun attempt still
+  spends that combo's once-per-stun budget; the shortest immunity outlives
+  the combo window, so the budget refreshes with the next combo. No change;
+  recorded in the design doc as intended behavior.
+
+### A1. The 40-meter extra breaks were unreachable — CONFIRMED BUG (worst) — FIXED
+
+- **Claim broken:** design decision #1 — "free once per round + 40-meter
+  extras, 5 s cooldown". As shipped, a defender gets **one break per round,
+  total**: after any break (free or paid), no later combo can ever be
+  broken again that round, regardless of meter.
+- **Repro (both defenders; Richard P1 vs Peggy P2 and the swap, Gas-N-Go;
+  no seed dependence):** set `breaker_free_uses_left = 0`, meter 100; land
+  a stand heavy; press grab+special → paid break, meter 100 → 60. Let the
+  combo end NATURALLY (90 idle frames; `combo_hits == 0`, tracker inactive),
+  clear the 300-frame cooldown (the 5 s have lapsed), land a fresh heavy —
+  the defender is in HITSTUN in a brand-new combo — press grab+special:
+  **refused**, meter stays 60.
+- **Root cause:** `_tick_combo()`'s combo-end branch resets `combo_hits`,
+  the tracker, and the juggle counters, but NOT `breaker_used_this_combo`.
+  The flag is described as combo-scoped ("once-per-combo rail", and
+  `stun_breaker_test.gd` 4c/4d hand-set it to `false` to simulate a new
+  combo, so no existing test ever exercised the natural reset). Only
+  `begin_round()`/`reset_state()` clear it, i.e. once per ROUND.
+  `breaker_ready()` mirrors the stuck flag, so the future HUD would also
+  show "no break" for the rest of the round.
+- **FIXED (PR #89, verified by this suite on current main):** the rail
+  clears on each fresh combo OPENING (the defender's `combo_hits` was 0
+  before the hit) — the site the original report proposed, moved to the
+  opening because the break itself zeroes `combo_hits`, so a natural
+  combo-end reset alone would never run. Same-combo rejection and the
+  300-frame cooldown are unchanged; the suite's A1 checks now pass and
+  stay as regression pins.
+
+### A2. A single break press was silently eaten by a 10f-hitstop impact — RULE CONSEQUENCE, FIXED BY OWNER RULING
+
+- **Claim broken:** the breaker is the designated defense during hitstun,
+  yet a deliberate single press of grab+special on the exact impact frame
+  of any 10-hitstop move (both EX launchers; METHtalities at 30 are worse)
+  never fired: the pair aged out before hitstop served.
+- **Repro (both defenders; e.g. Peggy P1 forward EX, hitstop 10, vs
+  Richard; and the swap):** land the EX launcher, press the pair EXACTLY
+  once on the impact frame, step 16: no break, no meter spent, `grab` age
+  11 at the end. Heavies (hitstop 6) broke fine on the same single press.
+- **Mechanism:** the pinned 5-frame hitstop buffer freeze covers only 5 of
+  the 10 hitstop ticks; the remaining 5 ticks aged the pair past the
+  4-frame breaker input window before the breaker check ever runs (it
+  lives past the hitstop early-return). A player who MASHES re-presses
+  during/after hitstop and breaks normally — only the single deliberate
+  press was lost, which is precisely the input a composed player makes.
+- **OWNER RULING (2026-11-22) — the pair persists through hitstop, like
+  the tech window:** implemented as the serialized
+  `breaker_pair_frames` latch — armed in `_poll_input` whenever both
+  authored actions sit in the buffer fresh (either input path), frozen by
+  hitstop exactly like the stun counters (it ticks only past the hitstop
+  early-return), expiring with the breaker's own 4-frame window once
+  hitstop serves, and consumed with the pair on a break or a
+  meter-refused Clip Cancel — so it can never fire twice or ghost past
+  the window. The 5-frame hitstop buffer freeze is unchanged for every
+  other input. Pinned for hitstop 6 and 10 as positive cases (single press
+  at impact breaks), for the METHtality's hitstop 30 as the negative
+  no-ghost case (the landed finisher is a KNOCKDOWN — "otherwise legal"
+  excludes it), plus an illegal-breaker expiry case — both characters
+  defending, both P1/P2 slots, both stages.
+- **Related measured quirk (not a check failure):** the 5-frame freeze
+  budget is SHARED across consecutive hitstops — an attacker who just
+  landed a hit has burned most of it, so their own buffered pair ages
+  faster if they are punished in the same window.
+
+### A3. Clip Cancel / breaker option-select — FIXED BY OWNER RULING
+
+- The two utilities share one input pair (grab+special). With meter, the
+  pair in your own recovery is a Clip Cancel (25). With NO meter the
+  cancel used to be refused with the pair left buffered — punished in
+  that same window, the pair auto-converted into the (free) BREAKER on the
+  first hitstun frame: mashing grab+special during whiffed recoveries was
+  a safe-cancel-if-unpunished / free-break-if-punished option-select.
+- **OWNER RULING (2026-11-22) — refused means consumed:** a Clip Cancel
+  refused for lack of meter now erases the buffered pair (and the A2
+  latch), so the option-select is gone. With meter the cancel resolves
+  exactly as before. Pinned for both characters, both P1/P2 slots, both
+  stages: the refused pair is consumed, a punish in that window produces
+  NO break, and the with-meter cancel still fires (25 meter, recovery
+  ends actionable).
+
+### A4. An immunity-blocked stun attempt still burns that combo's once-per-stun budget — ACCEPTED AS INTENDED
+
+- A stun move that CONNECTS during post-stun immunity deals its (scaled)
+  damage and records its move id, so a second attempt inside the SAME
+  combo is once-per-combo rejected even after immunity expires mid-combo.
+- Measured while pinning the immunity boundary (see 3c): at
+  `stun_immunity_frames == 1` the stun is rejected (damage lands); the
+  landing attempt then had to wait for the combo to end. The shortest
+  immunity (Peggy 60f) outlives the 40-frame combo window, so in practice
+  the budget refreshes with the next combo — impact is minor.
+- **OWNER RULING (2026-11-22) — accept as-is:** intended behavior, also
+  recorded in `COMBO_SYSTEM_DESIGN.md` §10.5. No change.
+
+### Verified clean (the attack list that found nothing)
+
+- Breaker: immediate re-hit blocked by the 20f invuln then a fresh hit
+  lands; break fires on the EXACT cooldown-end frame; 0-meter/0-free
+  refuses and spends nothing; break during a stun ends the window and
+  grants immunity; mid-juggle break kills the record, blocks the next air
+  hit, and the defender lands actionable; break at the budget-rejection
+  frame (1 point left) fires; a KO'd defender cannot break; blockstun
+  opens no break; a new round re-arms the free break (both matchups).
+- Stun: stun→launcher→mid-air re-stun never double-stuns (immunity starts
+  at consumption); ladder-floor scaling shrinks the window to 25f and hit
+  13+ (zero damage) stuns nothing; counter-hit stuns open the full window;
+  shake-out ignores presses before the authored minimum and shortens by 3
+  at it; a waking-up fighter past the invuln tail can be stunned (pinned
+  as intended behavior); a blocked stun move stuns nothing and pays no
+  meter. All on BOTH stages and BOTH stun attackers.
+- Combined loops (seeded LCG, 8 runs: both stages × both matchups × 2
+  seeds, one variant starting with the defender pinned at the wall): every
+  run terminates with both fighters actionable, all scalars bounded
+  (health/meter/stun/immunity/invuln/juggle/550-cap), no frozen
+  fingerprint, and EVERY defender break at the wall separated somebody
+  (the corner-escape transfer works under fuzz).
+- Determinism: serialize/restore at EVERY frame of a 58-frame stun and a
+  24-frame break window (not just random points) replays identically —
+  82 fresh builds, zero mismatches.
+- P1/P2 swap symmetry: identical stun damage, window, break cost, free
+  count, and separation for the mirrored slots.
+- Meter: the stun hit pays the attacker 0; a paid break costs exactly 40
+  (45 → 5); a 39-meter defender never pays a partial break and the meter
+  never goes negative.
+
+### Earlier findings — status after this pass
+
+- #1 harness flake (PR #76 class): re-verified clean (this suite uses the
+  same belt-and-braces build; the every-frame determinism runs are the
+  strongest two-build check yet).
+- #2 counter-hit unit check (test-side): still owned by `combo_fuzz_test`
+  (118 green); not re-tested here.
+- #3 snapshot aliasing: FIXED and re-verified — a snapshot held through a
+  full stun + combo reset keeps its tracker contents, and the every-frame
+  restores above all pass.
+- #4 mid-air combo expiry: FIXED and re-verified — the combo window
+  survives the whole airborne arc (EX launcher).
+- #5 Peggy's base launcher: FIXED at 274 and re-verified through real
+  hitboxes — the authored route pays exactly 221.40 at jump f34 / drift
+  90 / air-light delay 7 (note: delay 7 is the BASE-arc timing; the EX
+  arc's delay 14 does NOT connect for the base launcher).
+- Soak history: owned by `combo_fuzz_test` (118 green, limit 6500); not
+  re-measured by this pass.

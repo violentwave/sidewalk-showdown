@@ -401,6 +401,12 @@ MK macros are memorized button strings. Ours:
   launcher attempt) and safety (make a blocked heavy actually safe).
 - It is the first utility meter sink, which matters because the economy is
   landed-hits-only: meter currently only buys EX and METH.
+- **Refusal rule (owner ruling 2026-11-22, adversarial A3):** a Clip
+  Cancel refused for lack of meter CONSUMES the buffered grab+special
+  pair. Left buffered, a punished attempt would auto-convert into the
+  defender's (free) breaker on its first hitstun frame — the
+  safe-cancel/break option-select is ruled out. With meter the cancel
+  resolves exactly as before.
 
 ### 10.4 Launchers and juggles
 
@@ -447,6 +453,12 @@ MK macros are memorized button strings. Ours:
 - In-combo limit: a stunned defender's combo tracker does not reset during
   the stun, so anything inserted into the window pays the full scaling
   ladder, repeat penalties included.
+- **Intended quirk (owner ruling 2026-11-22, adversarial A4):** a stun
+  attempt that CONNECTS during post-stun immunity still records its move
+  id, so a second attempt in the SAME combo is once-per-combo rejected
+  even after immunity expires mid-combo. Accepted as-is: the shortest
+  immunity (60f) outlives the combo window, so the budget refreshes with
+  the next combo.
 
 ## 11. Combo breaker
 
@@ -467,6 +479,17 @@ code path, attacker's combo dies, defender gets 20f of throw-style
 invulnerability (reuse the wake-up invuln mechanism — no new invuln
 system). The free use gives every player one honest "no" per round; the
 meter cost keeps break-spam from replacing blocking.
+
+**Input rule (owner ruling 2026-11-22, adversarial A2):** the breaker pair
+persists through HITSTOP, like the tech window — a single grab+special
+press on the impact frame of a long-hitstop hit (the EX launchers' 10f;
+the METHtality's 30f is a knockdown, so it stays unbreakable by the
+"otherwise legal" qualifier) still fires the breaker once hitstop ends.
+Implemented as the serialized `breaker_pair_frames` latch: frozen by
+hitstop like the stun counters, expiring with the breaker's own input
+window once hitstop serves, consumed with the pair on a break or a
+refused Clip Cancel — it can never fire twice or ghost past the window.
+The 5-frame hitstop buffer freeze is unchanged for every other input.
 
 **Meter gain inside combos (related):** keep `meter_gain_hit` but multiply
 by 0.5 inside an active combo, floor 0.25 — so long combos still trend

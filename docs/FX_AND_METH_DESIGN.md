@@ -785,8 +785,38 @@ untouched.
   - Peggy's broken `meth.png` cel 4 is **unused** by the cinematic (the
     driver plays the `forward`/`crouch_heavy`/`win` clips above; the
     runtime `meth` clip only ever shows its opening contact cel).
+- **Prop draw contract (visual-review fix, 2026-11-23):** the review of
+  PR #102's own captures found the "behind the victim" props invisible and
+  the fire cone misplaced. Root causes and the shipped contract:
+  - *Layering:* back props (sewer, fumes, plank, snap, sign base, shatter
+    back) draw on a dedicated root **inserted in MatchRoot's tree order
+    between the stage and the fighters** — a negative z_index on a late
+    sibling sorts behind the entire opaque stage, which is why the plank,
+    snap, sewer and fumes vanished in the first captures. Front props
+    (water mask, shatter front, fire cone) draw on a root appended after
+    the fighters at z 5/6.
+  - *Anchors/mirroring:* every prop uses its manifest anchor with
+    centered=false and offset = -anchor; a mirrored sheet (fumes "grows
+    up-right", the fire cone drawn facing right) must mirror the ANCHOR
+    as well (offset x becomes cell_w - anchor.x together with flip_h),
+    or the sprite lands one cell-width off target. The fire cone's mouth
+    point is (3,36) in the 104x64 cell, placed at Richard's mouth
+    (facing-shifted estimate; tuned via the review strips), straight out
+    toward the victim, no rotation, no scaling, above the victim and
+    fumes.
+  - *Review strips:* `docs/assets/fx_meth/walk_the_plank_strip.png` and
+    `flaming_belch_strip.png` (attacker LEFT) plus the `..._mirrored_`
+    pair (attacker RIGHT near the right wall) — 4x3 grids of native
+    320x180 frames at f0..f198 step 18, frame number in each cell — are
+    the owner/PM visual sign-off; the README key-beat stills were
+    regenerated from the fixed driver. `meth_cinematic_test`'s numeric
+    visibility checks (sprite + texture + ordered layer + anchor within
+    3px + viewport + mirroring, both facings) FAIL on the pre-fix
+    driver and pin the contract.
 - **Tests:** `fx_events_test` (46 checks) and `meth_cinematic_test`
-  (85 checks) pin the whole contract; `combo_adversarial_test`'s A2
+  (158 checks — the visual-review fix pass added the per-beat numeric prop
+  visibility/anchor/mirroring checks) pin the whole contract;
+  `combo_adversarial_test`'s A2
   METH ruling now asserts the cinematic hold (no hitstun → no break, no
   ghost pair) and `training_test`'s landed-METH check pins the training
   cinematic + restore.

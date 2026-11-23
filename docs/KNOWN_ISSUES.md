@@ -262,6 +262,24 @@ that section by hand afterward — the simulation step comes from
 
 ## Deliberate gaps (next phases)
 
+- **METH cinematic visual review (fixed 2026-11-23; strips pending owner
+  sign-off).** The owner's visual review of PR #102's captures found the
+  Walk-the-Plank stomp beat showing **no plank, snap, or sewer** and the
+  Flaming Belch cone **floating, angled and offset** with no visible
+  fumes. Root causes: "behind the victim" props carried negative
+  `z_index` on a late sibling, sorting behind the entire opaque stage;
+  the fire cone's anchor was wrong (12,40 vs the manifest mouth point
+  3,36) and its `flip_h` was applied without mirroring the offset, which
+  displaces a `centered=false` sprite by one cell width. Shipped fix:
+  ordered back/front prop roots (back = between the stage and the
+  fighters in tree order), manifest-exact anchors with mirrored-offset
+  math, fume/fire staging constants; pinned by `meth_cinematic_test`'s
+  numeric prop visibility checks (158 checks now), which fail on the
+  pre-fix driver. Review strips for the owner/PM:
+  `docs/assets/fx_meth/walk_the_plank{,_mirrored}_strip.png`,
+  `flaming_belch{,_mirrored}_strip.png`; README key-beat stills
+  regenerated. Contact-beat hit sparks are deliberately absent (the FX
+  layer skips METH rows; the banner/cinematic own the contact read).
 - **METH cinematic placeholder poses (Phase C, 2026-11-23).** The owner beat
   maps deliberately use existing clips only, so two beats read as
   placeholders until dedicated art exists: Peggy's **stomp beat reuses
@@ -712,14 +730,20 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   startup-attached whoosh/trail; landing/knockdown/wall dust with the
   one-shot wall latch; hitstop/pause freezing; and serialize() identical
   with FX spawning on vs off.
-- `game/tests/meth_cinematic_test.gd` — **85 checks** (Phase C, METH
+- `game/tests/meth_cinematic_test.gd` — **158 checks** (Phase C, METH
   cinematic): whiff/block/below-full-meter gates; the exact 210-frame
   Walk the Plank and Flaming Belch beat maps (clips and props per frame);
   both finishers, both stages, both facing sides; wall-clamped,
   never-scaled compositions; victim masking behind the front rim/shards;
   mid-cinematic serialize/load resuming identically; training no-KO
   restore plus the UI-confirm skip; CPU-vs-CPU completion; and pause
-  freezing.
+  freezing. The visual-review fix pass added the per-beat **numeric prop
+  visibility** checks (sprite alive with texture, on the correct ordered
+  layer — back props between the stage and the fighters, front props
+  above them — manifest anchor within 3px of the intended world point,
+  inside the 320x180 viewport, mirrored correctly for both facings);
+  those FAIL on the pre-fix driver (negative-z props drawn behind the
+  stage, fire cone anchored/mirrored wrong).
 - UI deferred, recorded here so they are not lost: **win-type
   pip letters (K/T/M/D)** need a per-round win-type history MatchRoot
   does not keep — a sim-side decision (the approved letter art waits on

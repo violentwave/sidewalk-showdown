@@ -136,9 +136,10 @@ phase exit criteria:
   was removed in the same day's polish pass), quit confirm — on a
   ScreenRouter with a persistent Settings autoload and audio buses;
   `docs/UI_SCREENS.md` documents what shipped (typography rules included),
-    and the twenty-three-suite CI adds ui_flow (53), settings (16),
-    remap (36), ui_assets (4), ui_typography (53), select screens (24),
-    results flow (20), match HUD (82), and training (79). **PR A + PR B (2026-11-22):** the select screens are street-junk
+    and the twenty-four-suite CI adds ui_flow (55), settings (16),
+    remap (36), ui_assets (4), ui_typography (53), ui_layout (354),
+    select screens (24), results flow (23), match HUD (82), and training
+    (79). **PR A + PR B (2026-11-22):** the select screens are street-junk
   reskins (cardboard mode/difficulty, mugshot-wall booking with scribble
   cursors, scratch-ticket stages with the 18-frame RANDOM reveal), and the
   match wrap ships — the VS bumper before every match and the Results
@@ -161,8 +162,8 @@ phase exit criteria:
   the two-player rules. The text-only character select (added 2026-11-11) lets
   each player pick from the approved cast and now hands off to a shared stage
   select (added 2026-11-17) with thumbnails, descriptions, and RANDOM last;
-  Gas-N-Go adds drifting clouds, 8 fps mosquitoes, and a breathing/blinking
-  gator; Bus Stop is now a native layered scene with drifting clouds, an 8 fps
+   Gas-N-Go adds drifting clouds and 8 fps mosquitoes; its breathing/blinking
+   gator is hidden pending a safe placement. Bus Stop is now a native layered scene with drifting clouds, an 8 fps
   shelter fire, and a flickering liquor sign. All of it is visual-only and
   paused with the menu. METHtality activates at full
   meter regardless of opponent health/state,
@@ -234,7 +235,11 @@ phase exit criteria:
    Gamepad play is implemented (2026-11-16): P1 keyboard + mouse, P2 controller,
     with the standard pad attack layout. Runtime remapping is implemented
     (Settings → CONTROLS, overrides in `user://controls.cfg`). GDD §6.4
-    Training Mode is shipped; AI,
+    Training Mode is shipped. The 2026-11-23 playtest batch tightened the
+    presentation: HUD names/BREAK/banner layout, router screens above the
+    HUD and stage art, Results over a hidden HUD, stage bounds 44-276 so
+    the widest pose stays on screen, the gator hidden, and the training
+    readout relocated. AI,
   save/unlock, a full audio manager/mixer, and an authored hitbox editor workflow
   are missing. A small Phase 2 audio service plays the temporary track and cues.
   Dash/backdash states are absent.
@@ -320,11 +325,12 @@ phase exit criteria:
   keyboard, hitbox accuracy, AI, progression/unlocks, performance, exports,
   content/accessibility review. Exit: no progression blockers/crashes, stable
   match flow, usable modes, and builds on target PC specs.
-- **Status:** **In progress; exit not met.** CI runs the twenty-three headless suites
+- **Status:** **In progress; exit not met.** CI runs the twenty-four headless suites
   (combat, round_flow, character_select, stage_select, stage_floor,
   locomotion_speed, cpu, combo, combo_fuzz, stun_breaker, combo_adversarial,
   the_clip, serialization, b6, ui_flow, settings, remap, ui_assets,
-  ui_typography, select_screens, results_flow, hud, training) and the air
+  ui_typography, ui_layout, select_screens, results_flow, hud, training)
+  and the air
   probe, every step under a `timeout-minutes`; Linux/Windows export builds
   pass. The air probe is informational and
   has no balance assertions, but its separate CI job is still part of the

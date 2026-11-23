@@ -33,6 +33,12 @@ is a screen stack with `push`, `pop`, `replace`, and `clear_and_push`:
 - `ScreenRouter` also tracks the last input device (keyboard/mouse vs pad,
   a static flag noted from every screen's input) so prompt lines show pad
   glyphs after a pad was used.
+- **Every screen draws on a CanvasLayer (layer 20) above the match HUD
+  (layer 10) and all world/stage sprites** (playtest fix 2026-11-23): the
+  pause menu can never bleed over the Settings overlay, and the frozen
+  match's meters or ambient mosquitoes never bleed over Results. The one
+  exception is the match itself — `push(match_root, true)` keeps the stage,
+  fighters, and ambience on the base canvas, below the HUD.
 - Nothing in the router touches the 60 Hz simulation or
   `MatchRoot.serialize()/load()`.
 
@@ -126,12 +132,18 @@ stage-select hand-off cannot punch through. Pure presentation.
 **ResultsScreen** (`game/scripts/ui/screens/results_screen.gd`) replaces
 "Enter restarts": at match end MatchRoot emits `match_results_requested`
 (the only match_root change — the MATCH_END Enter poll is gone), Main
-pauses the tree and pushes Results above the **frozen match** —
-`serialize()` is byte-identical while the screen is up. The screen draws
+pauses the tree, **hides the frozen match's whole HUD** (playtest fix:
+the timer, meters, and the persistent round banner used to show through),
+and pushes Results onto the router's layer above everything —
+`serialize()` is byte-identical while the screen is up, and the pause key
+is consumed here (back = MAIN MENU; the match's pause menu can never stack
+on top). The screen draws
 the match's own stage art behind the 55% overlay, `ui/results_winner.png`
 (90x20) top-centre, the winner's bust (96x128) on the left, and one
-cardboard ui_panel (168,34) 140x78 with dark-ink m5x7 stat rows (12 px apart):
-rounds won, match-total damage, max combo, METH used (P1/P2/BOTH/NO),
+cardboard ui_panel (168,34) 140x78 with m5x7 stat rows (12 px apart) in
+the theme's readable ink (playtest fix: the muted label ink was
+low-contrast): rounds won, TOTAL DMG (the match-total damage per side,
+relabeled 2026-11-23), max combo, METH used (P1/P2/BOTH/NO),
 time left. Stats come from `game/scripts/ui/match_stats_tracker.gd`, a
 presentation-only reader (accumulates MatchRoot's per-round
 `round_damage` into match totals, tracks `combo_changed` maxima and
@@ -163,18 +175,18 @@ banners, callouts and macro flashes clear.
 | --- | --- | --- |
 | Portraits | `hud_portrait_frame.png` 24x24 at (4,4)/(292,4); a 16x15 crop (x 3, y 1) of the 22x22 `hud_portrait_<id>_<state>.png` in the photo window at +4,+3, drawn ABOVE the opaque frame art | normal / **hurt** below 25% health / **ko** after losing the round (an opponent pip that grew while yours didn't; a refill clears it). Missing art = empty frame, no crash. |
 | Health | `hud_health_frame.png` 118x10 at (30,8)/(172,8); code-drawn 98x6 fill on the cardboard strip between the tape caps (+10,+2), drawn ABOVE the opaque frame art, whole-pixel widths, P1 `#f29e26` / P2 `#e5473a`, draining toward the timer | a `#ff6b5a` ghost segment remembers the combo's damage point and drains to match **20 sim frames after the combo clears**; one flash per hit (never strobing); a gentle pulse under 20%. `reduce_flashing` makes the flash a 1-frame tint. |
-| Names | outlined Marker cream at y 19 (P1 left from x 30, P2 right to x 290) | static per fighter |
+| Names | m5x7 cream on a small dark plate UNDER the health bar (ink y 21..29, plate y 19..30; label rects clamped to the bar's column so the longest name never reaches the timer box) — playtest fix: the old outlined Marker names at y 19 overlapped the bars, the stage sign, and the timer | static per fighter |
 | Round pips | y 31 from each bar's outer end; P1 `hud_pip_square_*`, P2 `hud_pip_diamond_*` | grow with double-KO pips. **No win-type letters: MatchRoot keeps no per-round win history** (TODO: the K/T/M/D pip art is approved and waits on a sim-side decision). |
 | Timer | `hud_timer_box.png` at (148,3); two 8x12 cells from `hud_timer_digits.png` (0-9, cell 10 = infinity), centered | under 10 s the box tints dirty yellow and the digits tick one shade per 15 sim frames |
-| Meter | `hud_meter_frame.png` 106x8 at (4,170)/(210,170); 90x4 fill `#5ac8ff` between the tape caps (+7,+2) above the frame art, tick marks at 25 and 50 | at full the fill turns `#ff3d9a`, "METH READY" in outlined Marker pink sits ABOVE its own meter (y 157), flush with the inner end (P1 right edge x 110, P2 left edge x 210), skull just past that end (x 112 / 200, y 159), so both can show at once; BRK stays at the outer end. The 8x8 skull frames alternate every **15 sim frames** |
-| Banners | 160x32 `hud_banner_plate.png` centered (y 74) with the word sprite: round_1-5, decisive, fight, ko, time, double_ko, methtality | stamp in over **6 sim frames** from 8 px above in integer steps; spriteless messages (TAKES THE ROUND, WINS THE MATCH, DRAW, SUDDEN DEATH, ROUND 6+) render in outlined Marker cream on the plate. FIGHT auto-removes after 30 sim frames, METH after 120; round/KO banners persist until replaced (today's timing). |
+| Meter | `hud_meter_frame.png` 106x8 at (4,170)/(210,170); 90x4 fill `#5ac8ff` between the tape caps (+7,+2) above the frame art, tick marks at 25 and 50 | at full the fill turns `#ff3d9a`, "METH READY" in outlined Marker pink sits ABOVE its own meter (y 157) near the inner end (P1 x 40, P2 x 206), skull just past that end (x 118 / 194, y 159), so both can show at once edge-to-edge with the BREAK readout (playtest fix: the 30 px BREAK text needs the band). The 8x8 skull frames alternate every **15 sim frames** |
+| Banners | 160x32 `hud_banner_plate.png` centered (y 74) with the word sprite: round_1-5, decisive, fight, ko, time, double_ko, methtality | stamp in over **6 sim frames** from 8 px above in integer steps; spriteless messages (TAKES THE ROUND, WINS THE MATCH, DRAW, SUDDEN DEATH, ROUND 6+) render in outlined Marker cream on the plate. METHtality (playtest fix) is a two-line layout: the word art at plate y 1..21 and the move-name subtitle's own line at ink y 23..31 — never overlapping. FIGHT auto-removes after 30 sim frames, METH after 120; round/KO banners persist until replaced (today's timing). |
 | Callouts | outlined Marker cream on the event owner's side at y 80 | COUNTER HIT / TECH / BREAK! / CLIP CANCEL use the existing one-at-a-time slot for **30 sim frames** |
 | Combo counter | existing positions and outlined Marker font at y 64; P1 left, P2 right | the defender's `combo_tracker.changed(hits, total_damage)` drives the **opposite attacker's side**. Tint follows the base ladder for the latest hit: 1.00 yellow, 0.85 orange, 0.70 red, 0.55-or-lower pink. The damage total at y 77 and `x0.70`-style m5x7 scale tag are shown only when `gameplay.show_combo_damage` is on. The scale tag reports the base ladder tier, not move-specific repeat/variety modifiers. Both line items yield to a same-side callout to prevent label overlap. |
 | Macro flash | under the combo counter at y 92, outlined Marker cream, on the fighter performing the macro | `macro_step_replayed` step 0 shows the macro name for **45 sim frames**; one name at a time. The y 92 placement is below the y 80 callout row. |
 | Juggle points | code-drawn 3x3 pips at y 106 under the attacker's combo counter; P2 mirrors P1 | while the defender has `juggle_points >= 0`, the attacker's side shows `juggle_points_start` pips: cream centers with a 1 px dark outline for points remaining, hollow for spent points. Hidden when not juggled. |
 | Stun | on the stunned fighter's own side under the name/pips; Marker-outline `STUNNED` ink at y 38–46, with a 1 px outlined bar beside it | reads `stun_frames_remaining` against the applied stun window; drains on the HUD sim tick and hides on `stun_ended`. |
-| Breaker | by each meter's outer end: 5x5 code-drawn pip at y 163 and m5x7 cream `BRK` label | bright `#f2d13a` fill = free use ready; yellow outline = paid break affordable; solid `#2A2418` = unavailable (cooldown, used this combo, or insufficient meter). Positioned away from METH READY and the skull. |
-| Training readout | training only: 152x25 dark plate at (84,31), above the maximum jump silhouette; two outlined Marker rows | last hit damage + hit/block advantage; last move startup + current juggle points, or stun frames. The combo HUD supplies hit count/damage. `REC`/`PLAY` appends on the first row while a 10s dummy-input slot records or loops. |
+| Breaker | by each meter's outer end: 5x5 code-drawn pip at y 163 and m5x7 cream `BREAK` label beside it in the meter band (ink y 161..169, playtest fix) | bright `#f2d13a` fill = free use ready; yellow outline = paid break affordable; solid `#2A2418` = unavailable (cooldown, used this combo, or insufficient meter). Edge-to-edge with METH READY and its skull at full meter, never overlapping. |
+| Training readout | training only: 152x22 dark plate at (86,29) (playtest fix: below the name ink and timer, bottom y 51 before the highest normal jump at y 52.875, and between the STUNNED labels); hidden on sim frames when either fighter body intersects it, shown again once both clear | last hit damage as `DMG` + hit/block advantage; last move startup + current juggle points (`JUG -` when no budget is active — never the raw -1 sentinel), or stun frames. The combo HUD supplies hit count/damage. `REC`/`PLAY` appends on the first row while a 10s dummy-input slot records or loops. |
 | Commentary | `stream_commentary_box.png` 240x16 at (40,44), m5x7 dark ink on the tape | `gameplay.commentary`: full = as today, minimal = round lines only, off = hidden; `stream.hide_tripp_text` hides it. |
 | Accessibility | — | `reduce_flashing`: every flash becomes a 1-frame tint. `high_contrast_hud`: solid `#1C160D` plates behind bars, names and timer. Screen shake and hold-to-confirm have no HUD-side hook yet (see KNOWN_ISSUES). |
 
@@ -283,7 +295,9 @@ confirm/back bindings for the last-used device. The Clip consumes named
 - **At most one panel per screen;** no empty decorative boxes and no
   boxes nested inside boxes.
 - **Prompt line:** one row on the bottom plate
-  (`UiPromptLine.new(confirm, back, left_text = "")`), right-aligned.
+  (`UiPromptLine.new(confirm, back, left_text = "")`), right-aligned. The
+  13 px m5x7 label boxes start at y167 so they fit the 320x180 frame; their
+  ink remains inside the 12 px plate at y168.
 
 Per-screen layouts (positions are 320x180 screen space):
 
@@ -310,7 +324,10 @@ match wrap: `vs_screen` (after the slide-in), `results`,
 `hud_midfight`, `hud_low_health`, `hud_meth_ready`, `hud_ko`,
 `hud_high_contrast`, `hud_combo_scaled`, `hud_juggle`, `hud_macro`,
 `hud_stun`, `hud_breaker`, `hud_breaker_meth`, and the training scene
-`training`.
+`training`. The 2026-11-23 playtest-fix PR adds one 640x180 side-by-side
+composite, `uifix_playtest.png` (match HUD with full meters and the
+METHtality banner + the Results screen), capturing the fixed layouts in
+one image.
 Regenerate by driving the real scenes:
 
 ```bash
@@ -326,6 +343,8 @@ DISPLAY=:0 godot --path game --resolution 1280x720 \
     --script res://tools/training_capture.gd
 DISPLAY=:0 godot --path game --resolution 1280x720 \
     --script res://tools/remap_capture.gd
+DISPLAY=:0 godot --path game --resolution 1280x720 \
+    --script res://tools/ui_playtest_capture.gd
 ```
 
 (`game/tools/ui_polish_capture.gd` and `ui_select_capture.gd` capture
@@ -365,7 +384,7 @@ on an approved file missing from the table, and exits non-zero.
 
 ## Tests
 
-- `game/tests/ui_flow_test.gd` — 53 checks: router semantics, every
+- `game/tests/ui_flow_test.gd` — 55 checks: router semantics, every
   forward/back path, the confirm-leak guard, pause overlay flow, greyed
   items, QuitConfirm default, the press-required warning (no
   auto-advance, 30-frame guard), the chat-free main menu, wrap order,
@@ -389,6 +408,15 @@ on an approved file missing from the table, and exits non-zero.
 - `game/tests/remap_test.gd` — 36 checks: runtime key/pad/axis capture,
   conflict swaps, safe menu routes, persistence/corrupt fallback, per-player
   reset, current prompts, and named-action consumers after rebinding.
+- `game/tests/ui_layout_test.gd` — 354 checks (2026-11-23 playtest batch):
+  at 320x180, across versus, solo, and training, both stages, both character
+  orders — name ink vs health bars vs timer box; BREAK vs its pip, the meter
+  band, meter frames, and the stun labels; the METHtality word art vs both
+  characters' subtitle lines; the training panel vs timer, jump-apex band,
+  name ink and fighter bodies, plus DMG prefix and hidden juggle sentinel;
+  Results banner vs stats panel, every prompt label within the frame, readable
+  stat ink and accumulated TOTAL DMG; widest-pose stage bounds; canopy mask;
+  and router/HUD/ambient z-order. Also pins per-match F1/training hitbox mode.
 - `game/tests/select_screens_test.gd` — 24 checks (PR A): the Mode and
   Difficulty choices are unchanged (names, order, defaults, emits, back
   paths); the difficulty rows draw 1/2/3 tally marks; the rap sheet
@@ -399,11 +427,11 @@ on an approved file missing from the table, and exits non-zero.
   off immediately; the RANDOM scratch-off holds the hand-off for 18
   frames, then hands off the stage the RNG picked with its own
   thumbnail revealed; Backspace still leaves after the reveal.
-- `game/tests/results_flow_test.gd` — 20 checks (PR B): the VS busts
+- `game/tests/results_flow_test.gd` — 23 checks (PR B + playtest fixes): the VS busts
   slide in over 12 integer steps and land at their marks (P2 flipped);
   the 20-frame VS skip guard; the full 150-frame duration; Results
   appears at match end above the frozen (paused) match with the real
-  winner and rounds tally; serialize() is identical while Results is
+  winner and rounds tally, no Settings overlay; serialize() is identical while Results is
   up; the 30-frame Results guard; REMATCH routes through the VS bumper
   and keeps fighters and stage; CHARACTER SELECT / STAGE SELECT /
   MAIN MENU all route correctly and unpause.

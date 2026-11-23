@@ -1,343 +1,142 @@
 # Sidewalk Showdown
 
-**A mature-rated 2D retro pixel-art arcade fighter about a washed-up livestreamer
-who turns sidewalk chaos into a rigged tournament.**
+**A raunchy, Mature-rated, retro pixel-art arcade fighter.** A washed-up livestreamer named Tripp Vlogs turns Florida sidewalk chaos into a rigged, winner-takes-all tournament, and you fight your way through it with a cast of gas-station legends.
 
 [![tests](https://github.com/violentwave/sidewalk-showdown/actions/workflows/tests.yml/badge.svg)](https://github.com/violentwave/sidewalk-showdown/actions/workflows/tests.yml)
 [![export](https://github.com/violentwave/sidewalk-showdown/actions/workflows/export.yml/badge.svg)](https://github.com/violentwave/sidewalk-showdown/actions/workflows/export.yml)
 
 <p align="center">
-  <img src="docs/assets/screenshot-match.png" alt="Peg Leg Peggy vs Whiskey Richard on the Bus Stop, mid-round HUD" width="860">
+  <img src="docs/assets/readme/bus_stop_fight.png" alt="Whiskey Richard lands a counter hit on Peg Leg Peggy at the Bus Stop, with the street-junk HUD: taped photo portraits, duct-tape health bars, gas-pump timer and Tripp's commentary tape" width="880">
 </p>
-
-| The Clip — intro | Select mode | Choose your fighter |
-|---|---|---|
-| <img src="docs/assets/screenshot-the-clip.png" alt="The Clip comic intro, panel 1" width="280"> | <img src="docs/assets/screenshot-mode-select.png" alt="Mode select with 1 Player and 2 Players options" width="280"> | <img src="docs/assets/screenshot-character-select.png" alt="Character select with Peggy and Richard" width="280"> |
-
-| Choose your stage | Gas-N-Go, mid-round | Bus Stop, mid-round |
-|---|---|---|
-| <img src="docs/assets/screenshot-stage-select.png" alt="Stage select with Gas-N-Go, Bus Stop, and Random cards" width="280"> | <img src="docs/assets/screenshot-gas-n-go.png" alt="Peg Leg Peggy vs Whiskey Richard in front of the Everglades Gas-N-Go" width="280"> | <img src="docs/assets/screenshot-bus-stop.png" alt="Peg Leg Peggy vs Whiskey Richard in front of the lit Bus Stop liquor store and shelter fire" width="280"> |
 
 | | |
 |---|---|
-| **Engine** | Godot 4.7 (`game/`) |
-| **Target** | PC first — Windows / Linux / macOS |
-| **Status** | GDD Phase 2 — vertical slice, in progress ([`docs/PHASE_STATUS.md`](docs/PHASE_STATUS.md)) |
-| **License** | TBD — treat as all-rights-reserved until a LICENSE file lands ([`docs/LICENSE_OPTIONS.md`](docs/LICENSE_OPTIONS.md)) |
+| **Engine** | Godot 4.7, GDScript, fixed 60 Hz deterministic simulation |
+| **Resolution** | 320×180 native, integer-scaled, nearest-neighbor |
+| **Platforms** | Windows and Linux builds from CI; macOS planned |
+| **Status** | Playable vertical slice: 2 fighters, 2 stages, full front end ([status](docs/PHASE_STATUS.md)) |
+| **Rating** | Mature: crude humor, drug references, cartoon violence |
+| **License** | All rights reserved until a LICENSE file lands ([options](docs/LICENSE_OPTIONS.md)) |
 
-## What's playable today
+## What's in the game
 
-- **Combos, Phase 1** — light chains into lights/heavies and cancels into
-  specials on hit; Peggy has a blockstring (light chains on block), both
-  fighters have counter-hit extensions; dial `L, L, H` quickly for a macro
-  (BENCH WARMER / LAST CALL); press **special + grab during your move's
-  recovery to Clip Cancel** for 25 meter (once per combo). Damage scaling,
-  repeat-move penalties, and variety bonuses are all data-tuned
-  ([`docs/COMBO_SYSTEM_DESIGN.md`](docs/COMBO_SYSTEM_DESIGN.md)).
+**Two fighters.** Peg Leg Peggy and Whiskey Richard, each with authored sprite animation for every state and all 16 attack rows, directional specials, EX versions, throws and a METHtality finisher.
 
-- **Stuns & the combo breaker, Phase 3** — each neutral special is a themed
-  stun (Peggy's **Peg-Lock** freeze keeps her 95 damage; Richard's **Taser
-  Belch** trades down to 40 for a 45-frame window): the stunned defender
-  mashes **up** to shake out after the unshakeable minimum, and both sides
-  get post-stun immunity. Getting comboed? Press **grab + special together**
-  while in hitstun (strings or juggles) to break out: free once per round,
-  40 meter after that, on a 5-second cooldown — the break shoves both
-  fighters apart and even a corner-pinned defender escapes. Peggy's base
-  launcher was retuned (228 → 274 knockback) so her authored juggle route
-  connects with human timing
-  ([`docs/COMBO_SYSTEM_DESIGN.md`](docs/COMBO_SYSTEM_DESIGN.md) §15).
+**Two stages with ambience.** The Everglades Gas-N-Go (drifting clouds, mosquitoes, a sunbathing gator) and the Bus Stop (a burning shelter, a flickering liquor sign).
 
-- **Combo HUD, Phase 4** — the defender's combo count and damage are mirrored
-  onto the attacker's side, with the base scaling tier, a 45-frame macro-name
-  flash, juggle pips, stun bar, breaker availability, and BREAK!/CLIP CANCEL
-  callouts. `gameplay.show_combo_damage` gates both damage and the `x0.70`
-  scale tag; see [`docs/UI_SCREENS.md`](docs/UI_SCREENS.md).
+**A real combo system.** Chains and special cancels on hit, quick-dial macros, the Clip Cancel (special + grab in recovery, 25 meter), launcher juggles on a point budget, themed stuns you mash out of, and a combo breaker: grab + special in hitstun, free once per round, 40 meter after that. Damage scaling, repeat penalties and variety bonuses are all data-tuned ([design](docs/COMBO_SYSTEM_DESIGN.md)).
 
-- **The Clip** — a 15-panel comic intro that leads into mode select, with
-  Space-only advancement and a complete skip path.
-- **Solo and local versus** — pick `1 PLAYER`, choose the CPU difficulty
-  (EASY / NORMAL / HARD), then pick both fighters and fight the CPU as P2, or
-  `2 PLAYERS` for Peg Leg Peggy vs Whiskey Richard.
-  After the fighters, a shared **stage select** offers Everglades Gas-N-Go, the
-  Bus Stop, and a RANDOM card that resolves before the match. P1 uses
-  keyboard + mouse; P2 uses a controller in versus. The CPU opponent is
-  deterministic and plays by the exact same input rules as a human — see
-  [`docs/CPU_OPPONENT.md`](docs/CPU_OPPONENT.md).
-- **Two layered stages with ambience** — Gas-N-Go scrolls clouds, loops
-  mosquitoes in the upper sky, and breathes/blinks a sunbathing gator; Bus Stop
-  scrolls its own clouds, loops a four-frame shelter fire, and flickers the
-  liquor sign. Ambient motion freezes with the pause menu and keeps running
-  through hitstop ([`docs/STAGES.md`](docs/STAGES.md)).
-- **Authored sprite animation** — both fighters play per-state and per-move
-  clips from the owner's PixelLab batch: jumps, walks, guard, hit reactions,
-  knockdown/wake-up, and all 16 attack rows per fighter
-  ([`docs/PIXELORAMA_PIPELINE.md`](docs/PIXELORAMA_PIPELINE.md) §8–§9a).
-- **Fighting-game systems** — 60 Hz deterministic simulation, frame data,
-  blocking with chip that can't KO, hitstop, buffers, directional specials,
-  EX spenders, throws and throw techs, launcher juggles on a point budget
-  (5 points at launch; air normals cost 2, air specials 3), a METHtality
-  finisher, and
-  side switching: fighters auto-face each other and can walk through each
-  other on the ground and in the air (the `fighters_can_pass_through` flag
-  restores the legacy grounded pushbox) —
-  [`docs/SIDE_SWITCHING.md`](docs/SIDE_SWITCHING.md).
-- **Match structure** — rounds, timer, sudden death after repeated timeouts,
-  KO flow, pause menu, and a text-only Tripp commentary sample.
+**Fighting-game fundamentals.** Frame data, blocking (chip can't KO), hitstop, input buffers, throw techs, side switching and pass-through, rounds, timer and sudden death. Meter builds only from hits you land.
 
-Not in yet: input remapping, campaign, stage rotation/tournament order,
-final audio/voice/VFX, and final art/cleaning for some clips. The solo CPU
-opponent now uses the full combo system (authored route walking, juggles,
-stuns, breaker, Clip Cancel — Phase 4's CPU half, 2026-11-22) but stays
-deliberately simple — no fuzzy guard, no character-specific gameplans; it is a fair
-sparring partner, not a tournament opponent. Online play is deferred beyond v0.1
-per GDD §2.4/§16.
+**Solo and local versus.** Fight the CPU on EASY, NORMAL or HARD. It plays by the same input rules as a human and uses the whole combo system ([CPU](docs/CPU_OPPONENT.md)). Or grab a controller for 2-player versus.
 
-## Quick start
+**A street-junk front end.** A content warning, The Clip (a 15-panel comic intro), a title screen, a gas-station price-board menu, a mugshot booking wall, scratch-off stage tickets, a VS bumper and a Results screen. The game uses its own pixel font, Sidewalk Marker.
 
-Requires **Godot 4.7.x** (the project reports `4.7.2`).
+**A HUD made of junk.** Taped photo portraits that bruise and get KO'd, duct-tape health bars with a red ghost that catches up after each combo, a gas-pump timer, hype meters that flip pink with a wobbling skull at METH READY, cardboard round banners, and Tripp's commentary on masking tape. The combo readout sits on the attacker's side and changes colour as damage scaling kicks in, with macro-name flashes, juggle pips, a STUNNED bar, breaker-ready pips by each meter, and BREAK! / CLIP CANCEL callouts.
+
+**Settings and accessibility.** Video, audio buses, gameplay, accessibility (reduce flashing, high-contrast HUD) and streamer options, saved to `user://settings.cfg`.
+
+## Screenshots
+
+| | |
+|---|---|
+| <img src="docs/assets/readme/title.png" alt="Title screen: the Sidewalk Showdown logo over the Gas-N-Go at night, PRESS START" width="420"> | <img src="docs/assets/readme/main_menu.png" alt="Main menu: Tripp's gas-station price board with VERSUS, TRAINING, SETTINGS and EXTRAS on the slats and QUIT taped to the pole" width="420"> |
+| **Title** | **Main menu:** the Gas-N-Go price board |
+| <img src="docs/assets/readme/character_select.png" alt="Character select: mugshot portraits on a booking-room height chart, a rap-sheet clipboard and scribble cursors" width="420"> | <img src="docs/assets/readme/stage_select.png" alt="Stage select: scratch-off lottery tickets for Gas-N-Go, Bus Stop and Random" width="420"> |
+| **Booking:** character select | **Pick your spot:** stage select |
+| <img src="docs/assets/readme/vs_screen.png" alt="VS bumper: Tonight's Matchup, both fighters' busts on an orange and red diagonal split, and a sponsor sticker" width="420"> | <img src="docs/assets/readme/gas_n_go_meth_ready.png" alt="Mid-fight at the Gas-N-Go with a full pink meter, METH READY and the skull" width="420"> |
+| **VS bumper** | **METH READY** at the Gas-N-Go |
+| <img src="docs/assets/readme/bus_stop_ko.png" alt="A K.O. banner on a cardboard plate at the Bus Stop" width="420"> | <img src="docs/assets/readme/results.png" alt="Results: the winner's bust, a cardboard stats panel and Rematch, Character Select, Stage Select and Main Menu" width="420"> |
+| **K.O.** | **Results** |
+| <img src="docs/assets/readme/combo_hud.png" alt="A 4-hit combo readout in red with its damage and x0.70 scaling tag on the attacker's side" width="420"> | <img src="docs/assets/readme/settings.png" alt="The settings overlay: a cardboard panel with tabs and dark-ink rows" width="420"> |
+| **Combo HUD:** scaling tint | **Settings** |
+
+## Play it
+
+**Download a build:** every push to `main` exports a Linux x86_64 binary and a Windows x64 `.exe`, each a single runnable file. Open the latest successful [export run](https://github.com/violentwave/sidewalk-showdown/actions/workflows/export.yml) and download `sidewalk-showdown-linux-<sha>` or `sidewalk-showdown-windows-<sha>` from its Artifacts (kept 14 days).
+
+**Run from source:** install Godot 4.7.x, then:
 
 ```bash
-godot --path game                # play
 godot --headless --path game --import   # first run: build the import cache
-
-# test suites (all headless, all deterministic)
-godot --headless --path game --script res://tests/combat_test.gd
-godot --headless --path game --script res://tests/round_flow_test.gd
-godot --headless --path game --script res://tests/character_select_test.gd
-godot --headless --path game --script res://tests/locomotion_speed_test.gd
-godot --headless --path game --script res://tests/stage_select_test.gd
-godot --headless --path game --script res://tests/stage_floor_test.gd
-godot --headless --path game --script res://tests/cpu_test.gd
-godot --headless --path game --script res://tests/combo_test.gd
-godot --headless --path game --script res://tests/combo_fuzz_test.gd
-godot --headless --path game --script res://tests/stun_breaker_test.gd
-godot --headless --path game --script res://tests/combo_adversarial_test.gd
-godot --headless --path game --script res://tests/the_clip_test.gd
-godot --headless --path game --script res://tests/serialization_test.gd
-godot --headless --path game --script res://tests/b6_landing_whiff_test.gd
-godot --headless --path game --script res://tests/ui_flow_test.gd
-godot --headless --path game --script res://tests/settings_test.gd
-godot --headless --path game --script res://tests/ui_assets_test.gd
-godot --headless --path game --script res://tests/ui_typography_test.gd
-godot --headless --path game --script res://tests/select_screens_test.gd
-godot --headless --path game --script res://tests/results_flow_test.gd
-godot --headless --path game --script res://tests/hud_test.gd
+godot --path game                       # play
 ```
-
-Current suites: **combat 408 checks**, round flow 35, character select 55,
-locomotion speed 7, stage select 94, stage floor 9, CPU opponent 41,
-combo system 68, combo fuzz 118, stun & breaker 55, combo adversarial 102,
-The Clip 23,
-serialization 24, B6
-landing-whiff 5, UI flow 53, settings 16, UI assets 4, UI typography 46,
-select screens 24, results flow 20, match HUD 81
-— all green in CI (`tests.yml`, every step under a `timeout-minutes`).
-`tests/air_probe.gd` and `tests/juggle_probe.gd` print balance metrics and
-assert nothing; `tests/juggle_route_probe.gd` brute-forces real-hitbox juggle
-route timing (slow, not in CI).
 
 ## Controls
 
-**P1 plays on keyboard + mouse; P2 plays on a controller.** Any connected pad
-drives P2, using either the d-pad or the left stick to move. The pad layout is
-GDD §4.2's: X light, Y heavy, B special, A grab, right shoulder for the
-METHtality finisher.
-
-The front-end flow (UI Phase 1 + the polish pass, see
-`docs/UI_SCREENS.md` for the typography rules and
-`docs/assets/ui/` for screenshots): boot shows a one-time **content
-warning** (press confirm to continue — it never skips itself), then The
-Clip, then the **title screen** (PRESS START), then the **main menu** —
-Tripp's gas-station price board, centered over the Gas-N-Go night art
-with its pole planted on the stage floor: VERSUS, TRAINING (coming
-soon), SETTINGS, EXTRAS (coming soon) on the slats, and QUIT on a
-button taped to the pole. Menus are set in the project's own Sidewalk
-Marker pixel font with m5x7 body text; nothing is outlined or smoothed.
-Menus run on the P1 keys below; a pad can confirm (A) and back (B) with
-its face buttons. SETTINGS opens the settings overlay (video, audio,
-gameplay, accessibility, stream tabs; saved to `user://settings.cfg`), and
-QUIT asks "Leave the sidewalk?" with NO as the safe default.
-
-![Content warning](docs/assets/ui/content_warning.png)
-![Title](docs/assets/ui/title.png)
-![Main menu](docs/assets/ui/main_menu.png)
-![Settings](docs/assets/ui/settings_video.png)
-![Pause](docs/assets/ui/pause.png)
-![Quit confirm](docs/assets/ui/quit_confirm.png)
-![Mode select](docs/assets/ui/mode_select.png)
-![Character select](docs/assets/ui/character_select_both.png)
-![Stage select](docs/assets/ui/stage_select.png)
-![VS bumper](docs/assets/ui/vs_screen.png)
-![Results](docs/assets/ui/results.png)
-![HUD mid-fight](docs/assets/ui/hud_midfight.png)
-![HUD METH READY](docs/assets/ui/hud_meth_ready.png)
-![Combo HUD scaling readout](docs/assets/ui/hud_combo_scaled.png)
-
-- **VERSUS** opens mode select on `1 PLAYER` (solo) with `2 PLAYERS` one
-  keypress away (W/S or A/D to move, J or click to start; Backspace
-  returns to the main menu). The choices sit on a cardboard panel over the
-  dimmed Gas-N-Go art:
-
-- **1 PLAYER:** choose the CPU difficulty (EASY / NORMAL / HARD, W/S or A/D,
-  J confirms, Backspace goes back; each level carries tally-mark ink), then
-  P1 picks their fighter against the mugshot wall, confirms, and
-  picks the opponent with the same keys. P2 is played by the CPU at the chosen
-  difficulty. Backspace steps back one pick, then back to mode select.
-- **2 PLAYERS:** each player confirms their own fighter (P1 with J/click, P2 with
-  pad X) — orange circle and red box scribble cursors mark the picks, and a
-  rap sheet books the focused fighter. Backspace on the P1 keyboard returns
-  to mode select.
-
-After both fighters are confirmed, **stage select** opens as a row of
-scratch-off tickets: Gas-N-Go, Bus Stop (Night), and RANDOM last. W/S, A/D,
-the d-pad, or the stick move the shared cursor (the focused ticket lifts
-with a yellow frame); J/click or pad X confirms; Backspace returns to
-character select with the same matchup. Confirming RANDOM plays an
-18-frame scratch-off reveal of the drawn stage. A short **VS bumper**
-then plays — the matchup lettering, both busts sliding in, the sponsor
-bug — before the match loads the chosen stage and starts the round; any
-confirm skips it after the first second.
-
-When the match ends, the **Results screen** replaces the old
-"Enter restarts": the winner's bust, the rounds/damage/max-combo/METH/time
-tally on a cardboard panel, and REMATCH / CHARACTER SELECT /
-STAGE SELECT / MAIN MENU below it. REMATCH runs the same matchup through
-the VS bumper again.
-
-The **match HUD** is street-junk too (UI Phase 2 + Combo Phase 4): taped-photo portraits
-that bruise and KO, health bars with a red ghost that catches up after
-every combo, pip sprites, a pump-digit timer that ticks dirty yellow
-under 10 seconds, hype meters that flip METH-pink with a wobbling skull
-at full, stamp-in round/K.O./FIGHT banners, and Tripp's commentary on a
-tape. The defender's combo record appears on the attacker's side with its
-base scaling tier, plus macro, juggle, stun, breaker and cancel/break callouts.
-Every HUD counter runs on the 60 Hz sim tick — pause or hitstop freezes the
-whole thing — and the accessibility settings (reduce-flashing, high-contrast
-HUD) apply live.
+P1 plays on keyboard + mouse; P2 plays on any controller (d-pad or left stick).
 
 | Action | P1 keyboard / mouse | P2 controller |
 |---|---|---|
 | Move | A / D | D-pad or left stick |
-| Jump | W | D-pad up or stick up |
-| Crouch | S | D-pad down or stick down |
+| Jump | W | Up |
+| Crouch | S | Down |
 | Light attack | J or left click | X |
 | Heavy attack | K or right click | Y |
 | Special | L or middle click | B |
 | Grab / throw | U | A |
-| METHtality | I | Right shoulder (RB/R1) |
+| METHtality | I | Right shoulder (RB / R1) |
 | Pause | Esc | Start / Menu |
 
-- **Block** by holding away from the opponent (down-away blocks lows), including
-  during blockstun. Chip damage cannot KO — a blocked hit always leaves 1 HP.
-- **EX specials:** hold Heavy while pressing Special to spend 50 meter on the
-  stronger version; without meter the base special comes out for free. The
-  meter builds **only when you land hits** (throws included): blocked hits,
-  whiffs, and taking damage award nothing.
-- **METHtality:** with a full meter, press METHtality to spend the whole bar.
-  Current presentation is a freeze plus banner; the normal KO flow ends the round.
-- **Specials are directional:** neutral, forward, back, down, and air (GDD §4.4).
-- `Enter` restarts after a match ends. Pause menu drives with W/S, the d-pad or
-  stick, or arrows; J, X, or Enter picks. Options are **Resume**, **Settings**
-  (overlay above the paused match), **Restart Match**, **Back to Character
-  Select**, **Main Menu**, and **Quit to Desktop** (through the
-  "Leave the sidewalk?" confirm, which defaults to NO). Back to
-  Character Select discards the in-progress match with no winner, keeps the
-  current mode, and restores the matchup you were just playing.
+- **Block** by holding away from your opponent; hold down-away to block lows.
+- **EX specials:** hold Heavy while pressing Special to spend 50 meter.
+- **Clip Cancel:** Special + Grab during your move's recovery (25 meter, once per combo).
+- **Combo breaker:** Grab + Special while you're being comboed.
+- **METHtality:** press METHtality with a full meter.
+- **Stunned?** Mash Up to shake out.
+- **Menus:** confirm with Enter, J or pad A; go back with Backspace or pad B.
+- **Debug keys:** F1 hit/push boxes (on by default), F2 frame state, F3 input history, F4 slow motion, F5 frame step, F6 refill.
 
-Debug keys: **F1** boxes (on by default), **F2** frame state/advantage/invuln,
-**F3** input history, **F4** slow motion, **F5** frame-step, **F6** refill both
-fighters. The input map is generated, not hand-edited: change the tables in
-`game/tools/setup_input.gd` and run
-`godot --headless --path game --script res://tools/setup_input.gd`, then restore
-the `[physics] 60 Hz` entry that `ProjectSettings.save()` drops (the tool says so).
+## Roadmap
 
-## Builds
+- **Next:** control remapping, Extras and Credits, a training mode, and per-round win letters on the round pips.
+- **Later:** the rest of the 15-fighter roster, more stages, the arcade ladder up to Tripp Vlogs, METHtality cinematics, final audio and voice, and rollback netcode (the simulation is already deterministic and fully serializable).
 
-Pushing to `main` (or a `v*` tag) exports both desktop targets: a Linux x86_64
-binary and a Windows x64 `.exe`, each with the PCK embedded as a single runnable
-file. Grab them from the **Artifacts** section of an `export` run in the Actions
-tab, named `sidewalk-showdown-linux-<sha>` / `sidewalk-showdown-windows-<sha>`
-(kept 14 days).
+The full plan is in the [GDD](GDD.md); story and world canon are in the [Game Bible](GAME_BIBLE.md) and [Characters](CHARACTERS.md).
 
-Presets live in `game/export_presets.cfg` (`linux`, `windows`). Locally, with
-Godot 4.7.2 export templates installed:
+## For developers
+
+**Tests.** Every suite is headless and deterministic, and CI runs them all on each push and PR:
 
 ```bash
-godot --headless --path game --import
-godot --headless --path game --export-release linux build/linux/sidewalk_showdown.x86_64
-godot --headless --path game --export-release windows build/windows/sidewalk_showdown.exe
+for t in game/tests/*_test.gd; do
+  godot --headless --path game --script "res://tests/$(basename "$t")"
+done
 ```
 
-> The repo is public, so Actions minutes and artifact storage are not billed.
-> Both targets build and both artifacts upload successfully on every `main`
-> push; the last verified run published a ~54 MB Linux binary and a ~64 MB
-> Windows `.exe`. The workflow still downloads Godot's export templates per run
-> instead of caching the ~1 GB bundle, which keeps each job independent of a
-> stale cache at a cost of about a minute.
+Per-suite check counts live in [`docs/PM_BRIEF.md`](docs/PM_BRIEF.md). `tests/air_probe.gd` and `tests/juggle_probe.gd` print balance metrics and assert nothing.
 
-## Repository map
+**Architecture rules**
+
+- **The simulation runs on a fixed 60 Hz clock.** Frame data, hitstun, hitstop and buffers are counted in sim frames, and HUD counters run on the same tick, so pause and hitstop freeze everything. No global RNG, delta or wall-clock time touches the sim.
+- **State is serializable.** `MatchRoot.serialize()` / `load()` capture the whole match, for replays and rollback.
+- **Fighters are data.** Stats and moves live in `game/resources/fighters/*.tres`; combat code has no per-fighter balance.
+- **Art is layered.** Source art in `art/source/` is never edited; prep scripts in `art/tools/` generate the runtime art in `game/` (including the UI set via `art/tools/prepare_ui.gd`).
+- **Presentation never changes gameplay.** UI, animation and HUD only read the sim.
+
+**Repository map**
 
 ```text
-game/                  Godot 4.x project
-  scenes/              match, fighters, stages, menus, HUD
-  scripts/             combat, match, ui, debug, stages, audio
-  resources/           data resources: fighter stats/moves, stages, match roster
-  tests/               headless suites + manual render/soak harnesses
-  tools/               data generators, input setup, screenshot/README capture
-  art/                 runtime art (idle sheets, authored clip libraries)
-art/source/            raw owner-supplied batches (never cleaned in place)
-  Characters/Animations/generated/full_animation_batch_01/
-                       source sheets, prepared strips, per-clip manifests
-art/tools/             reproducible prep scripts for the animation batches
-art/exports/           cleaned, snake_case, runtime-ready static art
-docs/                  supporting docs, audits, pipeline notes, screenshots
+game/          Godot project: scenes, scripts, resources, tests, tools, runtime art
+art/source/    owner-supplied source art (read-only)
+art/tools/     reproducible art and font prep tools
+docs/          design, status, pipelines, UI rules, screenshots
 ```
 
-## Documentation
+**Docs**
 
 | Doc | What it covers |
 |---|---|
-| [`docs/PHASE_STATUS.md`](docs/PHASE_STATUS.md) | GDD phase requirements vs evidence, decisions, blockers |
-| [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md) | Prototype gaps, test inventory, known limitations |
-| [`docs/PIXELORAMA_PIPELINE.md`](docs/PIXELORAMA_PIPELINE.md) | Idle-sheet + authored-clip pipeline for both fighters (§8–§9b) |
-| [`docs/STAGES.md`](docs/STAGES.md) | Gas-N-Go layers/ambience, thumbnail regeneration, stage select, adding a stage |
-| [`docs/PROPOSALS.md`](docs/PROPOSALS.md) | Combat system proposals and measured first passes |
-| [`docs/ART_CREDITS.md`](docs/ART_CREDITS.md) | Art provenance, font licenses, all-rights-reserved notes |
-| [`docs/MAIN_BRANCH_GUARD.md`](docs/MAIN_BRANCH_GUARD.md) | Why `main` only accepts squash-merged PRs |
-| [`docs/audits/`](docs/audits) | Preserved historical audits and reconciliations |
-| [`GAME_BIBLE.md`](GAME_BIBLE.md) | Story/world canon (Tripp, roster, stages, METHtalities) |
-| [`GDD.md`](GDD.md) | Full design and production plan |
-| [`CHARACTERS.md`](CHARACTERS.md) | Roster bible (archetypes, rivals, data direction) |
+| [`docs/PM_BRIEF.md`](docs/PM_BRIEF.md) | Current features, architecture, test inventory, commands |
+| [`docs/PHASE_STATUS.md`](docs/PHASE_STATUS.md) | GDD phase requirements vs evidence |
+| [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md) | Known gaps, decisions and the test inventory |
+| [`docs/COMBO_SYSTEM_DESIGN.md`](docs/COMBO_SYSTEM_DESIGN.md) | Combo system design and the owner-approved decisions |
+| [`docs/UI_SCREENS.md`](docs/UI_SCREENS.md) | Screens, HUD layout, typography and contrast rules |
+| [`docs/UI_ASSETS.md`](docs/UI_ASSETS.md) | UI art pipeline and the approved asset manifest |
+| [`docs/STAGES.md`](docs/STAGES.md) | Stage layers, ambience, adding a stage |
+| [`docs/CPU_OPPONENT.md`](docs/CPU_OPPONENT.md) | How the CPU plays |
+| [`docs/ART_CREDITS.md`](docs/ART_CREDITS.md) | Art provenance and font licenses |
 
-**Canon locks:** Tripp Vlogs is the only boss and is not playable. Roster = 15
-fighters, one unique METHtality each. No real towns, brands, or public figures —
-this is fictional "Sidewalk Florida".
+**Contributing.** `main` only accepts squash-merged PRs ([why](docs/MAIN_BRANCH_GUARD.md)). Branch from `origin/main`, run the suites, open a PR, wait for green CI, then squash-merge. Keep gameplay-data changes separate from presentation changes.
 
-## Architecture rules
-
-- **Simulation is a fixed 60 Hz clock.** Frame data, hitstun, blockstun,
-  hitstop, and buffer windows are all in simulation frames; presentation
-  counters advance on the same clock so pause and hitstop freeze everything.
-- **Fighters are data.** `game/resources/fighters/*.tres` define stats and
-  moves; combat code never hard-codes per-fighter balance. Regenerate with
-  `godot --headless --path game --script res://tools/gen_fighter_data.gd`.
-- **Art is layered.** Source batches stay byte-for-byte untouched in
-  `art/source/`; normalized strips and manifests are produced by
-  `art/tools/prepare_*_batch.py`; runtime copies live in
-  `game/art/characters/*/clips/`. Idle sheets remain the approved fallback for
-  any gated or missing clip.
-- **Presentation never changes gameplay.** Clip tables control which cel and
-  cadence are shown; damage, timings, hitboxes, knockback, movement, collision,
-  buffers, cancels, invulnerability, hitstop, and round rules stay in the sim.
-
-## Contributing
-
-`main` is squash-merge-only. Branch from `origin/main`, open a PR, wait for
-`tests` to pass, then squash-merge
-([`docs/MAIN_BRANCH_GUARD.md`](docs/MAIN_BRANCH_GUARD.md)). Keep gameplay data
-changes separate from presentation-only changes, and run the headless suites
-before pushing: `combat`, `round_flow`, `character_select`, `stage_select`,
-`stage_floor`, `locomotion_speed`, `cpu`, `combo`, `the_clip`,
-`serialization`, `b6_landing_whiff`, plus `combo_fuzz`, `stun_breaker`,
-`ui_flow`, `settings`, and `ui_assets` (see `docs/PM_BRIEF.md` §5 for the
-exact commands; every CI step has a `timeout-minutes`).
+**Canon locks:** Tripp Vlogs is the only boss and isn't playable. The roster is 15 fighters, each with one unique METHtality. No real towns, brands or public figures: this is a fictional "Sidewalk Florida".

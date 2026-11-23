@@ -95,8 +95,10 @@ func _ready() -> void:
 
 	var rows := _stat_rows()
 	for row in rows.size():
+		# Owner playtest fix 2026-11-23: the stat labels use the theme's
+		# readable ink instead of the muted ink (low-contrast complaint).
 		var row_label := UiText.body(str(rows[row][0]),
-			Vector2(ROW_X_LABEL, ROW_Y + row * ROW_STEP), UiText.INK_MUTED)
+			Vector2(ROW_X_LABEL, ROW_Y + row * ROW_STEP), UiText.INK)
 		row_label.size = Vector2(72, UiText.M5X7_LINE_HEIGHT)
 		add_child(row_label)
 		_row_labels.append(row_label)
@@ -145,7 +147,11 @@ func _stat_rows() -> Array:
 		meth = "P2"
 	return [
 		["ROUNDS", "%d - %d" % [wins[0], wins[1]]],
-		["DAMAGE", "%.0f / %.0f" % [damage[0], damage[1]]],
+		# The tracker accumulates round_damage deltas per side across the
+		# WHOLE match (rounds reset the counter, not the total), so the
+		# label says what it measures (owner playtest fix 2026-11-23:
+		# "DAMAGE 2000 / 717" read as a per-round number).
+		["TOTAL DMG", "%.0f / %.0f" % [damage[0], damage[1]]],
 		["MAX COMBO", "%d / %d" % [max_combo[0], max_combo[1]]],
 		["METH", meth],
 		["TIME LEFT", "%d:%02d" % [seconds / 60, seconds % 60]],
@@ -175,6 +181,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		_choose()
 	elif event.is_action_pressed("ui_back"):
 		main_menu_requested.emit()
+	elif event.is_action_pressed("p1_pause") or event.is_action_pressed("p2_pause"):
+		# Owner playtest fix 2026-11-23: the pause key never opens the
+		# match's pause menu above Results; it is consumed and does
+		# nothing here (back = MAIN MENU, as above).
+		pass
 	else:
 		handled = false
 	if handled:

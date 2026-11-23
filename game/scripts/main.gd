@@ -388,7 +388,9 @@ func _start_match(p1_data: FighterData, p2_data: FighterData,
 	stats_tracker = MatchStatsTracker.new()
 	add_child(stats_tracker)
 	stats_tracker.attach(match_root)
-	router.push(match_root)
+	# The match's stage/fighters/ambience stay on the base canvas, BELOW the
+	# HUD's CanvasLayer; every other router screen lives above the HUD.
+	router.push(match_root, true)
 
 
 # Match end (Phase 3b): pause the finished match and push the Results
@@ -413,6 +415,11 @@ func _on_match_results_requested() -> void:
 	var stage: StageData = match_root.selected_stage
 	match_root.modal_open = true
 	get_tree().paused = true
+	# Owner playtest fix 2026-11-23: the finished match's HUD (timer,
+	# meters, the persistent round banner) must not show through the
+	# Results screen; the match is freed on every Results exit path, so
+	# there is no restore case.
+	match_root.hud.visible = false
 	var results: Control = RESULTS_SCENE.instantiate()
 	results.stats = snapshot
 	results.winner_data = winner_data
@@ -563,8 +570,9 @@ func _on_settings_closed() -> void:
 		return
 	router.pop()
 	settings_overlay = null
-	if match_root != null:
-		# Back to the pause menu over the paused match.
+	if match_root != null and results_screen == null:
+		# Back to the pause menu over the paused match. While Results is up,
+		# Results owns the input; modal_open must stay true.
 		match_root.modal_open = false
 
 
@@ -586,5 +594,5 @@ func _on_quit_dismissed() -> void:
 		return
 	router.pop()
 	quit_confirm = null
-	if match_root != null:
+	if match_root != null and results_screen == null:
 		match_root.modal_open = false

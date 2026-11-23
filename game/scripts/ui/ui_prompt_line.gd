@@ -18,9 +18,10 @@ const GLYPH_SIZE := Vector2(9, 9)
 # The plate: full width, 12 px tall, flush with the screen bottom.
 const PLATE_Y := 168
 const PLATE_SIZE := Vector2(320, 12)
-# Optical band inside the plate: the m5x7 label rect (16 px tall) centers
-# on the plate; the 9 px glyph centers on the same band.
-const LABEL_Y := 168
+# Optical band inside the plate: Godot's m5x7 Label minimum is 13 px high,
+# so start its rect one pixel above the 12 px plate. The font's ink still
+# lands inside the plate, and the label's bottom stays on the 180 px frame.
+const LABEL_Y := 167
 const GLYPH_Y := 169
 const LEFT_X := 8
 const RIGHT_MARGIN := 8

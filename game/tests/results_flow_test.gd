@@ -150,7 +150,12 @@ func _test_vs_standalone() -> void:
 			and vs._p2_bust.position.x > 212 and vs._p2_bust.position.x < 320,
 		"p1=%s p2=%s" % [str(vs._p1_bust.position.x), str(vs._p2_bust.position.x)])
 
-	await _step(7)  # frame 12: slide complete
+	await _step(7)
+	# Awaiting a physics_frame in headless can straddle one fewer engine
+	# iteration while the main loop is building. Assert the simulation-owned
+	# 12-frame landmark, not the number of await wakeups.
+	while vs._frame < 12:
+		await physics_frame
 	_check("the VS busts land at their marks in 12 integer steps",
 		vs._p1_bust.position == Vector2(12, 40) and vs._p2_bust.position == Vector2(212, 40)
 			and vs._p2_bust.flip_h,
@@ -208,6 +213,9 @@ func _test_results_at_match_end(main: Node) -> void:
 		main.results_screen.stats["winner"] == 0
 			and main.results_screen.winner_data == main.match_root.p1.data,
 		"winner=%s" % str(main.results_screen.stats["winner"]))
+	_check("Results never opens or retains a Settings overlay",
+		main.settings_overlay == null,
+		"settings=%s" % str(main.settings_overlay))
 	_check("the Results stats carry the rounds tally",
 		main.results_screen.stats["wins"][0] == 2
 			and main.results_screen.stats["wins"][1] == 0,
@@ -223,6 +231,21 @@ func _test_results_at_match_end(main: Node) -> void:
 	_check("the Results menu ignores input for its first 30 frames",
 		main.results_screen != null and main.match_root != null,
 		"routed early at %d frames" % frames_at_appearance)
+
+	# Owner playtest fix 2026-11-23: the finished match's HUD is hidden and
+	# the pause key can never stack the pause menu on top of Results.
+	_check("the match HUD is hidden while Results is up",
+		not main.match_root.hud.visible,
+		"hud visible=%s" % str(main.match_root.hud.visible))
+	_press(main.results_screen, "p1_pause")
+	_press(main.match_root, "p1_pause")
+	await _step(3)
+	_check("the pause key never opens the pause menu on Results",
+		not main.match_root.pause_menu_open
+			and main.match_root.modal_open
+			and main.results_screen != null,
+		"pause_open=%s modal=%s" % [str(main.match_root.pause_menu_open),
+			str(main.match_root.modal_open)])
 
 	# Neither screen writes match state: while Results is up, the frozen
 	# match's serializable surface never changes.

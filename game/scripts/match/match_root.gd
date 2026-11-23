@@ -137,9 +137,6 @@ func _ready() -> void:
 	debug_overlay = DEBUG_SCRIPT.new()
 	add_child(debug_overlay)
 	debug_overlay.bind(p1, p2)
-	if training_mode:
-		# The hitbox view is a menu toggle in training (F1 still works).
-		debug_overlay.show_boxes = false
 
 	_setup_cpus()
 	if training_mode:
@@ -493,6 +490,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if modal_open:
 		# An overlay above the paused match owns all input right now.
+		return
+	if phase == Phase.MATCH_END:
+		# Owner playtest fix 2026-11-23: the match is over — the Results
+		# screen (or the results delay before it) owns everything from
+		# here. The pause menu can never stack on top of Results, no
+		# matter which modal flag was left behind.
 		return
 	# Training match keys (never while paused: the sim is frozen underneath
 	# the menu and the trainer should not stack resets on a frozen frame).

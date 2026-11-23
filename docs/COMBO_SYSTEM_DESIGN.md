@@ -468,6 +468,12 @@ invulnerability (reuse the wake-up invuln mechanism — no new invuln
 system). The free use gives every player one honest "no" per round; the
 meter cost keeps break-spam from replacing blocking.
 
+**Hitstop input rule (owner decision, A2 fix, PR #87):** a grab+special
+chord captured during this combo's HITSTUN hitstop is held without aging
+until hitstop ends; then the ordinary four-frame chord window applies.
+A pre-hit press does not count. This exception is breaker-only: it does
+not widen the general 5-frame hitstop input-buffer freeze cap.
+
 **Meter gain inside combos (related):** keep `meter_gain_hit` but multiply
 by 0.5 inside an active combo, floor 0.25 — so long combos still trend
 toward the next EX but don't refund their own breaker mid-loop. The

@@ -26,9 +26,13 @@ finding is not considered fixed merely because an older suite passes.
   grabs hitting a knocked-down defender for 95 damage and re-entering knockdown.
   Throws are now rejected during `KNOCKDOWN` before tech/damage resolution;
   normal throw damage remains 95/105. Regression tests cover both orientations.
-- **Buffer aging through freeze/stun (B3) — hitstop portion fixed by D3/PR 4a.**
-  All buffered action ages now freeze together during hitstop for at most one
-  normal buffer window (5 frames); later hitstop frames age them normally.
+- **Buffer aging through freeze/stun (B3) — general hitstop portion fixed by D3/PR 4a.**
+  General buffered action ages still freeze together during hitstop for at most
+  one normal buffer window (5 frames); later hitstop frames age them normally.
+  PR #87 adds one owner-approved exception: a breaker chord captured during
+  the current combo's HITSTUN hitstop is held in its own serialized pending
+  mask until hitstop ends, then gets the ordinary four-frame breaker window.
+  A pre-hit press does not count; the 5-frame general cap is unchanged.
   Blockstun aging was not changed. Owner decision (2026-11-07): blockstun
   buffering 4b remains DEFERRED (S4 documented); punishes feel responsive.
 - **Corner pushbox overlap (B4) — fixed.** The baseline left 5px overlap after
@@ -374,11 +378,17 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   combo Phase 3): the combo breaker shipped.** Grab+special together while
   in hitstun (grounded strings AND juggles) breaks out: free once per round,
   40-meter extras, 5-second cooldown, once per combo. The break separates
-  both fighters 30 px over 6 frames through the shared side helper, and a
-  WALL-PINNED defender's pushback share transfers to the attacker, so the
-  cornered defender escapes with 20 frames of invulnerability (pinned in
-  `stun_breaker_test.gd` §5b). Keep this entry for the playtest: the fix is
-  verified by suites, not yet by human feel.
+   both fighters 30 px over 6 frames through the shared side helper, and a
+   WALL-PINNED defender's pushback share transfers to the attacker, so the
+   cornered defender escapes with 20 frames of invulnerability (pinned in
+   `stun_breaker_test.gd` §5b). **A2 fixed (PR #87):** a single
+   impact-frame grab+special chord survives long hitstop via a combo-scoped,
+   serialized pending mask; it is only captured in the current combo's
+   HITSTUN during hitstop, does not age during the freeze, and re-arms the
+   unchanged four-frame window at hitstop release. A press one frame before
+   impact is not captured. The 5-frame general input-freeze cap and all
+   breaker resource/cooldown/airborne rails are unchanged. Keep this entry
+   for the playtest: the fixes are verified by suites, not yet by human feel.
 - **Some move animations still scale incorrectly** — characters appear
   bigger/smaller during certain moves. The 2026-11-15 calibration pass fixed
   the worst `h_ref` drift, but owner review still sees outliers; needs a
@@ -556,13 +566,14 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   MatchRoot save/restore with per-frame hash comparison, mid-combo
   save/restore, scripted-dial determinism, and a seeded route fuzz
   (`docs/COMBO_SYSTEM_DESIGN.md`).
-- `game/tests/serialization_test.gd` — **24 checks**: the MatchRoot
+- `game/tests/serialization_test.gd` — **26 checks**: the MatchRoot
   serializable surface carries every expected key and round-trips cleanly;
-  exits 0/1 like the other suites.
+  FighterBase also round-trips a pending breaker chord during HITSTUN
+  hitstop; exits 0/1 like the other suites.
 - `game/tests/b6_landing_whiff_test.gd` — **5 checks**: the superseded B6
   rule pinned to the current meter economy — landing a whiffed air move
   awards 0 meter, the move clears, and landing recovery runs to IDLE.
-- `game/tests/ui_flow_test.gd` — **52 checks** (UI Phase 1 + polish):
+- `game/tests/ui_flow_test.gd` — **53 checks** (UI Phase 1 + polish):
   router push/pop/replace/clear semantics, every forward and back path of
   the warning -> Clip -> title -> main-menu -> versus flow, the deferred
   confirm-leak guard, pause -> settings -> back to pause, MAIN MENU from
@@ -640,13 +651,20 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   8-match CPU-vs-CPU soak with an honest 6500-frame limit measured from
   real lengths (3092–5007 after the Phase 3 retunes; see
   `docs/COMBO_FINDINGS.md`).
-- `game/tests/stun_breaker_test.gd` — **55 checks** (combo Phase 3): stun
+- `game/tests/stun_breaker_test.gd` — **66 checks** (combo Phase 3 + PR #87
+  A2 regression coverage): stun
   window/shake-out/immunity/once-per-combo rails, step-3 scaling on the
   follow-up string, blocked and airborne rails, the hitstop buffer-freeze
   bounds, the full breaker economy (free per round, 40-meter extras,
   5-second cooldown, once per combo, blockstun/neutral rejection), juggle
   breaks, the wall-pinned corner escape, mid-stun and mid-break
   serialize/restore, and a two-run determinism hash.
+- `game/tests/combo_adversarial_test.gd` — **74 checks**: independent
+  adversarial audit of the Phase 1–3 combo layer, including breaker
+  economy/cooldown, A1 natural-combo re-arm (fixed in #89), A2 single
+  impact-frame chord across 10f hitstop (fixed in #87), A3 Clip
+  Cancel/breaker option-select, A4 immunity-blocked stun budget, and
+  both player sides. A1/A2 checks remain unchanged; post-fix 74/0.
 - Rendered/live verification harnesses (not run by CI; require a display
   because they read back the framebuffer, so they are manual review tools):
   `richard_clip_render_check.gd` (27 captures) and
@@ -664,9 +682,10 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   actionability. Prints a report and exits 0 on success; `docs/PROPOSALS.md` §3
   documents the coarse grid, before/after metrics, and target limitations. Its
   numbers are informational measurements, not passing balance assertions.
-- `.github/workflows/tests.yml` runs the twenty headless suites — combat,
+- `.github/workflows/tests.yml` runs the twenty-one headless suites — combat,
   round-flow, mode/character-select, stage-select/ambience, stage-floor-guard,
-  locomotion-speed, CPU opponent, combo system, combo fuzz, stun & breaker,
+  locomotion-speed, CPU opponent, combo system, combo fuzz, combo adversarial,
+  stun & breaker,
   The Clip intro,
   serialization, B6 landing-whiff, UI flow, settings, UI assets,
   UI typography, select screens, results flow, and the match HUD — plus

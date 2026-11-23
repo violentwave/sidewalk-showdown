@@ -27,6 +27,7 @@ locomotion_speed_test: ... checks, ... failure(s)
 cpu_test:              ... checks, ... failure(s)
 combo_test:            ... checks, ... failure(s)
 combo_fuzz_test:       ... checks, ... failure(s)
+combo_adversarial_test:... checks, ... failure(s)
 stun_breaker_test:     ... checks, ... failure(s)
 the_clip_test:         ... checks, ... failure(s)
 serialization_test:    ALL PASS (exit 0)
@@ -41,7 +42,7 @@ hud_test:              ... checks, ... failure(s)
 air probe:            metrics only, job must still pass
 ```
 
-- [ ] All twenty CI suites run locally with the commands in `README.md`
+- [ ] All twenty-one CI suites run locally with the commands in `README.md`
 - [ ] Rendered review done for visual changes (note the captures/screens and both facings)
 
 ## Docs

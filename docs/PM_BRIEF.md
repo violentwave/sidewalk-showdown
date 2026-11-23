@@ -2,31 +2,20 @@
 
 > **Keep this file current: every PR that changes features, tests, commands, or
 > rules must update PM_BRIEF.md.**
-> Last verified: **2026-11-22**, against `origin/main` at `c82e3ba`
-> (PR #90 PR A select screens + PR #91 match wrap) plus this branch's
-> **UI Phase 2 (the match HUD)**: the approved street-junk HUD art wired
-> into every element (portrait frames with normal/hurt/ko photos,
-> health frames with the 20-sim-frame combo ghost, pip sprites, timer
-> box with digit-strip cells, meter frames with METH-pink READY state
-> and the 15-frame skull, banner plates with word sprites stamping in
-> over 6 sim frames, attacker-side callouts, the commentary tape), all
-> HUD timers moved onto a presentation-only per-sim-tick hook (frozen
-> by pause and hitstop, resyncing on restore), and five stored settings
-> consumed (commentary, show_combo_damage, reduce_flashing,
-> high_contrast_hud, hide_tripp_text). New suite hud_test 47 checks;
-> ui_typography grew to 42 (HUD label coverage), round_flow to 35
-> (decisive/FIGHT banner pins). Win-type pip letters stay out —
-> MatchRoot keeps no per-round win history (KNOWN_ISSUES). (Earlier on
-> main: combo Phase 3 stuns + breaker — Richard Taser Belch 105→40 +
-> 240f immunity, Peggy Peg-Lock 95 + 60f
-> immunity), the free-per-round + 40-meter combo breaker, and Peggy's base
-> launcher raised 228→274 (owner call: the authored route now connects at
-> human timing). New suite: stun_breaker 55 checks; combo_fuzz grew to
-> 118 with stun/breaker fuzz and a re-measured soak (3092–5007 frames,
-> limit 6500). All claims below were checked
-> against the code, resources, workflows, and a full local test run on this
-> branch — not copied from other docs. Stale claims found elsewhere are
-> called out in §9.
+> Last verified: **2026-11-22**, against `origin/main` at `f7df831`
+> (UI Phase 2 HUD, PR #92) plus this branch's **PR #87 A2 breaker fix**:
+> a hitstop-frozen pending chord mask captures grab+special only during
+> the current combo's HITSTUN (including the impact-frame poll-order case),
+> holds it without aging during hitstop, and re-arms the existing four-frame
+> window on release; a one-frame-pre-hit press is not captured. The mask is
+> per-fighter and in `serialize()/load()`. The general 5-frame input-freeze
+> cap and every breaker resource/cooldown/airborne rule stay unchanged.
+> `combo_adversarial_test` now passes all 74 checks (A1 fixed in #89, A2
+> fixed here; A3/A4 remain recorded and unchanged); `stun_breaker` grows
+> 55→66, `serialization` 24→26. No combat balance values changed. All
+> claims below were checked against the code, resources, workflows, and a
+> full local test run on this branch — not copied from other docs. Stale
+> claims found elsewhere are called out in §9.
 
 ## 1. What this game is (verified stack)
 
@@ -123,8 +112,9 @@ Counts are PASS+FAIL lines observed in real headless runs, not doc claims.
 | `the_clip_test.gd` | Panel art slots, canon guards, Space-only flow, skips, fonts | **23**, 0 fail | yes |
 | `combo_test.gd` | Combo layer: legacy ladder pins, BLOCK/WHIFF cancels, Clip Cancel, macros, caps + meter-in-combo, Phase 2 juggle budget/routes/decay/serialization, mid-combo + mid-juggle save/restore, determinism, seeded route fuzz | **68**, 0 fail | yes |
 | `combo_fuzz_test.gd` | Seeded fuzz over the combo layer: route search, 12/550 caps, macros/Clip-Cancel/blocked-macro/counter edges, two-build determinism, mid-combo serialize/restore, cross-up on both stages, juggle budget/routes/seeded juggle fuzz on both stages, Phase 3 stun/breaker fuzz (both matchups, both fighters as the breaking side), 8-match CPU-vs-CPU soak (3282–3896 frames after the Phase 4 CPU, limit 4900 = worst + ~25%) | **118**, 0 fail | yes — repaired 2026-11-21 (PR #76 harness port); Phase 2 juggle coverage added 2026-11-21; Phase 3 stun/breaker fuzz added 2026-11-21; **Phase 4 soak re-measured 2026-11-22** |
-| `stun_breaker_test.gd` | Phase 3 stun and breaker rails end to end: window/shake-out/immunity/once-per-combo/step-3 scaling, blocked and airborne rails, buffer-freeze bounds, breaker free/meter/cooldown/once-per-combo economy, blockstun+neutral rejection, juggle breaks, the corner escape, mid-stun/mid-break serialize-restore, determinism | **55**, 0 fail | yes — **added 2026-11-21 (Phase 3)** |
-| `serialization_test.gd` | Match serializable-surface keys + round trip | **24**, 0 fail | yes — fixed 2026-11-20 (exits with `quit()`, correct exit code) |
+| `stun_breaker_test.gd` | Phase 3 stun and breaker rails end to end: window/shake-out/immunity/once-per-combo/step-3 scaling, blocked and airborne rails, general buffer-freeze bounds, free/meter/cooldown/once-per-combo economy, blockstun+neutral rejection, juggle breaks, corner escape, mid-stun/mid-break serialize-restore, determinism; PR #87 adds impact-frame 6f/10f breaker chords for P1/P2, pre-hit rejection, cooldown/used resource rails, mash-once, and pending-mask restore determinism | **66**, 0 fail | yes |
+| `combo_adversarial_test.gd` | Independent Phase 1-3 adversarial audit: A1 breaker re-arm after a natural combo end (fixed in #89), A2 single impact-frame press through long hitstop (fixed in #87), A3 Clip Cancel/breaker option-select, A4 immunity-blocked stun budget; both matchups/sides, seeded test-local LCG | **74**, 0 fail | yes — added in PR #87; A2 assertion unchanged |
+| `serialization_test.gd` | Match serializable-surface keys + round trip, plus FighterBase pending-breaker-mask hitstop round trip | **26**, 0 fail | yes — fixed 2026-11-20; pending chord coverage added in PR #87 |
 | `b6_landing_whiff_test.gd` | Superseded B6 rule: landing a whiffed air move awards 0 meter, move clears, recovery runs | **5**, 0 fail | yes — added 2026-11-20 (asserts current behavior; exits cleanly) |
 | `ui_flow_test.gd` | Phase 1 routing: router semantics, every forward/back path, confirm-leak guard, pause overlays, greyed items, QuitConfirm default, press-required warning (30-frame guard), chat-free menu, wrap order, the stage -> VS -> match hand-off, title pulse | **53**, 0 fail | yes — 2026-11-21 polish pass (was 48; warning behavior pins updated with owner approval) |
 | `settings_test.gd` | Settings persistence: defaults, fill-in, round trip, opening never saves, reset applies+saves, 0 dB defaults | **16**, 0 fail | yes — added 2026-11-21 (scratch config; player file untouched) |
@@ -132,15 +122,15 @@ Counts are PASS+FAIL lines observed in real headless runs, not doc claims.
 | `ui_typography_test.gd` | Phase 1 + PR A/B/C typography and contrast rules: every label in the eleven surfaces uses a pixel font at native size with every glyph present, no outline/shadow, integer positions, no scaling; cardboard labels fit their container and use the dark inks; no two labels overlap (ink extents) and labels over cards stay inside; the HUD labels pass the same rules at round start and mid-fight | **42**, 0 fail | yes — added 2026-11-21, extended 2026-11-22 (review fixes, select screens, match wrap, HUD) |
 | `select_screens_test.gd` | PR A select reskins: Mode/Difficulty choices unchanged (names, order, defaults, emits, back paths), difficulty tallies, rap-sheet photo + wall copy, per-player scribble cursors, ticket focus lift, the 18-frame RANDOM scratch-off and its hand-off | **24**, 0 fail | yes — added 2026-11-22 (PR A) |
 | `results_flow_test.gd` | PR B match wrap: the VS slide-in (12 integer steps), 20-frame skip guard, 150-frame duration and hand-off; Results appears at match end above the frozen match with the real winner/stats; serialize() identical while Results is up; the 30-frame Results guard; every Results option routes (REMATCH keeps fighters and stage through the VS bumper) | **20**, 0 fail | yes — added 2026-11-22 (PR B) |
-| `hud_test.gd` | UI Phase 2 HUD: portrait states, health and the 20-frame ghost drain, the sim-tick freeze under pause, pip sprites, timer digit cells and the under-10 tint, meter full/READY with the skull alternation, banner sprites with the text fallback and timing, attacker-side callouts, the gated combo damage, commentary modes, reduce_flashing and high_contrast, the serialize/load resync,, serialize() identical with the HUD bound and unbound, and fills/photo drawn above their opaque frame art | **47**, 0 fail | yes — added 2026-11-22 (UI Phase 2) |
+| `hud_test.gd` | UI Phase 2 HUD: portraits, health/ghost drain, sim-tick pause freeze, pips, timer, meter/full READY/skull, banners, callouts, combo damage setting, commentary settings, accessibility settings, resync, serialization isolation | **47**, 0 fail | yes — added 2026-11-22 (UI Phase 2) |
 | `air_probe.gd` | Balance metrics only, asserts nothing, always exits 0 | 0 (metrics) | yes (separate job) |
 | `juggle_probe.gd` | Juggle balance metrics (every budget-legal launcher route, jab-only reference, candidate ladders), asserts nothing | 0 (metrics) | no |
 | `juggle_route_probe.gd` | Real-hitbox juggle route timing search (human timing; ~7 min) | 0 (metrics) | no |
 | `idle_render_check`, `peggy/richard_clip_render_check`, `jump_block_render_check`, `jump_block_trace`, `attack_scale_check`, `peggy/richard_jump_check`, `peggy/richard_live_soak` | Manual rendered/soak review tools; need a display, write to `/tmp/opencode/` | n/a | no |
 
-CI (`.github/workflows/tests.yml`) runs import + the twenty suites (combat,
+CI (`.github/workflows/tests.yml`) runs import + the twenty-one suites (combat,
 round_flow, character_select, stage_select, stage_floor, locomotion_speed,
-cpu, combo, combo_fuzz, stun_breaker, the_clip, serialization, b6, ui_flow,
+cpu, combo, combo_fuzz, combo_adversarial, stun_breaker, the_clip, serialization, b6, ui_flow,
 settings, ui_assets, ui_typography, select_screens, results_flow,
 hud_test) plus the air-probe job
 on push, PR, and manual dispatch; every step carries a `timeout-minutes` so
@@ -166,6 +156,7 @@ godot --headless --path game --script res://tests/serialization_test.gd
 godot --headless --path game --script res://tests/b6_landing_whiff_test.gd
 godot --headless --path game --script res://tests/combo_test.gd
 godot --headless --path game --script res://tests/combo_fuzz_test.gd
+godot --headless --path game --script res://tests/combo_adversarial_test.gd
 godot --headless --path game --script res://tests/stun_breaker_test.gd
 godot --headless --path game --script res://tests/ui_flow_test.gd
 godot --headless --path game --script res://tests/settings_test.gd
@@ -325,7 +316,9 @@ Release blockers / decisions pending:
   `feat/cpu-combos`** — the CPU walks the authored cancel graph, chases
   juggles, fishes stuns, breaks, Clip Cancels, and shakes out (design §12;
   knob table in `docs/CPU_OPPONENT.md`), including the A1 breaker-rail fix
-  the adversarial pass recorded. Phase 4's combo HUD half is still planned;
+  (PR #89) and the A2 hitstop-buffered breaker chord fix (PR #87).
+  Adversarial decisions A3/A4 remain unchanged and recorded. Phase 4's
+  combo HUD half is still planned;
   the eleven
   §15 decisions are all owner-approved, and the three 2026-11-21 Phase 3
   owner calls (launcher 274, ladder kept, jab deferred) are recorded in
@@ -354,13 +347,13 @@ Release blockers / decisions pending:
 | `GDD.md` | Full design + production plan (§13 phases, §14 gates, §16 open questions) | Mostly current; the §14 implementation-status note was refreshed 2026-11-20 (CPU, stage select, difficulty select, combo Phase 1 all marked shipped) |
 | `GAME_BIBLE.md` | Story/world canon: Tripp, 15-fighter roster, rivalries, stage canon, METHtalities, campaign acts | Current (canon, not implementation status) |
 | `CHARACTERS.md` | Roster bible: archetypes, five story layers, move kits, METHtalities for all 15 | Current (canon, design-only) |
-| `docs/PHASE_STATUS.md` | GDD §13 phase-by-phase status with owner decisions | Current (2026-11-20): baseline pinned to `77e0b55`/PR #76, meter-decision date typo fixed to 2026-11-18, gamepad row marks PR #53 shipped, counts correct (54 select, 27 CPU; sixteen suites since combo Phase 3) |
-| `docs/KNOWN_ISSUES.md` | Defects + decisions, build contents, input policy, test inventory | Current (2026-11-20): counts fixed (54 select), cpu/combo/serialization/b6 inventory entries added, CI list covers all sixteen suites, ui_flow/settings/ui_assets entries added (UI Phase 1), "(there is no AI yet)" removed, owner-reported playtest issues (jab strength, corner escape, move-clip scaling) recorded |
+| `docs/PHASE_STATUS.md` | GDD §13 phase-by-phase status with owner decisions | Current (2026-11-23): 21-suite inventory; PR #87 A2 pending-breaker fix |
+| `docs/KNOWN_ISSUES.md` | Defects + decisions, build contents, input policy, test inventory | Current (2026-11-23): A1 fixed in #89, A2 fixed here; A3/A4 unchanged; serialization/stun_breaker/adversarial test inventory and 21-suite CI list updated |
 | `docs/CPU_OPPONENT.md` | CPU architecture, behaviors, difficulty knobs, soak results + balance reading, 41-check suite | Current (2026-11-22: Phase 4 combo behaviors, knob table, soak tables, honest limits) |
 | `docs/SIDE_SWITCHING.md` | Facing derivation, cross-up blocking, pass-through flag, determinism notes | Current (verified against `fighter_base.gd`/`match_root.gd`) |
 | `docs/STAGES.md` | Both stages' layers/ambience, floor_y method, thumbnails, stage select, add-a-stage recipe | Current (floor_y 158/170, bounds, spawns verified) |
-| `docs/COMBO_SYSTEM_DESIGN.md` | Combo-system audit (§§1-8) + design (§§9-16), phased plan, 11 owner-approved decisions, §15.1 Phase 2 implementation + balance data, §15.2 Phase 3 implementation + owner calls | Phases 1–3 implemented (§15.1/§15.2 measured 2026-11-21); Phase 4 planned |
-| `docs/COMBO_FINDINGS.md` | Seeded combo-fuzz results: harness/counter history, Phase 2 snapshot-aliasing + mid-air-expiry + base-Peggy findings, soak history, honest 6500 limit, Phase 3 skip-list closure | Current (2026-11-21, includes the Phase 2 juggle + Phase 3 stun/breaker coverage: 118/68/55 checks) |
+| `docs/COMBO_SYSTEM_DESIGN.md` | Combo-system audit (§§1-8) + design (§§9-16), phased plan, owner-approved decisions, §15 implementation + balance data | Phases 1–3 implemented; §11 notes the PR #87 input buffer through hitstop |
+| `docs/COMBO_FINDINGS.md` | Seeded combo-fuzz and adversarial results, harness/counter history, balance findings, soak history and limits | Current (2026-11-23): A1 fixed in #89; A2 fixed in #87; A3/A4 still recorded; adversarial 74/0 |
 | `docs/SAVESTATE_PLAN.md` | What `serialize()` captures, AI state object, known gaps | Current (keys verified against code) |
 | `docs/PROPOSALS.md` | Historical combat-system proposals with measured results (§§1-7) | Current (2026-11-20): §§1/7 whiff-meter passages now carry inline "superseded" notes pointing to the landed-hits economy (§5); history preserved |
 | `docs/PIXELORAMA_PIPELINE.md` | Idle-sheet + authored-clip pipeline for both fighters (§8-§9b) | Current (integration status matches the clip libraries) |

@@ -7,9 +7,15 @@ on. Suites: `game/tests/combo_fuzz_test.gd` + `game/tests/combo_test.gd`,
 seeded test-local LCG (gameplay RNG untouched), headless Godot 4.7.2.
 
 **Status on this branch: combo_fuzz 118 checks, 0 failure(s); combo_test
-68 checks, 0 failure(s); stun_breaker 55 checks, 0 failure(s)** (combo_fuzz
+68 checks, 0 failure(s); stun_breaker 66 checks, 0 failure(s); combo_adversarial
+74 checks, 0 failure(s)** (combo_fuzz
 was 78/42 before the Phase 2 juggle coverage and 110 before the Phase 3
 stun/breaker fuzz).
+
+The independent adversarial suite (`game/tests/combo_adversarial_test.gd`)
+is **74 checks, 0 failure(s)** after PR #87's A2 repair. At the post-rebase,
+pre-fix baseline it was 72/2: A1 was already fixed by PR #89; the two
+remaining failures were A2 on the two defender/attacker orientations.
 
 ## History: findings that drove changes
 
@@ -120,7 +126,7 @@ budget can pay, and nothing goes NaN or out of bounds.
   in [0, 45], stun never survives going airborne, breaker counters stay in
   bounds (free ≥ 0, cooldown ≤ 300, invuln ≤ 20), every fresh break came
   from HITSTUN, the stun hit builds no meter, and the defender always
-  recovers. `stun_breaker_test.gd` (55 checks) covers the deterministic
+  recovers. `stun_breaker_test.gd` (66 checks) covers the deterministic
   rails end to end.
 - ~~Breaker — not present (Phase 3); the rejection-point hook is placed.~~
   **Covered since Phase 3** (see above): the breaker resolves only in
@@ -162,64 +168,42 @@ budget can pay, and nothing goes NaN or out of bounds.
 
 An INDEPENDENT audit of the Phase 1-3 combo layer by an agent that did not
 build those features. Suite: `game/tests/combo_adversarial_test.gd`
-(**74 checks, 4 failure(s)** — the failures below are the findings; the
-suite asserts the INTENDED behavior and does not weaken anything), run on
-the #76 harness (copied from `stun_breaker_test.gd`), test-local seeded
-LCG only, both characters as P1/P2, both stages, both sides, pass-through
-on. Local runtime ~21 s; CI step timeout 5 min. Every other suite was run
-before and after: all 16 green, no pre-existing failures.
+(original audit: **74 checks, 4 failure(s)**; post-#89 rebase, before A2:
+72 pass / 2 fail; after PR #87: **74 checks, 0 failure(s)**). The suite
+assertions were never weakened. It runs on the #76 harness (copied from
+`stun_breaker_test.gd`), test-local seeded LCG only, both characters as
+P1/P2, both stages, both sides, pass-through on. Local runtime ~21 s; CI
+step timeout 5 min.
 
-### A1. The 40-meter extra breaks are unreachable — CONFIRMED BUG (worst)
+### A1. The 40-meter extra breaks were unreachable — FIXED in PR #89
 
-- **Claim broken:** design decision #1 — "free once per round + 40-meter
-  extras, 5 s cooldown". As shipped, a defender gets **one break per round,
-  total**: after any break (free or paid), no later combo can ever be
-  broken again that round, regardless of meter.
-- **Repro (both defenders; Richard P1 vs Peggy P2 and the swap, Gas-N-Go;
-  no seed dependence):** set `breaker_free_uses_left = 0`, meter 100; land
-  a stand heavy; press grab+special → paid break, meter 100 → 60. Let the
-  combo end NATURALLY (90 idle frames; `combo_hits == 0`, tracker inactive),
-  clear the 300-frame cooldown (the 5 s have lapsed), land a fresh heavy —
-  the defender is in HITSTUN in a brand-new combo — press grab+special:
-  **refused**, meter stays 60.
-- **Root cause:** `_tick_combo()`'s combo-end branch resets `combo_hits`,
-  the tracker, and the juggle counters, but NOT `breaker_used_this_combo`.
-  The flag is described as combo-scoped ("once-per-combo rail", and
-  `stun_breaker_test.gd` 4c/4d hand-set it to `false` to simulate a new
-  combo, so no existing test ever exercised the natural reset). Only
-  `begin_round()`/`reset_state()` clear it, i.e. once per ROUND.
-  `breaker_ready()` mirrors the stuck flag, so the future HUD would also
-  show "no break" for the rest of the round.
-- **Fix shape (not applied here):** clear `breaker_used_this_combo` in the
-  combo-end branch of `_tick_combo()` (it is the defender-side combo the
-  break already resets), keeping the same-combo rejection and the
-  cooldown. Note the interplay to preserve: the cooldown (300f) still
-  bounds how often PAID breaks can fire.
+PR #89 clears `breaker_used_this_combo` when `_receive_hit()` opens a fresh
+combo. The free-once-per-round, paid-extra, cooldown, and once-per-combo
+rules are unchanged. The A1 adversarial check passes unchanged on this
+rebased branch.
 
-### A2. A single break press is silently eaten by a 10f-hitstop impact — CONFIRMED RULE CONSEQUENCE
+### A2. A single break press on a 10f-hitstop impact — FIXED in PR #87
 
-- **Claim broken:** the breaker is the designated defense during hitstun,
-  yet a deliberate single press of grab+special on the exact impact frame
-  of any 10-hitstop move (both EX launchers; METHtalities at 30 are worse)
-  never fires: the pair ages out before hitstop serves.
-- **Repro (both defenders; e.g. Peggy P1 forward EX, hitstop 10, vs
-  Richard; and the swap):** land the EX launcher, press the pair EXACTLY
-  once on the impact frame, step 16: no break, no meter spent, `grab` age
-  11 at the end. Heavies (hitstop 6) break fine on the same single press.
-- **Mechanism:** the pinned 5-frame hitstop buffer freeze covers only 5 of
-  the 10 hitstop ticks; the remaining 5 ticks age the pair past the
-  4-frame breaker input window before the breaker check ever runs (it
-  lives past the hitstop early-return). A player who MASHES re-presses
-  during/after hitstop and breaks normally — only the single deliberate
-  press is lost, which is precisely the input a composed player makes.
-- **Classification:** ambiguous rule rather than a plain bug — the 5-frame
-  freeze cap is a pinned owner decision. The owner should rule: accept
-  (mashing is the counterplay), widen `BREAKER_INPUT_WINDOW`, or let the
-  breaker pair ride hitstop fully like the tech window does.
-- **Related measured quirk (not a check failure):** the 5-frame freeze
-  budget is SHARED across consecutive hitstops — an attacker who just
-  landed a hit has burned most of it, so their own buffered pair ages
-  faster if they are punished in the same window.
+The owner chose to accept the impact-frame chord instead of requiring the
+player to mash through a long freeze. On the first eligible hitstun
+hitstop poll, a chord already buffered at age 0/1 (the fighter polls before
+MatchRoot resolves that sim frame's hit) is recorded as a pending mask.
+Sequential grab/special presses are also collected while the defender is
+in HITSTUN during that combo's hitstop, provided the pair completes within
+the existing four-frame input window. The pending mask does not age during
+hitstop. At hitstop release it is re-armed at age zero, then the existing
+four-frame window and the unchanged breaker gates resolve it. A press
+one sim frame before impact is age 2 at the first hitstop poll and is not
+captured. The mask is per-fighter, frame-counted, and serialized.
+
+The 5-frame general hitstop input-freeze cap is unchanged for every other
+buffered action. Cooldown, once-per-combo, free-use/meter-cost, blockstun
+rejection, and airborne/juggle behavior are unchanged. The A2 check in
+`combo_adversarial_test.gd` passes unchanged for both defender
+orientations.
+
+The related 5-frame freeze budget is still shared across consecutive
+hitstops; this fix does not change that general buffer rule.
 
 ### A3. Clip Cancel / breaker option-select — AMBIGUOUS RULE (recorded; check passes)
 

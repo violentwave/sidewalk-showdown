@@ -32,7 +32,7 @@
 
 **A street-junk front end.** A content warning, The Clip (a 15-panel comic intro), a title screen, a gas-station price-board menu, a mugshot booking wall, scratch-off stage tickets, a VS bumper and a Results screen. The game uses its own pixel font, Sidewalk Marker.
 
-**A HUD made of junk.** Taped photo portraits that bruise and get KO'd, duct-tape health bars with a red ghost that catches up after each combo, a gas-pump timer, hype meters that flip pink with a wobbling skull at METH READY, cardboard round banners, and Tripp's commentary on masking tape.
+**A HUD made of junk.** Taped photo portraits that bruise and get KO'd, duct-tape health bars with a red ghost that catches up after each combo, a gas-pump timer, hype meters that flip pink with a wobbling skull at METH READY, cardboard round banners, and Tripp's commentary on masking tape. The combo readout sits on the attacker's side and changes colour as damage scaling kicks in, with macro-name flashes, juggle pips, a STUNNED bar, breaker-ready pips by each meter, and BREAK! / CLIP CANCEL callouts.
 
 **Settings and accessibility.** Video, audio buses, gameplay, accessibility (reduce flashing, high-contrast HUD) and streamer options, saved to `user://settings.cfg`.
 
@@ -48,6 +48,8 @@
 | **VS bumper** | **METH READY** at the Gas-N-Go |
 | <img src="docs/assets/readme/bus_stop_ko.png" alt="A K.O. banner on a cardboard plate at the Bus Stop" width="420"> | <img src="docs/assets/readme/results.png" alt="Results: the winner's bust, a cardboard stats panel and Rematch, Character Select, Stage Select and Main Menu" width="420"> |
 | **K.O.** | **Results** |
+| <img src="docs/assets/readme/combo_hud.png" alt="A 4-hit combo readout in red with its damage and x0.70 scaling tag on the attacker's side" width="420"> | <img src="docs/assets/readme/settings.png" alt="The settings overlay: a cardboard panel with tabs and dark-ink rows" width="420"> |
+| **Combo HUD:** scaling tint | **Settings** |
 
 ## Play it
 
@@ -87,7 +89,6 @@ P1 plays on keyboard + mouse; P2 plays on any controller (d-pad or left stick).
 
 ## Roadmap
 
-- **Now:** the combo HUD (scaling tint, juggle and stun readouts, breaker pips).
 - **Next:** control remapping, Extras and Credits, a training mode, and per-round win letters on the round pips.
 - **Later:** the rest of the 15-fighter roster, more stages, the arcade ladder up to Tripp Vlogs, METHtality cinematics, final audio and voice, and rollback netcode (the simulation is already deterministic and fully serializable).
 

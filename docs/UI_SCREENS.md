@@ -144,7 +144,7 @@ ignored for the first 30 frames. Every option unpauses and routes;
 REMATCH goes back through the VsScreen with the same fighters and
 stage.
 
-## The match HUD (UI Phase 2, 2026-11-22)
+## The match HUD (UI Phase 2 + Combo Phase 4 HUD, 2026-11-22)
 
 `game/scripts/ui/match_hud.gd` (`MatchHUD`, art table in
 `game/scripts/ui/hud/hud_art.gd`). The HUD **reads** match/fighter state
@@ -155,8 +155,9 @@ through the presentation-only `hud.sim_tick()` hook in
 hook's paused gate) and with hitstop (the HUD reads the two public
 `hitstop_frames` counters, the same ones that hold the round clock). A
 `sim_frame` discontinuity — a `serialize()/load()` restore or a debug
-frame-step — makes the HUD resync from current state: ghosts snap,
-banners and callouts clear.
+frame-step — makes the HUD resync from current state: ghosts snap, combo
+records, juggle pips, stun bars and breaker states are reread; transient
+banners, callouts and macro flashes clear.
 
 | Element | Position / art | Behavior |
 | --- | --- | --- |
@@ -165,10 +166,14 @@ banners and callouts clear.
 | Names | outlined Marker cream at y 19 (P1 left from x 30, P2 right to x 290) | static per fighter |
 | Round pips | y 31 from each bar's outer end; P1 `hud_pip_square_*`, P2 `hud_pip_diamond_*` | grow with double-KO pips. **No win-type letters: MatchRoot keeps no per-round win history** (TODO: the K/T/M/D pip art is approved and waits on a sim-side decision). |
 | Timer | `hud_timer_box.png` at (148,3); two 8x12 cells from `hud_timer_digits.png` (0-9, cell 10 = infinity), centered | under 10 s the box tints dirty yellow and the digits tick one shade per 15 sim frames |
-| Meter | `hud_meter_frame.png` 106x8 at (4,170)/(210,170); 90x4 fill `#5ac8ff` between the tape caps (+7,+2) above the frame art, tick marks at 25 and 50 | at full the fill turns `#ff3d9a`, "METH READY" in outlined Marker pink sits beside the bar (P1 edge x 114, P2 edge x 206) and the 8x8 skull frames alternate every **15 sim frames** |
+| Meter | `hud_meter_frame.png` 106x8 at (4,170)/(210,170); 90x4 fill `#5ac8ff` between the tape caps (+7,+2) above the frame art, tick marks at 25 and 50 | at full the fill turns `#ff3d9a`, "METH READY" in outlined Marker pink sits ABOVE its own meter (y 157), flush with the inner end (P1 right edge x 110, P2 left edge x 210), skull just past that end (x 112 / 200, y 159), so both can show at once; BRK stays at the outer end. The 8x8 skull frames alternate every **15 sim frames** |
 | Banners | 160x32 `hud_banner_plate.png` centered (y 74) with the word sprite: round_1-5, decisive, fight, ko, time, double_ko, methtality | stamp in over **6 sim frames** from 8 px above in integer steps; spriteless messages (TAKES THE ROUND, WINS THE MATCH, DRAW, SUDDEN DEATH, ROUND 6+) render in outlined Marker cream on the plate. FIGHT auto-removes after 30 sim frames, METH after 120; round/KO banners persist until replaced (today's timing). |
-| Callouts | outlined Marker cream on the attacker's side at y 80 | COUNTER HIT / TECH, one at a time, **30 sim frames** each |
-| Combo counter | today's position (attacker's side, y 64), "<n> HITS" in outlined Marker `#f2d13a` | combo damage under it in m5x7 cream only while `gameplay.show_combo_damage` is on (reads `combo_tracker.total_damage`) |
+| Callouts | outlined Marker cream on the event owner's side at y 80 | COUNTER HIT / TECH / BREAK! / CLIP CANCEL use the existing one-at-a-time slot for **30 sim frames** |
+| Combo counter | existing positions and outlined Marker font at y 64; P1 left, P2 right | the defender's `combo_tracker.changed(hits, total_damage)` drives the **opposite attacker's side**. Tint follows the base ladder for the latest hit: 1.00 yellow, 0.85 orange, 0.70 red, 0.55-or-lower pink. The damage total at y 77 and `x0.70`-style m5x7 scale tag are shown only when `gameplay.show_combo_damage` is on. The scale tag reports the base ladder tier, not move-specific repeat/variety modifiers. Both line items yield to a same-side callout to prevent label overlap. |
+| Macro flash | under the combo counter at y 92, outlined Marker cream, on the fighter performing the macro | `macro_step_replayed` step 0 shows the macro name for **45 sim frames**; one name at a time. The y 92 placement is below the y 80 callout row. |
+| Juggle points | code-drawn 3x3 pips at y 106 under the attacker's combo counter; P2 mirrors P1 | while the defender has `juggle_points >= 0`, the attacker's side shows `juggle_points_start` pips: cream centers with a 1 px dark outline for points remaining, hollow for spent points. Hidden when not juggled. |
+| Stun | on the stunned fighter's own side under the name/pips; Marker-outline `STUNNED` ink at y 38–46, with a 1 px outlined bar beside it | reads `stun_frames_remaining` against the applied stun window; drains on the HUD sim tick and hides on `stun_ended`. |
+| Breaker | by each meter's outer end: 5x5 code-drawn pip at y 163 and m5x7 cream `BRK` label | bright `#f2d13a` fill = free use ready; yellow outline = paid break affordable; solid `#2A2418` = unavailable (cooldown, used this combo, or insufficient meter). Positioned away from METH READY and the skull. |
 | Commentary | `stream_commentary_box.png` 240x16 at (40,44), m5x7 dark ink on the tape | `gameplay.commentary`: full = as today, minimal = round lines only, off = hidden; `stream.hide_tripp_text` hides it. |
 | Accessibility | — | `reduce_flashing`: every flash becomes a 1-frame tint. `high_contrast_hud`: solid `#1C160D` plates behind bars, names and timer. Screen shake and hold-to-confirm have no HUD-side hook yet (see KNOWN_ISSUES). |
 
@@ -287,9 +292,10 @@ PR A select screens: `mode_select`, `difficulty`,
 `character_select_p1` (solo), `character_select_both` (versus),
 `stage_select`, `stage_select_random` (RANDOM focused), the PR B
 match wrap: `vs_screen` (after the slide-in), `results`,
-`results_rematch_focus`, and the PR C HUD: `hud_round_start`,
-`hud_fight`, `hud_midfight`, `hud_low_health`, `hud_meth_ready`,
-`hud_ko`, `hud_high_contrast`.
+`results_rematch_focus`, and the HUD: `hud_round_start`, `hud_fight`,
+`hud_midfight`, `hud_low_health`, `hud_meth_ready`, `hud_ko`,
+`hud_high_contrast`, `hud_combo_scaled`, `hud_juggle`, `hud_macro`,
+`hud_stun`, `hud_breaker`, `hud_breaker_meth`.
 Regenerate by driving the real scenes:
 
 ```bash
@@ -348,7 +354,7 @@ on an approved file missing from the table, and exits non-zero.
 - `game/tests/settings_test.gd` — 16 checks: defaults, fill-in, round
   trip, opening never saves, reset applies + saves, 0 dB defaults.
 - `game/tests/ui_assets_test.gd` — 4 checks: sizes + byte identity.
-- `game/tests/ui_typography_test.gd` — 42 checks: every label in the
+- `game/tests/ui_typography_test.gd` — 46 checks: every label in the
   eleven UI surfaces (screens + the pause menu) uses a pixel font at
   its native size with every glyph present, no theme outline/shadow,
   integer positions, no scaling; labels on cardboard (ui_panel /
@@ -358,7 +364,8 @@ on an approved file missing from the table, and exits non-zero.
   (measured on drawn ink extents) and every label over a TextureRect
   card (rap sheet, tickets) lies inside it — the PM review's two bugs
   both fail these checks on the pre-fix code — and the HUD labels pass
-  the same rules at round start and mid-fight.
+  the same rules at round start and mid-fight, plus juggle, stun,
+  full-meter breaker and P2 callout+combo states.
 - `game/tests/select_screens_test.gd` — 24 checks (PR A): the Mode and
   Difficulty choices are unchanged (names, order, defaults, emits, back
   paths); the difficulty rows draw 1/2/3 tally marks; the rap sheet
@@ -377,14 +384,15 @@ on an approved file missing from the table, and exits non-zero.
   up; the 30-frame Results guard; REMATCH routes through the VS bumper
   and keeps fighters and stage; CHARACTER SELECT / STAGE SELECT /
   MAIN MENU all route correctly and unpause.
-- `game/tests/hud_test.gd` — 47 checks (UI Phase 2, against a scratch
+- `game/tests/hud_test.gd` — 82 checks (UI Phase 2 + Combo Phase 4, against a scratch
   settings.cfg): portrait states; health and the 20-frame ghost drain;
   the HUD tick frozen while paused; pip sprites; timer digit cells and
   the under-10 tint; meter width, the METH-pink full state and the
   15-frame skull alternation; banner sprites per message with the text
-  fallback, stamp settle and auto-remove timing; attacker-side callouts
-  for 30 sim frames; the combo counter with its gated damage total;
-  commentary full/minimal/off and hide_tripp_text; reduce_flashing and
-  high-contrast; the serialize/load resync; and serialize() identical
-  with the HUD bound and unbound.
+  fallback, stamp settle and auto-remove timing; 30-frame callouts;
+  opposite-side combo count/damage, base-ladder tint and gated scale
+  text; step-0 macro flash timing; remaining/spent juggle pips; the stun
+  bar and paused freeze; free/paid/unavailable breaker pips; BREAK! and
+  CLIP CANCEL side/timing; load resync; and serialize() identical with
+  the HUD bound and unbound.
 - All seven run in CI (`tests.yml`) alongside the existing suites.

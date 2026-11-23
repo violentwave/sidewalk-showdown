@@ -281,14 +281,13 @@ that section by hand afterward — the simulation step comes from
   `.tres`, none applied: Richard's stand-light startup (5f) toward Peggy's
   (3f) parity, or a Richard walk-speed bump. Owner decision pending; jab
   values untouched per the standing decision.
-- **Combo depth is Phases 1–3 plus CPU usage.** Blockstrings,
-  counter-hit extensions, dial-a-combo macros (BENCH WARMER / LAST CALL),
-  the Clip Cancel, data-driven scaling with repeat/variety/caps, the
-  juggle point budget with authored launcher routes, stuns, the breaker,
-  AND CPU usage of all of it are in
-  ([`COMBO_SYSTEM_DESIGN.md`](COMBO_SYSTEM_DESIGN.md) §§9–12, 15.1) — but
-  there is no combo HUD readout yet (Phase 4's remaining half; the tracker
-  readouts and signals are exposed for it).
+- **Combo depth is Phases 1–4.** Blockstrings, counter-hit extensions,
+  dial-a-combo macros (BENCH WARMER / LAST CALL), Clip Cancel, scaling,
+  juggle routes, stuns, breaker, CPU usage, and the combo HUD are implemented
+  ([`COMBO_SYSTEM_DESIGN.md`](COMBO_SYSTEM_DESIGN.md) §§9–12, 15.1–15.3).
+  The HUD displays the base ladder tier for the latest hit; per-move
+  repeat/variety modifiers are intentionally not represented as a single
+  current scale value.
 - **METHtality presentation is minimal.** The trigger, spend and KO win are
   real, but the finisher is a single point-blank hit with a long freeze and a
   banner — no cinematic, camera, or choreography yet. The 30f freeze is a
@@ -424,8 +423,9 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   1–2/3/4/5+, floor **55%**. This is the owner-decided floor (2026-11-06); GDD
   §5.10's 35% entry is amended to 55%. Chip damage never
   kills — a blocked hit floors the defender at 1 HP.
-- HUD uses the default Godot font at pixel-safe sizes; the final pixel font
-  arrives with UI art direction (GDD Phase 4).
+- The match HUD uses Sidewalk Marker and m5x7 at native sizes. Its combo
+  counter, macro flash, juggle pips, stun bar, breaker pip and callouts are
+  presentation-only and resync from fighter state after load.
 - **Side switching (2026-11-18) — deliberate behavior, not a defect.** Fighters
   auto-face the opponent in grounded neutral states and can cross over by
   jumping: pushbox separation now runs only when both fighters are grounded.
@@ -488,7 +488,7 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   landing cel order, wall/crouch guard poses (Richard), jump/landing order
   (Peggy), the crouch-entry transient deferring the guard pose, and a shared
   state+move coverage sweep for both fighters.
-- `game/tests/round_flow_test.gd` — **34 checks**: intro→fight, first-fight
+- `game/tests/round_flow_test.gd` — **35 checks**: intro→fight, first-fight
   Tripp commentary sample, KO phase, round
   wins, timeout resolution, a simultaneous KO awarding a pip to both and the
   round advancing, a 2-2 scoreline continuing into a decisive round that ends on
@@ -562,7 +562,7 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
 - `game/tests/b6_landing_whiff_test.gd` — **5 checks**: the superseded B6
   rule pinned to the current meter economy — landing a whiffed air move
   awards 0 meter, the move clears, and landing recovery runs to IDLE.
-- `game/tests/ui_flow_test.gd` — **52 checks** (UI Phase 1 + polish):
+- `game/tests/ui_flow_test.gd` — **53 checks** (UI Phase 1 + polish):
   router push/pop/replace/clear semantics, every forward and back path of
   the warning -> Clip -> title -> main-menu -> versus flow, the deferred
   confirm-leak guard, pause -> settings -> back to pause, MAIN MENU from
@@ -579,14 +579,14 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   `art/tools/prepare_ui.gd` and re-runs its size table in verify-only mode
   (manifest and test cannot drift), plus a byte-identity check of every
   `game/art/ui/` copy against its approved source.
-- `game/tests/ui_typography_test.gd` — **42 checks** (2026-11-21 polish, extended by the PR #86 review fixes, the PR A select screens, the PR B match wrap, and the UI Phase 2 HUD):
+- `game/tests/ui_typography_test.gd` — **46 checks** (2026-11-21 polish, extended by the PR #86 review fixes, select screens, match wrap, and Combo Phase 4 HUD):
   every label in the ten UI surfaces (nine screens + the pause menu)
   uses Sidewalk Marker at 10 or m5x7 at 16 with every glyph present, carries
   no theme outline or shadow, sits at an integer position, and is never
   scaled; labels on cardboard (ui_panel/ui_button) lie fully inside their
   container and use the dark inks (#2A2418/#7A6A48/#1C160D); over-stage-art
-  lettering uses the outlined marker; the pause panel sizes itself to its
-  longest item plus 8 px padding each side.
+  lettering uses the outlined marker; and HUD label overlap is checked at
+  round start, mid-fight, juggle, stun, full meter, and P2 callout+combo states.
 - `game/tests/select_screens_test.gd` — **24 checks** (PR A, 2026-11-22; extended by the PM review fix-ups):
   the Mode and Difficulty choices are unchanged (names, order, defaults,
   emits, back paths); the difficulty rows draw 1/2/3 ink tally marks; the
@@ -605,28 +605,25 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   up; the 30-frame Results input guard; REMATCH routes through the VS
   bumper and keeps fighters and stage; CHARACTER SELECT / STAGE SELECT /
   MAIN MENU all route correctly and unpause.
-- `game/tests/hud_test.gd` — **47 checks** (UI Phase 2, 2026-11-22; runs
+- `game/tests/hud_test.gd` — **81 checks** (UI Phase 2 + Combo Phase 4, 2026-11-22; runs
   against a scratch settings.cfg): portrait states (normal, hurt under
   25%, ko after the round, refill restores); health fills and the
   20-sim-frame combo ghost drain; the HUD tick frozen while paused; pip
   sprites; timer digit-strip cells and the dirty-yellow under-10 tint;
   meter width, the METH-pink READY state and the 15-frame skull
   alternation; banner sprites per message with the text fallback,
-  subtitle and stamp timing; attacker-side callouts for 30 sim frames;
-  the combo counter with its gated damage total; commentary
-  full/minimal/off and hide_tripp_text; reduce_flashing and
-  high_contrast_hud; the serialize/load resync; and serialize()
-  identical with the HUD bound and unbound.
-- UI Phase 2 deferred, recorded here so they are not lost: **win-type
+  subtitle and stamp timing; combo count/damage/scale on the attacker side;
+  scale tint and setting gate; macro flash and 45-frame lifetime; juggle
+  pips; stun bar and pause behavior; free/paid/unavailable breaker states;
+  BREAK!/CLIP CANCEL callouts; commentary modes; accessibility settings;
+  load resync; and serialize() identical with the HUD bound and unbound.
+- UI deferred, recorded here so they are not lost: **win-type
   pip letters (K/T/M/D)** need a per-round win-type history MatchRoot
   does not keep — a sim-side decision (the approved letter art waits on
   it); `hud_banner_time` has no call site today (timeouts announce
   DRAW / TAKES THE ROUND); the ∞ timer digit is unused (no infinite
   clock); `screen_shake` and `hold_to_confirm_meth` have no HUD-side
-  hook; the `stun_started`/`stun_ended`/`breaker_used`/
-  `meth_started`/`clip_cancelled`/`macro_step_replayed` fighter signals
-  are not displayed yet (stun/breaker HUD cues are combo Phase 4+
-  work).
+  hook; and `meth_started` is not currently a HUD callout.
 - `game/tests/combo_fuzz_test.gd` — **118 checks**: seeded fuzz over the
   combo layer — route search and 12-hit/550-damage caps on BOTH
   stages, infinite-loop and corner-carry termination, macros (clean dial,
@@ -677,9 +674,10 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   actionability. Prints a report and exits 0 on success; `docs/PROPOSALS.md` §3
   documents the coarse grid, before/after metrics, and target limitations. Its
   numbers are informational measurements, not passing balance assertions.
-- `.github/workflows/tests.yml` runs the twenty headless suites — combat,
+- `.github/workflows/tests.yml` runs the twenty-one headless suites — combat,
   round-flow, mode/character-select, stage-select/ambience, stage-floor-guard,
   locomotion-speed, CPU opponent, combo system, combo fuzz, stun & breaker,
+  combo adversarial,
   The Clip intro,
   serialization, B6 landing-whiff, UI flow, settings, UI assets,
   UI typography, select screens, results flow, and the match HUD — plus

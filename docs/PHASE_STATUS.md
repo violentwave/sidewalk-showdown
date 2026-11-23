@@ -84,7 +84,7 @@ phase exit criteria:
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
   The current suites contain 408 combat, 68 combo-system, 118 combo-fuzz,
   55 stun-&-breaker, 102 combo-adversarial,
-  34 round-flow,
+  35 round-flow,
   55 mode/character-select integration, 7 locomotion-speed,
   94 stage-select/ambience, 9 stage-floor, 23 intro, and 41 CPU-opponent
   checks (Phase 4 added combo ordering, combo legality under fire,
@@ -135,17 +135,20 @@ phase exit criteria:
   was removed in the same day's polish pass), quit confirm — on a
   ScreenRouter with a persistent Settings autoload and audio buses;
   `docs/UI_SCREENS.md` documents what shipped (typography rules included),
-  and the twenty-suite CI adds ui_flow (53), settings (16),
-  ui_assets (4), ui_typography (42), select screens (24), results flow
-  (20), and match HUD (45). **PR A + PR B (2026-11-22):** the select screens are street-junk
+   and the twenty-one-suite CI adds ui_flow (53), settings (16),
+   ui_assets (4), ui_typography (46), select screens (24), results flow
+   (20), and match HUD (81). **PR A + PR B (2026-11-22):** the select screens are street-junk
   reskins (cardboard mode/difficulty, mugshot-wall booking with scribble
   cursors, scratch-ticket stages with the 18-frame RANDOM reveal), and the
   match wrap ships — the VS bumper before every match and the Results
   screen (REMATCH / CHARACTER SELECT / STAGE SELECT / MAIN MENU) replacing
   "Enter restarts" above the frozen match. **UI Phase 2 (2026-11-22):**
   the match HUD reskinned on the approved art with every timer on the
-  sim tick (frozen by pause and hitstop) and five stored settings
-  consumed. Procedural
+   sim tick (frozen by pause and hitstop) and five stored settings
+   consumed. **Combo Phase 4 HUD half (this branch):** attacker-side combo
+   count/damage/base scale, macro flash, juggle pips, stun bar, breaker pip
+   and BREAK!/CLIP CANCEL callouts; readouts resync after load without
+   changing match serialization or combat. Procedural
   newsprint/halftone and bundled OFL comic fonts are used throughout. Mode
   select (added 2026-11-17) offers 1 PLAYER or 2 PLAYERS: solo sends P1 to a
   difficulty pick (added 2026-11-19) and then lets P1 pick both fighters, with
@@ -312,7 +315,7 @@ phase exit criteria:
   keyboard, hitbox accuracy, AI, progression/unlocks, performance, exports,
   content/accessibility review. Exit: no progression blockers/crashes, stable
   match flow, usable modes, and builds on target PC specs.
-- **Status:** **In progress; exit not met.** CI runs the twenty headless suites
+- **Status:** **In progress; exit not met.** CI runs the twenty-one headless suites
   (combat, round_flow, character_select, stage_select, stage_floor,
   locomotion_speed, cpu, combo, combo_fuzz, the_clip, serialization, b6) and
   the air

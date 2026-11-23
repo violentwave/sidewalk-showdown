@@ -49,7 +49,15 @@ const HEALTH_POS := [Vector2(30, 8), Vector2(172, 8)]
 # draw ABOVE the frame art (PM review of PR #92).
 const HEALTH_FILL_OFFSET := Vector2(10, 2)
 const HEALTH_INTERIOR := Vector2(98, 6)
-const NAME_Y := 19.0
+# Names: m5x7 on a small dark plate UNDER the health bars, inside the HUD
+# band, with rects clamped to the bar's own column so the longest name can
+# never reach the timer box (owner playtest fix 2026-11-23: the old Marker
+# names overlapped the bars, the stage sign, and the timer).
+const NAME_POS := [Vector2(30, 17), Vector2(172, 17)]
+const NAME_SIZE := Vector2(118, UiText.M5X7_LINE_HEIGHT)
+const NAME_PLATE_Y := 19.0
+const NAME_PLATE_H := 11.0
+const HUD_TOP_BAND := Rect2(0, 0, 320, 32)
 const PIP_Y := 31.0
 const PIP_GAP := 7.0
 const TIMER_POS := Vector2(148, 3)
@@ -75,13 +83,17 @@ const STUN_BAR_Y := 40.0
 const STUN_BAR_WIDTH := 62.0
 const STUN_BAR_INNER_WIDTH := 60.0
 const BREAKER_PIP_POS := [Vector2(4, 163), Vector2(311, 163)]
-# BRK sits between its pip and the meter-row METH READY label on both sides.
-const BREAKER_LABEL_POS := [Vector2(12, 152), Vector2(292, 152)]
+# BREAK rides its pip in the meter band (owner playtest fix 2026-11-23: the
+# old BRK label floated on bare stage art 11 px above the pip). The label's
+# 8 px ink core lands at y 161..169 — joined to the pip (y 163..168) and
+# clear of the meter frames (y 170).
+const BREAKER_LABEL_POS := [Vector2(10, 157), Vector2(0, 157)]
 # METH READY sits ABOVE its own meter, flush with the meter's inner end, with
 # the skull just past that end. Beside-the-meter placement collided in the
 # middle whenever both meters were full (PM review of PR #96).
 const METH_READY_Y := 157.0
 const METH_SKULL_Y := 159.0
+const BREAKER_TEXT := "BREAK"
 const BREAKER_LABEL_SIZE := Vector2(36, UiText.M5X7_LINE_HEIGHT)
 
 # ---- timing (all SIM frames, counted in sim_tick) --------------------------
@@ -144,6 +156,8 @@ var meter_ready: Array[Label] = []
 var meter_skulls: Array[TextureRect] = []
 var p1_name: Label
 var p2_name: Label
+var name_plates: Array[ColorRect] = []
+var top_band: ColorRect
 var timer_digits: Array[TextureRect] = []
 var timer_box_art: TextureRect
 var p1_combo: Label
@@ -206,6 +220,18 @@ func _build() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
 	hud_root = root
+	# The top HUD occupies a single dark, opaque band. Pixel probes showed the
+	# "yellow bars" beside the timer are actually the stage foreground's
+	# sunlit canopy/sign pixels at y 7-31, visible through gaps between the
+	# health frames and timer — not orphan pips/banners. The band both removes
+	# that artifact and backs names/timer consistently (owner playtest fix).
+	top_band = ColorRect.new()
+	top_band.name = "HudTopBand"
+	top_band.position = HUD_TOP_BAND.position
+	top_band.size = HUD_TOP_BAND.size
+	top_band.color = INK_DARK
+	top_band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(top_band)
 
 	# Solid plates for the high-contrast setting, hidden by default.
 	for plate_rect in [Rect2(28, 6, 122, 26), Rect2(170, 6, 122, 26),
@@ -240,14 +266,23 @@ func _build() -> void:
 		fill.z_index = 5
 		health_fills.append(fill)
 
-	# Names in outlined Marker cream under each bar.
-	p1_name = UiText.marker("", Vector2(30, NAME_Y), CREAM, true)
-	p1_name.size = Vector2(140, UiText.MARKER_LINE_HEIGHT)
-	root.add_child(p1_name)
-	p2_name = UiText.marker("", Vector2(150, NAME_Y), CREAM, true)
-	p2_name.size = Vector2(140, UiText.MARKER_LINE_HEIGHT)
-	p2_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	root.add_child(p2_name)
+	# Names: m5x7 cream on a small dark plate, under each health bar, inside
+	# the bar's own column (owner playtest fix 2026-11-23).
+	for side in 2:
+		var plate := _rect(root,
+			Vector2(NAME_POS[side].x - 2.0, NAME_PLATE_Y),
+			Vector2(4.0, NAME_PLATE_H), UiText.PROMPT_PLATE)
+		plate.visible = false
+		name_plates.append(plate)
+		var name_label := UiText.body("", NAME_POS[side], CREAM)
+		name_label.size = NAME_SIZE
+		if side == 1:
+			name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		root.add_child(name_label)
+		if side == 0:
+			p1_name = name_label
+		else:
+			p2_name = name_label
 
 	# Round pips: P1 squares from the bar's outer (left) end, P2 diamonds
 	# from the right end. TODO(docs/UI_SCREENS.md): win-type letters
@@ -356,8 +391,8 @@ func _build() -> void:
 	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	message.visible = false
 	banner_plate.add_child(message)
-	meth_banner = UiText.marker("", Vector2(0, 19), CREAM, true)
-	meth_banner.size = Vector2(160, 12)
+	meth_banner = UiText.marker("", Vector2(0, 21), CREAM, true)
+	meth_banner.size = Vector2(160, UiText.MARKER_LINE_HEIGHT)
 	meth_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	meth_banner.visible = false
 	banner_plate.add_child(meth_banner)
@@ -453,12 +488,15 @@ func _build_combo_readouts(root: Control) -> void:
 			BREAKER_PIP_POS[side] + Vector2.ONE, Vector2(3, 3), Color.TRANSPARENT)
 		breaker_pip_centers.append(breaker_center)
 
-		var breaker_label := UiText.body("BRK", BREAKER_LABEL_POS[side], CREAM)
+		var breaker_label := UiText.body(BREAKER_TEXT,
+			BREAKER_LABEL_POS[side], CREAM)
 		breaker_label.size = BREAKER_LABEL_SIZE
 		if side == 1:
-			# Ink ends 2 px before the P2 pip (x 311), leaving the inner
-			# space to METH READY.
-			breaker_label.position.x = BREAKER_PIP_POS[1].x - 2.0 - UiText.body_width("BRK")
+			# Ink ends 1 px before the P2 pip (x 311), edge-to-edge with the
+			# full-meter METH READY label's inner end (playtest fix: the
+			# 30 px BREAK text must clear READY on both sides).
+			breaker_label.position.x = BREAKER_PIP_POS[1].x - 1.0 \
+				- UiText.body_width(BREAKER_TEXT)
 		readout_root.add_child(breaker_label)
 		breaker_labels.append(breaker_label)
 
@@ -728,10 +766,31 @@ func _resync() -> void:
 
 # ---------------- bind -------------------------------------------------------
 
+# The name's dark backing plate hugs the m5x7 ink: the label's 8 px ink core
+# sits at y 21..29, the plate covers y 19..30. The plate never reaches the
+# timer box (the label rect is clamped to the bar's own column).
+func _size_name_plate(side: int, text: String) -> void:
+	var ink_width := UiText.body_width(text)
+	if ink_width <= 0.0:
+		name_plates[side].visible = false
+		return
+	var plate := name_plates[side]
+	plate.visible = true
+	plate.size = Vector2(ink_width + 4.0, NAME_PLATE_H)
+	if side == 0:
+		plate.position = Vector2(NAME_POS[0].x - 2.0, NAME_PLATE_Y)
+	else:
+		# Right-aligned ink ends at the label rect's right edge (x 290).
+		plate.position = Vector2(
+			NAME_POS[1].x + NAME_SIZE.x - 2.0 - ink_width, NAME_PLATE_Y)
+
+
 func bind(p1: FighterBase, p2: FighterBase) -> void:
 	_match_root = p1.get_parent()
 	p1_name.text = p1.data.display_name.to_upper()
 	p2_name.text = p2.data.display_name.to_upper()
+	_size_name_plate(0, p1_name.text)
+	_size_name_plate(1, p2_name.text)
 	p1.health_changed.connect(_on_p1_health)
 	p2.health_changed.connect(_on_p2_health)
 	p1.meter_changed.connect(_on_p1_meter)
@@ -772,17 +831,19 @@ func bind(p1: FighterBase, p2: FighterBase) -> void:
 	_on_combo_changed(0, p1.combo_tracker.hits, p1.combo_tracker.total_damage)
 	_on_combo_changed(1, p2.combo_tracker.hits, p2.combo_tracker.total_damage)
 	_refresh_live_readouts()
-	# Meter-ready geometry (static): each label sits above its own meter,
-	# flush with the meter's inner end (P1 right edge x 110, P2 left edge
-	# x 210); each skull sits just past that inner end, in the empty middle.
+	# Meter-ready geometry (static): each label sits above its own meter
+	# near the inner end; each skull sits just past that end, in the empty
+	# middle. Playtest fix 2026-11-23: READY and its skull shift a few px
+	# toward the center so the wider BREAK readout fits beside its pip in
+	# the same band at full meter (edge-to-edge, never overlapping).
 	var ready_w: float = UiText.marker_width("METH READY")
 	for side in 2:
 		meter_ready[side].horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		meter_ready[side].size = Vector2(ready_w, UiText.MARKER_LINE_HEIGHT)
-	meter_ready[0].position = Vector2(110.0 - ready_w, METH_READY_Y)
-	meter_skulls[0].position = Vector2(112.0, METH_SKULL_Y)
-	meter_ready[1].position = Vector2(210.0, METH_READY_Y)
-	meter_skulls[1].position = Vector2(200.0, METH_SKULL_Y)
+	meter_ready[0].position = Vector2(110.0 - ready_w + 4.0, METH_READY_Y)
+	meter_skulls[0].position = Vector2(118.0, METH_SKULL_Y)
+	meter_ready[1].position = Vector2(210.0 - 4.0, METH_READY_Y)
+	meter_skulls[1].position = Vector2(194.0, METH_SKULL_Y)
 
 
 # ---------------- health, ghost, portraits ----------------------------------
@@ -1006,9 +1067,16 @@ func show_banner(id: String, subtitle := "") -> void:
 	if texture != null:
 		banner_word.texture = texture
 		banner_word.size = texture.get_size()
+		# Two-line layout (owner playtest fix 2026-11-23): when a subtitle
+		# rides the banner (the METHtality move name), the word art takes
+		# the top line and the subtitle its own line below it — the old
+		# vertically-centered word art ran into the subtitle's ink. Without
+		# a subtitle the word art stays centered as before.
+		var word_y := (32.0 - texture.get_size().y) / 2.0
+		if not subtitle.is_empty():
+			word_y = 1.0
 		banner_word.position = Vector2(
-			(160.0 - texture.get_size().x) / 2.0,
-			(32.0 - texture.get_size().y) / 2.0)
+			(160.0 - texture.get_size().x) / 2.0, word_y)
 		banner_word.visible = true
 		message.visible = false
 		message.text = ""

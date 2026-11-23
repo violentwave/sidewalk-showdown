@@ -497,7 +497,8 @@ counted box overlaps and used a different block-start grid; those old numbers
 must not be interpreted as resolved hits or block advantage.
 
 The whiff sample uses 170px spacing from the probe's 110px start, keeping both
-fighters within the stage bounds `[24, 296]`. The earlier 260px request placed the
+fighters within the stage bounds `[24, 296]` (the bounds at measurement time;
+the playtest fix moved them to `[44, 276]` on 2026-11-23). The earlier 260px request placed the
 defender at x=370, which was clamped to x=296 (an actual gap of 186px); its label
 did not match the geometry and that result is superseded.
 

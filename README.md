@@ -22,7 +22,7 @@
 
 **Two fighters.** Peg Leg Peggy and Whiskey Richard, each with authored sprite animation for every state and all 16 attack rows, directional specials, EX versions, throws and a METHtality finisher.
 
-**Two stages with ambience.** The Everglades Gas-N-Go (drifting clouds, mosquitoes, a sunbathing gator) and the Bus Stop (a burning shelter, a flickering liquor sign).
+**Two stages with ambience.** The Everglades Gas-N-Go (drifting clouds, mosquitoes) and the Bus Stop (a burning shelter, a flickering liquor sign).
 
 **A real combo system.** Chains and special cancels on hit, quick-dial macros, the Clip Cancel (special + grab in recovery, 25 meter), launcher juggles on a point budget, themed stuns you mash out of, and a combo breaker: grab + special in hitstun, free once per round, 40 meter after that. Damage scaling, repeat penalties and variety bonuses are all data-tuned ([design](docs/COMBO_SYSTEM_DESIGN.md)).
 
@@ -101,7 +101,7 @@ player.
 - **Stunned?** Mash Up to shake out.
 - **Menus:** confirm with the current SELECT binding; go back with the current
   BACK binding. Prompts show the active key or pad button.
-- **Debug keys:** F1 hit/push boxes (on by default outside training), F2 frame state, F3 input history, F4 slow motion, F5 frame step, F6 refill.
+- **Debug keys:** F1 hit/push boxes (off by default in every mode; training drives them from its pause tab), F2 frame state, F3 input history, F4 slow motion, F5 frame step, F6 refill.
 
 ## Roadmap
 

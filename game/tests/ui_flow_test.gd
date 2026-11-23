@@ -210,12 +210,17 @@ func _test_boot_flow() -> void:
 		main.settings_overlay != null and main.main_menu != null,
 		"overlay=%s menu=%s" % [str(main.settings_overlay != null),
 			str(main.main_menu != null)])
+	var settings_ref: WeakRef = weakref(main.settings_overlay)
 	_press(main.settings_overlay, "ui_back")
 	await process_frame
 	_check("closing settings returns to the intact menu below",
 		main.settings_overlay == null and main.main_menu != null,
 		"overlay=%s menu=%s" % [str(main.settings_overlay != null),
 			str(main.main_menu != null)])
+	await process_frame
+	_check("dismissed Settings overlay is freed, not left behind",
+		settings_ref.get_ref() == null,
+		"settings overlay still has a live instance")
 
 	# QUIT from the menu goes through the confirm, and NO returns.
 	while main.main_menu.index != 4:
@@ -330,6 +335,7 @@ func _test_boot_flow() -> void:
 	_check("the pause key is ignored while the overlay is open",
 		paused_match.pause_menu_open and paused,
 		"the overlay leaked the pause key")
+	var pause_settings_ref: WeakRef = weakref(main.settings_overlay)
 	_press(main.settings_overlay, "ui_back")
 	await process_frame
 	_check("closing settings returns to the still-open pause menu",
@@ -337,6 +343,10 @@ func _test_boot_flow() -> void:
 			and not paused_match.modal_open and paused,
 		"overlay=%s open=%s" % [str(main.settings_overlay != null),
 			str(paused_match.pause_menu_open)])
+	await process_frame
+	_check("dismissed pause Settings overlay is fully freed",
+		pause_settings_ref.get_ref() == null,
+		"pause Settings overlay still has a live instance")
 
 	# QUIT TO DESKTOP through the confirm, NO returns to the pause menu.
 	_press(paused_match, "p1_down")  # RESTART

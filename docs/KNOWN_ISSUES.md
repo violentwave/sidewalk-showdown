@@ -227,6 +227,39 @@ default. Regenerating therefore deletes the explicit `[physics]` section. Re-add
 that section by hand afterward — the simulation step comes from
 `Engine.physics_ticks_per_second` via `FighterBase.delta_fixed()`.
 
+## Owner playtest fixes (2026-11-23, this branch)
+
+- **Stage bounds are 44-276** (both stages, was 24-296): a fighter pinned at
+  the old right bound was cut off by the screen edge in wide poses. Measured
+  across every enabled idle/clip/cutout cel of both fighters (mirrored for
+  facing), the widest art reaches 40.78 px from the origin (Richard's ko_air
+  frame); the bounds keep that plus 3 px inside the 320 px frame. Pinned by
+  `stage_floor_test` and `ui_layout_test`.
+- **The Gas-N-Go gator is hidden** (`visible = false` in the scene, node and
+  animation kept): the owner asked for it outside the bounds and clear of the
+  meter strip, but the 81x18 art cannot satisfy either — the walkable margins
+  are 44 px and every floor-level position sits under the meter bar's
+  y 170-178 strip. Per the owner's fallback ("if it can't fit, hide it and
+  report") it stays hidden until smaller art or a placement decision lands.
+- **The "yellow bar artifacts beside the timer" were stage art, not HUD
+  remnants**: pixel-probed, the strips were the Gas-N-Go foreground's bright
+  canopy band (fcd457) and price-sign lettering (eab52e) showing through HUD
+  gaps. The opaque HUD top band masks them without changing the approved art;
+  the smaller names now sit on plates below the health bars.
+- **Hitbox debug boxes are off by default in every mode** (F1 still toggles;
+  the training pause row drives them in training). Nothing persists the
+  toggle across matches: the DebugOverlay is per-match and the training
+  option serializes only inside the training match.
+- **Z-order**: every router screen (menus, Settings, QuitConfirm, Results)
+  draws on a CanvasLayer (20) above the match HUD (10) and all stage/world
+  sprites, so ambient sprites and the frozen match's HUD never bleed over
+  UI. The match itself is the one router screen kept on the base canvas.
+- **Training readout occlusion**: the 152x22 panel sits at (86,29), below the
+  name ink and timer, with its bottom at y51 (normal jump apex is y52.875).
+  It hides itself on any sim frame when either fighter's hurtbox/body rect
+  overlaps it, including the higher EX-launch arc, and reappears once both
+  fighters clear it.
+
 ## Deliberate gaps (next phases)
 
 - **Authored sprite animation status (updated 2026-11-16).** Both fighters now
@@ -522,22 +555,26 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   return to select (match torn down, solo/mode and matchup restored, music
   switched back), stage restore on re-confirm, a fresh match from the restored
   screen, temporary music/SFX playback, and impact/block cue routing.
-- `game/tests/stage_select_test.gd` — **94 checks**: stable stage ids,
+- `game/tests/stage_select_test.gd` — **95 checks**: stable stage ids,
   descriptions, scenes, and 80x45 thumbnails; RANDOM last; restore by stage id;
   wrap-around and controller navigation; Backspace back-out; RANDOM resolving to
   a recorded concrete roster stage; both stage thumbnails shown; Gas-N-Go arena
   geometry, pause mode, layer order and native scales; mosquitoes above fighters
-  but clear of the fight; cloud speed/wrap, 8 fps wingbeat, gator breath/blink,
-  debug freeze, and pixel snapping; Bus Stop's unchanged id and new display
-  name, arena geometry, layer order/positions/native sizes, fire in the
+  but clear of the fight; cloud speed/wrap, 8 fps wingbeat, gator breath/blink
+  (the gator sprite is hidden in matches — see "Stage bounds and the gator"
+  below), debug freeze, and pixel snapping; Bus Stop's unchanged id and new
+  display name, arena geometry, layer order/positions/native sizes, fire in the
   foreground z-band, four 8 fps fire frames with jitter, lit/dead sign frames,
   random dropout and relight, freeze, and pixel snapping; MatchRoot's
   `roster.stages[0]` fallback and its safe stop on an empty roster or a stage
   with no scene.
-- `game/tests/stage_floor_test.gd` — **9 checks**: every roster stage's
+- `game/tests/stage_floor_test.gd` — **11 checks**: every roster stage's
   `floor_y` sits inside its measured walkable ground band and is pinned to the
   art-verified contact value (Gas-N-Go 158, Bus Stop 170), with bounds and
-  spawns coherent around it. The pins exist because floor_y must match where
+  spawns coherent around it, and bounds that keep the widest authored fighter
+   pose fully on screen (measured 40.78 px half-width — Richard's ko_air frame,
+   mirrored for facing — plus 3 px slack, i.e. bounds within 44..276). The
+  floor pins exist because floor_y must match where
   the stage art's objects meet the ground, not a shared convention (see the
   "Choosing floor_y" section of `docs/STAGES.md`).
 - `game/tests/locomotion_speed_test.gd` — **7 checks**: Richard's
@@ -576,14 +613,14 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
 - `game/tests/b6_landing_whiff_test.gd` — **5 checks**: the superseded B6
   rule pinned to the current meter economy — landing a whiffed air move
   awards 0 meter, the move clears, and landing recovery runs to IDLE.
-- `game/tests/ui_flow_test.gd` — **53 checks** (UI Phase 1 + polish):
+- `game/tests/ui_flow_test.gd` — **55 checks** (UI Phase 1 + polish):
   router push/pop/replace/clear semantics, every forward and back path of
   the warning -> Clip -> title -> main-menu -> versus flow, the deferred
   confirm-leak guard, pause -> settings -> back to pause, MAIN MENU from
   pause, the quit confirm over a paused match, greyed slats refusing
   confirm, QuitConfirm defaulting to NO, the press-required content
   warning (no auto-advance, 30-frame boot guard), the chat-free main
-  menu, wrap order, and the 1-second title pulse.
+  menu, freed Settings overlays, wrap order, and the 1-second title pulse.
 - `game/tests/settings_test.gd` — **16 checks** (UI Phase 1): defaults on a
   missing file, version fill-in of missing keys, round-trip save/load,
   opening never saving, reset applying and saving, and default audio
@@ -616,14 +653,24 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   immediately; the RANDOM scratch-off holds the hand-off for its full
   18 frames and then hands off the stage the RNG picked with its own
   thumbnail revealed.
-- `game/tests/results_flow_test.gd` — **20 checks** (PR B, 2026-11-22): the
+- `game/tests/results_flow_test.gd` — **23 checks** (PR B, 2026-11-22; +3 in the
+  2026-11-23 playtest batch): the
   VS busts slide in over 12 integer steps and land at their marks (P2
   flipped); the 20-frame VS skip guard; the full 150-frame duration;
   Results appears at match end above the frozen (paused) match with the
-  real winner and rounds tally; serialize() is identical while Results is
-  up; the 30-frame Results input guard; REMATCH routes through the VS
-  bumper and keeps fighters and stage; CHARACTER SELECT / STAGE SELECT /
-  MAIN MENU all route correctly and unpause.
+  real winner and rounds tally, no Settings overlay, the match HUD hidden and the pause key
+  consumed (never opens the pause menu); serialize() is identical while
+  Results is up; the 30-frame Results input guard; REMATCH routes through
+  the VS bumper and keeps fighters and stage; CHARACTER SELECT / STAGE
+  SELECT / MAIN MENU all route correctly and unpause.
+- `game/tests/ui_layout_test.gd` — **354 checks**: numeric 320x180 bounds
+  across versus, solo and training, both stages and character orders;
+  name ink/plates vs health bars and timer; opaque HUD mask over stage
+  canopy pixels; widest-pose stage bounds; BREAK/pip/meter/stun spacing;
+  banner word/subtitle; training panel vs timer, names, normal jump, stun
+  labels and fighter body (including hide/restore); Results label bounds,
+  stat ink and accumulated TOTAL DMG; router/HUD/world z-order; and F1
+  hitbox default, training toggle and match-local isolation.
 - `game/tests/hud_test.gd` — **82 checks** (UI Phase 2 + Combo Phase 4, 2026-11-22; runs
   against a scratch settings.cfg): portrait states (normal, hurt under
   25%, ko after the round, refill restores); health fills and the
@@ -699,13 +746,12 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   actionability. Prints a report and exits 0 on success; `docs/PROPOSALS.md` §3
   documents the coarse grid, before/after metrics, and target limitations. Its
   numbers are informational measurements, not passing balance assertions.
-- `.github/workflows/tests.yml` runs the twenty-three headless suites — combat,
+- `.github/workflows/tests.yml` runs the twenty-four headless suites — combat,
   round-flow, mode/character-select, stage-select/ambience, stage-floor-guard,
   locomotion-speed, CPU opponent, combo system, combo fuzz, stun & breaker,
-  combo adversarial,
-  The Clip intro,
-  serialization, B6 landing-whiff, UI flow, settings, UI assets,
-  UI typography, remap, select screens, results flow, match HUD, and training —
+  combo adversarial, The Clip intro, serialization, B6 landing-whiff, UI flow,
+  settings, remap, UI assets, UI typography, UI layout, select screens,
+  results flow, match HUD, and training —
   plus the air probe on push, pull request and manual dispatch, every step under
   a `timeout-minutes` so a hang fails fast.
   They are separate jobs in one workflow; parallel

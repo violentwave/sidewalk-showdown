@@ -14,7 +14,7 @@ change.
 | Native canvas | 320x180, drawn at scale **1.0** (no resampling) |
 | Scene | `game/scenes/stages/gas_n_go.tscn` |
 | Data | `game/resources/stages/gas_n_go.tres` |
-| Floor / bounds | `floor_y = 158`, `left_bound = 24`, `right_bound = 296` |
+| Floor / bounds | `floor_y = 158`, `left_bound = 44`, `right_bound = 276` (playtest fix 2026-11-23: the widest authored pose, 40.78 px from the origin, stays fully on screen with 3 px slack) |
 | Spawns | P1 x = 110, P2 x = 210 |
 | Selector thumbnail | `gas_n_go_thumbnail.png`, 80x45 |
 
@@ -26,7 +26,10 @@ Bottom to top in the stage scene:
 2. `Clouds/CloudA` and `Clouds/CloudB` — the authored 640x44 strip, two copies.
 3. `Foreground` — 320x180 storefront/dirt layer with a transparent sky.
 4. `SignText` — 105x30 lettering placed on the blank sign board at (145, 12).
-5. `Gator` — 81x18 sprite at (140, 158).
+5. `Gator` — 81x18 sprite at (140, 158), **hidden** (playtest fix
+   2026-11-23): the 81 px art cannot sit fully outside the 44-276 bounds and
+   every floor-level position runs under the HUD's meter strip (y 170-178).
+   The node and its breathing/blinking animation stay for smaller art.
 6. `Mosquitoes/Mosquito1` and `Mosquito2` — 24x26 sprites with `z_index = 10`.
 7. `StageAnimation` — logic-only node, no drawing.
 
@@ -50,7 +53,7 @@ scene as Gas-N-Go.
 | Data | `game/resources/stages/bus_stop_night.tres` |
 | Stable id | `bus_stop_night` (unchanged; saved selections depend on it) |
 | Display name | `Bus Stop` |
-| Floor / bounds | `floor_y = 170`, `left_bound = 24`, `right_bound = 296` |
+| Floor / bounds | `floor_y = 170`, `left_bound = 44`, `right_bound = 276` (same playtest fix as Gas-N-Go) |
 | Spawns | P1 x = 110, P2 x = 210 |
 | Selector thumbnail | `game/art/stages/bus_stop/thumbnail.png`, 80x45 |
 

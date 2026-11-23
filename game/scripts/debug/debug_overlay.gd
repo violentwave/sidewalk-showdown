@@ -6,7 +6,10 @@ extends Node2D
 var p1: FighterBase
 var p2: FighterBase
 
-var show_boxes := true
+# Owner playtest fix 2026-11-23: boxes are OFF by default in every mode.
+# F1 toggles them; in training the pause-menu HITBOXES row drives them
+# (MatchRoot sets the flag from the TrainingController option).
+var show_boxes := false
 var show_state := false
 var show_input := false
 var slow_motion := false

@@ -2,8 +2,17 @@
 
 > **Keep this file current: every PR that changes features, tests, commands, or
 > rules must update PM_BRIEF.md.**
-> Last verified: **2026-11-23**, against `origin/main` at `3cf8b28`
-> (PR #98 Input Remapping) plus this branch's **UI Playtest Fixes**
+> Last verified: **2026-11-23**, against `origin/main` at `982d5e3`
+> (PR #99 UI Playtest Fixes) plus this branch's **Phase A FX/METH design**
+> (`docs/FX_AND_METH_DESIGN.md`): owner-approved base fighter palettes stay
+> closed; three FX-only accent colors per fighter and a gated five-batch
+> generation plan are documented. No engine changes or PixelLab jobs have run.
+> The audit contact sheet uses existing runtime clips; two pure palette strips
+> are in `docs/assets/fx_meth/`.
+> Live read-only PixelLab balance: **613/2000 generations, $0.00 credits**
+> (resets 2026-12-13); this PR’s upper estimate including retry margin is 114.
+>
+> The merged **UI Playtest Fixes**
 > (owner batch 2026-11-23): m5x7 HUD names on dark plates under the health
 > bars; hitbox debug off by default; BRK renamed BREAK beside its pip in the
 > meter band; every router screen on a CanvasLayer above the HUD and all
@@ -30,9 +39,9 @@
 > unchanged by this batch (presentation-only: the stage bounds are the one
 > arena-data change, 24-296 → 44-276).
 >
-> Pre-change baseline at the identical tree (`3cf8b28`): all 23 existing
-> suites passed (the remap PR's verified run); post-change counts and
-> evidence are listed below.
+> Baseline for this design branch at `982d5e3`: all 24 existing headless
+> suites passed; this proposal does not change any suite counts or runtime
+> behavior.
 ## 1. What this game is (verified stack)
 
 **Sidewalk Showdown** is a mature-rated 2D pixel-art arcade fighter: a washed-up
@@ -54,8 +63,9 @@ launchers/juggles, a full-bar METHtality finisher). Tech stack, verified in
 
 ## 2. Current state of `main`
 
-HEAD `3cf8b28` on `origin/main` (2026-11-23; PR #98 Input Remapping,
-after PR #97 Training, PR #95 README, PR #96 Combo Phase 4 HUD). Phase
+HEAD `982d5e3` on `origin/main` (2026-11-23; PR #99 UI Playtest Fixes,
+after PR #98 Input Remapping, PR #97 Training, PR #95 README, and PR #96
+Combo Phase 4 HUD). Phase
 label: **GDD §13 Phase 2 — Vertical Slice, in
 progress**. Shipped features, each verified in code/data:
 
@@ -373,8 +383,10 @@ Release blockers / decisions pending:
   `user://controls.cfg`, and leave generated defaults / `project.godot`
   untouched. `remap_test` (36) covers swaps, safety, persistence, deadzone,
   prompts, and named-action consumers.
-- **METHtality presentation** — final-round finish prompt, cinematic, camera,
-  and choreography are future work; only the engine core + banner exist.
+- **METHtality presentation** — only the engine core + banner exist on main.
+  This branch contains a Phase A design proposal for hit FX and full
+  cinematics; all implementation/generation remains future work and requires
+  owner approval (`docs/FX_AND_METH_DESIGN.md`).
 - **More stages** — the GDD §8 stage list is mostly unwired; the
   add-a-stage recipe (scene + `StageData` + roster append) is in
   `docs/STAGES.md`; no rotation/tournament order or per-stage music yet.
@@ -405,6 +417,7 @@ Release blockers / decisions pending:
 | `docs/PROPOSALS.md` | Historical combat-system proposals with measured results (§§1-7) | Current (2026-11-20): §§1/7 whiff-meter passages now carry inline "superseded" notes pointing to the landed-hits economy (§5); history preserved |
 | `docs/PIXELORAMA_PIPELINE.md` | Idle-sheet + authored-clip pipeline for both fighters (§8-§9b) | Current (integration status matches the clip libraries) |
 | `docs/PIXELLAB_ASSET_ORG.md` | PixelLab MCP project rules, style anchors, generation locks, walk-test proposal | Current (subscription counters will drift) |
+| `docs/FX_AND_METH_DESIGN.md` | Phase A audit/design for separate Peggy/Richard hit FX and canon METH cinematics, with reference-locked generation plan | Proposal only; no jobs or implementation |
 | `docs/UI_ASSETS.md` | UI art pipeline (generated -> approved -> runtime folders), Figma layout file link, per-asset manifest with native sizes | Current (2026-11-22): Phase 1 + select screens wired; `prepare_ui.gd` documented in §2 |
 | `docs/UI_SCREENS.md` | Shipped front-end, select/match-wrap screens, HUD, typography/contrast rules and captures | Current: includes the training pause tabs and training readout capture |
 | `docs/UI_HUD_SCREENS_PLAN.md` | Original HUD/screens plan, routing, ScreenRouter/Settings design, build phases and open decisions | Plan; UI Phases 1–3 and GDD §6.4 Training Mode now shipped—see `docs/UI_SCREENS.md` for actual deltas |

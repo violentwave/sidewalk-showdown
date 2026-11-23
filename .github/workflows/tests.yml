@@ -90,6 +90,12 @@ jobs:
       - name: Training mode tests
         run: godot --headless --path game --script res://tests/training_test.gd
         timeout-minutes: 10
+      - name: FX event layer tests
+        run: godot --headless --path game --script res://tests/fx_events_test.gd
+        timeout-minutes: 10
+      - name: METH cinematic driver tests
+        run: godot --headless --path game --script res://tests/meth_cinematic_test.gd
+        timeout-minutes: 15
 
   air-probe:
     # Metrics only (docs/PROPOSALS.md section 3): the probe asserts nothing and

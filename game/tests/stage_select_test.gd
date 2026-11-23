@@ -159,9 +159,12 @@ func _run() -> void:
 	var stage: Node2D = gas.scene.instantiate()
 	root.add_child(stage)
 	await process_frame
+	_check("Gas-N-Go gator is hidden because no safe meter-clear placement fits",
+		not (stage.get_node("Gator") as Sprite2D).visible,
+		"gator visible=%s" % str((stage.get_node("Gator") as Sprite2D).visible))
 	_check("Gas-N-Go keeps the authored 320x180 arena",
-		stage.floor_y == 158.0 and stage.left_bound == 24.0
-			and stage.right_bound == 296.0
+		stage.floor_y == 158.0 and stage.left_bound == 44.0
+			and stage.right_bound == 276.0
 			and stage.spawn_p1_x == 110.0 and stage.spawn_p2_x == 210.0,
 		"floor=%s bounds=%s..%s spawns=%s/%s" % [stage.floor_y,
 			stage.left_bound, stage.right_bound,
@@ -281,8 +284,8 @@ func _run() -> void:
 	root.add_child(bus_stage)
 	await process_frame
 	_check("Bus Stop keeps its measured floor and the shared arena extents",
-		bus_stage.floor_y == 170.0 and bus_stage.left_bound == 24.0
-			and bus_stage.right_bound == 296.0
+		bus_stage.floor_y == 170.0 and bus_stage.left_bound == 44.0
+			and bus_stage.right_bound == 276.0
 			and bus_stage.spawn_p1_x == 110.0 and bus_stage.spawn_p2_x == 210.0,
 		"floor=%s bounds=%s..%s spawns=%s/%s" % [bus_stage.floor_y,
 			bus_stage.left_bound, bus_stage.right_bound,

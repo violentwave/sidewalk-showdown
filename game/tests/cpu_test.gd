@@ -470,7 +470,10 @@ func _cpu_damage(level: int, seed: int) -> float:
 	var human: FighterBase = mroot.p1
 	# The human does nothing: measure what the CPU can do to a static dummy.
 	var frame := 0
-	while frame < 900 and mroot.phase == mroot.Phase.FIGHT:
+	# With the tighter 44-276 bounds both levels can hit the combo damage
+	# cap by 900 frames against a passive dummy. Shorten only this diagnostic
+	# window so the measured difference remains unsaturated; no sim changes.
+	while frame < 600 and mroot.phase == mroot.Phase.FIGHT:
 		await _step(mroot, 1)
 		frame += 1
 	_release_p1()
@@ -482,12 +485,14 @@ func _difficulty_order() -> void:
 	var easy: float = 0.0
 	var hard: float = 0.0
 	for seed in [7, 21]:
-		easy += await _cpu_damage(0, seed)
-		hard += await _cpu_damage(2, seed)
+		var seed_easy: float = await _cpu_damage(0, seed)
+		var seed_hard: float = await _cpu_damage(2, seed)
+		easy += seed_easy
+		hard += seed_hard
 	easy /= 2.0
 	hard /= 2.0
-	_check("HARD out-damages EASY against a passive opponent within the window",
-		hard > easy, "easy=%.0f hard=%.0f (900-frame windows, 2 seeds)"
+	_check("HARD out-damages EASY against a passive opponent within 600 frames",
+		hard > easy, "easy=%.0f hard=%.0f (600-frame windows, 2 seeds)"
 			% [easy, hard])
 
 # ---------------- 5b. Phase 4 combo ordering ------------------------------

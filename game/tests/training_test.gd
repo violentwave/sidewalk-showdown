@@ -879,7 +879,7 @@ func _test_frame_readout() -> void:
 	var expected_hit: int = light.hitstun - (
 		light.total_frames() - light.startup)
 	_check("the readout reports the light's hit advantage (+4)",
-		mroot.training.last_kind == "HIT"
+		mroot.training.last_kind == "DMG"
 			and mroot.training.last_advantage == 4
 			and mroot.training.last_advantage == expected_hit
 			and mroot.training.last_hit_damage == light.damage
@@ -916,7 +916,7 @@ func _test_frame_readout() -> void:
 	var expected_heavy: int = heavy.hitstun - (
 		heavy.total_frames() - heavy.startup)
 	_check("the readout reports Richard's heavy hit advantage (-2)",
-		richard.training.last_kind == "HIT"
+		richard.training.last_kind == "DMG"
 			and richard.training.last_advantage == -2
 			and richard.training.last_advantage == expected_heavy,
 		"kind=%s adv=%d expected=%d" % [richard.training.last_kind,
@@ -932,7 +932,7 @@ func _test_frame_readout() -> void:
 	var peg_heavy_hit_expected := peg_heavy.hitstun \
 		- (peg_heavy.total_frames() - peg_heavy.startup)
 	_check("the readout matches Peggy heavy hit advantage (0)",
-		peg_heavy_hit["kind"] == "HIT"
+		peg_heavy_hit["kind"] == "DMG"
 			and peg_heavy_hit["adv"] == 0
 			and peg_heavy_hit["adv"] == peg_heavy_hit_expected,
 		str(peg_heavy_hit))
@@ -953,7 +953,7 @@ func _test_frame_readout() -> void:
 	var richard_light_hit_expected := richard_light.hitstun \
 		- (richard_light.total_frames() - richard_light.startup)
 	_check("the readout matches Richard light hit advantage (+2)",
-		richard_light_hit["kind"] == "HIT"
+		richard_light_hit["kind"] == "DMG"
 			and richard_light_hit["adv"] == 2
 			and richard_light_hit["adv"] == richard_light_hit_expected,
 		str(richard_light_hit))

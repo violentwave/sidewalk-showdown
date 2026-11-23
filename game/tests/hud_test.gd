@@ -279,7 +279,7 @@ func _test_meter_and_ready() -> void:
 			str(hud.meter_skulls[1].visible)])
 
 	# Both meters full at once: the two METH READY labels, both skulls and
-	# both BRK labels must all stay apart (PM review of PR #96: the old
+	# both BREAK labels must all stay apart (PM review of PR #96: the old
 	# beside-the-meter layout collided in the middle of the screen).
 	p1.add_meter(100.0)
 	var full_rects: Array[Rect2] = []
@@ -291,14 +291,14 @@ func _test_meter_and_ready() -> void:
 		full_rects.append(Rect2(hud.meter_skulls[side].position, hud.meter_skulls[side].size))
 		full_names.append("skull %d" % side)
 		var brk: Label = hud.breaker_labels[side]
-		full_rects.append(Rect2(brk.position, Vector2(UiText.body_width("BRK"), brk.size.y)))
-		full_names.append("BRK %d" % side)
+		full_rects.append(Rect2(brk.position, Vector2(UiText.body_width(hud.BREAKER_TEXT), brk.size.y)))
+		full_names.append("BREAK %d" % side)
 	var clashes: Array[String] = []
 	for i in full_rects.size():
 		for j in range(i + 1, full_rects.size()):
 			if full_rects[i].intersects(full_rects[j]):
 				clashes.append("%s x %s" % [full_names[i], full_names[j]])
-	_check("both METH READY labels, skulls and BRK labels stay apart at full meter",
+	_check("both METH READY labels, skulls and BREAK labels stay apart at full meter",
 		hud.meter_ready[0].visible and hud.meter_ready[1].visible and clashes.is_empty(),
 		"; ".join(clashes))
 	p1.add_meter(-100.0)

@@ -3426,8 +3426,8 @@ func _run() -> void:
 	# 49f. Back-hold blocks on the correct side after a cross-up: the defender
 	# auto-faced the swapped attacker, so the back key flips with the facing.
 	# The stand light is a LOW, so the block here is a crouch block.
-	_reset_fighters(76, 230)
-	p2.position.x = 40.0
+	_reset_fighters(100, 230)
+	p2.position.x = 70.0
 	await _step(2)
 	Input.action_press("p2_down")
 	Input.action_press("p2_left") # back relative to P2's new right-facing

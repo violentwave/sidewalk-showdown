@@ -12,8 +12,8 @@
 process_mode = 1
 script = ExtResource("1_stage")
 floor_y = 170.0
-left_bound = 24.0
-right_bound = 296.0
+left_bound = 44.0
+right_bound = 276.0
 spawn_p1_x = 110.0
 spawn_p2_x = 210.0
 

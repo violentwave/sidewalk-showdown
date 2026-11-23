@@ -185,7 +185,9 @@ func _capture_last_hit() -> void:
 		last_advantage = stun - recovery
 		last_startup = attacker.current_move.startup
 		last_move_id = String(attacker.current_move.id)
-		last_kind = "HIT" if on_hit else "BLK"
+		# Owner playtest fix 2026-11-23: "DMG" reads as damage; "HIT" was
+		# ambiguous next to the HUD's hit terminology.
+		last_kind = "DMG" if on_hit else "BLK"
 		# AFTER FIRST HIT arms on a real hit on the dummy (chip does not).
 		if block == Block.AFTER_HIT and not after_hit_armed \
 				and d_side == 1 and on_hit:

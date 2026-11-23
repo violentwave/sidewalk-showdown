@@ -69,6 +69,12 @@ godot --path game                       # play
 ## Controls
 
 P1 plays on keyboard + mouse; P2 plays on any controller (d-pad or left stick).
+The table below shows the shipped defaults. Open **Settings → Controls** to
+remap P1's keyboard and P2's controller (including menu/pause and training
+controls); changes save immediately to `user://controls.cfg` and load at boot.
+Press the action to rebind, then press a key or pad input; Esc cancels. A
+same-player conflict swaps the two bindings. Reset defaults is available per
+player.
 
 | Action | P1 keyboard / mouse | P2 controller |
 |---|---|---|
@@ -81,6 +87,8 @@ P1 plays on keyboard + mouse; P2 plays on any controller (d-pad or left stick).
 | Grab / throw | U | A |
 | METHtality | I | Right shoulder (RB / R1) |
 | Pause | Esc | Start / Menu |
+| Menu confirm | Enter / Space | A |
+| Menu back | Backspace | B |
 | Training reset | R | Left shoulder (LB / L1) |
 | Record dummy inputs | T | Right stick click (R3) |
 | Play back dummy inputs | P | Left stick click (L3) |
@@ -91,12 +99,13 @@ P1 plays on keyboard + mouse; P2 plays on any controller (d-pad or left stick).
 - **Combo breaker:** Grab + Special while you're being comboed.
 - **METHtality:** press METHtality with a full meter.
 - **Stunned?** Mash Up to shake out.
-- **Menus:** confirm with Enter, J or pad A; go back with Backspace or pad B.
+- **Menus:** confirm with the current SELECT binding; go back with the current
+  BACK binding. Prompts show the active key or pad button.
 - **Debug keys:** F1 hit/push boxes (on by default outside training), F2 frame state, F3 input history, F4 slow motion, F5 frame step, F6 refill.
 
 ## Roadmap
 
-- **Next:** control remapping, Extras and Credits, and per-round win letters on the round pips.
+- **Next:** Extras and Credits, and per-round win letters on the round pips.
 - **Later:** the rest of the 15-fighter roster, more stages, the arcade ladder up to Tripp Vlogs, METHtality cinematics, final audio and voice, and rollback netcode (the simulation is already deterministic and fully serializable).
 
 The full plan is in the [GDD](GDD.md); story and world canon are in the [Game Bible](GAME_BIBLE.md) and [Characters](CHARACTERS.md).

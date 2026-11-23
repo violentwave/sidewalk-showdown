@@ -1,8 +1,8 @@
 # UI Screens — Router, Screen List, and Settings (Phase 1)
 
-**Status: implemented 2026-11-21 (UI Phase 1); polished 2026-11-21 from
-owner playtest feedback** (cleaner typography via the Sidewalk Marker
-font, no chat strip on the main menu, a press-required content warning).
+**Status: implemented 2026-11-21 (UI Phase 1); polished from owner playtests;
+Controls tab added 2026-11-23** (cleaner typography via Sidewalk Marker,
+no chat strip, press-required content warning, and runtime input remapping).
 This file documents what actually shipped: the router, the screen flow
 with every back path, the **typography rules**, the Settings keys and
 where each one is (or is not yet) consumed, and the UI art pipeline
@@ -58,7 +58,7 @@ MatchRoot pause: RESUME / SETTINGS (overlay) / RESTART MATCH /
 | Screen | Enter | Back / exit |
 | --- | --- | --- |
 | ContentWarning (once per launch) | boot | confirm only (ignored for the first 30 frames so a held key cannot skip it) -> The Clip |
-| The Clip (unchanged) | warning | Space advance, Esc skip -> Title |
+| The Clip | warning | current confirm advances; current back or pause skips -> Title |
 | Title | Clip, MainMenu back | confirm -> MainMenu; back -> QuitConfirm |
 | MainMenu | Title | back -> Title; items below |
 | ModeSelect | MainMenu VERSUS | back -> MainMenu |
@@ -194,7 +194,10 @@ with `set_values_silently` (blocked from applying/saving) when opening, so
 opening the screen can never save; `reset_to_defaults` resets, applies,
 refreshes, and saves. Audio sliders are 0-10 with the default at exactly
 0 dB (`value / default` linear), so default settings never change the mix;
-0 mutes the bus. No Controls tab yet (Phase 4).
+0 mutes the bus. The Controls tab is backed by `InputBindings`
+(`game/scripts/ui/input_bindings.gd`): it snapshots generated `InputMap`
+defaults, applies saved overrides at boot, and writes changes to
+`user://controls.cfg` without saving or regenerating `project.godot`.
 
 | Section | Key | Default | Consumed by |
 | --- | --- | --- | --- |
@@ -219,10 +222,19 @@ refreshes, and saves. Audio sliders are 0-10 with the default at exactly
 | stream | `hide_tripp_text` | `false` | **consumed by the HUD (UI Phase 2)**: hides Tripp's commentary tape |
 
 The overlay itself is `game/scenes/menus/settings_overlay.tscn`
-(`game/scripts/ui/screens/settings_overlay.gd`): five tabs (Video, Audio,
-Gameplay, Accessibility, Stream) plus a RESET TO DEFAULTS row, one-line
-plain descriptions at the bottom, up/down moves, left/right adjusts or
-switches tabs.
+(`game/scripts/ui/screens/settings_overlay.gd`): six tabs (VID, AUD, GAME,
+ACC, STRM, CONTROLS), a seven-row scrolling window, one-line plain
+descriptions at the bottom, up/down moves, and left/right adjusts or switches.
+Controls has P1 KEYBOARD and P2 CONTROLLER sections; selecting an action
+listens for a key or pad button/axis. Escape cancels, same-player conflicts
+swap with a status message, and each section has its own reset-to-defaults
+row. Keyboard capture accepts keys only; controller capture accepts pad
+buttons or axes with a 0.2 deadzone. P1 mouse attack alternates and other
+device classes remain intact.
+
+`ui_prompt_line.gd`, the Content Warning, and The Clip show the current
+confirm/back bindings for the last-used device. The Clip consumes named
+`ui_confirm`, `ui_back`, and pause actions rather than testing physical keycodes.
 
 ## Typography and contrast rules (every Phase 1 screen)
 
@@ -277,8 +289,8 @@ Per-screen layouts (positions are 320x180 screen space):
 
 | Screen | Layout |
 | --- | --- |
-| ContentWarning | dim; ui_panel (40,42) 240x96; "HEADS UP" Marker ink; two m5x7 ink lines; "PRESS [ENTER] TO CONTINUE" centered inside the panel (pad shows the A glyph). No auto-advance; confirm ignored for the first 30 frames. |
-| Title | Gas-N-Go art; 55% #1C160D overlay; logo (90,16) 139x74; "PRESS START" Marker-outline yellow centered y140, 60f on / 60f off. Nothing else — PRESS START is the prompt, no prompt line. |
+| ContentWarning | dim; ui_panel (40,42) 240x96; "HEADS UP" Marker ink; two m5x7 ink lines; "PRESS [current binding] TO CONTINUE" centered inside the panel (standard pad face buttons use glyphs). No auto-advance; confirm ignored for the first 30 frames. |
+| Title | Gas-N-Go art; 55% #1C160D overlay; logo (90,16) 139x74; current confirm binding in Marker-outline yellow centered y140, 60f on / 60f off. Nothing else — the binding prompt replaces a separate prompt line. |
 | MainMenu | Gas-N-Go art; 55% overlay; sign in the left third at (24,34) — pole base on the stage floor line — with a white outlined "MENU" in the sign's measured orange header band (art x 5..72 / y 5..29); slats per the geometry above in dark ink; QUIT button (40,116) 48x16 taped to the pole, focused = yellow bar + darkest ink; description on the bottom plate's left, prompt on its right. |
 | SettingsOverlay | ui_panel (20,16) 280x148; tab row Marker at y22 (active tab on a small yellow bar, inactive `#7A6A48`); rows m5x7 ink label left / ink value right (step 14, max 7 visible, scrolls if ever needed); focused row = full-width yellow bar + `#1C160D`; RESET in `#7A6A48`; description `#7A6A48` inside the panel bottom (32,144). |
 | Pause | 55% #1C160D dim; ui_panel centered on the longest item + 8 px padding each side, (24) 116 tall; "PAUSED" Marker ink; items Marker ink centered, focused on a full-width yellow bar + `#1C160D`; "BACK TO CHARACTER SELECT" is "CHARACTER SELECT" now. No per-item buttons. |
@@ -289,7 +301,7 @@ Per-screen layouts (positions are 320x180 screen space):
 `docs/assets/ui/` holds one 320x180 PNG per polished screen:
 `content_warning`, `title`, `main_menu`, `main_menu_settings` (SETTINGS
 focused), `main_menu_quit` (QUIT focused), `settings_video`,
-`settings_audio`, `settings_gameplay`, `pause`, `quit_confirm`, the
+`settings_audio`, `settings_gameplay`, `settings_controls`, `pause`, `quit_confirm`, the
 PR A select screens: `mode_select`, `difficulty`,
 `character_select_p1` (solo), `character_select_both` (versus),
 `stage_select`, `stage_select_random` (RANDOM focused), the PR B
@@ -312,6 +324,8 @@ DISPLAY=:0 godot --path game --resolution 1280x720 \
     --script res://tools/ui_hud_capture.gd
 DISPLAY=:0 godot --path game --resolution 1280x720 \
     --script res://tools/training_capture.gd
+DISPLAY=:0 godot --path game --resolution 1280x720 \
+    --script res://tools/remap_capture.gd
 ```
 
 (`game/tools/ui_polish_capture.gd` and `ui_select_capture.gd` capture
@@ -359,8 +373,8 @@ on an approved file missing from the table, and exits non-zero.
 - `game/tests/settings_test.gd` — 16 checks: defaults, fill-in, round
   trip, opening never saves, reset applies + saves, 0 dB defaults.
 - `game/tests/ui_assets_test.gd` — 4 checks: sizes + byte identity.
-- `game/tests/ui_typography_test.gd` — 50 checks: every label in the
-  eleven UI surfaces (screens + the pause menu) uses a pixel font at
+- `game/tests/ui_typography_test.gd` — 53 checks: every label in the
+  eleven UI surfaces (including the Controls tab and pause menu) uses a pixel font at
   its native size with every glyph present, no theme outline/shadow,
   integer positions, no scaling; labels on cardboard (ui_panel /
   ui_button) fit their container and use the dark inks; over-art
@@ -372,6 +386,9 @@ on an approved file missing from the table, and exits non-zero.
   the same rules at round start and mid-fight, plus juggle, stun,
   full-meter breaker, P2 callout+combo, training-pause and training-HUD
   states.
+- `game/tests/remap_test.gd` — 36 checks: runtime key/pad/axis capture,
+  conflict swaps, safe menu routes, persistence/corrupt fallback, per-player
+  reset, current prompts, and named-action consumers after rebinding.
 - `game/tests/select_screens_test.gd` — 24 checks (PR A): the Mode and
   Difficulty choices are unchanged (names, order, defaults, emits, back
   paths); the difficulty rows draw 1/2/3 tally marks; the rap sheet
@@ -401,4 +418,4 @@ on an approved file missing from the table, and exits non-zero.
   bar and paused freeze; free/paid/unavailable breaker pips; BREAK! and
   CLIP CANCEL side/timing; load resync; and serialize() identical with
   the HUD bound and unbound.
-- All seven run in CI (`tests.yml`) alongside the existing suites.
+- These UI suites run in CI (`tests.yml`) alongside the other headless suites.

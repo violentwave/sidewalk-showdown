@@ -19,7 +19,9 @@
 > doc's Phase 1 section, and notes the deltas: The Clip runs right after
 > the content warning (before the title), there is no attract demo, the
 > main menu's slat rects are measured constants, QUIT rides a taped
-> ui_button on the sign pole, and Settings has no Controls tab yet.
+> ui_button on the sign pole. The original Phase 1 plan did not include
+> Controls; runtime remapping was added 2026-11-23 and is documented in
+> `docs/UI_SCREENS.md`.
 > **Phase 2 (HUD) is implemented 2026-11-22**: ghost bar, pip sprites,
 > timer warning, meter ticks and READY state, side callouts, banner
 > plates, the commentary toggle, and every HUD counter on the sim tick
@@ -294,7 +296,7 @@ STEP 2 - BUILD
 A. ScreenRouter (game/scripts/ui/screen_router.gd) with push/pop/replace, deferred transitions, and the existing confirm-leak guard. FlowState holds solo/versus, cpu_level, last picks, last stage. Port main.gd to use it with identical behavior for the existing flow.
 B. Settings autoload (game/scripts/ui/settings.gd): user://settings.cfg, [meta] version = 1, defaults for missing keys, apply on boot, save on change, reset-to-defaults that resets, applies, refreshes, then saves. Opening the screen must not save.
 C. Audio buses: default_bus_layout.tres with Master, Music, SFX, Voice, UI. Route audio_manager players to them without changing current loudness at default settings.
-D. Settings overlay scene with tabs Video (window mode, scale 2x-6x integer, VSync), Audio (5 sliders 0-10, mute when unfocused), Gameplay (input display placeholder toggle, Tripp commentary full/minimal/off, show combo damage), Accessibility (reduce flashing, screen shake off/low/full, high-contrast HUD, readable font, hold-to-confirm METHtality), Stream (streamer-safe music, hide Tripp layer). Store every option and apply the ones that have a target today; list the stored-but-not-yet-consumed ones in your report. No Controls tab yet.
+D. Settings overlay scene with tabs Video (window mode, scale 2x-6x integer, VSync), Audio (5 sliders 0-10, mute when unfocused), Gameplay (input display placeholder toggle, Tripp commentary full/minimal/off, show combo damage), Accessibility (reduce flashing, screen shake off/low/full, high-contrast HUD, readable font, hold-to-confirm METHtality), Stream (streamer-safe music, hide Tripp layer). Store every option and apply the ones that have a target today; list the stored-but-not-yet-consumed ones in your report. Original Phase 1 plan; CONTROLS was subsequently added by the 2026-11-23 remapping implementation.
 E. New screens: ContentWarning (once per launch, confirm or 3 s), Title (PRESS START, pulses at most once per second), MainMenu (VERSUS, TRAINING, SETTINGS, EXTRAS greyed, QUIT), QuitConfirm modal (defaults to NO). Original Training was greyed as COMING SOON; GDD §6.4 Training Mode is now implemented through the live TRAINING slat. Flow: boot -> ContentWarning -> The Clip (keep current behavior for now) -> Title -> MainMenu -> VERSUS -> existing ModeSelect (1P/2P) -> existing flow. Back from ModeSelect returns to MainMenu.
 F. Pause menu becomes: RESUME, SETTINGS (opens the overlay above the paused match), RESTART MATCH, BACK TO CHARACTER SELECT, MAIN MENU, QUIT TO DESKTOP (through QuitConfirm). Touch match_root.gd only in the pause handling.
 G. Every screen shows a confirm/back prompt line. UI runs with the 320x180 integer-scaled viewport, pixel-snapped, no fractional positions.

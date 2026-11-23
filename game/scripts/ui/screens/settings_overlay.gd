@@ -10,7 +10,7 @@
 # Opening the screen never saves: values are READ from the Settings autoload
 # into the row list; nothing writes back until the player changes something
 # (which goes through Settings.set_value -> apply + save + changed).
-# Works above a paused match (PROCESS_MODE_ALWAYS). No Controls tab yet.
+# Works above a paused match (PROCESS_MODE_ALWAYS).
 extends Control
 
 signal closed
@@ -36,7 +36,7 @@ const DESC_Y := 144
 # shows in the description line when the tab row is focused).
 const TABS := [
 	{
-		"title": "VIDEO",
+		"title": "VID",
 		"section": "video",
 		"rows": [
 			{"key": "window_mode", "label": "WINDOW MODE",
@@ -53,7 +53,7 @@ const TABS := [
 		],
 	},
 	{
-		"title": "AUDIO",
+		"title": "AUD",
 		"section": "audio",
 		"rows": [
 			{"key": "master", "label": "MASTER",
@@ -77,7 +77,7 @@ const TABS := [
 		],
 	},
 	{
-		"title": "GAMEPLAY",
+		"title": "GAME",
 		"section": "gameplay",
 		"rows": [
 			{"key": "input_display", "label": "INPUT DISPLAY",
@@ -96,7 +96,7 @@ const TABS := [
 		],
 	},
 	{
-		"title": "ACCESS.",
+		"title": "ACC",
 		"section": "accessibility",
 		"rows": [
 			{"key": "reduce_flashing", "label": "REDUCE FLASHING",
@@ -119,7 +119,7 @@ const TABS := [
 		],
 	},
 	{
-		"title": "STREAM",
+		"title": "STRM",
 		"section": "stream",
 		"rows": [
 			{"key": "streamer_safe_music", "label": "STREAMER-SAFE MUSIC",
@@ -130,10 +130,18 @@ const TABS := [
 				"kind": "bool"},
 		],
 	},
+	{
+		"title": "CONTROLS",
+		"section": "controls",
+		"rows": [],
+	},
 ]
 
 var tab_index := 0
 var row_index := 0  # 0 = tab header, 1.. options, last = reset
+var control_player := "p1"
+var pending_control_id := ""
+var control_feedback := ""
 
 var _tab_labels: Array[Label] = []
 var _tab_bars: Array[ColorRect] = []
@@ -218,20 +226,28 @@ func _settings():
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_echo():
+	if event.is_echo() and pending_control_id.is_empty():
 		return
 	ScreenRouter.note_input_device(event)
+	if not pending_control_id.is_empty():
+		_capture_rebind_event(event)
+		return
 	var handled := true
-	if event.is_action_pressed("p1_up"):
+	if event.is_action_pressed("p1_up") or event.is_action_pressed("p2_up"):
 		_move_row(-1)
-	elif event.is_action_pressed("p1_down"):
+	elif event.is_action_pressed("p1_down") or event.is_action_pressed("p2_down"):
 		_move_row(1)
-	elif event.is_action_pressed("p1_left"):
+	elif event.is_action_pressed("p1_left") or event.is_action_pressed("p2_left"):
 		_adjust(-1)
-	elif event.is_action_pressed("p1_right"):
+	elif event.is_action_pressed("p1_right") or event.is_action_pressed("p2_right"):
 		_adjust(1)
-	elif event.is_action_pressed("p1_light") or event.is_action_pressed("ui_confirm"):
-		_adjust(1)
+	elif event.is_action_pressed("p1_light") or event.is_action_pressed("p2_light") \
+			or event.is_action_pressed("ui_confirm"):
+		if _is_controls_tab() and row_index >= 2 \
+				and row_index < row_count() - 1:
+			_begin_rebind()
+		else:
+			_adjust(1)
 	elif event.is_action_pressed("ui_back"):
 		closed.emit()
 	else:
@@ -242,11 +258,12 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func row_count() -> int:
 	# tab header + options + reset
-	return 1 + TABS[tab_index]["rows"].size() + 1
+	return 1 + _rows_for_current_tab().size() + 1
 
 
 func _move_row(direction: int) -> void:
 	row_index = wrapi(row_index + direction, 0, row_count())
+	control_feedback = ""
 	selection_moved.emit()
 	_refresh()
 
@@ -255,16 +272,33 @@ func _adjust(direction: int) -> void:
 	if row_index == 0:
 		tab_index = wrapi(tab_index + direction, 0, TABS.size())
 		row_index = 0
+		pending_control_id = ""
+		control_feedback = ""
 		selection_confirmed.emit()
 		_refresh()
 		return
 	if row_index == row_count() - 1:
-		# RESET TO DEFAULTS: resets, applies, refreshes, saves.
 		selection_confirmed.emit()
-		_settings().reset_to_defaults()
+		if _is_controls_tab():
+			_settings().controls.reset_player(control_player)
+			control_feedback = "%s DEFAULTS RESTORED" % control_player.to_upper()
+		else:
+			# RESET TO DEFAULTS: resets, applies, refreshes, saves.
+			_settings().reset_to_defaults()
 		_refresh()
 		return
-	var row: Dictionary = TABS[tab_index]["rows"][row_index - 1]
+	var row: Dictionary = _rows_for_current_tab()[row_index - 1]
+	if row["kind"] == "player":
+		control_player = "p2" if control_player == "p1" else "p1"
+		control_feedback = ""
+		selection_confirmed.emit()
+		_refresh()
+		return
+	if row["kind"] == "binding":
+		_begin_rebind()
+		return
+	if row["kind"] == "player" or _is_controls_tab():
+		return
 	var section: String = TABS[tab_index]["section"]
 	var key: String = row["key"]
 	var value = _settings().get_value(section, key)
@@ -296,6 +330,8 @@ func _row_window() -> int:
 
 func _refresh() -> void:
 	var tab: Dictionary = TABS[tab_index]
+	var rows := _rows_for_current_tab()
+	var controls_tab := _is_controls_tab()
 
 	# Tab row: the active tab rides a yellow bar with the darkest ink;
 	# inactive tabs stay muted on the cardboard.
@@ -307,7 +343,6 @@ func _refresh() -> void:
 
 	# Option rows (options + RESET), windowed to MAX_VISIBLE_ROWS. The
 	# focused row rides a full-width yellow bar with the darkest ink.
-	var rows: Array = tab["rows"]
 	var option_count := rows.size() + 1  # options + reset
 	var window := _row_window()
 	var reset_row_index := rows.size()  # option index of the reset row
@@ -321,6 +356,14 @@ func _refresh() -> void:
 		row_label.position.y = y
 		value_label.position.y = y
 		row_bar.position.y = y - 1
+		if controls_tab:
+			row_label.size.x = 112
+			value_label.size.x = ROW_X_VALUE_RIGHT - ROW_X_LABEL - 120
+			value_label.position.x = ROW_X_VALUE_RIGHT - value_label.size.x
+		else:
+			row_label.size.x = 150
+			value_label.size.x = ROW_X_VALUE_RIGHT - ROW_X_LABEL - 8
+			value_label.position.x = ROW_X_VALUE_RIGHT - value_label.size.x
 		if option >= option_count:
 			row_label.text = ""
 			value_label.text = ""
@@ -329,26 +372,119 @@ func _refresh() -> void:
 		var focused_row := row_index == option + 1
 		var color := UiText.INK_DARK if focused_row else UiText.INK
 		if option == reset_row_index:
-			row_label.text = "RESET TO DEFAULTS"
+			row_label.text = "RESET %s DEFAULTS" % control_player.to_upper() \
+				if controls_tab else "RESET TO DEFAULTS"
 			value_label.text = ""
 			if not focused_row:
 				color = UiText.INK_MUTED
 		else:
 			var definition: Dictionary = rows[option]
 			row_label.text = str(definition["label"])
-			var value = _settings().get_value(tab["section"], definition["key"])
-			value_label.text = _format_value(definition, value)
+			match str(definition["kind"]):
+				"player":
+					value_label.text = "P1 KEYBOARD" if control_player == "p1" \
+						else "P2 CONTROLLER"
+				"binding":
+					if pending_control_id == str(definition["control_id"]):
+						value_label.text = "PRESS A KEY" if control_player == "p1" \
+							else "PRESS PAD INPUT"
+					else:
+						value_label.text = _settings().controls.binding_label(
+							control_player, str(definition["control_id"]))
+				_:
+					var value = _settings().get_value(tab["section"], definition["key"])
+					value_label.text = _format_value(definition, value)
 		row_label.add_theme_color_override("font_color", color)
 		value_label.add_theme_color_override("font_color", color)
 		row_bar.visible = focused_row
 
 	# Description line inside the panel bottom.
 	if row_index == 0:
-		_desc_label.text = "Tab: %s. Left and right change the section." % tab["title"]
+		_desc_label.text = "TAB: %s. LEFT / RIGHT CHANGE SECTION." % tab["title"]
 	elif row_index == row_count() - 1:
-		_desc_label.text = "Put every option back the way it shipped."
+		_desc_label.text = "Restore this player's shipped controls." if controls_tab \
+			else "Put every option back the way it shipped."
 	else:
-		_desc_label.text = str(rows[row_index - 1]["desc"])
+		var focused: Dictionary = rows[row_index - 1]
+		if controls_tab:
+			if not control_feedback.is_empty():
+				_desc_label.text = control_feedback
+			elif not pending_control_id.is_empty():
+				_desc_label.text = "PRESS A KEY / PAD INPUT. ESC CANCELS."
+			elif focused["kind"] == "player":
+				_desc_label.text = "LEFT / RIGHT OR SELECT TO SWITCH PLAYER."
+			else:
+				_desc_label.text = "SELECT TO REBIND. CONFLICTS SWAP."
+		else:
+			_desc_label.text = str(focused["desc"])
+
+
+func _rows_for_current_tab() -> Array:
+	if not _is_controls_tab():
+		return TABS[tab_index]["rows"]
+	var rows: Array = [{
+		"label": "PLAYER",
+		"desc": "P1 keyboard or P2 controller.",
+		"kind": "player",
+	}]
+	for definition: Dictionary in _settings().controls.control_definitions(control_player):
+		rows.append({
+			"label": definition["label"],
+			"desc": "Select to rebind this action.",
+			"kind": "binding",
+			"control_id": definition["id"],
+		})
+	return rows
+
+
+func _is_controls_tab() -> bool:
+	return str(TABS[tab_index]["section"]) == "controls"
+
+
+func _begin_rebind() -> void:
+	if row_index < 2 or row_index >= row_count() - 1:
+		return
+	var row: Dictionary = _rows_for_current_tab()[row_index - 1]
+	if row["kind"] != "binding":
+		return
+	pending_control_id = str(row["control_id"])
+	control_feedback = ""
+	selection_confirmed.emit()
+	_refresh()
+
+
+func _capture_rebind_event(event: InputEvent) -> void:
+	var cancel_key: bool = event is InputEventKey and event.pressed \
+		and not event.echo and (event.keycode == KEY_ESCAPE \
+			or event.physical_keycode == KEY_ESCAPE)
+	if cancel_key:
+		pending_control_id = ""
+		control_feedback = "REBIND CANCELLED"
+		get_viewport().set_input_as_handled()
+		_refresh()
+		return
+
+	if control_player == "p1" and event is InputEventKey \
+			and event.pressed and not event.echo:
+		_finish_rebind(event)
+	elif control_player == "p2" and event is InputEventJoypadButton \
+			and event.pressed:
+		_finish_rebind(event)
+	elif control_player == "p2" and event is InputEventJoypadMotion:
+		# Keep listening through the DualSense's small center-rest events.
+		if absf(event.axis_value) >= InputBindings.AXIS_CAPTURE_DEADZONE:
+			_finish_rebind(event)
+	get_viewport().set_input_as_handled()
+
+
+func _finish_rebind(event: InputEvent) -> void:
+	var result: Dictionary = _settings().controls.rebind_control(
+		control_player, pending_control_id, event)
+	control_feedback = str(result["message"])
+	if bool(result["ok"]):
+		pending_control_id = ""
+	selection_confirmed.emit()
+	_refresh()
 
 
 func _format_value(definition: Dictionary, value) -> String:

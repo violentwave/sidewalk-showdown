@@ -4,8 +4,11 @@
 > rules must update PM_BRIEF.md.**
 > Last verified: **2026-11-23**, against `origin/main` at `982d5e3`
 > (PR #99 UI Playtest Fixes) plus this branch's **Phase A FX/METH design**
-> (`docs/FX_AND_METH_DESIGN.md`): proposal only; no engine changes or
-> PixelLab jobs. The one audit contact sheet uses existing runtime clips.
+> (`docs/FX_AND_METH_DESIGN.md`): owner-approved base fighter palettes stay
+> closed; three FX-only accent colors per fighter and a gated five-batch
+> generation plan are documented. No engine changes or PixelLab jobs have run.
+> The audit contact sheet uses existing runtime clips; two pure palette strips
+> are in `docs/assets/fx_meth/`.
 > Live read-only PixelLab balance: **613/2000 generations, $0.00 credits**
 > (resets 2026-12-13); this PR’s upper estimate including retry margin is 114.
 >

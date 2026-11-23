@@ -1,8 +1,9 @@
 # Phase A — Per-character hit FX and METHtality cinematics
 
 **Status:** owner-review proposal only. No game code, runtime assets, or
-PixelLab jobs were produced by this phase. The one image in this PR is an audit
-contact sheet made from already-approved runtime clips.
+PixelLab jobs were produced by this phase. The image artifacts are one audit
+contact sheet from already-approved runtime clips and two palette-only strips
+built from the approved samples plus FX-only accents.
 
 **Scope:** (1) full per-character normal-attack FX sets for Peg Leg Peggy and
 Whiskey Richard; (2) scripted 3.5-second versions of their canon METHtalities,
@@ -193,7 +194,7 @@ not once per active frame.
 | FX | On-screen footprint / source cell | Frames × sim ticks per frame | Trigger and anchor | Peggy treatment | Richard treatment |
 |---|---|---|---|---|---|
 | Light hit | ~12×12 / 32×32 | 5 × 2 = 10f | Confirmed light; overlap center, aligned to fist/tool or bottle tip | Two wood chips, one bent nail, warm metal pinprick | Amber splash and one bottle-glass glint |
-| Heavy hit | ~24×20 / 32×32 | 7 × 2 = 14f | Confirmed heavy; overlap center | Broad splinter fan and one bent nail | Wider whiskey splash, two glass glints |
+| Heavy hit | ~24×20 / 32×32 | 7 × 2 = 14f | Confirmed heavy; overlap center | Broad splinter fan and one bent nail | Wider whiskey splash, two glass glints, one tiny 3×5px warm flame lick |
 | Counter hit | ~24×24 / 32×32 | 7 × 2 = 14f | Counter replaces ordinary burst at same overlap center | Crossed nail/metal flash with a short splinter ring | Bottle-glass cross glint and amber burst |
 | Block | ~14×12 / 32×32 | 5 × 2 = 10f | Blocked contact; overlap center; slightly lower contrast than hit | Duct-tape fleck + dull tool-on-tool spark | Small amber splash + glass tick |
 | Special / launcher hit | ~36×24 / 48×32 | 7 × 2 = 14f | Special contact; launcher variant adds a short upward streak from the hit point | Peg/hardware streak and a few wood slivers | Amber-red flame wisp and glass glint |
@@ -217,8 +218,9 @@ This is generic dirt/surface dust, not either fighter’s weapon effect.
 ### Palette locks used by every effect
 
 These are exact opaque colors sampled from the approved idle frame plus the
-named current clip references. They are a closed palette for FX/props; no new
-hue is allowed in a reviewed frame.
+named current clip references. `P-FX` and `R-FX` remain closed palettes for
+**fighter pixels**; no new hue is allowed on either actor. FX/props may add
+only the separate accents below.
 
 - **Peggy palette `P-FX`:** `#211711`, `#251913`, `#2F1D14`, `#442C1F`,
   `#464834`, `#70281D`, `#BF7E4B`, `#DA9259`, `#DD965D`, `#CD854F`.
@@ -228,6 +230,21 @@ hue is allowed in a reviewed frame.
   `#273645`, `#731711`, `#89281C`, `#CB8A60`, `#DDA074`, `#E3CEB4`.
   The “fire” read is amber/cream against his sampled dark-red/black, not a new
   neon yellow. Whiskey fumes use the warm brown/cream portion.
+- **Peggy FX-only accent `P-ACCENT`:** `#C9D1CC` pale steel highlight,
+  `#FFF2B3` hot spark white-yellow, `#E9822A` warm orange ember.
+- **Richard FX-only accent `R-ACCENT`:** `#F16A2D` flame orange,
+  `#FFD34F` flame yellow, `#FFF2DA` hot cream/white core. Whiskey fumes do
+  **not** use these accents: keep them amber/brown from `R-FX`, with opaque
+  pixel dithering rather than semi-transparent alpha.
+
+The accents are never used on fighter pixels. Define `P-VFX = P-FX ∪
+P-ACCENT` and `R-VFX = R-FX ∪ R-ACCENT`; hit FX and colored props may use only
+the matching VFX union. Richard fumes use `R-FX` only, amber/brown with
+opaque-pixel dithering (no partial-alpha smoke). Fighter animation jobs receive
+`P-FX` or `R-FX` alone. The two pure, 32×416 swatch strips are
+`docs/assets/fx_meth/peggy_fx_palette_strip.png` and
+`docs/assets/fx_meth/richard_fx_palette_strip.png`; each is sampled `P-PAL` or
+`R-PAL` followed by its three FX-only accents, with no labels/background colors.
 
 The list for the shared dust is the union of the two sampled palettes’ dark
 earth/cream colors. Phase B should re-sample these files from bytes before
@@ -440,10 +457,10 @@ The palette references are exact source unions: `P-PAL = P-ID` +
 `game/art/characters/whiskey_richard/clips/neutral.png` cel 3 +
 `game/art/characters/whiskey_richard/clips/meth.png` cel 2. These exact
 opaque pixels were checked against all colors in `P-FX` / `R-FX`.
-`create_image_pixflux` receives a palette-reference strip assembled from those
-files through `color_image_url`; every output is rechecked against the closed
-set in Pixelorama. For shared dust, the palette ref is both idle frames and
-only their shared dark-earth/cream colors.
+`create_image_pixflux` receives the matching VFX strip through
+`color_image_url`; fighter jobs receive only the base palette. Every output is
+rechecked in Pixelorama. Shared dust uses only the two base palettes’ common
+dark-earth/cream colors.
 
 **PixelLab tool fit and limits (read-only tool help, 2026-11-23):**
 
@@ -506,22 +523,22 @@ filename shown in the table.
 
 | Output filename | Canvas; stored frames; ticks | FX-only identity ref | Pose ref | Palette ref | Draft prompt delta; generations |
 |---|---|---|---|---|---|
-| `peggy_hit_light_sheet.png` | 32×32; 5; 2 | none | `P-L3` | `P-PAL` | “tiny readable wrench impact: two warm wood chips, one bent nail, one single-pixel metal flash; no body, transparent” — 2 |
-| `peggy_hit_heavy_sheet.png` | 32×32; 7; 2 | none | `P-H3` | `P-PAL` | “hardware-store heavy impact, broad splinter fan and two bent nails, blunt wood/metal read, no body” — 2 |
-| `peggy_hit_counter_sheet.png` | 32×32; 7; 2 | none | `P-B3` | `P-PAL` | “counter-hit punctuation made from crossed nails and a sharp warm-metal star, not text, no body” — 2 |
-| `peggy_block_sheet.png` | 32×32; 5; 2 | none | `P-BS1` (pose-only) | `P-PAL` | “dull defensive tap: duct-tape fleck and a small tool-on-tool spark, restrained brightness, no body” — 2 |
-| `peggy_special_hit_sheet.png` | 48×32; 7; 2 | none | `P-F3` | `P-PAL` | “long peg poke impact: forward metal streak and a few short splinters, transparent, no body” — 2 |
-| `peggy_ex_hit_sheet.png` | 48×48; 9; 2 | none | `P-FX3` | `P-PAL` | “largest Peggy impact: dense bent-nail spray, warm hardware flash, no colors outside P-FX, no body” — 2 |
-| `peggy_heavy_whoosh_sheet.png` | 48×24; 5; 2 | none | `P-H3` | `P-PAL` | “short horizontal duct-tape/wood scrape trail behind a heavy wrench/arm arc, no body” — 2 |
-| `peggy_special_trail_sheet.png` | 64×32; 7; 2 | none | `P-F3` | `P-PAL` | “short forward peg-prosthetic streak with two separated pixel clusters, not a projectile, no body” — 2 |
-| `richard_hit_light_sheet.png` | 32×32; 5; 2 | none | `R-L2` | `R-PAL` | “tiny whiskey splash with one amber droplet and one glass glint, no body, transparent” — 2 |
-| `richard_hit_heavy_sheet.png` | 32×32; 7; 2 | none | `R-H3` | `R-PAL` | “barfly heavy impact: broad amber splash and two bottle-glass glints, no bottle redesign, no body” — 2 |
-| `richard_hit_counter_sheet.png` | 32×32; 7; 2 | none | `R-B3` | `R-PAL` | “counter-hit punctuation: crossed dark-red/cream glass glints and amber burst, no body” — 2 |
-| `richard_block_sheet.png` | 32×32; 5; 2 | none | `R-BS1` (pose-only) | `R-PAL` | “restrained block contact: small whiskey drop and one glass tick, lower contrast than a hit, no body” — 2 |
-| `richard_special_hit_sheet.png` | 48×32; 7; 2 | none | `R-F3` | `R-PAL` | “short amber-red belch/special impact wisp, preserve silhouette clarity, no body” — 2 |
-| `richard_ex_hit_sheet.png` | 48×48; 9; 2 | none | `R-FX3` | `R-PAL` | “largest Richard impact: amber/cream flare with dark-red bottle-glass shards, no new hue, no body” — 2 |
-| `richard_heavy_whoosh_sheet.png` | 48×24; 5; 2 | none | `R-H3` | `R-PAL` | “short bottle/forearm swing streak, attached to the swing path, no bottle or body drawn” — 2 |
-| `richard_special_trail_sheet.png` | 64×32; 7; 2 | none | `R-F3` | `R-PAL` | “brief amber whiskey ribbon behind the special’s leading limb, not a projectile, no body” — 2 |
+| `peggy_hit_light_sheet.png` | 32×32; 5; 2 | none | `P-L3` | `P-VFX` | “tiny readable wrench impact: two warm wood chips, one bent nail, one single-pixel metal flash; no body, transparent” — 2 |
+| `peggy_hit_heavy_sheet.png` | 32×32; 7; 2 | none | `P-H3` | `P-VFX` | “hardware-store heavy impact, broad splinter fan and two bent nails, blunt wood/metal read, no body” — 2 |
+| `peggy_hit_counter_sheet.png` | 32×32; 7; 2 | none | `P-B3` | `P-VFX` | “counter-hit punctuation made from crossed nails and a sharp warm-metal star, not text, no body” — 2 |
+| `peggy_block_sheet.png` | 32×32; 5; 2 | none | `P-BS1` (pose-only) | `P-VFX` | “dull defensive tap: duct-tape fleck and a small tool-on-tool spark, restrained brightness, no body” — 2 |
+| `peggy_special_hit_sheet.png` | 48×32; 7; 2 | none | `P-F3` | `P-VFX` | “long peg poke impact: forward metal streak and a few short splinters, transparent, no body” — 2 |
+| `peggy_ex_hit_sheet.png` | 48×48; 9; 2 | none | `P-FX3` | `P-VFX` | “largest Peggy impact: dense bent-nail spray, warm hardware flash, no colors outside P-VFX, no body” — 2 |
+| `peggy_heavy_whoosh_sheet.png` | 48×24; 5; 2 | none | `P-H3` | `P-VFX` | “short horizontal duct-tape/wood scrape trail behind a heavy wrench/arm arc, no body” — 2 |
+| `peggy_special_trail_sheet.png` | 64×32; 7; 2 | none | `P-F3` | `P-VFX` | “short forward peg-prosthetic streak with two separated pixel clusters, not a projectile, no body” — 2 |
+| `richard_hit_light_sheet.png` | 32×32; 5; 2 | none | `R-L2` | `R-VFX` | “tiny whiskey splash with one amber droplet and one glass glint, no body, transparent” — 2 |
+| `richard_hit_heavy_sheet.png` | 32×32; 7; 2 | none | `R-H3` | `R-VFX` | “barfly heavy impact: broad amber splash, two bottle-glass glints, one tiny warm-cream flame lick, no bottle redesign, no body” — 2 |
+| `richard_hit_counter_sheet.png` | 32×32; 7; 2 | none | `R-B3` | `R-VFX` | “counter-hit punctuation: crossed dark-red/cream glass glints and amber burst, no body” — 2 |
+| `richard_block_sheet.png` | 32×32; 5; 2 | none | `R-BS1` (pose-only) | `R-VFX` | “restrained block contact: small whiskey drop and one glass tick, lower contrast than a hit, no body” — 2 |
+| `richard_special_hit_sheet.png` | 48×32; 7; 2 | none | `R-F3` | `R-VFX` | “short amber-red belch/special impact wisp, preserve silhouette clarity, no body” — 2 |
+| `richard_ex_hit_sheet.png` | 48×48; 9; 2 | none | `R-FX3` | `R-VFX` | “largest Richard impact: amber/cream flare with dark-red bottle-glass shards, no new hue, no body” — 2 |
+| `richard_heavy_whoosh_sheet.png` | 48×24; 5; 2 | none | `R-H3` | `R-VFX` | “short bottle/forearm swing streak, attached to the swing path, no bottle or body drawn” — 2 |
+| `richard_special_trail_sheet.png` | 64×32; 7; 2 | none | `R-F3` | `R-VFX` | “brief amber whiskey ribbon behind the special’s leading limb, not a projectile, no body” — 2 |
 
 Append this **global prompt tail** to every image prompt above:
 
@@ -559,14 +576,14 @@ relative to the attacker/victim group at runtime.
 
 | Output filename | Canvas; frames; ticks | Identity ref | Pose ref | Palette ref | Draft prompt delta; generations |
 |---|---|---|---|---|---|---|
-| `plank_base.png` | 96×32; static | none | `P-H3` (scale/composition only) | `P-PAL` | “short broken scavenged plank, taped repair, splintered ends, blank wood, transparent, no text” — 1 |
-| `plank_snap_sheet.png` | 96×32; 7; 3 | none | `P-CH3` | `P-PAL` | “same plank snapping into 3–4 large readable wood pieces, debris stays compact” — base + animate = 2 |
-| `sewer_open_sheet.png` | 96×64; 7; 3 | none | `P-D3` | `P-PAL` | “cartoon sewer/channel aperture opening: dark oval and simple front rim, not a stage background” — 2 |
-| `water_drop_mask_sheet.png` | 96×64; 7; 2 | none | `P-M2` | `P-PAL` | “small opaque foreground water/rim mask that covers a falling silhouette from the bottom up, no body” — 2 |
-| `whiskey_fumes_sheet.png` | 128×96; 7; 3 | none | `R-M2` | `R-PAL` | “amber-brown cartoon whiskey-fume cloud, airy transparent clusters, keep a clear hole around faces” — 3 (base 1 + 6-frame animation 2) |
-| `fire_belch_sheet.png` | 96×64; 7; 2 | none | `R-N3` | `R-PAL` | “short absurd cone of warm fire/air, three broad pixel lobes, no background, no face” — 2 |
-| `fictional_bar_sign_base.png` | 96×48; static | none | `R-FX3` (scale/composition only) | `R-PAL` | “generic blank roadside bar sign, fictional and unbranded, clean rectangular silhouette, no readable text” — 1 |
-| `bar_sign_shatter_sheet.png` | 96×64; 7; 2 | none | `R-FX3` | `R-PAL` | “same blank sign breaks into a few large frame and panel fragments; foreground and rear shards must remain separable” — 2 |
+| `plank_base.png` | 96×32; static | none | `P-H3` (scale/composition only) | `P-VFX` | “short broken scavenged plank, taped repair, splintered ends, blank wood, transparent, no text” — 1 |
+| `plank_snap_sheet.png` | 96×32; 7; 3 | none | `P-CH3` | `P-VFX` | “same plank snapping into 3–4 large readable wood pieces, debris stays compact” — base + animate = 2 |
+| `sewer_open_sheet.png` | 96×64; 7; 3 | none | `P-D3` | `P-VFX` | “cartoon sewer/channel aperture opening: dark oval and simple front rim, not a stage background” — 2 |
+| `water_drop_mask_sheet.png` | 96×64; 7; 2 | none | `P-M2` | `P-VFX` | “small opaque foreground water/rim mask that covers a falling silhouette from the bottom up, no body” — 2 |
+| `whiskey_fumes_sheet.png` | 128×96; 7; 3 | none | `R-M2` | `R-FX` (no accents) | “amber-brown cartoon whiskey-fume cloud, airy dithered opaque clusters and binary transparent gaps; no partial alpha, keep a clear hole around faces” — 3 (base 1 + 6-frame animation 2) |
+| `fire_belch_sheet.png` | 96×64; 7; 2 | none | `R-N3` | `R-VFX` | “short absurd cone of warm fire/air, three broad pixel lobes, no background, no face” — 2 |
+| `fictional_bar_sign_base.png` | 96×48; static | none | `R-FX3` (scale/composition only) | `R-VFX` | “generic blank roadside bar sign, fictional and unbranded, clean rectangular silhouette, no readable text” — 1 |
+| `bar_sign_shatter_sheet.png` | 96×64; 7; 2 | none | `R-FX3` | `R-VFX` | “same blank sign breaks into a few large frame and panel fragments; foreground and rear shards must remain separable” — 2 |
 
 The no-text sign gets a fictional hand-pixeled prop label only after review; the
 PixelLab prompt never names or imitates a real business.
@@ -615,7 +632,9 @@ Live `get_balance()` (read-only, 2026-11-23): Tier 1 Pixel Apprentice active,
 **613/2000 subscription generations remaining**, 1387 used, **$0.00 credits**,
 reset 2026-12-13. The displayed 10 daily-bonus generations are not additional
 buffer while subscription generations remain; the balance tool says they count
-down with the same charges.
+down with the same charges. `PIXELLAB_ASSET_ORG.md` has a historical 700/2000
+note after a 613/2000 note; this live balance is authoritative for planning.
+The requested chronological balance-log reconciliation is reserved for Batch 5.
 
 Base estimate: 16 character-specific hit sheets (32 generations), shared dust
 (2), eight METH prop assets (15), two identity objects (30), and six attacker
@@ -652,9 +671,10 @@ list, direction, timestamp, and any human Pixelorama fixes. No asset moves to
 
 Run these on **every generated actor frame before it leaves its review folder**:
 
-1. Same identity and exact allowed palette: no new hue outside `P-FX` / `R-FX`
-   for the paired fighter or listed prop palette; sample each sheet and
-   replace off-palette pixels in Pixelorama.
+1. Same identity and exact allowed palette. Peggy/Richard actor pixels use
+   only `P-FX`/`R-FX`; no FX accent may appear on the fighter. Their FX/props
+   use only `P-VFX`/`R-VFX`; Richard fumes use `R-FX` only. Replace any
+   off-palette pixel in Pixelorama.
 2. No resampling: actor content remains the approved native 96×80 pixel scale
    inside the 160×112 padded cell. PixelLab canvas growth is not permission to
    resize the figure.
@@ -683,7 +703,7 @@ untouched.
 | `create_character` v3 treats its reference as straight-on/south, while these references are screen-right 3/4. | Do not use v3 reference rotation. Use Pro Rotate or stop for owner direction; never “fix” by flipping the source reference. |
 | PixelLab’s direction label for screen-right in `view="side"` may be named `east`; this plan does not assume the mapping blindly. | Confirm the returned direction against the supplied screen-right identity preview before the first animation job; use only that direction, defaulting to `east` if confirmed. |
 | `animate_character`’s generated canvas may grow around a silhouette. | Pass identical 160×112 padded start/end frames, set one direction and `keep_first_frame=false`; inspect output pixels and correct in Pixelorama. No engine rescale. |
-| Richard fire colors are not a broad yellow/orange palette in his approved art. | Use only `R-FX` warm brown/amber/red/cream. If the fire is too weak, ask before adding new colors. |
+| Richard fire colors are not a broad yellow/orange palette in his approved art. | Use `R-ACCENT` only on the FX/prop layer, never on Richard’s pixels; keep fumes amber/brown in `R-FX`. If the accent ramp is too weak, ask before adding colors. |
 | The gator/stage art, bus-stop sign, or actual stage edge could make a stage-specific cinematic. | Keep all props owned by the cinematic and anchored to the fighter pair; do not edit either background or use a stage coordinate. |
 | What exactly should the sewer/channel opening represent? | Default to a small cartoon manhole/water opening and clean splash; no gore, body damage imagery, or realistic sewer detail. |
 | Does the 30f METH hitstop count inside the 3–4 seconds? | Yes: default 210 total sim frames (3.5s), including the current 30f opening freeze. |
@@ -692,14 +712,36 @@ untouched.
 | Should unique beat sounds be authored in the same production pass? | Reuse current `meth` and `ko` cues first. Add the named impact cues only after the visual sequence is approved; no audio generation in Phase A. |
 | Who approves PixelLab identity/scale and all 31 review assets before integration? | Owner approval is a hard gate. Nothing in this design authorizes a PixelLab job or runtime install. |
 
-## 7. Phase gates
+## 7. Phase gates and gated batch plan
 
-- **Phase A (this PR):** code/art audit, storyboards, event design, exact asset
-  list, prompt drafts, live read-only balance, no generated art. **Complete when
-  owner approves this document.**
-- **Phase B:** only after approval, generate review drafts against the locked
-  identity/pose/palette references; edit in Pixelorama and pass every identity
-  check. No runtime wiring.
-- **Phase C:** only after visual approval, implement the deterministic FX event
-  pipeline and METH cinematic driver, tests, rendered review, and then separate
-  owner approval for runtime assets.
+Phase A is the audit/design PR. Phase B begins only after PR #100 is approved
+and merged. It creates **review drafts only** under `art/source/..._review/`;
+no `game/art/` wiring. Run one batch, report its exact costs/balance and
+contact sheet, then stop until the owner explicitly replies **“batch N
+approved”** (or sends fixes). Call `get_balance()` immediately before and
+after each batch. A job that would cross its batch cap or the **114-generation
+Phase B total cap including retries** is not submitted. If an asset is poor,
+revise its prompt and retry at most twice; then stop and report it.
+
+| Batch | Hard batch cap | Planned contents | Gate / stop condition |
+|---|---:|---|---|
+| 1 — style pilot | 10 | `peggy_hit_heavy_sheet`, `richard_hit_heavy_sheet`, `fire_belch_sheet` | Test P/R VFX ramps, native-pixel readability, transparency, and the 320×180 mock. Stop for owner style fixes. |
+| 2 — Peggy identity | 22 | Pro Rotate identity from `P-ID`, then `meth_plank_stomp_sheet` | Inspect the screen-right identity preview first. If scale, face, or rigid peg side fails, stop after identity; do not queue animation. |
+| 3 — Richard identity | 22 | Pro Rotate identity from `R-ID`, then `meth_belch_ignite_sheet` | Inspect the screen-right identity preview first. Bottle must stay in the same hand in every frame. Stop on any identity failure. |
+| 4 — remaining hit FX | 34 | The other 13 per-character sheets named in §5 plus `landing_dust_sheet` | The §5 inventory currently has 16 per-character sheets; after Batch 1’s two heavy sheets, 14 remain. The request says 13. Do not silently drop one: stop for owner reconciliation before this batch (recommended candidate to defer is one optional trail). |
+| 5 — remaining METH art | 30 | `meth_plank_slam_sheet`, `meth_prosthetic_pin_sheet`, `meth_bottle_drench_sheet`, `meth_sign_crash_sheet`, and all remaining props (`plank_base`, `plank_snap`, `sewer_open`, `water_drop_mask`, `whiskey_fumes`, `fictional_bar_sign_base`, `bar_sign_shatter`); repair Peggy’s `meth.png` cel 4 only in a derived review copy | One 320×180 mock for each METH key beat (plank stomp; belch ignition). Update this design with actual per-asset costs/status and append the balance log in `PIXELLAB_ASSET_ORG.md`. Stop; keep the generation PR draft and unmerged. |
+
+The listed per-batch caps sum to 118, four above the global 114 cap. **The
+global cap wins:** after each batch recompute remaining balance and remaining
+global allowance; reduce the final batch ceiling as needed, never exceed 114.
+With the requested 13 FX sheets in Batch 4, the scheduled subtotal is 89;
+one of the 14 remaining sheets is unassigned. Including that one later would
+make the full-inventory base 91 from §5. Reconcile it with the owner before
+Batch 4; neither subtotal authorizes extra retries beyond the stated margin.
+
+Every batch contact sheet is one composite: each output at its native 1:1
+pixels and at 4× nearest-neighbor, plus one 320×180 mock showing the batch’s
+FX next to both fighters at renderer scale `56 / h_ref`. Inspect only that
+composite, not individual frames. After Batch 1, create one DRAFT
+`art/fx-meth-drafts` PR and push each approved batch to that same branch/PR.
+Do not merge it.

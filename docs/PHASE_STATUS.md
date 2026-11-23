@@ -137,7 +137,7 @@ phase exit criteria:
   `docs/UI_SCREENS.md` documents what shipped (typography rules included),
    and the twenty-one-suite CI adds ui_flow (53), settings (16),
    ui_assets (4), ui_typography (46), select screens (24), results flow
-   (20), and match HUD (81). **PR A + PR B (2026-11-22):** the select screens are street-junk
+   (20), and match HUD (82). **PR A + PR B (2026-11-22):** the select screens are street-junk
   reskins (cardboard mode/difficulty, mugshot-wall booking with scribble
   cursors, scratch-ticket stages with the 18-frame RANDOM reveal), and the
   match wrap ships — the VS bumper before every match and the Results

@@ -72,7 +72,13 @@ const STUN_BAR_Y := 40.0
 const STUN_BAR_WIDTH := 62.0
 const STUN_BAR_INNER_WIDTH := 60.0
 const BREAKER_PIP_POS := [Vector2(4, 163), Vector2(311, 163)]
-const BREAKER_LABEL_POS := [Vector2(12, 152), Vector2(273, 152)]
+# BRK sits between its pip and the meter-row METH READY label on both sides.
+const BREAKER_LABEL_POS := [Vector2(12, 152), Vector2(292, 152)]
+# METH READY sits ABOVE its own meter, flush with the meter's inner end, with
+# the skull just past that end. Beside-the-meter placement collided in the
+# middle whenever both meters were full (PM review of PR #96).
+const METH_READY_Y := 157.0
+const METH_SKULL_Y := 159.0
 const BREAKER_LABEL_SIZE := Vector2(36, UiText.M5X7_LINE_HEIGHT)
 
 # ---- timing (all SIM frames, counted in sim_tick) --------------------------
@@ -144,6 +150,7 @@ var stun_bar_fills: Array[ColorRect] = []
 var breaker_pip_borders: Array[ColorRect] = []
 var breaker_pip_centers: Array[ColorRect] = []
 var breaker_pip_states: Array[String] = ["unavailable", "unavailable"]
+var breaker_labels: Array[Label] = []
 var commentary_panel: TextureRect
 var commentary_label: Label
 var message: Label
@@ -420,8 +427,11 @@ func _build_combo_readouts(root: Control) -> void:
 		var breaker_label := UiText.body("BRK", BREAKER_LABEL_POS[side], CREAM)
 		breaker_label.size = BREAKER_LABEL_SIZE
 		if side == 1:
-			breaker_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			# Ink ends 2 px before the P2 pip (x 311), leaving the inner
+			# space to METH READY.
+			breaker_label.position.x = BREAKER_PIP_POS[1].x - 2.0 - UiText.body_width("BRK")
 		readout_root.add_child(breaker_label)
+		breaker_labels.append(breaker_label)
 
 
 func _ensure_juggle_pips(attacker_side: int, count: int) -> void:
@@ -730,13 +740,17 @@ func bind(p1: FighterBase, p2: FighterBase) -> void:
 	_on_combo_changed(0, p1.combo_tracker.hits, p1.combo_tracker.total_damage)
 	_on_combo_changed(1, p2.combo_tracker.hits, p2.combo_tracker.total_damage)
 	_refresh_live_readouts()
-	# Meter-ready geometry (static): P1 text at x 114, P2 right edge 206,
-	# the skull beside it.
-	var skull_1_x: float = 114.0 + UiText.marker_width("METH READY") + 2.0
-	meter_skulls[0].position = Vector2(skull_1_x, 170.0)
-	meter_ready[1].position = Vector2(206.0 - meter_ready[1].size.x, 168.0)
-	meter_skulls[1].position = Vector2(
-		206.0 - meter_ready[1].size.x - 10.0, 170.0)
+	# Meter-ready geometry (static): each label sits above its own meter,
+	# flush with the meter's inner end (P1 right edge x 110, P2 left edge
+	# x 210); each skull sits just past that inner end, in the empty middle.
+	var ready_w: float = UiText.marker_width("METH READY")
+	for side in 2:
+		meter_ready[side].horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		meter_ready[side].size = Vector2(ready_w, UiText.MARKER_LINE_HEIGHT)
+	meter_ready[0].position = Vector2(110.0 - ready_w, METH_READY_Y)
+	meter_skulls[0].position = Vector2(112.0, METH_SKULL_Y)
+	meter_ready[1].position = Vector2(210.0, METH_READY_Y)
+	meter_skulls[1].position = Vector2(200.0, METH_SKULL_Y)
 
 
 # ---------------- health, ghost, portraits ----------------------------------

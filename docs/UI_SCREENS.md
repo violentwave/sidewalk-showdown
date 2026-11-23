@@ -166,7 +166,7 @@ banners, callouts and macro flashes clear.
 | Names | outlined Marker cream at y 19 (P1 left from x 30, P2 right to x 290) | static per fighter |
 | Round pips | y 31 from each bar's outer end; P1 `hud_pip_square_*`, P2 `hud_pip_diamond_*` | grow with double-KO pips. **No win-type letters: MatchRoot keeps no per-round win history** (TODO: the K/T/M/D pip art is approved and waits on a sim-side decision). |
 | Timer | `hud_timer_box.png` at (148,3); two 8x12 cells from `hud_timer_digits.png` (0-9, cell 10 = infinity), centered | under 10 s the box tints dirty yellow and the digits tick one shade per 15 sim frames |
-| Meter | `hud_meter_frame.png` 106x8 at (4,170)/(210,170); 90x4 fill `#5ac8ff` between the tape caps (+7,+2) above the frame art, tick marks at 25 and 50 | at full the fill turns `#ff3d9a`, "METH READY" in outlined Marker pink sits beside the bar (P1 edge x 114, P2 edge x 206) and the 8x8 skull frames alternate every **15 sim frames** |
+| Meter | `hud_meter_frame.png` 106x8 at (4,170)/(210,170); 90x4 fill `#5ac8ff` between the tape caps (+7,+2) above the frame art, tick marks at 25 and 50 | at full the fill turns `#ff3d9a`, "METH READY" in outlined Marker pink sits ABOVE its own meter (y 157), flush with the inner end (P1 right edge x 110, P2 left edge x 210), skull just past that end (x 112 / 200, y 159), so both can show at once; BRK stays at the outer end. The 8x8 skull frames alternate every **15 sim frames** |
 | Banners | 160x32 `hud_banner_plate.png` centered (y 74) with the word sprite: round_1-5, decisive, fight, ko, time, double_ko, methtality | stamp in over **6 sim frames** from 8 px above in integer steps; spriteless messages (TAKES THE ROUND, WINS THE MATCH, DRAW, SUDDEN DEATH, ROUND 6+) render in outlined Marker cream on the plate. FIGHT auto-removes after 30 sim frames, METH after 120; round/KO banners persist until replaced (today's timing). |
 | Callouts | outlined Marker cream on the event owner's side at y 80 | COUNTER HIT / TECH / BREAK! / CLIP CANCEL use the existing one-at-a-time slot for **30 sim frames** |
 | Combo counter | existing positions and outlined Marker font at y 64; P1 left, P2 right | the defender's `combo_tracker.changed(hits, total_damage)` drives the **opposite attacker's side**. Tint follows the base ladder for the latest hit: 1.00 yellow, 0.85 orange, 0.70 red, 0.55-or-lower pink. The damage total at y 77 and `x0.70`-style m5x7 scale tag are shown only when `gameplay.show_combo_damage` is on. The scale tag reports the base ladder tier, not move-specific repeat/variety modifiers. Both line items yield to a same-side callout to prevent label overlap. |
@@ -384,7 +384,7 @@ on an approved file missing from the table, and exits non-zero.
   up; the 30-frame Results guard; REMATCH routes through the VS bumper
   and keeps fighters and stage; CHARACTER SELECT / STAGE SELECT /
   MAIN MENU all route correctly and unpause.
-- `game/tests/hud_test.gd` — 81 checks (UI Phase 2 + Combo Phase 4, against a scratch
+- `game/tests/hud_test.gd` — 82 checks (UI Phase 2 + Combo Phase 4, against a scratch
   settings.cfg): portrait states; health and the 20-frame ghost drain;
   the HUD tick frozen while paused; pip sprites; timer digit cells and
   the under-10 tint; meter width, the METH-pink full state and the

@@ -140,6 +140,9 @@ func _run() -> void:
 	await _grab("hud_high_contrast")
 	match_root.free()
 	await process_frame
+	# The remaining shots show the default HUD, not high contrast.
+	if settings != null:
+		settings.set_value("accessibility", "high_contrast_hud", false)
 
 	# 8. Combo scaling on the attacker's side; base ladder only.
 	match_root = await _new_match()

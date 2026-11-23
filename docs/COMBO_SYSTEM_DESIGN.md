@@ -619,7 +619,7 @@ data):
   signals and public fighter state; see §15.3.
 - CPU: §12 knobs wired into `cpu_*.tres`; soak re-run at HARD; difficulty
   ordering re-verified (HARD strings better than EASY).
-- Tests: `hud_test.gd` (81 checks) and `ui_typography_test.gd` (46 checks)
+- Tests: `hud_test.gd` (82 checks) and `ui_typography_test.gd` (46 checks)
   pin the HUD; CPU legality is unchanged and the soak remains covered.
 
 ## 15. Open decisions — RESOLVED (owner-approved 2026-11-20)
@@ -791,7 +791,7 @@ CLIP CANCEL join the existing 30-frame one-at-a-time callout slot. All timers
 use the HUD sim tick (paused and hitstop-frozen); readouts resync after load,
 while transient flashes clear. The HUD holds no state in `serialize()`.
 
-**Verification:** `hud_test.gd` has 81 checks; `ui_typography_test.gd` has 46.
+**Verification:** `hud_test.gd` has 82 checks; `ui_typography_test.gd` has 46.
 Rendered captures are listed in `docs/UI_SCREENS.md`. The A2/A3/A4 owner
 rulings in §11 and §10.3/§10.5 remain unchanged.
 

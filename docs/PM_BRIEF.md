@@ -16,7 +16,7 @@
 > high_contrast_hud, hide_tripp_text). This branch adds **Combo Phase 4's
 > HUD half**: the defender's combo count/damage/base scale and juggle pips
 > on the attacker's side, macro flash, stun bar, breaker pip, and BREAK! /
-> CLIP CANCEL callouts. New suite counts: hud_test 81; ui_typography 46;
+> CLIP CANCEL callouts. New suite counts: hud_test 82; ui_typography 46;
 > round_flow 35
 > (decisive/FIGHT banner pins). Win-type pip letters stay out —
 > MatchRoot keeps no per-round win history (KNOWN_ISSUES). (Earlier on
@@ -136,7 +136,7 @@ Counts are PASS+FAIL lines observed in real headless runs, not doc claims.
 | `ui_typography_test.gd` | Phase 1 + PR A/B/C typography and contrast rules; HUD labels at round start/mid-fight and overlap-free juggle, stun, full-meter breaker and P2 callout+combo states | **46**, 0 fail | yes |
 | `select_screens_test.gd` | PR A select reskins: Mode/Difficulty choices unchanged (names, order, defaults, emits, back paths), difficulty tallies, rap-sheet photo + wall copy, per-player scribble cursors, ticket focus lift, the 18-frame RANDOM scratch-off and its hand-off | **24**, 0 fail | yes — added 2026-11-22 (PR A) |
 | `results_flow_test.gd` | PR B match wrap: the VS slide-in (12 integer steps), 20-frame skip guard, 150-frame duration and hand-off; Results appears at match end above the frozen match with the real winner/stats; serialize() identical while Results is up; the 30-frame Results guard; every Results option routes (REMATCH keeps fighters and stage through the VS bumper) | **20**, 0 fail | yes — added 2026-11-22 (PR B) |
-| `hud_test.gd` | UI Phase 2 + Combo Phase 4 HUD: combo side-mirroring, ladder tint/scale setting, macro flash, juggle/stun/breaker readouts, event callouts, pause/load resync, and unchanged MatchRoot serialization | **81**, 0 fail | yes |
+| `hud_test.gd` | UI Phase 2 + Combo Phase 4 HUD: combo side-mirroring, ladder tint/scale setting, macro flash, juggle/stun/breaker readouts, event callouts, pause/load resync, and unchanged MatchRoot serialization | **82**, 0 fail | yes |
 | `air_probe.gd` | Balance metrics only, asserts nothing, always exits 0 | 0 (metrics) | yes (separate job) |
 | `juggle_probe.gd` | Juggle balance metrics (every budget-legal launcher route, jab-only reference, candidate ladders), asserts nothing | 0 (metrics) | no |
 | `juggle_route_probe.gd` | Real-hitbox juggle route timing search (human timing; ~7 min) | 0 (metrics) | no |
@@ -312,9 +312,9 @@ Release blockers / decisions pending:
   SELECT / MAIN MENU; pinned by `results_flow_test` (20). **Phase 2
   (HUD) — SHIPPED on this branch (2026-11-22):** the full street-junk
   HUD reskin on the sim tick with five settings consumed, pinned by
-  `hud_test` (81). **Combo Phase 4 HUD half — shipped on this branch:**
+  `hud_test` (82). **Combo Phase 4 HUD half — shipped on this branch:**
   attacker-side combo readouts, scale tint/tag, macro flash, juggle pips,
-  stun bar, breaker pip and callouts, pinned by `hud_test` (81) and
+  stun bar, breaker pip and callouts, pinned by `hud_test` (82) and
   `ui_typography_test` (46). Controls/extras follow the plan in
   `docs/UI_HUD_SCREENS_PLAN.md`.
 

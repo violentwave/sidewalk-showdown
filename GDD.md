@@ -790,6 +790,12 @@ Features:
   dummy CPU state are serialized. Training RANDOM uses its own recorded
   LCG; no global RNG, wall-clock, delta or node-order dependency is added
   to the sim.
+- **Deferred from the broader §6.4 wish list:** a persistent input-history
+  display and full startup/active/recovery frame-data table (v1 shows
+  startup and frame advantage only); a separate
+  wake-up reversal/quick-rise option (the current game has fixed wake-up
+  timing, not a selectable wake-up action). The TECH option exercises the
+  existing throw-tech buffer, including when a throw arrives during wake-up.
 
 ### 6.5 Survival Mode
 

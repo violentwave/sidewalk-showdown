@@ -40,6 +40,7 @@ func _check(label: String, condition: bool, detail: String = "") -> void:
 func _initialize() -> void:
 	await _breaker_abuse()
 	await _clip_cancel_vs_breaker()
+	await _ruling_matrix()
 	await _stun_edge_cases()
 	await _combined_loops_fuzz()
 	await _every_frame_restore()
@@ -407,32 +408,32 @@ func _clip_cancel_vs_breaker() -> void:
 			and p1.state_frame < rec_frame,
 		"meter=%.1f state=%d frame=%d" % [p1.meter, p1.state, p1.state_frame])
 
-	# 2b. Option-select: with NO meter the cancel cannot pay, so the pair sits
-	# buffered; a punish in that same window converts it into a BREAKER on
-	# the punished attacker's first hitstun frame. The pair must resolve as
-	# exactly ONE of the two utilities — never both, never neither. The
-	# heavy WHIFFS first (the punisher is teleported into range only for the
-	# punish) so the attacker's own hitstop does not burn the shared 5-frame
-	# buffer-freeze budget before the pair is pressed.
+	# 2b. Owner ruling on A3 (2026-11-22): with NO meter the refused
+	# Clip Cancel CONSUMES the buffered pair, so a punish in that same
+	# window can no longer convert it into the (free) breaker. The
+	# safe-cancel/break option-select is ruled out.
 	_reset_pair(mroot, 100.0, 280.0) # out of reach: the heavy whiffs
 	p1.meter = 0.0
 	p1._start_move(heavy)
 	await _step(mroot, heavy.startup + heavy.active + 2) # recovery, whiffs
 	_press_pair(p1) # a clip-cancel attempt the meter cannot pay
+	await _step(mroot, 1) # the refusal tick consumes the pair
+	var pair_cleared: bool = not (p1.input_buffer.has("grab") \
+			and p1.input_buffer.has("special"))
 	var p2_heavy: MoveData = p2.data.find_move(MoveData.InputType.HEAVY,
-		MoveData.Stance.STAND)
-	p2.position = Vector2(140.0, mroot.stage.floor_y) # teleport into range
+			MoveData.Stance.STAND)
+	p2.position = Vector2(p1.position.x + 40.0, mroot.stage.floor_y)
 	p2._start_move(p2_heavy)
 	p2.state_frame = p2_heavy.startup
 	mroot._resolve_hits()
 	var punished: bool = p1.state == FighterBase.State.HITSTUN
-	await _step(mroot, 12)
-	var resolved_once: bool = (p1.clip_cancel_used and not p1.breaker_used_this_combo) \
-		or (p1.breaker_used_this_combo and not p1.clip_cancel_used)
-	_check("pair collision: a punished clip-cancel attempt resolves as exactly one utility",
-		punished and resolved_once,
-		"punished=%s clip=%s break=%s" % [str(punished), str(p1.clip_cancel_used),
-			str(p1.breaker_used_this_combo)])
+	await _step(mroot, 16)
+	_check("pair collision (A3 ruling): the refused pair is consumed and never converts to a breaker on punish",
+		pair_cleared and punished and not p1.breaker_used_this_combo
+			and p1.breaker_invuln_frames == 0,
+		"cleared=%s punished=%s break=%s invuln=%d"
+			% [str(pair_cleared), str(punished), str(p1.breaker_used_this_combo),
+				p1.breaker_invuln_frames])
 
 	# 2c. Trade: both fighters in HITSTUN with the pair buffered — each side's
 	# break is individually legal, costs are exact, and both recover to IDLE.
@@ -469,6 +470,146 @@ func _clip_cancel_vs_breaker() -> void:
 				str(both_recovered)])
 
 	await _free_match(mroot)
+
+# ---------------------------------------------------------------------------
+# 2d. Owner rulings on A2/A3 (2026-11-22): the breaker pair bridges hitstop
+# like the tech window; a meter-refused Clip Cancel consumes the pair.
+# Both characters defend, in both P1/P2 slots, on both stages.
+# ---------------------------------------------------------------------------
+
+# Press the pair once and step until a break resolves (or give up).
+func _press_and_break(mroot: Node, who: FighterBase, max_frames: int) -> bool:
+	_press_pair(who)
+	for i in max_frames:
+		await _step(mroot, 1)
+		if who.breaker_invuln_frames > 0:
+			return true
+	return false
+
+func _ruling_matrix() -> void:
+	for stage_path in [GAS_N_GO, BUS_STOP]:
+		var stage_label: String = stage_path.trim_prefix("res://resources/stages/").trim_suffix(".tres")
+		for order in [0, 1]:
+			# order 0: the defender holds the P2 slot; order 1: the P1 slot —
+			# both characters defend, both sides, both stages.
+			var atk_path: String = PEGGY if order == 0 else RICHARD
+			var dfd_path: String = RICHARD if order == 0 else PEGGY
+			var mroot: Node = await _build_match(atk_path, dfd_path, stage_path)
+			await _to_fight(mroot)
+			var atk: FighterBase = mroot.p1
+			var dfd: FighterBase = mroot.p2
+			var tag := "rulings (%s, %s defends from P%d): " % [stage_label,
+				dfd.data.display_name, 2 if order == 0 else 1]
+			var heavy: MoveData = atk.data.find_move(MoveData.InputType.HEAVY,
+				MoveData.Stance.STAND)
+			var ex_fwd: MoveData = atk.data.find_ex_move(
+				MoveData.InputType.SPECIAL_FWD, MoveData.Stance.STAND)
+			var meth: MoveData = atk.data.meth_move
+
+			# A2, hitstop 6: a single press on a heavy's impact frame breaks.
+			_reset_pair(mroot, 100.0, 140.0)
+			_land_hit(mroot, atk, heavy)
+			var hs6: bool = await _press_and_break(mroot, dfd, 14)
+			_check(tag + "a single pair press at a hitstop-6 impact breaks",
+				hs6, "broke=%s" % str(hs6))
+
+			# A2, hitstop 10: a single press on an EX launcher's impact frame
+			# breaks once hitstop has served.
+			_reset_pair(mroot, 100.0, 140.0)
+			_land_hit(mroot, atk, ex_fwd)
+			var hs10: bool = await _press_and_break(mroot, dfd, 18)
+			_check(tag + "a single pair press at a hitstop-10 EX impact breaks",
+				hs10, "broke=%s" % str(hs10))
+
+			# A2, hitstop 30 (METHtality): the landed METH is a KNOCKDOWN —
+			# the breaker is NOT otherwise legal there, so the single press
+			# must NOT fire, and the latch must not linger into a ghost break
+			# after the knockdown and wake-up resolve.
+			_reset_pair(mroot, 100.0, 140.0)
+			dfd.health = meth.damage + 250.0 # survive the finisher on purpose
+			atk.meter = atk.max_meter
+			_land_hit(mroot, atk, meth)
+			var meth_hit: bool = dfd.state in [FighterBase.State.KNOCKDOWN,
+				FighterBase.State.HITSTUN]
+			var hs30: bool = await _press_and_break(mroot, dfd, 80)
+			_check(tag + "a single press at a hitstop-30 METH impact never breaks (knockdown) and leaves no ghost",
+				meth_hit and not hs30,
+				"meth_hit=%s broke=%s" % [str(meth_hit), str(hs30)])
+
+			# A2, no-survive: with the breaker ILLEGAL (no budget, no meter),
+			# a single press at an EX impact must not fire later either —
+			# the latch expires with the input window once hitstop serves.
+			_reset_pair(mroot, 100.0, 140.0)
+			dfd.breaker_free_uses_left = 0
+			dfd.breaker_used_this_combo = false
+			dfd.breaker_cooldown_frames = 0
+			dfd.meter = 0.0
+			_land_hit(mroot, atk, ex_fwd)
+			var ghost: bool = await _press_and_break(mroot, dfd, 20)
+			_check(tag + "an illegal breaker's pair expires after hitstop with no late fire",
+				not ghost, "broke=%s" % str(ghost))
+
+			# A2, no-double-fire: after the hitstop-6 break, a fresh press
+			# cannot spend the budget again — no invuln reset, no free-use
+			# loss (the first break's invuln is still counting down, so the
+			# detector is the reset, not the countdown itself).
+			_reset_pair(mroot, 100.0, 140.0)
+			_land_hit(mroot, atk, heavy)
+			var first: bool = await _press_and_break(mroot, dfd, 14)
+			var free_after_first: int = dfd.breaker_free_uses_left
+			var invuln_before_second: int = dfd.breaker_invuln_frames
+			_press_pair(dfd)
+			await _step(mroot, 8)
+			var second: bool = dfd.breaker_invuln_frames >= invuln_before_second \
+					or dfd.breaker_free_uses_left != free_after_first
+			_check(tag + "a second press inside the invuln window cannot break twice",
+				first and not second,
+				"first=%s second=%s free=%d invuln=%d/%d"
+					% [str(first), str(second), dfd.breaker_free_uses_left,
+						dfd.breaker_invuln_frames, invuln_before_second])
+
+			# A3: a meter-refused clip-cancel pair is consumed and never
+			# converts on punish (the attacker whiffs into recovery, presses
+			# the pair it cannot pay for, then eats a punish heavy; the
+			# whiff keeps the authored HIT routes from consuming the
+			# buffered special before the refusal runs).
+			_reset_pair(mroot, 100.0, 280.0) # out of reach: the heavy whiffs
+			atk.meter = 0.0
+			atk._start_move(heavy)
+			await _step(mroot, heavy.startup + heavy.active + 2) # recovery
+			_press_pair(atk)
+			await _step(mroot, 1) # the refusal tick consumes the pair
+			var pair_cleared: bool = not (atk.input_buffer.has("grab") \
+					and atk.input_buffer.has("special"))
+			dfd.position = Vector2(atk.position.x + 40.0, mroot.stage.floor_y)
+			dfd._start_move(dfd.data.find_move(MoveData.InputType.HEAVY,
+					MoveData.Stance.STAND))
+			dfd.state_frame = dfd.data.find_move(MoveData.InputType.HEAVY,
+					MoveData.Stance.STAND).startup
+			mroot._resolve_hits()
+			var punished: bool = atk.state == FighterBase.State.HITSTUN
+			await _step(mroot, 16)
+			_check(tag + "a meter-refused clip-cancel pair never converts to a breaker on punish",
+				pair_cleared and punished
+					and not atk.breaker_used_this_combo
+					and atk.breaker_invuln_frames == 0,
+				"cleared=%s punished=%s break=%s invuln=%d"
+					% [str(pair_cleared), str(punished),
+						str(atk.breaker_used_this_combo), atk.breaker_invuln_frames])
+
+			# A3, with meter: the Clip Cancel still resolves exactly as
+			# before (25 meter, recovery ends in an actionable state).
+			_reset_pair(mroot, 100.0, 280.0) # out of reach: the heavy whiffs
+			atk.meter = 100.0
+			atk._start_move(heavy)
+			await _step(mroot, heavy.startup + heavy.active + 2) # recovery
+			_press_pair(atk)
+			await _step(mroot, 3)
+			_check(tag + "with meter the Clip Cancel still fires from recovery (25 meter)",
+				is_equal_approx(atk.meter, 75.0) and _actionable(atk),
+				"meter=%.1f state=%d" % [atk.meter, atk.state])
+
+			await _free_match(mroot)
 
 # ---------------------------------------------------------------------------
 # 3. Stun edge cases

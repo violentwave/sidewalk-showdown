@@ -128,16 +128,17 @@ phase exit criteria:
   the HUD and METHtality engine prototype exist.
   The Clip now plays before mode select; it is a 15-panel, owner-editable
   comic intro with all 15 pixel-art panels and the approved Peggy/Richard origin.
-  Space advances the current beat or panel (dense copy may take extra presses),
-  Esc skips, and no timer advances the story. **UI Phase 1 (2026-11-21):**
+   current `ui_confirm` advances the beat or panel, `ui_back`/pause skips,
+   and the hint shows current bindings; no timer advances the story.
+   **UI Phase 1 (2026-11-21):**
   the front end is now the planned hub flow — content warning (once per
   launch, press-required), title, main menu (price board; the chat strip
   was removed in the same day's polish pass), quit confirm — on a
   ScreenRouter with a persistent Settings autoload and audio buses;
   `docs/UI_SCREENS.md` documents what shipped (typography rules included),
-    and the twenty-two-suite CI adds ui_flow (53), settings (16),
-    ui_assets (4), ui_typography (50), select screens (24), results flow
-    (20), match HUD (82), and training (79). **PR A + PR B (2026-11-22):** the select screens are street-junk
+    and the twenty-three-suite CI adds ui_flow (53), settings (16),
+    remap (36), ui_assets (4), ui_typography (53), select screens (24),
+    results flow (20), match HUD (82), and training (79). **PR A + PR B (2026-11-22):** the select screens are street-junk
   reskins (cardboard mode/difficulty, mugshot-wall booking with scribble
   cursors, scratch-ticket stages with the 18-frame RANDOM reveal), and the
   match wrap ships — the VS bumper before every match and the Results
@@ -230,9 +231,10 @@ phase exit criteria:
   ids rather than list indices, RANDOM resolves to a concrete stage before the
   match, and an unresolvable roster stops `MatchRoot._ready()` before anything
   is instantiated.
-  Gamepad play is implemented (2026-11-16): P1 keyboard + mouse, P2 controller,
-   with the standard pad attack layout. There is no remapping UI; GDD §6.4
-   training mode is shipped by this branch; AI,
+   Gamepad play is implemented (2026-11-16): P1 keyboard + mouse, P2 controller,
+    with the standard pad attack layout. Runtime remapping is implemented
+    (Settings → CONTROLS, overrides in `user://controls.cfg`). GDD §6.4
+    Training Mode is shipped; AI,
   save/unlock, a full audio manager/mixer, and an authored hitbox editor workflow
   are missing. A small Phase 2 audio service plays the temporary track and cues.
   Dash/backdash states are absent.
@@ -252,7 +254,7 @@ phase exit criteria:
   are implemented where marked; additional systems listed above remain gaps.
 - **Exit verification:** partially met. Fighters and stages now load through the
   roster, and frame data is resource-driven, but the remaining listed systems
-   (input remapping, save/unlock, hitbox editor) remain incomplete.
+   (save/unlock and hitbox editor) remain incomplete.
 
 ### Phase 4 — Art Direction Lock
 
@@ -318,10 +320,11 @@ phase exit criteria:
   keyboard, hitbox accuracy, AI, progression/unlocks, performance, exports,
   content/accessibility review. Exit: no progression blockers/crashes, stable
   match flow, usable modes, and builds on target PC specs.
-- **Status:** **In progress; exit not met.** CI runs the twenty-two headless suites
+- **Status:** **In progress; exit not met.** CI runs the twenty-three headless suites
   (combat, round_flow, character_select, stage_select, stage_floor,
-  locomotion_speed, cpu, combo, combo_fuzz, the_clip, serialization, b6) and
-  the air
+  locomotion_speed, cpu, combo, combo_fuzz, stun_breaker, combo_adversarial,
+  the_clip, serialization, b6, ui_flow, settings, remap, ui_assets,
+  ui_typography, select_screens, results_flow, hud, training) and the air
   probe, every step under a `timeout-minutes`; Linux/Windows export builds
   pass. The air probe is informational and
   has no balance assertions, but its separate CI job is still part of the
@@ -357,8 +360,8 @@ phase exit criteria:
 | Priority | Requirement | Current status / evidence |
 |---|---|---|
 | First playable | 2 fighters; 1 stage; movement; block; attacks/specials; health/timer; round flow | **Implemented** for the Peggy/Richard slice on Gas-N-Go or Bus Stop; edge-case findings remain. |
-| First playable | Basic menu | **Partial:** pause/resume/restart/character-select/quit, mode select, character select, and stage select exist; no full front-end/main menu or options. |
-| First playable | Keyboard/controller support | **Implemented (gamepad mappings shipped in PR #53):** P1 keyboard+mouse, P2 controller (device-pinned and regression-tested via real-key/real-pad events); the in-game remap UI is the remaining gap. |
+| First playable | Basic menu | **Implemented:** Content Warning, The Clip, Title, Main Menu, mode/difficulty/character/stage selects, Settings overlay, and pause/quit flows. |
+| First playable | Keyboard/controller support | **Implemented:** P1 keyboard+mouse, P2 controller, plus runtime Settings → CONTROLS remapping, device-policy tests, and injected key/pad rebinding coverage. |
 | First playable | Hitbox debug | **Implemented:** F1 boxes and other debug controls exist; box separation is incomplete (B9). |
 | Vertical slice | 2 polished fighters, 1 polished stage, real HUD, music/SFX, Tripp commentary, one METHtality, mini story route | **Partial:** official Peggy/Richard cast, Gas-N-Go and Bus Stop stages, mode/character/stage select, HUD, full-meter METHtality, 15-panel prologue, and one text-only Tripp commentary sample exist; polished runtime art, voiced/full commentary, broad SFX, and a fighter-specific route remain. |
 | Full v1.0 | 15 fighters, hidden Tripp boss, stages, campaign/arcade/versus/training, METHtalities, endings, options/accessibility, credits/licenses | **Not met; later GDD priorities.** |

@@ -82,10 +82,10 @@ still clears, and landing recovery still runs to IDLE) and gates CI
   Peggy/Richard-only vertical-slice scope. Per owner direction (2026-11-12), an
   initial procedural silhouette-animation pass is underway; authored sprite
   frames remain deferred.
-- Gamepad support is implemented (2026-11-16): P1 uses keyboard + mouse and P2
-  uses a controller, per owner direction. In-game input remapping is still a GDD
-  §4.1/§4.6/§14 requirement and is not implemented; the input map is generated
-  from a fixed table in `game/tools/setup_input.gd`.
+- Gamepad support and runtime input remapping are implemented: P1 uses keyboard
+  + mouse, P2 uses a controller, and Settings → CONTROLS rebinds named actions
+  per player. User overrides load from `user://controls.cfg`; generated defaults
+  in `project.godot` remain untouched. See GDD §§4.1/4.6/14.
 - METHtality activation requires full meter only; opponent health, state, and
   invulnerability do not gate starting the finisher. GDD §5.9's final-round
   finish prompt and cinematic remain future design/implementation.
@@ -182,9 +182,10 @@ Debug overlay:
 
 ## Input map
 
-`game/tools/setup_input.gd` is the single source of truth for the `p1_*` /
-`p2_*` actions. Do not hand-edit the `[input]` section of `project.godot`; change
-the generator and regenerate:
+`game/tools/setup_input.gd` is the source of shipped defaults for the `p1_*` /
+`p2_*` actions. Runtime user overrides are loaded by
+`game/scripts/ui/input_bindings.gd` from `user://controls.cfg`. Do not hand-edit
+the `[input]` section of `project.godot` or regenerate it for user remapping:
 
 ```bash
 godot --headless --path game --script res://tools/setup_input.gd
@@ -202,6 +203,13 @@ is controller only.
   events and gain pad south/east.
 - Joypad events use `device = -1`, so whichever pad is connected drives P2
   regardless of port. Two-player local play is therefore keyboard/mouse vs pad.
+- The remap screen applies per-player device-class events through `InputMap`;
+  P1 mouse attack alternates remain available, and P2's D-pad/stick defaults
+  remain unless that direction is rebound. Axis capture ignores magnitudes
+  below 0.2.
+- Shared `ui_confirm` / `ui_back` are edited by device class in the matching
+  player section. Menu prompts show the current primary binding. The Clip and
+  Content Warning use action-based prompts instead of fixed physical keycodes.
 
 Every keyboard event is written with `device = -1` (matches any device). In Godot
 4.7 a new `InputEventKey` reports the local keyboard's concrete device id (`16`
@@ -300,8 +308,6 @@ that section by hand afterward — the simulation step comes from
   banner — no cinematic, camera, or choreography yet. The 30f freeze is a
   first-pass balance value, and a whiffed finisher still spends the full bar.
 - **No dash/backdash.** GDD §5.2/§5.11 list them; neutral movement is walk-only.
-- **No input-remap UI.** Gamepad play is implemented (P1 keyboard + mouse, P2
-  controller), but in-game remapping is still a GDD §4.1/§4.6/§14 requirement.
 - **Launcher category (owner decision, 2026-11-07; implemented; Peggy base
   retuned 2026-11-21).** The forward
   special and its EX variant launch for both fighters with authored vertical
@@ -540,9 +546,9 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   and a fixed-length walk covers the same distance.
 - `game/tests/the_clip_test.gd` — **23 checks**: installed art slots, lossless
   split text, panel-10 art visibility/aspect fit, deprecated hold values/copy,
-  owner-script canon guards, panel ordering, boot-to-intro, Space-only
-  beat/panel advancement, complete Space-only handoff, Esc skips from panels
-  1/8/15, explicit bundled comic fonts, and monospaced livestream chat.
+  owner-script canon guards, panel ordering, boot-to-intro, action-based
+  confirm/back beat advancement and handoff, pause skips from panels 1/8/15,
+  explicit bundled comic fonts, and monospaced livestream chat.
 - `game/tests/cpu_test.gd` — **41 checks**: CPU legality (no move out of
   hitstun, no unpayable EX), same-seed determinism with scripted human
   inputs, mid-match AI-state save/restore plus mid-COMBO/mid-STUN/mid-BREAK
@@ -587,8 +593,8 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   `art/tools/prepare_ui.gd` and re-runs its size table in verify-only mode
   (manifest and test cannot drift), plus a byte-identity check of every
   `game/art/ui/` copy against its approved source.
-- `game/tests/ui_typography_test.gd` — **50 checks** (2026-11-21 polish, extended by review fixes, select screens, match wrap, Combo Phase 4 HUD and Training Mode):
-  every label in the ten UI surfaces (nine screens + the pause menu)
+- `game/tests/ui_typography_test.gd` — **53 checks** (2026-11-23; extended
+  through the Controls tab): every label in the UI surfaces
   uses Sidewalk Marker at 10 or m5x7 at 16 with every glyph present, carries
   no theme outline or shadow, sits at an integer position, and is never
   scaled; labels on cardboard (ui_panel/ui_button) lie fully inside their
@@ -596,6 +602,10 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   lettering uses the outlined marker; and HUD label overlap is checked at
   round start, mid-fight, juggle, stun, full meter, P2 callout+combo, training
   pause tabs, and the training HUD panel.
+- `game/tests/remap_test.gd` — **36 checks** (GDD §§4.1/4.6/14): keyboard and
+  controller capture, injected key/pad/axis events, 0.2 stick deadzone, swaps,
+  menu-safety refusal, save/load, corrupt fallback, per-player reset, prompt
+  labels, and CPU/training/macro/breaker/Clip Cancel paths after remapping.
 - `game/tests/select_screens_test.gd` — **24 checks** (PR A, 2026-11-22; extended by the PM review fix-ups):
   the Mode and Difficulty choices are unchanged (names, order, defaults,
   emits, back paths); the difficulty rows draw 1/2/3 ink tally marks; the
@@ -689,17 +699,15 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   actionability. Prints a report and exits 0 on success; `docs/PROPOSALS.md` §3
   documents the coarse grid, before/after metrics, and target limitations. Its
   numbers are informational measurements, not passing balance assertions.
-- `.github/workflows/tests.yml` runs the twenty-two headless suites — combat,
+- `.github/workflows/tests.yml` runs the twenty-three headless suites — combat,
   round-flow, mode/character-select, stage-select/ambience, stage-floor-guard,
   locomotion-speed, CPU opponent, combo system, combo fuzz, stun & breaker,
   combo adversarial,
   The Clip intro,
   serialization, B6 landing-whiff, UI flow, settings, UI assets,
-  UI typography, select screens, results flow, match HUD, and training — plus
-  the air probe on push, pull
-  the air probe on push, pull
-  request and manual
-  dispatch, every step under a `timeout-minutes` so a hang fails fast.
+  UI typography, remap, select screens, results flow, match HUD, and training —
+  plus the air probe on push, pull request and manual dispatch, every step under
+  a `timeout-minutes` so a hang fails fast.
   They are separate jobs in one workflow; parallel
   execution does not make a job non-gating. A non-zero command or job failure in
   the air-probe job can still fail the workflow even though the script contains

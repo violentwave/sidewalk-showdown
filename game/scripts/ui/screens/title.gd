@@ -44,8 +44,8 @@ func _ready() -> void:
 	logo.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_child(logo)
 
-	# No prompt line: PRESS START is the prompt (review fix 2026-11-22).
-	_press_start = UiText.marker("PRESS START", Vector2(0, PRESS_START_Y - 6),
+	# No prompt line: the current confirm binding is the prompt.
+	_press_start = UiText.marker("PRESS [ENTER]", Vector2(0, PRESS_START_Y - 6),
 		UiText.YELLOW, true)
 	_press_start.size = Vector2(320, UiText.MARKER_LINE_HEIGHT)
 	_press_start.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -53,9 +53,24 @@ func _ready() -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	_refresh_confirm_prompt()
 	# Pulse at most once per second: 60 frames on, 60 frames off.
 	_pulse_frame += 1
 	_press_start.visible = _pulse_frame % (PULSE_ON_FRAMES + PULSE_OFF_FRAMES) < PULSE_ON_FRAMES
+
+
+func _refresh_confirm_prompt() -> void:
+	var pad := ScreenRouter.last_device_was_pad()
+	var player := "p2" if pad else "p1"
+	var control_id := "p2_ui_confirm" if pad else "p1_ui_confirm"
+	var binding := "A" if pad else "ENTER"
+	var settings := get_tree().root.get_node_or_null("Settings")
+	if settings != null and settings.controls != null:
+		var labels: PackedStringArray = settings.controls.binding_label(
+			player, control_id).split(" / ")
+		if not labels.is_empty() and labels[0] != "UNBOUND":
+			binding = labels[0]
+	_press_start.text = "PRESS %s" % (binding if pad else "[%s]" % binding)
 
 
 func _unhandled_input(event: InputEvent) -> void:

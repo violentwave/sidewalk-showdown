@@ -57,9 +57,14 @@ const DEFAULTS := {
 var config_path := CONFIG_PATH
 # Live values: a deep copy of DEFAULTS merged over the file contents.
 var values := {}
+var controls: InputBindings
 
 
 func _ready() -> void:
+	# Runtime remapping is applied from its user:// config before the first
+	# screen is created. The generated project input map remains untouched.
+	controls = InputBindings.new()
+	controls.initialize()
 	# Boot: load and apply before the first screen exists.
 	_load()
 	_apply_all()

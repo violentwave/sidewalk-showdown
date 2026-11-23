@@ -42,6 +42,7 @@ var _panel_counter: Label
 var _advance_hint: Label
 var _comic_shader: Shader
 var _content_top_y := 5.0
+var _last_hint_binding := ""
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -55,6 +56,12 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if _finished or _advance_hint == null:
 		return
+	var hint := "[%s] NEXT  [%s] SKIP" % [
+		_current_control_label("ui_confirm"),
+		_current_control_label("ui_back")]
+	if hint != _last_hint_binding:
+		_last_hint_binding = hint
+		_advance_hint.text = hint
 	if current_panel_index == 0:
 		_hint_clock += delta
 		_advance_hint.modulate.a = 0.48 + 0.34 * (0.5 + 0.5 * sin(_hint_clock * TAU * 0.72))
@@ -64,23 +71,32 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if _finished or event.is_echo():
 		return
-	if _is_escape_press(event) or event.is_action_pressed("p1_pause") \
+	if event.is_action_pressed("ui_back") or event.is_action_pressed("p1_pause") \
 			or event.is_action_pressed("p2_pause"):
 		skip_intro()
 		get_viewport().set_input_as_handled()
-	elif _is_space_press(event):
+	elif event.is_action_pressed("ui_confirm"):
 		advance_panel()
 		get_viewport().set_input_as_handled()
 
-static func _is_space_press(event: InputEvent) -> bool:
-	if event is InputEventKey:
-		return event.pressed and (event.keycode == KEY_SPACE or event.physical_keycode == KEY_SPACE)
-	return false
 
-static func _is_escape_press(event: InputEvent) -> bool:
-	if event is InputEventKey:
-		return event.pressed and (event.keycode == KEY_ESCAPE or event.physical_keycode == KEY_ESCAPE)
-	return false
+func _current_control_label(action: String) -> String:
+	var pad := ScreenRouter.last_device_was_pad()
+	var player := "p2" if pad else "p1"
+	var control_id := "p2_ui_confirm" if action == "ui_confirm" \
+		and pad else ("p1_ui_confirm" if action == "ui_confirm" \
+		else ("p2_ui_back" if pad else "p1_ui_back"))
+	var settings := get_tree().root.get_node_or_null("Settings")
+	if settings == null or settings.controls == null:
+		return "A" if pad and action == "ui_confirm" else (
+			"B/START" if pad else ("ENTER/SPACE" if action == "ui_confirm"
+				else "BKSP/ESC"))
+	var label: String = settings.controls.binding_label(
+		player, control_id).replace(" / ", "/")
+	if action == "ui_back":
+		var pause_id := "p2_pause" if pad else "p1_pause"
+		label += "/" + settings.controls.binding_label(player, pause_id)
+	return label
 
 func _load_panel_data() -> bool:
 	var file := FileAccess.open(PANEL_DATA_PATH, FileAccess.READ)

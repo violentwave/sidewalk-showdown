@@ -11,6 +11,8 @@ extends Control
 
 const GLYPH_PAD_A := preload("res://art/ui/ui/ui_glyph_pad_a.png")
 const GLYPH_PAD_B := preload("res://art/ui/ui/ui_glyph_pad_b.png")
+const GLYPH_PAD_X := preload("res://art/ui/ui/ui_glyph_pad_x.png")
+const GLYPH_PAD_Y := preload("res://art/ui/ui/ui_glyph_pad_y.png")
 const GLYPH_SIZE := Vector2(9, 9)
 
 # The plate: full width, 12 px tall, flush with the screen bottom.
@@ -37,6 +39,8 @@ var _back_label: Label
 var _confirm_text: String
 var _back_text: String
 var _laid_out_for_pad := false
+var _last_confirm_binding := ""
+var _last_back_binding := ""
 
 
 func _init(confirm_text: String, back_text: String, left_text: String = "") -> void:
@@ -54,7 +58,7 @@ func _init(confirm_text: String, back_text: String, left_text: String = "") -> v
 		_left_label = UiText.body(left_text, Vector2(LEFT_X, LABEL_Y), UiText.CREAM_TEXT)
 		add_child(_left_label)
 
-	# Confirm pair (rightmost): "[ENTER] SELECT" or [pad A] SELECT.
+	# Confirm pair (rightmost): the live confirm binding or its pad glyph.
 	_confirm_label = UiText.body(confirm_text, Vector2.ZERO, UiText.YELLOW)
 	add_child(_confirm_label)
 	_confirm_key = UiText.body("", Vector2.ZERO, UiText.CREAM_TEXT)
@@ -62,7 +66,7 @@ func _init(confirm_text: String, back_text: String, left_text: String = "") -> v
 	_confirm_glyph = _make_glyph(GLYPH_PAD_A, Vector2.ZERO)
 	add_child(_confirm_glyph)
 
-	# Back pair to its left: "[BKSP] BACK" or [pad B] BACK.
+	# Back pair to its left: the live back binding or its pad glyph.
 	_back_label = UiText.body(back_text, Vector2.ZERO, UiText.MUTED)
 	add_child(_back_label)
 	_back_key = UiText.body("", Vector2.ZERO, UiText.CREAM_TEXT)
@@ -84,7 +88,8 @@ func _layout(confirm_text: String, back_text: String) -> void:
 	_confirm_label.position = Vector2(
 		right_x - _confirm_label.size.x, LABEL_Y)
 	_confirm_label.visible = not confirm_text.is_empty()
-	_layout_key(_confirm_key, _confirm_glyph, "[ENTER]",
+	_layout_key(_confirm_key, _confirm_glyph,
+		_current_binding("ui_confirm", "[ENTER]"),
 		_confirm_label.position.x - KEY_TO_LABEL_GAP, confirm_text.is_empty())
 
 	# Back pair sits PAIR_GAP px to the left of the confirm KEY (or pad
@@ -98,7 +103,8 @@ func _layout(confirm_text: String, back_text: String) -> void:
 	_back_label.position = Vector2(
 		back_edge - PAIR_GAP - _back_label.size.x, LABEL_Y)
 	_back_label.visible = not back_text.is_empty()
-	_layout_key(_back_key, _back_glyph, "[BKSP]",
+	_layout_key(_back_key, _back_glyph,
+		_current_binding("ui_back", "[BKSP]"),
 		_back_label.position.x - KEY_TO_LABEL_GAP, back_text.is_empty())
 
 	# The left description gets only the room left of the back pair, so a
@@ -111,12 +117,24 @@ func _layout(confirm_text: String, back_text: String) -> void:
 
 func _layout_key(key: Label, glyph: TextureRect, key_name: String,
 		right_edge: float, hidden: bool) -> void:
-	# Keyboard: the bracketed key name as text. Pad: the A/B sprite.
-	key.text = key_name
-	key.size = Vector2(UiText.body_width(key_name), 12.0)
+	# Keyboard and non-face pad inputs use text. Standard face buttons keep
+	# their glyphs, selected from the current action binding.
+	var binding_name := key_name
+	var pad_texture: Texture2D
+	if _laid_out_for_pad:
+		pad_texture = _pad_glyph(binding_name)
+		if pad_texture != null:
+			binding_name = ""
+		else:
+			binding_name = "[%s]" % binding_name
+	elif not binding_name.begins_with("["):
+		binding_name = "[%s]" % binding_name
+	key.text = binding_name
+	key.size = Vector2(UiText.body_width(binding_name), 12.0)
 	key.position = Vector2(roundi(right_edge - key.size.x), LABEL_Y)
 	glyph.position = Vector2(roundi(right_edge - 9.0), GLYPH_Y)
 	key.visible = not hidden
+	glyph.texture = pad_texture
 	glyph.visible = false  # _refresh_device() flips this for pad input
 
 
@@ -133,15 +151,53 @@ func _process(_delta: float) -> void:
 
 func _refresh_device() -> void:
 	var pad := ScreenRouter.last_device_was_pad()
-	if pad != _laid_out_for_pad:
+	var device_changed := pad != _laid_out_for_pad
+	_laid_out_for_pad = pad
+	var confirm_binding := _current_binding("ui_confirm", "[ENTER]")
+	var back_binding := _current_binding("ui_back", "[BKSP]")
+	if device_changed or confirm_binding != _last_confirm_binding \
+			or back_binding != _last_back_binding:
 		# The pad glyph (9 px) is narrower than "[ENTER]", so re-lay the
 		# pairs whenever the last-used device changes.
-		_laid_out_for_pad = pad
 		_layout(_confirm_text, _back_text)
-	_confirm_key.visible = not pad and _confirm_label.visible
-	_back_key.visible = not pad and _back_label.visible
-	_confirm_glyph.visible = pad and _confirm_label.visible
-	_back_glyph.visible = pad and _back_label.visible
+		_last_confirm_binding = confirm_binding
+		_last_back_binding = back_binding
+	_confirm_key.visible = (not pad or _confirm_glyph.texture == null) \
+		and _confirm_label.visible
+	_back_key.visible = (not pad or _back_glyph.texture == null) \
+		and _back_label.visible
+	_confirm_glyph.visible = pad and _confirm_glyph.texture != null \
+		and _confirm_label.visible
+	_back_glyph.visible = pad and _back_glyph.texture != null \
+		and _back_label.visible
+
+
+func _current_binding(action: String, fallback: String) -> String:
+	var player := "p2" if _laid_out_for_pad else "p1"
+	var control_id := "p1_ui_confirm" if action == "ui_confirm" \
+		else "p1_ui_back"
+	if player == "p2":
+		control_id = "p2_ui_confirm" if action == "ui_confirm" \
+			else "p2_ui_back"
+	var scene_tree := Engine.get_main_loop() as SceneTree
+	if scene_tree == null:
+		return fallback.trim_prefix("[").trim_suffix("]")
+	var settings := scene_tree.root.get_node_or_null("Settings")
+	if settings != null and settings.controls != null:
+		var labels: PackedStringArray = settings.controls.binding_label(
+			player, control_id).split(" / ")
+		if not labels.is_empty() and labels[0] != "UNBOUND":
+			return labels[0]
+	return fallback.trim_prefix("[").trim_suffix("]")
+
+
+func _pad_glyph(binding: String) -> Texture2D:
+	match binding:
+		"A": return GLYPH_PAD_A
+		"B": return GLYPH_PAD_B
+		"X": return GLYPH_PAD_X
+		"Y": return GLYPH_PAD_Y
+	return null
 
 
 func _make_glyph(texture: Texture2D, at: Vector2) -> TextureRect:

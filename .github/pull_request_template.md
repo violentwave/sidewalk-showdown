@@ -41,6 +41,7 @@ select_screens_test:   ... checks, ... failure(s)
 results_flow_test:     ... checks, ... failure(s)
 hud_test:              ... checks, ... failure(s)
 training_test:         ... checks, ... failure(s)
+ui_layout_test:        ... checks, ... failure(s)
 air probe:            metrics only, job must still pass
 ```
 

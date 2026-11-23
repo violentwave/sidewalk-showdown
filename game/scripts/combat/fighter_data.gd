@@ -36,6 +36,13 @@ extends Resource
 # The finisher move itself (MoveData.meth = true). Not part of `moves`.
 @export var meth_move: MoveData
 
+@export_group("Presentation FX (Phase C)")
+# Per-fighter hit/block/whoosh/trail sheet set (docs/FX_AND_METH_DESIGN.md §2).
+# Presentation only: the FX layer reads every sheet from here, so a future
+# fighter plugs in by authoring its own FxSet resource. Null = no hit FX and
+# no combat behavior change.
+@export var fx_set: FxSet
+
 # COMBO_SYSTEM_DESIGN §9.3: the combo economics as data. Null falls back to
 # the ComboTuning class defaults (identical to the legacy ladder).
 @export var combo_tuning: ComboTuning

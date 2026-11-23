@@ -82,7 +82,7 @@ phase exit criteria:
   blocking and round flow work, and the match can end/restart.
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
-  The current suites contain 408 combat, 68 combo-system, 118 combo-fuzz,
+  The current suites contain 410 combat, 68 combo-system, 118 combo-fuzz,
   55 stun-&-breaker, 102 combo-adversarial,
   35 round-flow,
   55 mode/character-select integration, 7 locomotion-speed,
@@ -325,11 +325,12 @@ phase exit criteria:
   keyboard, hitbox accuracy, AI, progression/unlocks, performance, exports,
   content/accessibility review. Exit: no progression blockers/crashes, stable
   match flow, usable modes, and builds on target PC specs.
-- **Status:** **In progress; exit not met.** CI runs the twenty-four headless suites
+- **Status:** **In progress; exit not met.** CI runs the twenty-six headless suites
   (combat, round_flow, character_select, stage_select, stage_floor,
   locomotion_speed, cpu, combo, combo_fuzz, stun_breaker, combo_adversarial,
   the_clip, serialization, b6, ui_flow, settings, remap, ui_assets,
-  ui_typography, ui_layout, select_screens, results_flow, hud, training)
+  ui_typography, ui_layout, select_screens, results_flow, hud, training,
+  fx_events, meth_cinematic)
   and the air
   probe, every step under a `timeout-minutes`; Linux/Windows export builds
   pass. The air probe is informational and

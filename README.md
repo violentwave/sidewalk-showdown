@@ -38,6 +38,10 @@
 
 **Settings and accessibility.** Video, audio buses, gameplay, accessibility (reduce flashing, high-contrast HUD) and streamer options, saved to `user://settings.cfg`.
 
+**Impacts that mean something.** Every hit, block, counter, launcher and EX lands with its fighter's own palette-locked burst — Peggy's wood chips and bent nails, Richard's amber whiskey splash — plus whooshes, trails, landing dust and wall puffs, all frozen by hitstop exactly like the fight.
+
+**METHtality cinematics.** A confirmed finisher takes the screen: 3.5 scripted seconds per fighter — Peggy walks you onto a plank, pins you with the peg leg and stomps you through the sidewalk; Richard drenches you in whiskey, belches fire through the fumes and launches you into the bar sign. Letterboxed, deterministic, and serialized mid-sequence; training lets you replay or skip it.
+
 ## Screenshots
 
 | | |
@@ -52,8 +56,10 @@
 | **K.O.** | **Results** |
 | <img src="docs/assets/readme/combo_hud.png" alt="A 4-hit combo readout in red with its damage and x0.70 scaling tag on the attacker's side" width="420"> | <img src="docs/assets/readme/settings.png" alt="The settings overlay: a cardboard panel with tabs and dark-ink rows" width="420"> |
 | **Combo HUD:** scaling tint | **Settings** |
-| <img src="docs/assets/ui/training.png" alt="Training match with the training readout panel showing last-hit damage, frame advantage, startup, and juggle points" width="420"> | |
-| **Training:** live readouts | |
+| <img src="docs/assets/ui/training.png" alt="Training match with the training readout panel showing last-hit damage, frame advantage, startup, and juggle points" width="420"> | <img src="docs/assets/fx_meth/meth_walk_the_plank_stomp.png" alt="Walk the Plank cinematic: letterboxed, the METH banner up, Peggy mid-stomp as the plank snaps over the sewer opening" width="420"> |
+| **Training:** live readouts | **Walk the Plank:** the stomp beat |
+| <img src="docs/assets/fx_meth/meth_flaming_belch_ignite.png" alt="Flaming Belch cinematic: letterboxed, the METH banner up, Richard mid-belch with the fire cone blooming through the whiskey fumes" width="420"> | |
+| **Flaming Belch:** the ignition beat | |
 
 ## Play it
 
@@ -106,7 +112,7 @@ player.
 ## Roadmap
 
 - **Next:** Extras and Credits, and per-round win letters on the round pips.
-- **Later:** the rest of the 15-fighter roster, more stages, the arcade ladder up to Tripp Vlogs, METHtality cinematics, final audio and voice, and rollback netcode (the simulation is already deterministic and fully serializable).
+- **Later:** the rest of the 15-fighter roster, more stages, the arcade ladder up to Tripp Vlogs, final audio and voice, and rollback netcode (the simulation is already deterministic and fully serializable).
 
 The full plan is in the [GDD](GDD.md); story and world canon are in the [Game Bible](GAME_BIBLE.md) and [Characters](CHARACTERS.md).
 

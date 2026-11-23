@@ -43,13 +43,15 @@ func _check_match_surface(match_root: Node) -> void:
 		"training_mode": mroot.training_mode,
 		"pause_tab": mroot.pause_tab,
 		"training": mroot.training,
+		"meth_cinematic": mroot.meth_driver.serialize()
+			if mroot.meth_driver != null and mroot.meth_driver.active else null,
 	}
 	var expected_keys: Array = [
 		"phase", "phase_frame", "round_number", "wins", "timer_frames",
 		"ko_loser", "ko_draw", "ko_frame", "sim_frame", "timeout_ties",
 		"sudden_death", "round_damage", "pause_index", "pause_menu_open",
 		"commentary_sample_shown", "p2_human", "fighters_can_pass_through",
-		"training_mode", "pause_tab", "training",
+		"training_mode", "pause_tab", "training", "meth_cinematic",
 	]
 	_check("MatchRoot has all expected keys", surface is Dictionary, "surface is not a Dictionary")
 	if surface is Dictionary:
@@ -67,7 +69,7 @@ func _run() -> void:
 	if mroot == null:
 		_check("match_root cast to Node2D", false, "cast failed")
 		return
-	_check("MatchRoot has valid phase", mroot.phase >= 0 and mroot.phase <= 4, "phase=" + str(mroot.phase))
+	_check("MatchRoot has valid phase", mroot.phase >= 0 and mroot.phase <= 5, "phase=" + str(mroot.phase))
 	_check("MatchRoot phase_frame is non-negative", mroot.phase_frame >= 0, "phase_frame=" + str(mroot.phase_frame))
 	_check("MatchRoot timer_frames is non-negative", mroot.timer_frames >= 0, "timer_frames=" + str(mroot.timer_frames))
 	_check("MatchRoot wins has 2 entries", mroot.wins.size() == 2, "wins=" + str(mroot.wins))

@@ -521,20 +521,31 @@ func _ruling_matrix() -> void:
 			_check(tag + "a single pair press at a hitstop-10 EX impact breaks",
 				hs10, "broke=%s" % str(hs10))
 
-			# A2, hitstop 30 (METHtality): the landed METH is a KNOCKDOWN —
-			# the breaker is NOT otherwise legal there, so the single press
-			# must NOT fire, and the latch must not linger into a ghost break
-			# after the knockdown and wake-up resolve.
+			# A2, hitstop 30 (METHtality): since Phase C (FX_AND_METH_DESIGN
+			# §4), a landed METH is a cinematic hold — the defender is never
+			# put into HITSTUN/KNOCKDOWN, so the breaker is not otherwise
+			# legal; the single press must not fire during the sequence, and
+			# nothing may linger into a ghost break after it resolves.
 			_reset_pair(mroot, 100.0, 140.0)
 			dfd.health = meth.damage + 250.0 # survive the finisher on purpose
 			atk.meter = atk.max_meter
 			_land_hit(mroot, atk, meth)
-			var meth_hit: bool = dfd.state in [FighterBase.State.KNOCKDOWN,
-				FighterBase.State.HITSTUN]
-			var hs30: bool = await _press_and_break(mroot, dfd, 80)
-			_check(tag + "a single press at a hitstop-30 METH impact never breaks (knockdown) and leaves no ghost",
-				meth_hit and not hs30,
-				"meth_hit=%s broke=%s" % [str(meth_hit), str(hs30)])
+			var meth_seq: bool = mroot.phase == mroot.Phase.METH_CINEMATIC \
+					and mroot.meth_driver != null and mroot.meth_driver.active
+			_press_pair(dfd)
+			await _step(mroot, 60)
+			var no_break_in_hold: bool = dfd.breaker_invuln_frames == 0 \
+					and dfd.breaker_pair_frames == 0
+			await _step(mroot, 160) # the 210-frame sequence resolves
+			_check(tag + "a landed METH holds the defender out of hitstun; the pair never breaks and leaves no ghost",
+				meth_seq and no_break_in_hold and mroot.phase == mroot.Phase.FIGHT
+					and is_equal_approx(dfd.health, 250.0)
+					and dfd.breaker_invuln_frames == 0
+					and dfd.breaker_pair_frames == 0
+					and dfd.input_buffer.is_empty(),
+				"meth_seq=%s no_break=%s phase=%s health=%f pair=%d" % [
+					str(meth_seq), str(no_break_in_hold), str(mroot.phase),
+					dfd.health, dfd.breaker_pair_frames])
 
 			# A2, no-survive: with the breaker ILLEGAL (no budget, no meter),
 			# a single press at an EX impact must not fire later either —

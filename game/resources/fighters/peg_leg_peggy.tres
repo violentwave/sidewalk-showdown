@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/combat/macro_data.gd" id="4_macro"]
 [ext_resource type="Resource" path="res://resources/combat/combo_tuning_default.tres" id="5_tuning"]
 [ext_resource type="Script" path="res://scripts/combat/stun_effect.gd" id="6_stun"]
+[ext_resource type="Resource" path="res://resources/fighters/peggy_fx_set.tres" id="7_fxset"]
 
 [sub_resource type="Resource" id="Stun_peglock"]
 script = ExtResource("6_stun")
@@ -442,6 +443,7 @@ body_width = 26.0
 body_height = 54.0
 meth_name = "Walk the Plank"
 meth_move = SubResource("Resource_6j227")
+fx_set = ExtResource("7_fxset")
 combo_tuning = ExtResource("5_tuning")
 macros = Array[ExtResource("4_macro")]([SubResource("MacroData_pgbench")])
 moves = Array[ExtResource("2_y6umg")]([SubResource("Resource_r5ltk"), SubResource("Resource_ntf5t"), SubResource("Resource_08v1d"), SubResource("Resource_5olep"), SubResource("Resource_6f1g6"), SubResource("Resource_2fi8q"), SubResource("Resource_msgkc"), SubResource("Resource_wgyqa"), SubResource("Resource_curls"), SubResource("Resource_tvf1o"), SubResource("Resource_1ijmj"), SubResource("Resource_qa18f"), SubResource("Resource_fo7wj"), SubResource("Resource_3ydin"), SubResource("Resource_wcdfq")])

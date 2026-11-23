@@ -1,7 +1,7 @@
 # MatchRoot — match orchestrator: rounds, timer, KO, HUD, pause.
 extends Node2D
 
-enum Phase { INTRO, FIGHT, KO, ROUND_END, MATCH_END }
+enum Phase { INTRO, FIGHT, KO, ROUND_END, MATCH_END, METH_CINEMATIC }
 
 # Emitted when the pause menu asks to leave the match; Main owns the flow back
 # to character select.
@@ -32,6 +32,11 @@ const TIMEOUT_TIES_BEFORE_SUDDEN_DEATH := 2
 var stage: Node2D
 var hud: MatchHUD
 var debug_overlay: DebugOverlay
+# Phase C presentation FX (CanvasLayer 5) and the METH cinematic driver.
+# Both are presentation-only: nothing they own joins the serializable
+# gameplay state except the driver's own deterministic sequence dictionary.
+var fx: FxLayer
+var meth_driver: MethCinematicDriver
 var p1: FighterBase
 var p2: FighterBase
 var audio_manager
@@ -128,6 +133,14 @@ func _ready() -> void:
 	p1.opponent = p2
 	p2.opponent = p1
 	hud.bind(p1, p2)
+
+	# Phase C: the contact/landing/wall FX layer above the world, below the
+	# HUD, and the METH cinematic sequence driver.
+	fx = FxLayer.new()
+	add_child(fx)
+	fx.setup(self)
+	meth_driver = MethCinematicDriver.new()
+	add_child(meth_driver)
 
 	p1.ko.connect(_on_fighter_ko.bind(p1))
 	p2.ko.connect(_on_fighter_ko.bind(p2))
@@ -230,6 +243,12 @@ func clear_training_cpu() -> void:
 
 # ---------------- Round flow ----------------
 func _begin_round() -> void:
+	if meth_driver != null and meth_driver.active:
+		# Unreachable through the normal flow (every finish path clears the
+		# driver); a defensive teardown so a stale sequence can never leak
+		# across a round or match reset.
+		meth_driver.end_presentation(self)
+		meth_driver.reset()
 	p1.begin_round(Vector2(stage.spawn_p1_x, stage.floor_y), stage.spawn_p2_x)
 	p2.begin_round(Vector2(stage.spawn_p2_x, stage.floor_y), stage.spawn_p1_x)
 	# Deterministic base draw order for the new round (rule I): P1 under P2
@@ -436,16 +455,25 @@ func _physics_process(_delta: float) -> void:
 
 	sim_frame += 1
 	phase_frame += 1
-	# UI Phase 2: the presentation-only per-sim-tick hook. The HUD counts
-	# its timers through this call (frozen here by the paused check above,
-	# and by hitstop inside the HUD), and it never writes anything back —
-	# nothing in the match reads from the HUD.
+	# UI Phase 2 / Phase C: the presentation-only per-sim-tick hooks. The HUD
+	# counts its timers and the FX layer advances its one-shot sheets through
+	# these calls (frozen here by the paused check above, and by hitstop
+	# inside each hook), and neither ever writes anything back — nothing in
+	# the match reads from them.
 	if hud != null:
 		hud.sim_tick()
+	if fx != null:
+		fx.sim_tick(self)
 	match phase:
 		Phase.INTRO:
 			if phase_frame >= INTRO_FRAMES:
 				_start_fight()
+		Phase.METH_CINEMATIC:
+			# The driver owns the whole sequence: both fighters are held out
+			# of their ordinary ticks, the clock is frozen, and the driver
+			# puppets poses/positions/props from sequence_frame alone.
+			if meth_driver != null and meth_driver.active:
+				meth_driver.tick(self)
 		Phase.FIGHT:
 			_separate_pushboxes()
 			# Both attackers' hits are polled before either is applied, so a
@@ -496,6 +524,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		# screen (or the results delay before it) owns everything from
 		# here. The pause menu can never stack on top of Results, no
 		# matter which modal flag was left behind.
+		return
+	# Training-only METH cinematic skip (design §4 item 10): a dedicated UI
+	# confirm — never a buffered combat action — ends the sequence after the
+	# 30f opening hold and restores the pre-METH snapshot. Versus/solo has no
+	# skip; the pause path below still works during the sequence.
+	if training_mode and phase == Phase.METH_CINEMATIC and not get_tree().paused \
+			and meth_driver != null and meth_driver.active \
+			and meth_driver.frame >= MethCinematicDriver.OPENING_HOLD \
+			and event.is_action_pressed("ui_confirm"):
+		_finish_meth_cinematic()
 		return
 	# Training match keys (never while paused: the sim is frozen underneath
 	# the menu and the trainer should not stack resets on a frozen frame).
@@ -661,22 +699,38 @@ func _confirm_pause_selection() -> void:
 func _resolve_hits() -> void:
 	var move_a := _poll_hit(p1, p2)
 	var move_b := _poll_hit(p2, p1)
-	# GDD §5.6 counter hit: the defender is still in its own startup, and the
-	# exchange is not a trade (a same-frame reply from the defender cancels it).
+	# Phase C (FX_AND_METH_DESIGN §4 item 2): a confirmed, unblocked METH
+	# contact starts the cinematic instead of the ordinary damage path; the
+	# meter was already spent at activation and the banner already showed.
+	# A blocked METH keeps today's block/chip handling; a whiff never
+	# reaches here (no polled contact).
+	var meth_a := move_a != null and move_a.meth and _meth_contact_confirmed(p1, p2)
+	var meth_b := move_b != null and move_b.meth and _meth_contact_confirmed(p2, p1)
+	if meth_a and meth_b:
+		# Mirror finishers on one frame: the lower player slot wins, the
+		# same deterministic tie-break the pushbox separator uses.
+		meth_b = false
+	if meth_a:
+		# The finisher defers its damage to the cinematic; a same-frame
+		# ordinary reply still resolves first (trades stay trades), and a
+		# reply that KOs the attacker cancels the sequence.
+		if move_b != null:
+			_apply_hit(p2, p1, move_b, false)
+		if p1.state != FighterBase.State.KO:
+			_start_meth_cinematic(p1, p2, move_a)
+		return
+	if meth_b:
+		if move_a != null:
+			_apply_hit(p1, p2, move_a, false)
+		if p2.state != FighterBase.State.KO:
+			_start_meth_cinematic(p2, p1, move_b)
+		return
 	if move_a != null:
-		var p2_before := p2.health
 		var counter_a := move_b == null and p2.is_in_attack_startup()
-		var hit_a := p2.receive_hit(p1, move_a, counter_a)
-		p1.on_attack_connected(hit_a)
-		_play_contact_sfx(move_a, p2, p2_before)
-		round_damage[0] += maxf(0.0, p2_before - p2.health)
+		_apply_hit(p1, p2, move_a, counter_a)
 	if move_b != null:
-		var p1_before := p1.health
 		var counter_b := move_a == null and p1.is_in_attack_startup()
-		var hit_b := p1.receive_hit(p2, move_b, counter_b)
-		p2.on_attack_connected(hit_b)
-		_play_contact_sfx(move_b, p1, p1_before)
-		round_damage[1] += maxf(0.0, p1_before - p1.health)
+		_apply_hit(p2, p1, move_b, counter_b)
 	# B10 repair: when the first hit of a trade KOs and _on_fighter_ko() moves
 	# the match into Phase.KO, the second hit was already polled, so the
 	# not-yet-KO fighter can take a nonlethal reply that would otherwise leave
@@ -688,6 +742,74 @@ func _resolve_hits() -> void:
 		var ko_winner: FighterBase = p2 if ko_loser == p1 else p1
 		if ko_winner.state != FighterBase.State.WIN:
 			ko_winner._force_state(FighterBase.State.WIN)
+
+# One resolved contact: damage/block through receive_hit, outcome bookkeeping
+# on the attacker, round-damage accounting, and the presentation-only FX
+# event (one primary impact per contact, FX_AND_METH_DESIGN §1.3/§2).
+func _apply_hit(attacker: FighterBase, defender: FighterBase,
+		move: MoveData, counter: bool) -> bool:
+	var before := defender.health
+	var hit := defender.receive_hit(attacker, move, counter)
+	attacker.on_attack_connected(hit)
+	_play_contact_sfx(move, defender, before)
+	round_damage[0 if attacker == p1 else 1] += maxf(0.0, before - defender.health)
+	if fx != null:
+		fx.spawn_contact(attacker, defender, move, counter,
+			not hit and defender.state == FighterBase.State.BLOCKSTUN)
+	return hit
+
+# Phase C: the cinematic gate. _poll_hit() has already rejected invulnerable
+# and (for throws) illegal targets; what remains is the block/KO check.
+# A defender holding away (blockstring rules unchanged) blocks the METH:
+# ordinary block/chip/hitstop, no cinematic, no KO. A KO'd body takes no
+# further contact.
+func _meth_contact_confirmed(attacker: FighterBase, defender: FighterBase) -> bool:
+	if defender.state == FighterBase.State.KO:
+		return false
+	if defender.is_blocking() and defender.can_block(attacker.current_move):
+		return false
+	return true
+
+# Knockdown protection (K1) allows METH strikes, so a knocked-down victim
+# is a legal cinematic target; the beat maps use its knockdown/KO clips.
+func _start_meth_cinematic(attacker: FighterBase, defender: FighterBase,
+		move: MoveData) -> void:
+	meth_driver.begin(attacker, defender, move, self)
+	phase = Phase.METH_CINEMATIC
+	phase_frame = 0
+
+# The one legitimate exit from the sequence (frame boundary, or the
+# training-only skip): tear the presentation down, hand the HUD back, and
+# either apply the deferred METH damage once through the ordinary hit/KO
+# path (versus/solo) or restore the pre-METH training snapshot.
+func _finish_meth_cinematic() -> void:
+	var attacker := meth_driver.attacker
+	var victim := meth_driver.victim
+	var move: MoveData = meth_driver.meth_move
+	var was_training := training_mode
+	meth_driver.end_presentation(self)
+	phase = Phase.FIGHT
+	phase_frame = 0
+	if was_training:
+		# Training (design §4 item 10): no KO/round flow; the snapshot
+		# restores positions, fighter state, health and the full meter the
+		# activation spent, so the sequence is repeatable.
+		meth_driver.restore_training_snapshot(self)
+		meth_driver.reset()
+		return
+	if victim != null and move != null:
+		var before := victim.health
+		victim.receive_meth_finish(attacker, move)
+		round_damage[attacker.player_index - 1] += maxf(0.0,
+			before - victim.health)
+	if phase == Phase.FIGHT:
+		# No KO (unreachable with today's 1000-damage rows, kept for future
+		# data): return both fighters to neutral instead of stranding the
+		# held attack pose.
+		attacker._force_state(FighterBase.State.IDLE)
+		if victim.state != FighterBase.State.KO:
+			victim._force_state(FighterBase.State.IDLE)
+	meth_driver.reset()
 
 func _play_contact_sfx(move: MoveData, defender: FighterBase, health_before: float) -> void:
 	if audio_manager == null:
@@ -826,6 +948,11 @@ func serialize() -> Dictionary:
 		"training_mode": training_mode,
 		"pause_tab": pause_tab,
 		"training": training.serialize() if training != null else null,
+		# Phase C: the active cinematic's deterministic driver state (null
+		# when no sequence is running). Props/overlay/poses are rebuilt
+		# from it on load; FX instances are never serialized.
+		"meth_cinematic": meth_driver.serialize()
+			if meth_driver != null and meth_driver.active else null,
 		"p1": p1.serialize(),
 		"p2": p2.serialize(),
 	}
@@ -882,5 +1009,13 @@ func load(data: Dictionary) -> void:
 		p2.training_min_health = 0.0
 	if training_mode and pause_menu_open:
 		hud.set_training_pause(pause_tab, pause_index)
+	# Phase C: a mid-cinematic save restores the driver's deterministic
+	# state and re-enters the sequence on the exact saved frame; the
+	# presentation is rebuilt from that state, never serialized with it.
+	if meth_driver != null:
+		if typeof(data.get("meth_cinematic")) == TYPE_DICTIONARY:
+			meth_driver.load_state(self, data["meth_cinematic"])
+		else:
+			meth_driver.reset()
 
 # ---------------- Simulation ----------------

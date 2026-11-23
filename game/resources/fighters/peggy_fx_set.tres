@@ -1,0 +1,73 @@
+[gd_resource type="Resource" script_class="FxSet" format=3]
+
+[ext_resource type="Script" path="res://scripts/fx/fx_sheet_def.gd" id="1_tgpsj"]
+[ext_resource type="Script" path="res://scripts/fx/fx_set.gd" id="2_ymwgg"]
+
+[sub_resource type="Resource" id="Resource_4wad5"]
+script = ExtResource("1_tgpsj")
+texture_path = "res://art/fx/peggy_block_sheet.png"
+frames = 5
+
+[sub_resource type="Resource" id="Resource_ecndg"]
+script = ExtResource("1_tgpsj")
+texture_path = "res://art/fx/peggy_ex_hit_sheet.png"
+frames = 9
+cell = Vector2i(48, 48)
+mirror = true
+
+[sub_resource type="Resource" id="Resource_87w27"]
+script = ExtResource("1_tgpsj")
+texture_path = "res://art/fx/peggy_heavy_whoosh_sheet.png"
+frames = 5
+cell = Vector2i(48, 24)
+mirror = true
+
+[sub_resource type="Resource" id="Resource_8ejma"]
+script = ExtResource("1_tgpsj")
+texture_path = "res://art/fx/peggy_hit_counter_sheet.png"
+frames = 7
+cell = Vector2i(40, 40)
+
+[sub_resource type="Resource" id="Resource_fwnl6"]
+script = ExtResource("1_tgpsj")
+texture_path = "res://art/fx/peggy_hit_heavy_sheet.png"
+frames = 7
+cell = Vector2i(40, 40)
+
+[sub_resource type="Resource" id="Resource_ujnrg"]
+script = ExtResource("1_tgpsj")
+texture_path = "res://art/fx/peggy_hit_light_sheet.png"
+frames = 5
+
+[sub_resource type="Resource" id="Resource_jumqk"]
+script = ExtResource("1_tgpsj")
+texture_path = "res://art/fx/landing_dust_sheet.png"
+frames = 5
+ticks_per_frame = 3
+cell = Vector2i(64, 32)
+
+[sub_resource type="Resource" id="Resource_4e7up"]
+script = ExtResource("1_tgpsj")
+texture_path = "res://art/fx/peggy_special_hit_sheet.png"
+frames = 7
+cell = Vector2i(48, 32)
+mirror = true
+
+[sub_resource type="Resource" id="Resource_3mjf1"]
+script = ExtResource("1_tgpsj")
+texture_path = "res://art/fx/peggy_special_trail_sheet.png"
+frames = 7
+cell = Vector2i(64, 32)
+mirror = true
+
+[resource]
+script = ExtResource("2_ymwgg")
+hit_light = SubResource("Resource_ujnrg")
+hit_heavy = SubResource("Resource_fwnl6")
+hit_counter = SubResource("Resource_8ejma")
+block = SubResource("Resource_4wad5")
+special_hit = SubResource("Resource_4e7up")
+ex_hit = SubResource("Resource_ecndg")
+heavy_whoosh = SubResource("Resource_87w27")
+special_trail = SubResource("Resource_3mjf1")
+landing_dust = SubResource("Resource_jumqk")

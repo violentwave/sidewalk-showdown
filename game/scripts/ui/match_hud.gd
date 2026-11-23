@@ -1103,6 +1103,49 @@ func show_banner_text(text: String) -> void:
 		_update_combo_visibility(side)
 
 
+# ---------------- cinematic mode (Phase C, FX_AND_METH_DESIGN §3/§4) ---------
+
+# Retimes the METH banner's auto-remove while the cinematic driver owns it:
+# the banner stays for the whole 210-frame sequence instead of its 120f
+# default, then expires (the KO banner replaces it on the versus path).
+func hold_meth_banner(frames: int) -> void:
+	if banner_id == "methtality" and _banner_auto > 0:
+		_banner_auto = maxi(frames, 1)
+
+
+# Public wrapper: the training cinematic restore clears the banner directly
+# (versus lets the KO/round banners replace it instead).
+func clear_banner() -> void:
+	_hide_banner()
+
+
+# Hides every piece of normal HUD clutter (health/meter/timer/pips/readouts)
+# while the METH cinematic runs, keeping only the METH banner plate; the
+# pause menu root stays exempt so pausing mid-sequence still renders its
+# options above the letterbox. Pure presentation: visibility is stored and
+# restored exactly, nothing is rebuilt.
+var _cinematic_hidden: Array[CanvasItem] = []
+
+func set_cinematic_mode(on: bool) -> void:
+	if on:
+		_cinematic_hidden.clear()
+		for child in hud_root.get_children():
+			if child is CanvasItem and child != banner_plate and child != pause_root:
+				if child.visible:
+					child.visible = false
+					_cinematic_hidden.append(child)
+		for child in get_children():
+			if child is CanvasItem and child != hud_root:
+				if child.visible:
+					child.visible = false
+					_cinematic_hidden.append(child)
+	else:
+		for child in _cinematic_hidden:
+			if is_instance_valid(child):
+				child.visible = true
+		_cinematic_hidden.clear()
+
+
 func _show_banner_subtitle(subtitle: String) -> void:
 	if subtitle.is_empty():
 		meth_banner.visible = false

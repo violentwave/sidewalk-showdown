@@ -1,0 +1,104 @@
+{
+ "plank_base": {
+  "cell": [
+   96,
+   32
+  ],
+  "frames": 1,
+  "anchor": [
+   8,
+   27
+  ],
+  "note": "plank lies on the floor; anchor = left end at floor contact"
+ },
+ "plank_snap_sheet": {
+  "cell": [
+   96,
+   32
+  ],
+  "frames": 7,
+  "ticks_per_frame": 3,
+  "anchor": [
+   48,
+   27
+  ],
+  "note": "snaps at its middle; halves fall into the sewer opening"
+ },
+ "sewer_open_sheet": {
+  "cell": [
+   96,
+   64
+  ],
+  "frames": 7,
+  "ticks_per_frame": 3,
+  "anchor": [
+   48,
+   46
+  ],
+  "note": "BACK layer: draw behind the victim; anchor = opening centre on the floor line"
+ },
+ "water_drop_mask_sheet": {
+  "cell": [
+   96,
+   64
+  ],
+  "frames": 7,
+  "ticks_per_frame": 2,
+  "anchor": [
+   48,
+   46
+  ],
+  "note": "FRONT layer: front rim + murky splash; draw over the victim; clip the victim below the front rim arc"
+ },
+ "whiskey_fumes_sheet": {
+  "cell": [
+   128,
+   96
+  ],
+  "frames": 7,
+  "ticks_per_frame": 3,
+  "anchor": [
+   10,
+   70
+  ],
+  "note": "dithered gas, no outline; anchor = bottle mouth; grows up-right"
+ },
+ "fictional_bar_sign_base": {
+  "cell": [
+   96,
+   48
+  ],
+  "frames": 1,
+  "anchor": [
+   48,
+   26
+  ],
+  "note": "generic bar sign, no text; hangs from two chains"
+ },
+ "bar_sign_shatter_back_sheet": {
+  "cell": [
+   96,
+   64
+  ],
+  "frames": 7,
+  "ticks_per_frame": 2,
+  "anchor": [
+   48,
+   26
+  ],
+  "note": "BACK layer: rear fragments, draw behind the victim"
+ },
+ "bar_sign_shatter_front_sheet": {
+  "cell": [
+   96,
+   64
+  ],
+  "frames": 7,
+  "ticks_per_frame": 2,
+  "anchor": [
+   48,
+   26
+  ],
+  "note": "FRONT layer: front fragments + impact flash, draw over the victim"
+ }
+}

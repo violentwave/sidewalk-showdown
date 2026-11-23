@@ -1,9 +1,13 @@
 # Phase A — Per-character hit FX and METHtality cinematics
 
-**Status:** owner-review proposal only. No game code, runtime assets, or
-PixelLab jobs were produced by this phase. The image artifacts are one audit
-contact sheet from already-approved runtime clips and two palette-only strips
-built from the approved samples plus FX-only accents.
+**Status:** Phase A (audit/design, PR #100) and Phase C (implementation) are
+**shipped**. The FX and prop art is **procedurally drawn, palette-locked, by
+the PM — not PixelLab**; the PixelLab Batch 1 draft PR #101 was abandoned
+(see §7) and its branch is kept only as the spend record. No game-code or
+runtime-art change was produced by the PixelLab batches. The image artifacts
+from the design phase are one audit contact sheet, two palette-only strips,
+and the owner-approved animatic GIFs; Phase C added the 320×180 key-beat
+captures in `docs/assets/fx_meth/`.
 
 **Scope:** (1) full per-character normal-attack FX sets for Peg Leg Peggy and
 Whiskey Richard; (2) scripted 3.5-second versions of their canon METHtalities,
@@ -415,7 +419,31 @@ review at native 320×180.
 
 ## 5. Design D — exact generation/review plan
 
-### Reference aliases (must be passed, not just mentioned in prompt text)
+> **Superseded (owner decision, 2026-11-23):** the FX and prop art was
+> **drawn procedurally with palette locks by the PM**, not generated through
+> PixelLab. The sections below (§5 reference aliases, tool fit, asset rows
+> as *generation* jobs, batch caps, PixelLab balance) are retained as the
+> historical proposal record. What actually shipped:
+>
+> - `art/source/FX/hit_fx/` (18 fx sheets + `fx_manifest.json`) and
+>   `art/source/FX/meth_props/` (8 props + `props_manifest.json`) are the
+>   owner-approved procedural batch; the PM's generator sources are kept at
+>   `art/tools/fx_generators/` for regeneration and are never agent-run.
+> - `art/tools/prepare_fx.sh` validates every sheet against its manifest
+>   (exact `cell×frames` sizes) and copies byte-identical runtime copies to
+>   `game/art/fx/`; PNGs are never edited or resampled.
+> - `game/tools/gen_fx_sets.gd` builds the per-fighter
+>   `FxSet` resources (`game/resources/fighters/{peggy,richard}_fx_set.tres`)
+>   straight from `fx_manifest.json`, so the runtime metadata cannot drift
+>   from the approved art; `fx_events_test` pins the sheets to the data and
+>   the runtime copies to the sources byte-for-byte.
+> - The PixelLab Batch 1 drafts (draft PR #101) are **abandoned**: closed
+>   with a comment pointing at the Phase C PR, branch kept for the spend
+>   record only (10 generations, 603/2000 remaining; see
+>   `art/source/FX/Animations/generated/batch_01_metadata.json` on that
+>   branch). No PixelLab asset is used anywhere in the runtime.
+
+### Reference aliases (historical proposal)
 
 - **`P-ID` / Peggy identity:** `art/source/Characters/Animations/generated/peggy_idle_review/peggy_idle_01.png`
 - **`R-ID` / Richard identity:** `art/source/Characters/Animations/generated/richard_idle_review/richard_idle_01.png`
@@ -713,6 +741,57 @@ untouched.
 | Who approves PixelLab identity/scale and all 31 review assets before integration? | Owner approval is a hard gate. Nothing in this design authorizes a PixelLab job or runtime install. |
 
 ## 7. Phase gates and gated batch plan
+
+> **Superseded (owner decision, 2026-11-23):** the five-batch PixelLab plan
+> below was abandoned in favor of the PM's procedural palette-locked art
+> (see the §5 note). Phase C then wired that approved art with **existing
+> clips only**, amending the §3 storyboards' dedicated `meth_*` attacker
+> animations (which were never drawn) with the beat maps below. The batch
+> table is retained as the historical record of the plan and its caps.
+
+### Phase C — as implemented
+
+- **FX event system:** `game/scripts/fx/fx_layer.gd` (CanvasLayer 5,
+  presentation-only) spawns the fighter-specific sheet from
+  `FighterData.fx_set` at the hitbox/hurtbox overlap center, one primary
+  impact per resolved contact, precedence EX > counter > special/launcher >
+  heavy > light, block on blocked contacts; heavy whoosh and special trail
+  spawn at move startup attached to the attacker; shared dust on LAND,
+  grounded/airborne KNOCKDOWN floor contact, and a one-shot wall-contact
+  event on clamp contact. Sheets advance on the sim clock with each sheet's
+  `ticks_per_frame`, freezing in hitstop and pause, never serialized.
+- **METH cinematic driver:** `game/scripts/fx/meth_cinematic_driver.gd`
+  owns the serialized `METH_CINEMATIC` phase: 210 frames after the contact
+  frame (frames 0-29 are the opening hold standing in for the authored
+  30f contact hitstop), both fighters puppeted from `sequence_frame`,
+  damage applied once on the boundary tick through the ordinary hit/KO
+  path, then the normal KO/round/Results flow. Training restores the
+  pre-METH snapshot (health, positions, full meter — the activation's
+  spend) and adds the training-only UI-confirm skip after the opening
+  hold. Serialize/load mid-sequence resumes on the exact frame.
+- **Owner beat maps (existing clips only; cels 1-based in the tables
+  below are what the driver plays):**
+  - **Walk the Plank:** contact = `forward` (long peg-leg poke, active
+    cel held, recovery cels for the knock onto the plank); pin =
+    `crouch_heavy` cels 1-3 (peg-leg sweep); stomp = `crouch_heavy` cels
+    3-5 (**placeholder** until a dedicated stomp pose exists); finish =
+    `win`. Victim: `hitstun_stand` → `knockdown` → `ko_air` tumble →
+    `ko_ground` below the front water rim.
+  - **Flaming Belch:** contact = `neutral`; drench = `heavy` cels 1-3
+    (bottle raised, same hand); belch/ignite = `neutral` cels 2-5;
+    follow-through = `neutral` last cel; finish = `win`. Victim:
+    `hitstun_stand` → `ko_air` toward the sign → `ko_ground` behind the
+    front shatter layer.
+  - Peggy's broken `meth.png` cel 4 is **unused** by the cinematic (the
+    driver plays the `forward`/`crouch_heavy`/`win` clips above; the
+    runtime `meth` clip only ever shows its opening contact cel).
+- **Tests:** `fx_events_test` (46 checks) and `meth_cinematic_test`
+  (85 checks) pin the whole contract; `combo_adversarial_test`'s A2
+  METH ruling now asserts the cinematic hold (no hitstun → no break, no
+  ghost pair) and `training_test`'s landed-METH check pins the training
+  cinematic + restore.
+
+### The historical batch plan (abandoned)
 
 Phase A is the audit/design PR. Phase B begins only after PR #100 is approved
 and merged. It creates **review drafts only** under `art/source/..._review/`;

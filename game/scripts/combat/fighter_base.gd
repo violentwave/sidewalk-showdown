@@ -24,6 +24,10 @@ signal ko
 signal teched
 signal meth_started(move_name: String)
 signal counter_hit_landed
+# Phase C (FX_AND_METH_DESIGN §4 item 5): presentation-only move-started
+# event. The FX layer spawns the fighter's data-authored whoosh/trail from
+# it; the simulation never reads it.
+signal attack_started(move: MoveData)
 # COMBO_SYSTEM_DESIGN §10.3: emitted when a Clip Cancel resolves, for the
 # future HUD flash.
 signal clip_cancelled
@@ -262,6 +266,15 @@ var _active_clip: Dictionary = {}
 var _transient_clip_key := ""
 var _transient_clip_tick := 0
 var _ko_grounded_frame := 0
+# --- Cinematic puppeting (Phase C, FX_AND_METH_DESIGN §4 item 4) ---
+# While the METH cinematic driver owns the match, both fighters are held out
+# of the ordinary tick and puppeted from sequence_frame: the driver sets
+# positions/facings directly and selects pose + cel through
+# set_cinematic_pose(). All of this is presentation-only and derived from
+# the driver's serialized state, so none of it joins serialize().
+var cinematic_hold := false
+var _cinematic_clip: Dictionary = {}
+var _cinematic_cel := 0
 # Previous sim state, captured by _set_state/_force_state before the state
 # change lands, so _on_state_changed can detect crouch-exit transitions.
 var _prev_state: State = State.IDLE
@@ -448,6 +461,11 @@ func begin_round(spawn_pos: Vector2, opponent_x: float) -> void:
 	combo_changed.emit(0)
 
 func _physics_process(_delta: float) -> void:
+	# Phase C: while the METH cinematic puppets this fighter, the ordinary
+	# tick (input polling, buffers, state machine, gravity, clamps) is fully
+	# suspended; the driver re-renders through set_cinematic_pose().
+	if cinematic_hold:
+		return
 	_poll_input()
 	_tick_combo()
 
@@ -921,6 +939,9 @@ func _start_move(move: MoveData) -> void:
 	macro_replayed_this_move = false
 	velocity.x = 0.0
 	_force_state(State.ATTACK)
+	# Presentation-only (Phase C): startup-attached FX read this; the sim
+	# never listens to it.
+	attack_started.emit(move)
 
 func _current_stance() -> MoveData.Stance:
 	if not grounded:
@@ -1983,6 +2004,54 @@ func load(data: Dictionary) -> void:
 	input_buffer = data["input_buffer"]
 	input_history = data["input_history"]
 
+# ---------------- Cinematic puppeting (Phase C) ----------------
+# Library clip lookup for the METH cinematic driver: the clip table for this
+# fighter (Peggy/Richard today), or {} when the fighter has no authored clip
+# set (future victims keep their fallback art).
+func cinematic_clip(key: String) -> Dictionary:
+	if not _clip_library_valid or _clip_lib == null:
+		return {}
+	return _clip_lib.clip(key)
+
+
+# The METH driver calls these; nothing else does. `clip` is a library clip
+# dictionary (path/frames/anchor/h_ref); a fighter without a clip set keeps
+# its existing fallback/static artwork, exactly as the design requires for
+# future victims.
+func set_cinematic_pose(clip: Dictionary, cel: int) -> void:
+	_cinematic_clip = clip
+	_cinematic_cel = clampi(cel, 0, maxi(int(clip.get("frames", 1)) - 1, 0))
+	_sync_visuals()
+
+
+func clear_cinematic_pose() -> void:
+	_cinematic_clip = {}
+	_cinematic_cel = 0
+	_sync_visuals()
+
+
+# Phase C (FX_AND_METH_DESIGN §4 item 3): the cinematic defers the METH
+# damage to its final frame; this applies the authored damage once through
+# the ordinary hit/KO path (lethal arc, KO state, ko signal). Training's
+# health floor keeps it nonlethal there, and training restores the snapshot
+# anyway. Never called outside the driver's finish path.
+func receive_meth_finish(attacker: FighterBase, move: MoveData) -> void:
+	health = maxf(training_min_health, health - move.damage)
+	combo_hits = 0
+	combo_tracker.reset()
+	_emit_health()
+	if health <= 0.0:
+		var dir := FighterBase.direction_away_from(attacker, self)
+		velocity = Vector2(dir * 130.0, -170.0)
+		grounded = false
+		_force_state(State.KO)
+		juggle_hits = 0
+		juggle_points = -1
+		hit_flash_frames = HIT_FLASH_FRAMES
+		_update_silhouette_flash()
+		ko.emit()
+
+
 func _pushbox_height() -> float:
 	return body_height * (0.65 if (crouching or state == State.CROUCH) else 1.0)
 
@@ -2098,6 +2167,11 @@ func _display_idle_art() -> void:
 func _resolve_visual_clip() -> Dictionary:
 	if not _clip_library_valid:
 		return {}
+	# Phase C: the cinematic driver's pose override wins over any
+	# state-derived clip while it is active (the fighter is held out of the
+	# ordinary tick, so state resolution is meaningless during the sequence).
+	if not _cinematic_clip.is_empty():
+		return _cinematic_clip
 	if _transient_clip_key != "":
 		var transient: Dictionary = _clip_lib.state_clip(_transient_clip_key)
 		# A gated transient (e.g. Peggy's crouch-down art) falls through to the
@@ -2302,7 +2376,12 @@ func _display_clip(clip: Dictionary) -> void:
 		idle_sprite.hframes = int(clip.frames)
 		idle_sprite.vframes = 1
 		idle_sprite.offset = -Vector2(clip.anchor)
-	idle_sprite.frame = _clip_frame(clip)
+	# Phase C: the cinematic driver selects the exact cel; ordinary playback
+	# stays a pure function of the sim state.
+	if not _cinematic_clip.is_empty():
+		idle_sprite.frame = clampi(_cinematic_cel, 0, maxi(int(clip.frames) - 1, 0))
+	else:
+		idle_sprite.frame = _clip_frame(clip)
 	var s: float = _idle_art_scale * float(_clip_lib.STANDING_REFERENCE_H_REF) / float(clip.h_ref)
 	idle_sprite.scale = Vector2(s, s)
 	idle_sprite.flip_h = facing < 0

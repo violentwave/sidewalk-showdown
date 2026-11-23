@@ -372,8 +372,8 @@ func _test_training_rules() -> void:
 		mroot.p1.meter > meter_before,
 		"meter %s -> %s" % [str(meter_before), str(mroot.p1.meter)])
 
-	# Meter FULL: a landed METHtality spends and instantly refills, and it
-	# neither KOs the dummy nor ends the training match.
+	# Meter FULL: a landed METHtality plays the full training cinematic
+	# (no KO), then restores the snapshot; the meter stays full either way.
 	mroot.training.meter_mode = mroot.training.MeterMode.FULL
 	await _manual_step(mroot, 2)
 	_check("meter FULL tops both bars up",
@@ -383,9 +383,13 @@ func _test_training_rules() -> void:
 	await _manual_step(mroot, 1)
 	await _tap(mroot, "meth")
 	await _manual_step(mroot, 40)
-	_check("a landed METHtality neither KOs nor ends the training match",
-		mroot.phase == 1 and mroot.p2.health >= 1.0,
-		"phase=%d health=%s" % [mroot.phase, str(mroot.p2.health)])
+	var meth_in_seq: bool = mroot.phase == 5 and mroot.meth_driver != null \
+			and mroot.meth_driver.active
+	await _manual_step(mroot, 180)
+	_check("a landed METHtality plays the training cinematic, then restores without KO",
+		meth_in_seq and mroot.phase == 1 and mroot.p2.health >= 1.0
+			and mroot.p2.state != FighterBase.State.KO,
+		"in_seq=%s phase=%d health=%s" % [str(meth_in_seq), mroot.phase, str(mroot.p2.health)])
 	_check("meter FULL refills through the METH spend",
 		mroot.p1.meter == mroot.p1.max_meter,
 		"meter=%s" % str(mroot.p1.meter))

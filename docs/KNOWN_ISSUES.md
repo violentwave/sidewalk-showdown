@@ -262,6 +262,19 @@ that section by hand afterward — the simulation step comes from
 
 ## Deliberate gaps (next phases)
 
+- **METH cinematic placeholder poses (Phase C, 2026-11-23).** The owner beat
+  maps deliberately use existing clips only, so two beats read as
+  placeholders until dedicated art exists: Peggy's **stomp beat reuses
+  `crouch_heavy` cels 3-5** (a dedicated stomp pose is a future art ask), and
+  both finishers' contact/attack beats reuse the `forward`/`neutral`/`heavy`
+  clips instead of the §3 storyboard's never-drawn `meth_*` sheets. Peggy's
+  **broken `meth.png` cel 4 is unused by the cinematic** — the driver plays
+  `forward` → `crouch_heavy` → `win`, and the runtime `meth` clip only ever
+  shows its opening contact cel — so the floating-peg-leg defect no longer
+  has a path to the screen; repair of that derived cel remains an owner
+  Pixelorama task if the clip is ever reused. The cinematic's one-shot
+  sound slots (`meth_plank_hit` etc., §3) stay unfilled: the sequence reuses
+  only the existing `meth`/KO cues.
 - **Authored sprite animation status (updated 2026-11-16).** Both fighters now
   play the owner's full-animation-batch clips. Peggy: 16 attack moves and 18
   core states (see `docs/PIXELORAMA_PIPELINE.md` §8 and
@@ -491,7 +504,7 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **408 checks**: distinct Peggy/Richard sheet
+- `game/tests/combat_test.gd` — **410 checks**: distinct Peggy/Richard sheet
   artwork in walk states, the authored idle sheet (selection, visibility, cel
   cadence, wrap, hitstop/pause freeze, re-entry reset, facing pivot, and the
   missing-art fallback), unchanged combat boxes, clean hits and
@@ -606,8 +619,9 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   MatchRoot save/restore with per-frame hash comparison, mid-combo
   save/restore, scripted-dial determinism, and a seeded route fuzz
   (`docs/COMBO_SYSTEM_DESIGN.md`).
-- `game/tests/serialization_test.gd` — **27 checks**: the MatchRoot
-  serializable surface (including training mode/tab/controller keys) carries
+- `game/tests/serialization_test.gd` — **28 checks**: the MatchRoot
+  serializable surface (including training mode/tab/controller keys and the
+  Phase C `meth_cinematic` driver state) carries
   every expected key and round-trips cleanly;
   exits 0/1 like the other suites.
 - `game/tests/b6_landing_whiff_test.gd` — **5 checks**: the superseded B6
@@ -688,7 +702,24 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   CROUCH/JUMP/CPU dummies; NONE/ALL/AFTER FIRST HIT/RANDOM block (including
   cross-up); throw-tech, shake-out, breaker; record/loop playback and facing
   mirror; position resets; frame advantage versus authored rows; hitboxes;
-  input collisions; deterministic RNG and serialize/restore.
+  input collisions; deterministic RNG and serialize/restore; and the
+  landed-METH training cinematic restoring without KO.
+- `game/tests/fx_events_test.gd` — **46 checks** (Phase C, FX layer): the
+  FX CanvasLayer z-order; FxSet data matching the owner manifests with
+  byte-identical runtime art; the right per-character sheet per kind
+  (light/heavy/special/EX/counter/block) at the overlap center; one
+  primary impact per contact; EX>counter precedence; facing mirroring;
+  startup-attached whoosh/trail; landing/knockdown/wall dust with the
+  one-shot wall latch; hitstop/pause freezing; and serialize() identical
+  with FX spawning on vs off.
+- `game/tests/meth_cinematic_test.gd` — **85 checks** (Phase C, METH
+  cinematic): whiff/block/below-full-meter gates; the exact 210-frame
+  Walk the Plank and Flaming Belch beat maps (clips and props per frame);
+  both finishers, both stages, both facing sides; wall-clamped,
+  never-scaled compositions; victim masking behind the front rim/shards;
+  mid-cinematic serialize/load resuming identically; training no-KO
+  restore plus the UI-confirm skip; CPU-vs-CPU completion; and pause
+  freezing.
 - UI deferred, recorded here so they are not lost: **win-type
   pip letters (K/T/M/D)** need a per-round win-type history MatchRoot
   does not keep — a sim-side decision (the approved letter art waits on
@@ -746,12 +777,12 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   actionability. Prints a report and exits 0 on success; `docs/PROPOSALS.md` §3
   documents the coarse grid, before/after metrics, and target limitations. Its
   numbers are informational measurements, not passing balance assertions.
-- `.github/workflows/tests.yml` runs the twenty-four headless suites — combat,
+- `.github/workflows/tests.yml` runs the twenty-six headless suites — combat,
   round-flow, mode/character-select, stage-select/ambience, stage-floor-guard,
   locomotion-speed, CPU opponent, combo system, combo fuzz, stun & breaker,
   combo adversarial, The Clip intro, serialization, B6 landing-whiff, UI flow,
   settings, remap, UI assets, UI typography, UI layout, select screens,
-  results flow, match HUD, and training —
+  results flow, match HUD, training, FX events, and the METH cinematic —
   plus the air probe on push, pull request and manual dispatch, every step under
   a `timeout-minutes` so a hang fails fast.
   They are separate jobs in one workflow; parallel

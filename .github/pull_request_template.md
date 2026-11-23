@@ -30,7 +30,7 @@ combo_fuzz_test:       ... checks, ... failure(s)
 stun_breaker_test:     ... checks, ... failure(s)
 combo_adversarial_test: ... checks, ... failure(s)
 the_clip_test:         ... checks, ... failure(s)
-serialization_test:    ALL PASS (exit 0)
+serialization_test:    ... checks, 0 failure(s) (exit 0)
 b6_landing_whiff_test: ... checks, ... failure(s)
 ui_flow_test:          ... checks, ... failure(s)
 settings_test:         ... checks, ... failure(s)
@@ -39,6 +39,7 @@ ui_typography_test:    ... checks, ... failure(s)
 select_screens_test:   ... checks, ... failure(s)
 results_flow_test:     ... checks, ... failure(s)
 hud_test:              ... checks, ... failure(s)
+training_test:         ... checks, ... failure(s)
 air probe:            metrics only, job must still pass
 ```
 

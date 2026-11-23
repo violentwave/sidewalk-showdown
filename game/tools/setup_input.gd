@@ -54,6 +54,23 @@ const UI_PAD_BUTTONS := {
 	"ui_back": [JOY_BUTTON_B],
 }
 
+# Training-mode match keys (GDD 6.4). Match-level toggles, not player skill
+# inputs, so they carry no p1_/p2_ prefix and the P1-keyboard / P2-pad device
+# policy does not apply: the keyboard side matches P1's board (R/T/P are
+# unbound there today) and the pad side uses buttons no p2_* action binds
+# (LB / R3 / L3). The fighters never poll these names.
+const TRAINING_KEYS := {
+	"training_reset": [KEY_R],
+	"training_record": [KEY_T],
+	"training_playback": [KEY_P],
+}
+
+const TRAINING_PAD_BUTTONS := {
+	"training_reset": [JOY_BUTTON_LEFT_SHOULDER],
+	"training_record": [JOY_BUTTON_RIGHT_STICK],
+	"training_playback": [JOY_BUTTON_LEFT_STICK],
+}
+
 # Left stick mirrors the d-pad. One event per direction with the sign the axis
 # reports, so Input.get_axis() and digital direction checks both work.
 const P2_PAD_AXES := {
@@ -111,6 +128,22 @@ func _init() -> void:
 			ev.device = -1
 			events.append(ev)
 		_append(action, events)
+
+	# Training keys: keyboard events plus the pad alternates above, written
+	# fresh (no _append needed; the generator is the single source of truth).
+	for action: String in TRAINING_KEYS:
+		var events: Array = []
+		for code: int in TRAINING_KEYS[action]:
+			var ev := InputEventKey.new()
+			ev.physical_keycode = code
+			ev.device = -1
+			events.append(ev)
+		for button: int in TRAINING_PAD_BUTTONS[action]:
+			var pad := InputEventJoypadButton.new()
+			pad.button_index = button
+			pad.device = -1
+			events.append(pad)
+		_write(action, events)
 
 	# NOTE: save() rewrites project.godot and drops settings whose value equals the
 	# engine default, which includes the explicit [physics] 60 Hz entry. Re-add it

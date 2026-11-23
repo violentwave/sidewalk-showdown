@@ -2,35 +2,26 @@
 
 > **Keep this file current: every PR that changes features, tests, commands, or
 > rules must update PM_BRIEF.md.**
-> Last verified: **2026-11-22**, against `origin/main` at `1291073`
-> (PR #93 adversarial rulings) plus this branch's
-> **UI Phase 2 (the match HUD)**: the approved street-junk HUD art wired
-> into every element (portrait frames with normal/hurt/ko photos,
-> health frames with the 20-sim-frame combo ghost, pip sprites, timer
-> box with digit-strip cells, meter frames with METH-pink READY state
-> and the 15-frame skull, banner plates with word sprites stamping in
-> over 6 sim frames, attacker-side callouts, the commentary tape), all
-> HUD timers moved onto a presentation-only per-sim-tick hook (frozen
-> by pause and hitstop, resyncing on restore), and five stored settings
-> consumed (commentary, show_combo_damage, reduce_flashing,
-> high_contrast_hud, hide_tripp_text). This branch adds **Combo Phase 4's
-> HUD half**: the defender's combo count/damage/base scale and juggle pips
-> on the attacker's side, macro flash, stun bar, breaker pip, and BREAK! /
-> CLIP CANCEL callouts. New suite counts: hud_test 82; ui_typography 46;
-> round_flow 35
-> (decisive/FIGHT banner pins). Win-type pip letters stay out —
-> MatchRoot keeps no per-round win history (KNOWN_ISSUES). (Earlier on
-> main: combo Phase 3 stuns + breaker — Richard Taser Belch 105→40 +
-> 240f immunity, Peggy Peg-Lock 95 + 60f
-> immunity), the free-per-round + 40-meter combo breaker, and Peggy's base
-> launcher raised 228→274 (owner call: the authored route now connects at
-> human timing). New suite: stun_breaker 55 checks; combo_fuzz grew to
-> 118 with stun/breaker fuzz and a re-measured soak (3092–5007 frames,
-> limit 6500). All claims below were checked
-> against the code, resources, workflows, and a full local test run on this
-> branch — not copied from other docs. Stale claims found elsewhere are
-> called out in §9.
-
+> Last verified: **2026-11-23**, against `origin/main` at `40e27f8`
+> (PR #95 README + PR #96 HUD) plus this branch's **Training Mode
+> (GDD §6.4)**: enabled Main Menu entry; P1-picks-both + stage-select
+> flow straight to a training-rule MatchRoot; no timer/rounds/KO/Results;
+> dummy stances/CPU, block/tech/breaker/shake-out, meter/health settings,
+> 10-second record/loop playback with facing mirroring, resets, frame
+> readouts, and hitboxes; all options, playback, LCG, readout and CPU state
+> serialize. New training_test 79 checks; serialization_test 27;
+> ui_typography_test 50; CI now runs 22 headless suites including
+> training_test (79).
+>
+> The inherited HUD is already Combo Phase 4: the defender's combo
+> count/damage/base scale and juggle pips on the attacker's side, macro
+> flash, stun bar, breaker pip, and BREAK!/CLIP CANCEL callouts. HUD count
+> 82; the base ladder intentionally excludes move-specific repeat/variety.
+> Existing CPU behavior, A2/A3/A4 rulings, versus and solo rules are
+> unchanged by training.
+>
+> Prior main verification on `40e27f8`: full 21-suite run, all zero
+> failures; details below.
 ## 1. What this game is (verified stack)
 
 **Sidewalk Showdown** is a mature-rated 2D pixel-art arcade fighter: a washed-up
@@ -52,9 +43,9 @@ launchers/juggles, a full-bar METHtality finisher). Tech stack, verified in
 
 ## 2. Current state of `main`
 
-HEAD `83f9573` (2026-11-21; combo Phase 2 — juggle economics — on
-`feat/juggle-economics`). Phase label: **GDD §13 Phase 2 — Vertical
-Slice, in progress**. Shipped features, each verified in code/data:
+HEAD `40e27f8` (2026-11-23; PR #95 README overhaul, on top of PR #96's
+Combo Phase 4 HUD). Phase label: **GDD §13 Phase 2 — Vertical Slice, in
+progress**. Shipped features, each verified in code/data:
 
 | Feature | One-line status |
 |---|---|
@@ -68,11 +59,12 @@ Slice, in progress**. Shipped features, each verified in code/data:
 | CPU opponent | Solo P2 driven by `CpuController` (deterministic seeded LCG, presses the same `p2_*` actions as a human, ticks at physics priority -100 on completed frames); difficulties are data: `game/resources/ai/cpu_{easy,normal,hard}.tres` (reaction 22/14/8f, block 0.35/0.65/0.90, idle watchdog 90/60/40, plus the Phase 4 combo knobs string/route/launcher/stun/juggle/breaker/clip/shake); debug `p1_cpu` enables AI-vs-AI; since Phase 4 the CPU walks the authored cancel graph, chases juggles, fishes stuns, breaks (free first, meter when worthwhile), Clip Cancels, and shakes out of stuns |
 | Stages | `gas_n_go` — "Everglades Gas-N-Go", `floor_y 158`, bounds 24-296, spawns 110/210; `bus_stop_night` — "Bus Stop", `floor_y 170`, bounds 24-296, spawns 110/210; each is a native 320x180 layered scene with visual-only ambience (clouds 5 px/s; Gas-N-Go 8 fps mosquitoes + breathing/blinking gator; Bus Stop 8 fps 4-frame fire + flickering liquor sign) |
 | Stage select | Shared pick after character select: every stage a `stage_scratch_ticket.png` (72x44) with its thumbnail **center-cropped** into the measured silver panel (36x16 AtlasTexture region, never scaled) and its name in outlined Marker; RANDOM last stays covered and confirms through an 18-frame integer-pixel scratch-off reveal before the same hand-off; the visual/meta RNG source is unchanged; resolved on the selector to a concrete stage id stored in `Main.last_stage_id`; empty/invalid roster stops `MatchRoot._ready()` before instantiating anything |
-| Menus & flow | Content warning (once per launch, press-required with a 30-frame input guard) -> The Clip (15 panels, Space-only advance, Esc skip) -> Title (PRESS START, 1 s pulse) -> Main Menu (price-board hub: VERSUS, TRAINING greyed, SETTINGS, EXTRAS greyed, QUIT, price board only — the chat strip was removed in the 2026-11-21 polish, QUIT rides a taped ui_button on the sign pole; no RNG) -> mode select (1 PLAYER default / 2 PLAYERS, cardboard panel with yellow focus bars over the dimmed Gas-N-Go) -> [solo] difficulty select (EASY/NORMAL/HARD, default NORMAL, ink tally marks) -> character select (mugshot wall, rap sheet with owner-editable booking copy, scribble cursors; solo: P1 picks both; versus: each player) -> stage select -> VS bumper (12-frame bust slide-in, 150 frames, skippable after 20) -> match -> Results (REMATCH / CHARACTER SELECT / STAGE SELECT / MAIN MENU, rematch through the VS again); ScreenRouter (deferred pushes = confirm-leak guard) + FlowState; pause menu: Resume / Settings (overlay above the paused match) / Restart Match / Character Select / Main Menu / Quit to Desktop (through the quit confirm, default NO); the finished match freezes (paused) under the Results screen |
+| Menus & flow | Content warning -> The Clip -> Title -> Main Menu (VERSUS / TRAINING / SETTINGS / EXTRAS grey / QUIT) -> VERSUS: mode select -> [solo] difficulty -> character select -> stage -> VS -> normal MatchRoot -> Results. TRAINING: P1-picks-both character select -> stage select -> training MatchRoot directly (no VS, intro, rounds, timer, KO or Results); back from character select returns to Main Menu. ScreenRouter still owns deferred transitions; FlowState carries the training-mode flag. Normal pause system options are unchanged; training adds a TRAINING/SYSTEM tab. |
 | Settings | `Settings` autoload -> `user://settings.cfg` (`[meta] version=1`, defaults fill missing keys, apply on boot, save on change only); overlay with Video / Audio / Gameplay / Accessibility / Stream tabs (no Controls yet); audio buses Master/Music/SFX/Voice/UI, defaults at exactly 0 dB |
 | Input policy | P1 keyboard + mouse only, P2 controller only (both `device = -1`); the map is generated by `game/tools/setup_input.gd`, never hand-edited; combat_test replays real keys (device 16) and pins the policy |
 | Round rules | 99 s rounds; 2 wins to take the match **and lead** (2-2 continues into DECISIVE ROUNDS); double KO = both take a pip; two timeout ties draw, the third starts a 30 s SUDDEN DEATH resolved by health -> round damage -> meter -> P1 |
-| Match HUD (UI Phase 2 + Combo Phase 4 HUD) | Street-junk HUD on the approved art: portrait/health/meter/timer frames, banners, round pips and commentary tape; plus attacker-side combo count/damage/base-ladder tint and gated scale tag, 45-frame macro flash, remaining/spent juggle pips, stunned-fighter bar, free/paid/unavailable breaker pip, and 30-frame BREAK!/CLIP CANCEL callouts. All read existing state/signals, tick on the presentation-only `hud.sim_tick()` hook (frozen by pause/hitstop), and resync after load; no MatchRoot or combat state writes. The scale readout is the base ladder for the latest hit, not a per-move repeat/variety multiplier. |
+| Training Mode (GDD §6.4) | P1 picks both fighters, selects a stage, and enters training rules without the VS/round flow. `TrainingController` reads fighters, supplies dummy behavior through P2 actions, owns the seeded block RNG/recording/options, and serializes under MatchRoot. The only combat change is a zero-default, serialized training health floor. |
+| Match HUD (UI Phase 2 + Combo Phase 4 HUD) | Street-junk HUD on the approved art: portrait/health/meter/timer frames, banners, round pips and commentary tape; plus attacker-side combo count/damage/base-ladder tint and gated scale tag, 45-frame macro flash, remaining/spent juggle pips, stunned-fighter bar, free/paid/unavailable breaker pip, and 30-frame BREAK!/CLIP CANCEL callouts. Training adds a top-center readout (last damage/advantage/startup/juggle/stun), pause tabs, and REC/PLAY state. All timers use `hud.sim_tick()`; state-backed readouts resync after load. |
 | Combat core | 5f normal / 7f special+grab+METH buffers; hitstop per move (+2 on counter-hit); chip floors at 1 HP; damage scaling 100/100/85/70/55% (55% floor, data in `ComboTuning`); juggle POINT BUDGET: a grounded launcher grants 5 points, air normals cost 2, air specials 3, an unpayable hit rejects and stays live, with x0.7 knockback decay / x1.25 gravity / x0.9 hitstun decay per air hit (combo window gated on landing); knockdown 30f -> wake-up 12f with 6f strike / 8f throw invulnerability; knockdown rejects all throws and non-METH strikes (K1/R1); throws techable in 7f, whiff recovery 22f; command grabs untechable, in-front only; whiffed air moves lock 8f/12f un-blockable landing recovery |
 
 ## 3. Architecture map
@@ -103,6 +95,8 @@ Slice, in progress**. Shipped features, each verified in code/data:
 | `game/scripts/ui/mode_select.gd`, `difficulty_select.gd`, `character_select.gd`, `stage_select.gd` | The four text-style menu screens and their back- conventions (mode select back -> main menu since Phase 1) |
 | `game/scripts/ui/the_clip_comic.gd` | The 15-panel intro: panel data (`game/data/story/the_clip.panels`), beat/panel advancement, procedural newsprint look, bundled OFL fonts |
 | `game/scripts/ui/match_hud.gd` | `MatchHUD` — health/meter bars, timer, round pips, messages, combo counter, pause menu rendering |
+| `game/scripts/match/training_controller.gd` | Training-only dummy/options/LCG/recording, P2 input playback, health/meter/breaker rules and serialized readouts |
+| `game/scripts/ui/hud/training_panel.gd` | Training-only last-hit damage/advantage/startup, juggle/stun readout panel |
 | `game/scripts/debug/debug_overlay.gd` | F1 boxes, F2 frame state/advantage/invuln countdown, F3 input history, F4 slow-mo, F5 frame-step, F6 refill; mutes itself headless |
 | `game/scripts/audio/audio_manager.gd` | Intro/fight track looping + hit/block/UI/round/KO/METH cues (temporary audio) |
 | `game/scripts/combat/peggy_clip_library.gd`, `richard_clip_library.gd` | Authored per-state/per-move clip tables (presentation only; cadence + `h_ref` scale) |
@@ -128,25 +122,26 @@ Counts are PASS+FAIL lines observed in real headless runs, not doc claims.
 | `combo_fuzz_test.gd` | Seeded fuzz over the combo layer: route search, 12/550 caps, macros/Clip-Cancel/blocked-macro/counter edges, two-build determinism, mid-combo serialize/restore, cross-up on both stages, juggle budget/routes/seeded juggle fuzz on both stages, Phase 3 stun/breaker fuzz (both matchups, both fighters as the breaking side), 8-match CPU-vs-CPU soak (3282–3896 frames after the Phase 4 CPU, limit 4900 = worst + ~25%) | **118**, 0 fail | yes — repaired 2026-11-21 (PR #76 harness port); Phase 2 juggle coverage added 2026-11-21; Phase 3 stun/breaker fuzz added 2026-11-21; **Phase 4 soak re-measured 2026-11-22** |
 | `stun_breaker_test.gd` | Phase 3 stun and breaker rails end to end: window/shake-out/immunity/once-per-combo/step-3 scaling, blocked and airborne rails, buffer-freeze bounds, breaker free/meter/cooldown/once-per-combo economy, blockstun+neutral rejection, juggle breaks, the corner escape, mid-stun/mid-break serialize-restore, determinism | **55**, 0 fail | yes — **added 2026-11-21 (Phase 3)** |
 | `combo_adversarial_test.gd` | INDEPENDENT audit of the combo layer (adversarial pass 2): breaker abuse, the shared grab+special pair, stun edges, seeded combined-loop fuzz, every-frame serialize/restore, P1/P2 symmetry, meter — plus the owner-ruling matrix (A2 hitstop-bridging for hitstop 6/10/30, A3 refused-pair consumption) on both stages, both slots | **102**, 0 fail | yes — **added 2026-11-22; rulings landed in `fix/adversarial-rulings`** |
-| `serialization_test.gd` | Match serializable-surface keys + round trip | **24**, 0 fail | yes — fixed 2026-11-20 (exits with `quit()`, correct exit code) |
+| `serialization_test.gd` | Match serializable-surface keys (training mode/tab/controller and fighter health floor) + round trip | **27**, 0 fail | yes |
 | `b6_landing_whiff_test.gd` | Superseded B6 rule: landing a whiffed air move awards 0 meter, move clears, recovery runs | **5**, 0 fail | yes — added 2026-11-20 (asserts current behavior; exits cleanly) |
 | `ui_flow_test.gd` | Phase 1 routing: router semantics, every forward/back path, confirm-leak guard, pause overlays, greyed items, QuitConfirm default, press-required warning (30-frame guard), chat-free menu, wrap order, the stage -> VS -> match hand-off, title pulse | **53**, 0 fail | yes — 2026-11-21 polish pass (was 48; warning behavior pins updated with owner approval) |
 | `settings_test.gd` | Settings persistence: defaults, fill-in, round trip, opening never saves, reset applies+saves, 0 dB defaults | **16**, 0 fail | yes — added 2026-11-21 (scratch config; player file untouched) |
 | `ui_assets_test.gd` | Runtime UI art: prepare_ui size table re-run in verify mode + byte identity vs approved sources | **4**, 0 fail | yes — added 2026-11-21 |
-| `ui_typography_test.gd` | Phase 1 + PR A/B/C typography and contrast rules; HUD labels at round start/mid-fight and overlap-free juggle, stun, full-meter breaker and P2 callout+combo states | **46**, 0 fail | yes |
+| `ui_typography_test.gd` | Pixel-font/contrast rules and overlap-free labels in standard HUD, training panel and training pause tabs | **50**, 0 fail | yes |
 | `select_screens_test.gd` | PR A select reskins: Mode/Difficulty choices unchanged (names, order, defaults, emits, back paths), difficulty tallies, rap-sheet photo + wall copy, per-player scribble cursors, ticket focus lift, the 18-frame RANDOM scratch-off and its hand-off | **24**, 0 fail | yes — added 2026-11-22 (PR A) |
 | `results_flow_test.gd` | PR B match wrap: the VS slide-in (12 integer steps), 20-frame skip guard, 150-frame duration and hand-off; Results appears at match end above the frozen match with the real winner/stats; serialize() identical while Results is up; the 30-frame Results guard; every Results option routes (REMATCH keeps fighters and stage through the VS bumper) | **20**, 0 fail | yes — added 2026-11-22 (PR B) |
 | `hud_test.gd` | UI Phase 2 + Combo Phase 4 HUD: combo side-mirroring, ladder tint/scale setting, macro flash, juggle/stun/breaker readouts, event callouts, pause/load resync, and unchanged MatchRoot serialization | **82**, 0 fail | yes |
+| `training_test.gd` | Training flow/rules, dummy states/blocks/CPU, record/playback side-switch mirroring, resets, frame readouts, hitbox toggle, determinism and serialize/restore | **79**, 0 fail | yes — new GDD §6.4 suite |
 | `air_probe.gd` | Balance metrics only, asserts nothing, always exits 0 | 0 (metrics) | yes (separate job) |
 | `juggle_probe.gd` | Juggle balance metrics (every budget-legal launcher route, jab-only reference, candidate ladders), asserts nothing | 0 (metrics) | no |
 | `juggle_route_probe.gd` | Real-hitbox juggle route timing search (human timing; ~7 min) | 0 (metrics) | no |
 | `idle_render_check`, `peggy/richard_clip_render_check`, `jump_block_render_check`, `jump_block_trace`, `attack_scale_check`, `peggy/richard_jump_check`, `peggy/richard_live_soak` | Manual rendered/soak review tools; need a display, write to `/tmp/opencode/` | n/a | no |
 
-CI (`.github/workflows/tests.yml`) runs import + the twenty-one suites (combat,
+CI (`.github/workflows/tests.yml`) runs import + the twenty-two suites (combat,
 round_flow, character_select, stage_select, stage_floor, locomotion_speed,
 cpu, combo, combo_fuzz, stun_breaker, combo_adversarial, the_clip, serialization, b6, ui_flow,
-settings, ui_assets, ui_typography, select_screens, results_flow,
-hud_test) plus the air-probe job
+ settings, ui_assets, ui_typography, select_screens, results_flow,
+ hud_test, training_test) plus the air-probe job
 on push, PR, and manual dispatch; every step carries a `timeout-minutes` so
 a hang fails fast. `export.yml` builds both desktop targets on `main`/`v*`;
 `main_guard.yml` reverts unauthorized direct pushes to `main`.
@@ -174,11 +169,17 @@ godot --headless --path game --script res://tests/stun_breaker_test.gd
 godot --headless --path game --script res://tests/ui_flow_test.gd
 godot --headless --path game --script res://tests/settings_test.gd
 godot --headless --path game --script res://tests/ui_assets_test.gd
+godot --headless --path game --script res://tests/ui_typography_test.gd
+godot --headless --path game --script res://tests/select_screens_test.gd
+godot --headless --path game --script res://tests/results_flow_test.gd
+godot --headless --path game --script res://tests/hud_test.gd
+godot --headless --path game --script res://tests/training_test.gd
 # metrics only: air_probe.gd (slow, always exits 0)
 
 # rendered captures and manual harnesses (need DISPLAY=:0)
 DISPLAY=:0 godot --path game --resolution 1280x720 --script res://tools/readme_capture.gd   # -- swap poses swapped sides
 DISPLAY=:0 godot --path game --resolution 1280x720 --script res://tools/ui_polish_capture.gd  # regenerate docs/assets/ui/ screenshots
+DISPLAY=:0 godot --path game --resolution 1280x720 --script res://tools/training_capture.gd  # training readout capture
 DISPLAY=:0 godot --path game --resolution 1280x720 --script res://tests/richard_clip_render_check.gd
 
 # regenerate runtime UI art from the approved street-junk set
@@ -315,7 +316,7 @@ Release blockers / decisions pending:
   `hud_test` (82). **Combo Phase 4 HUD half — shipped on this branch:**
   attacker-side combo readouts, scale tint/tag, macro flash, juggle pips,
   stun bar, breaker pip and callouts, pinned by `hud_test` (82) and
-  `ui_typography_test` (46). Controls/extras follow the plan in
+  `ui_typography_test` (50). Controls/extras follow the plan in
   `docs/UI_HUD_SCREENS_PLAN.md`.
 
 - **Combo system** (design home: `docs/COMBO_SYSTEM_DESIGN.md`, merged
@@ -337,7 +338,11 @@ Release blockers / decisions pending:
   §15 decisions are all owner-approved, and the three 2026-11-21 Phase 3
   owner calls (launcher 274, ladder kept, jab deferred) are recorded in
   §15.1.
-- **Training mode** (GDD §6.4, Phase 3) — not started.
+- **Training mode** (GDD §6.4) — implemented on `feat/training-mode`: Main
+  Menu -> P1-picks-both character select -> stage select -> training MatchRoot
+  (no VS/round intro/timer/KO/Results); dummy options, seeded block modes,
+  meter/health controls, P2-path record/loop playback, resets, F1 hitboxes,
+  readout panel and training pause tab. Pinned by `training_test` (79).
 - **Input remapping UI** (GDD §4.1/§4.6/§14) — not started; the map is
   generated data today.
 - **METHtality presentation** — final-round finish prompt, cinematic, camera,
@@ -361,20 +366,20 @@ Release blockers / decisions pending:
 | `GDD.md` | Full design + production plan (§13 phases, §14 gates, §16 open questions) | Mostly current; the §14 implementation-status note was refreshed 2026-11-20 (CPU, stage select, difficulty select, combo Phase 1 all marked shipped) |
 | `GAME_BIBLE.md` | Story/world canon: Tripp, 15-fighter roster, rivalries, stage canon, METHtalities, campaign acts | Current (canon, not implementation status) |
 | `CHARACTERS.md` | Roster bible: archetypes, five story layers, move kits, METHtalities for all 15 | Current (canon, design-only) |
-| `docs/PHASE_STATUS.md` | GDD §13 phase-by-phase status with owner decisions | Current (2026-11-20): baseline pinned to `77e0b55`/PR #76, meter-decision date typo fixed to 2026-11-18, gamepad row marks PR #53 shipped, counts correct (54 select, 27 CPU; sixteen suites since combo Phase 3) |
-| `docs/KNOWN_ISSUES.md` | Defects + decisions, build contents, input policy, test inventory | Current (2026-11-20): counts fixed (54 select), cpu/combo/serialization/b6 inventory entries added, CI list covers all sixteen suites, ui_flow/settings/ui_assets entries added (UI Phase 1), "(there is no AI yet)" removed, owner-reported playtest issues (jab strength, corner escape, move-clip scaling) recorded |
+| `docs/PHASE_STATUS.md` | GDD §13 phase-by-phase status with owner decisions | Current on this branch: training mode, 22-suite CI, and updated UI/test counts |
+| `docs/KNOWN_ISSUES.md` | Defects + decisions, build contents, input policy, test inventory | Current on this branch: training-mode status/deferred boundaries and the 22-suite inventory |
 | `docs/CPU_OPPONENT.md` | CPU architecture, behaviors, difficulty knobs, soak results + balance reading, 41-check suite | Current (2026-11-22: Phase 4 combo behaviors, knob table, soak tables, honest limits) |
 | `docs/SIDE_SWITCHING.md` | Facing derivation, cross-up blocking, pass-through flag, determinism notes | Current (verified against `fighter_base.gd`/`match_root.gd`) |
 | `docs/STAGES.md` | Both stages' layers/ambience, floor_y method, thumbnails, stage select, add-a-stage recipe | Current (floor_y 158/170, bounds, spawns verified) |
-| `docs/COMBO_SYSTEM_DESIGN.md` | Combo-system audit (§§1-8) + design (§§9-16), phased plan, 11 owner-approved decisions, §15.1 Phase 2 implementation + balance data, §15.2 Phase 3 implementation + owner calls | Phases 1–3 implemented (§15.1/§15.2 measured 2026-11-21); Phase 4 planned |
+| `docs/COMBO_SYSTEM_DESIGN.md` | Combo-system audit (§§1-8) + design (§§9-16), 11 owner decisions, §15.1–§15.3 implementation notes | Phases 1–4 implemented, including the combo HUD |
 | `docs/COMBO_FINDINGS.md` | Seeded combo-fuzz results: harness/counter history, Phase 2 snapshot-aliasing + mid-air-expiry + base-Peggy findings, soak history, honest 6500 limit, Phase 3 skip-list closure | Current (2026-11-21, includes the Phase 2 juggle + Phase 3 stun/breaker coverage: 118/68/55 checks) |
 | `docs/SAVESTATE_PLAN.md` | What `serialize()` captures, AI state object, known gaps | Current (keys verified against code) |
 | `docs/PROPOSALS.md` | Historical combat-system proposals with measured results (§§1-7) | Current (2026-11-20): §§1/7 whiff-meter passages now carry inline "superseded" notes pointing to the landed-hits economy (§5); history preserved |
 | `docs/PIXELORAMA_PIPELINE.md` | Idle-sheet + authored-clip pipeline for both fighters (§8-§9b) | Current (integration status matches the clip libraries) |
 | `docs/PIXELLAB_ASSET_ORG.md` | PixelLab MCP project rules, style anchors, generation locks, walk-test proposal | Current (subscription counters will drift) |
 | `docs/UI_ASSETS.md` | UI art pipeline (generated -> approved -> runtime folders), Figma layout file link, per-asset manifest with native sizes | Current (2026-11-22): Phase 1 + select screens wired; `prepare_ui.gd` documented in §2 |
-| `docs/UI_SCREENS.md` | What shipped in UI Phase 1 + PR A: the router, the screen flow with every back path, Settings keys and consumption status, the select-screen layouts, the art pipeline command | Current (2026-11-22) |
-| `docs/UI_HUD_SCREENS_PLAN.md` | HUD and screens plan: screen list and routing, ScreenRouter/Settings design, 5 build phases, open decisions, Phase 1 agent prompt | Plan; **Phases 1 and 3a implemented** (2026-11-21/22) — see `docs/UI_SCREENS.md` for what shipped and the deltas |
+| `docs/UI_SCREENS.md` | Shipped front-end, select/match-wrap screens, HUD, typography/contrast rules and captures | Current: includes the training pause tabs and training readout capture |
+| `docs/UI_HUD_SCREENS_PLAN.md` | Original HUD/screens plan, routing, ScreenRouter/Settings design, build phases and open decisions | Plan; UI Phases 1–3 and GDD §6.4 Training Mode now shipped—see `docs/UI_SCREENS.md` for actual deltas |
 | `docs/UI_DESIGN_RESEARCH.md` | Menu/HUD design research: audience model, motion/audio language, sourced findings vs proposals | Research; **not implemented** |
 | `docs/ART_CREDITS.md` | Art provenance, font licenses, all-rights-reserved notes | Current (2026-11-21): m5x7 (Daniel Linssen, CC0) added as the UI pixel font |
 | `docs/LICENSE_OPTIONS.md` | License decision document (A/B/C), AI-art caveats | Current (decision pending) |
@@ -385,7 +390,7 @@ Release blockers / decisions pending:
 | `docs/archive/*.md` (2 files) | Recovered pre-repo conversation/project history | Historical by design (frozen 2026-11-03) |
 | `docs/audits/*.md` (2 files + logs) | Read-only combat audit at `d523ed0` and the `e6d40d9` reconciliation | Historical by design (claims pinned to old SHAs; e.g. 124 combat checks then vs 408 now) |
 | `game/audio/temporary/README.md` | Temporary audio credits: CC0 SFX, unconfirmed-rights MP3s | Current |
-| `.github/pull_request_template.md` | PR checklist (summary, evidence, docs) | Current (2026-11-20): evidence block lists all sixteen CI suites plus the air probe |
+| `.github/pull_request_template.md` | PR checklist (summary, evidence, docs) | Current: evidence block lists all 22 CI suites plus the air probe |
 
 ## 10. Verification notes
 

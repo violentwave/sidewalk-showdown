@@ -1,6 +1,6 @@
 # MainMenu — the hub (docs/UI_SCREENS.md). The Gas-N-Go price board is
-# the menu: slats 1-4 are VERSUS, TRAINING (greyed), SETTINGS, EXTRAS
-# (greyed) in m5x7 dark ink, vertically centered on the measured slat
+# the menu: slats 1-4 are VERSUS, TRAINING, SETTINGS, EXTRAS (greyed)
+# in m5x7 dark ink, vertically centered on the measured slat
 # rows; the focused slat shows the lit overlay with a darker label. QUIT
 # is a ui_button "taped" to the pole below the slats, labeled in Sidewalk
 # Marker. The owner removed the chat strip (2026-11-21): no chat panel,
@@ -18,6 +18,7 @@
 extends Control
 
 signal versus_chosen
+signal training_chosen
 signal settings_requested
 signal quit_requested
 signal back_requested
@@ -58,7 +59,7 @@ const QUIT_SIZE := Vector2(48, 16)
 
 const ITEMS := [
 	{"name": "VERSUS", "detail": "Fight the CPU or a friend."},
-	{"name": "TRAINING", "detail": "Coming soon.", "disabled": true},
+	{"name": "TRAINING", "detail": "Practice on a dummy."},
 	{"name": "SETTINGS", "detail": "Tweak your settings."},
 	{"name": "EXTRAS", "detail": "Coming soon.", "disabled": true},
 	{"name": "QUIT", "detail": "Leave the sidewalk."},
@@ -177,6 +178,8 @@ func _choose() -> void:
 	match index:
 		0:
 			versus_chosen.emit()
+		1:
+			training_chosen.emit()
 		2:
 			settings_requested.emit()
 		4:

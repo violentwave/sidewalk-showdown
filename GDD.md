@@ -760,19 +760,42 @@ Features:
 
 ### 6.4 Training Mode
 
-Required for a fighting game.
+**Implemented (2026-11-23, `feat/training-mode`; see
+`docs/PM_BRIEF.md` §8).** Entry from Main Menu → Training reuses the
+P1-picks-both Character Select and shared Stage Select, then starts a
+training-rule match directly (no VS bumper, round intro, timer, rounds,
+KO, or Results). Versus and solo continue through their existing flows
+unchanged.
 
 Features:
 
-- dummy behavior settings
-- input display
-- hitbox display
-- frame data display
-- damage readout
-- combo counter
-- meter controls
-- reset position
-- record/replay dummy input, later
+- Dummy stance: STAND / CROUCH / JUMP, or the existing CPU at EASY /
+  NORMAL / HARD. Block: NONE / ALL / AFTER FIRST HIT / seeded RANDOM;
+  throw tech, stun shake-out, and breaker behavior are individually
+  configurable.
+- Meter: normal landed-hit economy or always full. Health: refill after
+  each combo ends or HOLD. Training hits floor at 1 HP so a dummy cannot
+  KO; position reset restores both fighters' health and meter.
+- Readout panel: last-hit damage and hit/block frame advantage, startup,
+  current juggle points, and stun frames. The existing combo HUD supplies
+  hit count and combo damage. F1 still toggles hitboxes; the training pause
+  menu also has a HITBOXES option.
+- One 10-second dummy-input recording slot, looped playback, and
+  side-switch-aware left/right mirroring. Recording/playback goes through
+  the ordinary P2 input path.
+- Reset: **R** (P1 keyboard) or **LB** (pad); record: **T** / **R3**;
+  playback: **P** / **L3**. The three actions are dedicated match-level
+  bindings and do not replace any fighter action.
+- All options, the training RNG state, recording slot, readout state and
+  dummy CPU state are serialized. Training RANDOM uses its own recorded
+  LCG; no global RNG, wall-clock, delta or node-order dependency is added
+  to the sim.
+- **Deferred from the broader §6.4 wish list:** a persistent input-history
+  display and full startup/active/recovery frame-data table (v1 shows
+  startup and frame advantage only); a separate
+  wake-up reversal/quick-rise option (the current game has fixed wake-up
+  timing, not a selectable wake-up action). The TECH option exercises the
+  existing throw-tech buffer, including when a throw arrives during wake-up.
 
 ### 6.5 Survival Mode
 
@@ -1224,10 +1247,10 @@ Visual ingredients:
 
 ### 10.2 Required Screens
 
-| Screen | Purpose | Status (2026-11-21, UI Phase 1) |
+| Screen | Purpose | Status (updated 2026-11-23, Training Mode) |
 |---|---|---|
 | Splash / Content Warning | Mature tone warning | **Shipped** (once per launch; press confirm to continue) |
-| Main Menu | Mode selection | **Shipped** (price board + chat strip hub: VERSUS, TRAINING*, SETTINGS, EXTRAS*, QUIT; *greyed) |
+| Main Menu | Mode selection | **Shipped** (price board hub: VERSUS, TRAINING, SETTINGS, EXTRAS* and QUIT; EXTRAS remains greyed, Training enters GDD §6.4) |
 | Title | Branding / start | **Shipped** (PRESS START, pulsing once per second) |
 | Character Select | Select fighter and palette | **Shipped** (2026-11-22, PR A: mugshot wall, portraits, rap-sheet booking, scribble cursors; palette cycling not yet built) |
 | Stage Select | Select stage for versus/training | **Shipped** (2026-11-22, PR A: scratch tickets, 18-frame RANDOM reveal) |

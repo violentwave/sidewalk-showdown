@@ -184,8 +184,11 @@ func _test_boot_flow() -> void:
 	_press(main.title, "ui_confirm")
 	await process_frame
 
-	# Greyed items cannot be confirmed.
-	for greyed_index in [1, 3]:
+	# Training is live; only EXTRAS remains greyed.
+	_check("TRAINING is an enabled main-menu slat",
+		not main.main_menu.ITEMS[1].get("disabled", false),
+		"training item is still disabled")
+	for greyed_index in [3]:
 		while main.main_menu.index != greyed_index:
 			_press(main.main_menu, "p1_down")
 		var chosen := [0]
@@ -194,8 +197,7 @@ func _test_boot_flow() -> void:
 		main.main_menu.quit_requested.connect(func(): chosen[0] += 100)
 		_press(main.main_menu, "p1_light")
 		await process_frame
-		_check("the greyed %s slat cannot be confirmed" %
-				["TRAINING", "EXTRAS"][1 if greyed_index == 3 else 0],
+		_check("the greyed EXTRAS slat cannot be confirmed",
 			chosen[0] == 0 and main.main_menu != null,
 			"emitted signal=%d menu=%s" % [chosen[0], str(main.main_menu != null)])
 

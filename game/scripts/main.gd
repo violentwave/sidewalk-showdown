@@ -132,8 +132,11 @@ func _on_title_back() -> void:
 
 
 func _show_main_menu() -> void:
+	# Returning to the hub always ends the in-match mode context.
+	flow.training_mode = false
 	main_menu = MAIN_MENU_SCENE.instantiate()
 	main_menu.versus_chosen.connect(_on_versus_chosen)
+	main_menu.training_chosen.connect(_on_training_chosen)
 	main_menu.settings_requested.connect(_on_menu_settings)
 	main_menu.quit_requested.connect(_on_menu_quit)
 	main_menu.back_requested.connect(_on_main_menu_back)
@@ -151,7 +154,21 @@ func _on_main_menu_back() -> void:
 func _on_versus_chosen() -> void:
 	if main_menu != null:
 		main_menu = null
+	flow.training_mode = false
 	_show_mode_select()
+
+
+# ---------------- training flow (GDD 6.4) ------------------------------------
+# TRAINING -> character select (P1 picks their fighter, then the dummy,
+# solo-style) -> stage select -> the match directly: no VS bumper, no round
+# intro, no Results screen. Back from character select returns to the hub.
+
+
+func _on_training_chosen() -> void:
+	if main_menu != null:
+		main_menu = null
+	flow.training_mode = true
+	_show_character_select()
 
 
 func _on_menu_settings() -> void:
@@ -220,7 +237,8 @@ func _show_character_select() -> void:
 	audio_manager.start_intro_music()
 	character_select = CHARACTER_SELECT_SCENE.instantiate()
 	character_select.roster = roster
-	character_select.solo = solo_mode
+	character_select.solo = solo_mode or flow.training_mode
+	character_select.training = flow.training_mode
 	character_select.initial_p1_choice = last_p1_choice
 	character_select.initial_p2_choice = last_p2_choice
 	character_select.match_requested.connect(_on_match_requested)
@@ -237,6 +255,10 @@ func _on_select_back() -> void:
 	last_p1_choice = -1
 	last_p2_choice = -1
 	last_stage_id = ""
+	if flow.training_mode:
+		# Training backs straight out to the hub, not the mode select.
+		_show_main_menu()
+		return
 	_show_mode_select()
 
 
@@ -272,6 +294,11 @@ func _on_stage_chosen(stage: StageData, stage_id: String) -> void:
 	# concrete stage id the match will use.
 	last_stage_id = stage_id
 	flow.pending_stage = stage
+	if flow.training_mode:
+		# Training skips the VS bumper: straight into the match.
+		_start_match(flow.pending_p1_data, flow.pending_p2_data,
+			flow.pending_stage)
+		return
 	# Phase 3b: the VS bumper plays between stage select and the match
 	# (rematch goes through it too).
 	_show_vs(flow.pending_p1_data, flow.pending_p2_data)
@@ -315,7 +342,8 @@ func _build_character_select() -> Control:
 	audio_manager.start_intro_music()
 	var select: Control = CHARACTER_SELECT_SCENE.instantiate()
 	select.roster = roster
-	select.solo = solo_mode
+	select.solo = solo_mode or flow.training_mode
+	select.training = flow.training_mode
 	select.initial_p1_choice = last_p1_choice
 	select.initial_p2_choice = last_p2_choice
 	select.match_requested.connect(_on_match_requested)
@@ -338,8 +366,16 @@ func _start_match(p1_data: FighterData, p2_data: FighterData,
 	match_root.selected_p1_data = p1_data
 	match_root.selected_p2_data = p2_data
 	match_root.selected_stage = stage
-	match_root.p2_human = not solo_mode
-	match_root.p2_cpu = solo_mode
+	if flow.training_mode:
+		# Training: the dummy is driven by TrainingController, not the solo
+		# CPU; P2's pad input stays enabled only for dummy recording, and
+		# the pause menu stays P1's (p2_human false gates the pad's Start).
+		match_root.training_mode = true
+		match_root.p2_human = false
+		match_root.p2_cpu = false
+	else:
+		match_root.p2_human = not solo_mode
+		match_root.p2_cpu = solo_mode
 	match_root.cpu_level = cpu_level
 	match_root.audio_manager = audio_manager
 	match_root.return_to_select_requested.connect(_on_return_to_select)
@@ -448,8 +484,10 @@ func _on_results_main_menu() -> void:
 
 
 func _push_results_main_menu() -> void:
+	flow.training_mode = false
 	main_menu = MAIN_MENU_SCENE.instantiate()
 	main_menu.versus_chosen.connect(_on_versus_chosen)
+	main_menu.training_chosen.connect(_on_training_chosen)
 	main_menu.settings_requested.connect(_on_menu_settings)
 	main_menu.quit_requested.connect(_on_menu_quit)
 	main_menu.back_requested.connect(_on_main_menu_back)
@@ -488,8 +526,10 @@ func _on_match_main_menu_requested() -> void:
 	match_root = null
 	router.pop()
 	get_tree().paused = false
+	flow.training_mode = false
 	main_menu = MAIN_MENU_SCENE.instantiate()
 	main_menu.versus_chosen.connect(_on_versus_chosen)
+	main_menu.training_chosen.connect(_on_training_chosen)
 	main_menu.settings_requested.connect(_on_menu_settings)
 	main_menu.quit_requested.connect(_on_menu_quit)
 	main_menu.back_requested.connect(_on_main_menu_back)

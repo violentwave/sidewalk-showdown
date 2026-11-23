@@ -81,15 +81,15 @@ The MainMenu sign geometry is measured from `menu_price_sign.png`
 54-60, 63-69, dividers at 44-45, 52-53, 61-62, 70-71; the pole runs art
 x 36..43 to the art bottom. The sign is centered horizontally
 (`SIGN_POS` 120,34) with the pole bottom on the Gas-N-Go floor line
-(158). Slats 1-4 carry VERSUS, TRAINING (greyed), SETTINGS, EXTRAS
-(greyed) in m5x7 dark ink `#2A2418` (focused `#1C160D`, greyed
+(158). Slats 1-4 carry VERSUS, TRAINING (enabled by Training Mode),
+SETTINGS, EXTRAS (greyed) in m5x7 dark ink `#2A2418` (focused `#1C160D`, greyed
 `#9C8F70`); the focused slat shows the lit overlay (66x7 at x 6, y
 36/45/54/63). QUIT left the board in the polish pass: it is a 48x16
 `ui_button.png` "taped" to the pole below the slats (screen 136,116),
 labeled in Sidewalk Marker, yellow-modulated when focused. **The chat
 strip is gone (owner decision, 2026-11-21 playtest): no chat panel, LIVE
 tag, or fake chat lines — the menu is the price board only.** One m5x7
-description line sits on a dark plate bottom-left (greyed items say
+description line sits on a dark plate bottom-left (disabled items say
 "Coming soon."); the prompt line is bottom-right. The constants live in
 `game/scripts/ui/screens/main_menu.gd`.
 
@@ -144,7 +144,7 @@ ignored for the first 30 frames. Every option unpauses and routes;
 REMATCH goes back through the VsScreen with the same fighters and
 stage.
 
-## The match HUD (UI Phase 2 + Combo Phase 4 HUD, 2026-11-22)
+## The match HUD (UI Phase 2, Combo Phase 4 HUD, Training Mode)
 
 `game/scripts/ui/match_hud.gd` (`MatchHUD`, art table in
 `game/scripts/ui/hud/hud_art.gd`). The HUD **reads** match/fighter state
@@ -174,13 +174,15 @@ banners, callouts and macro flashes clear.
 | Juggle points | code-drawn 3x3 pips at y 106 under the attacker's combo counter; P2 mirrors P1 | while the defender has `juggle_points >= 0`, the attacker's side shows `juggle_points_start` pips: cream centers with a 1 px dark outline for points remaining, hollow for spent points. Hidden when not juggled. |
 | Stun | on the stunned fighter's own side under the name/pips; Marker-outline `STUNNED` ink at y 38–46, with a 1 px outlined bar beside it | reads `stun_frames_remaining` against the applied stun window; drains on the HUD sim tick and hides on `stun_ended`. |
 | Breaker | by each meter's outer end: 5x5 code-drawn pip at y 163 and m5x7 cream `BRK` label | bright `#f2d13a` fill = free use ready; yellow outline = paid break affordable; solid `#2A2418` = unavailable (cooldown, used this combo, or insufficient meter). Positioned away from METH READY and the skull. |
+| Training readout | training only: 152x25 dark plate at (84,31), above the maximum jump silhouette; two outlined Marker rows | last hit damage + hit/block advantage; last move startup + current juggle points, or stun frames. The combo HUD supplies hit count/damage. `REC`/`PLAY` appends on the first row while a 10s dummy-input slot records or loops. |
 | Commentary | `stream_commentary_box.png` 240x16 at (40,44), m5x7 dark ink on the tape | `gameplay.commentary`: full = as today, minimal = round lines only, off = hidden; `stream.hide_tripp_text` hides it. |
 | Accessibility | — | `reduce_flashing`: every flash becomes a 1-frame tint. `high_contrast_hud`: solid `#1C160D` plates behind bars, names and timer. Screen shake and hold-to-confirm have no HUD-side hook yet (see KNOWN_ISSUES). |
 
-The pause menu, the Results hand-off and the 90-frame Results delay are
-untouched. `match_root.gd` is touched only in the banner call swaps and
-the one-line hook; `serialize()/load()` and every combat number are
-unchanged (pinned by `hud_test`).
+The pause system tab, Results hand-off and 90-frame Results delay are
+unchanged. Training adds a TRAINING tab beside the system options and a
+serialized, training-only `TrainingController`; versus and solo retain their
+existing rules. The 60 Hz clock and all combat numbers are unchanged except
+the serialized zero-default health floor, active only in training.
 
 ## Settings
 
@@ -295,7 +297,8 @@ match wrap: `vs_screen` (after the slide-in), `results`,
 `results_rematch_focus`, and the HUD: `hud_round_start`, `hud_fight`,
 `hud_midfight`, `hud_low_health`, `hud_meth_ready`, `hud_ko`,
 `hud_high_contrast`, `hud_combo_scaled`, `hud_juggle`, `hud_macro`,
-`hud_stun`, `hud_breaker`, `hud_breaker_meth`.
+`hud_stun`, `hud_breaker`, `hud_breaker_meth`, and the training scene
+`training`.
 Regenerate by driving the real scenes:
 
 ```bash
@@ -307,6 +310,8 @@ DISPLAY=:0 godot --path game --resolution 1280x720 \
     --script res://tools/ui_match_capture.gd
 DISPLAY=:0 godot --path game --resolution 1280x720 \
     --script res://tools/ui_hud_capture.gd
+DISPLAY=:0 godot --path game --resolution 1280x720 \
+    --script res://tools/training_capture.gd
 ```
 
 (`game/tools/ui_polish_capture.gd` and `ui_select_capture.gd` capture
@@ -354,7 +359,7 @@ on an approved file missing from the table, and exits non-zero.
 - `game/tests/settings_test.gd` — 16 checks: defaults, fill-in, round
   trip, opening never saves, reset applies + saves, 0 dB defaults.
 - `game/tests/ui_assets_test.gd` — 4 checks: sizes + byte identity.
-- `game/tests/ui_typography_test.gd` — 46 checks: every label in the
+- `game/tests/ui_typography_test.gd` — 50 checks: every label in the
   eleven UI surfaces (screens + the pause menu) uses a pixel font at
   its native size with every glyph present, no theme outline/shadow,
   integer positions, no scaling; labels on cardboard (ui_panel /
@@ -365,7 +370,8 @@ on an approved file missing from the table, and exits non-zero.
   card (rap sheet, tickets) lies inside it — the PM review's two bugs
   both fail these checks on the pre-fix code — and the HUD labels pass
   the same rules at round start and mid-fight, plus juggle, stun,
-  full-meter breaker and P2 callout+combo states.
+  full-meter breaker, P2 callout+combo, training-pause and training-HUD
+  states.
 - `game/tests/select_screens_test.gd` — 24 checks (PR A): the Mode and
   Difficulty choices are unchanged (names, order, defaults, emits, back
   paths); the difficulty rows draw 1/2/3 tally marks; the rap sheet

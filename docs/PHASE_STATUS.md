@@ -82,7 +82,7 @@ phase exit criteria:
   blocking and round flow work, and the match can end/restart.
 - **Status:** **Implemented and regression-verified.** The Peggy/Richard slice,
   Bus Stop stage, combat, HUD, round manager, debug overlay, and pause path exist.
-  The current suites contain 408 combat, 68 combo-system, 118 combo-fuzz,
+  The current suites contain 410 combat, 68 combo-system, 118 combo-fuzz,
   55 stun-&-breaker, 102 combo-adversarial,
   35 round-flow,
   55 mode/character-select integration, 7 locomotion-speed,

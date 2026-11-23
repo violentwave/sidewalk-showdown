@@ -504,7 +504,7 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
 
 ## Test coverage
 
-- `game/tests/combat_test.gd` — **408 checks**: distinct Peggy/Richard sheet
+- `game/tests/combat_test.gd` — **410 checks**: distinct Peggy/Richard sheet
   artwork in walk states, the authored idle sheet (selection, visibility, cel
   cadence, wrap, hitstop/pause freeze, re-entry reset, facing pivot, and the
   missing-art fallback), unchanged combat boxes, clean hits and

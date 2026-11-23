@@ -860,7 +860,14 @@ func _run() -> void:
 	_check("METH activation on knockdown spends the full meter bar",
 		is_equal_approx(p1.meter, 0.0), "meter=%.1f" % p1.meter)
 	await _step(meth_on_knockdown.startup + 1)
-	_check("K1 permits the METH row to hit a knocked-down target",
+	# Phase C: a confirmed METH on a knocked-down target starts the
+	# cinematic (the knockdown clips are its victim beats), and the
+	# authored damage still lands exactly once when the sequence ends.
+	_check("K1 permits the METH row to grab a knocked-down target into the cinematic",
+		scene.phase == scene.Phase.METH_CINEMATIC and scene.meth_driver.active,
+		"phase=%d" % scene.phase)
+	await _step(215)
+	_check("the knocked-down cinematic still applies the authored METH damage once",
 		p2.health <= 0.0 and p2.state == FighterBase.State.KO,
 		"hp=%.1f state=%d" % [p2.health, p2.state])
 
@@ -1256,7 +1263,13 @@ func _run() -> void:
 		scene.hud.meth_banner.visible and scene.hud.meth_banner.text.contains("WALK THE PLANK"),
 		"banner='%s'" % scene.hud.meth_banner.text)
 	await _step(10)
-	_check("METHtality ends the healthy opponent",
+	# Phase C: the confirmed finisher plays its 210-frame cinematic before
+	# the single deferred damage application.
+	_check("the confirmed METHtality runs its cinematic sequence",
+		scene.phase == scene.Phase.METH_CINEMATIC and scene.meth_driver.active,
+		"phase=%d" % scene.phase)
+	await _step(215)
+	_check("METHtality ends the healthy opponent after the sequence",
 		p2.health <= 0.0 and p2.state == FighterBase.State.KO,
 		"hp=%.1f state=%d" % [p2.health, p2.state])
 	await _step(110)

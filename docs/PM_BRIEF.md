@@ -139,7 +139,7 @@ Counts are PASS+FAIL lines observed in real headless runs, not doc claims.
 
 | Suite (`game/tests/`) | Covers | Checks | In CI |
 |---|---|---:|---|
-| `combat_test.gd` | Combat engine end-to-end: boxes, damage, block/chip, throws/techs, wake-up invuln, EX/METH, landing, input-map device policy, side-switch/pass-through, counters, trades, juggle budget pins | **408**, 0 fail | yes |
+| `combat_test.gd` | Combat engine end-to-end: boxes, damage, block/chip, throws/techs, wake-up invuln, EX/METH (incl. the Phase C cinematic gate), landing, input-map device policy, side-switch/pass-through, counters, trades, juggle budget pins | **410**, 0 fail | yes |
 | `round_flow_test.gd` | Phases, commentary, KO, pips, timeouts, draws, sudden death, tiebreaks, hitstop-clock, the decisive/FIGHT banners | **35**, 0 fail | yes |
 | `character_select_test.gd` | Boot/warning/title/menu navigation, mode/difficulty/character/stage flow, solo two-pick, back-outs, restore, music/cues, the stage -> VS -> match hand-off | **55**, 0 fail | yes |
 | `stage_select_test.gd` | Stage ids/thumbnails/scenes, RANDOM, ambience of both stages, invalid-roster guards, gator safely hidden, no stale `BusStopNight` art | **95**, 0 fail | yes |

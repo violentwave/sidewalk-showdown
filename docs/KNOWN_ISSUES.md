@@ -262,6 +262,49 @@ that section by hand afterward — the simulation step comes from
 
 ## Deliberate gaps (next phases)
 
+- **METH cinematic visual review (two fix passes, 2026-11-23; strips pending
+  owner/PM sign-off).** Pass 1 (props invisible / cone misplaced): "behind the
+  victim" props carried negative `z_index` on a late sibling, sorting behind
+  the opaque stage, and the fire cone's anchor/mirroring was wrong; fixed with
+  ordered back/front prop roots and manifest-exact mirrored anchors. Pass 2
+  (the PM's frame-by-frame review of pass 1's strips) found seven more bugs,
+  all fixed in `meth_cinematic_driver.gd` with no gameplay/damage/meter
+  change and the 210-frame length intact: (1) Walk the Plank's victim popped
+  UP at f126 and lay on the hole from f162 — he now drops feet-first from the
+  stomp (f108) under gravity, centred on the sewer anchor, and a reusable
+  `canvas_item` shader on his sprite discards every pixel below the
+  front-rim arc (12px sag, 37px half-width, measured from
+  `water_drop_mask_sheet`; no per-frame image work), fully gone by f160; the
+  splash plays as he goes under (f124) and settles with the open sewer to
+  the end; (2) the plank is no longer under the standing victim (f36) — it
+  slides in at f54 as he lands and hands over to the snap sheet at f90;
+  (3) the fire cone's mouth anchor now follows Richard's measured mouth in
+  each `neutral` belch cel (via the fighter's real sprite transform,
+  mirrored with facing), full size, drawn above both fighters and the fumes,
+  stepping all 7 frames over f97-117; (4) the fumes anchor is Richard's
+  measured bottle mouth in the first `heavy` drench cel (the pour point,
+  mirrored), billowing across the pair, holding frame 7 until the belch
+  ignites them (warm tint flash f103-111), then consumed at f114; (5) the
+  victim is now launched on a pixel-snapped ballistic arc (peak 36px, lands
+  f160 in `ko_ground`), passing through the bar sign hung on that arc at
+  chest/head height — the shatter starts on the frame he reaches it (f145),
+  back shards behind him, front in front; (6) the METHTALITY banner centres
+  for the opening hold and then rides the top band (y 10-42) so it never
+  covers a fighter; (7) all props/FX re-audited for attacker LEFT and RIGHT
+  (near the right wall). Pinned by `meth_cinematic_test` (187 checks; 34 of
+  them fail on the pass-1 head). Also fixed: `meth_capture.gd` labelled strip
+  frames drifted by up to ~6 sim frames per grab (physics kept ticking
+  during the draw wait) — it now pauses the tree around each grab, so the
+  strip labels are exact. Residual: after the sequence the ordinary KO flow
+  restores the victim's art, so the KO'd victim reappears at the sewer
+  (presentation-only; the damage/KO state is unchanged). The fume sheet is
+  authored as a rising arc from its anchor, so with the anchor at the bottle
+  (chin height) most of the cloud sits at head height and above rather than
+  down at the torso. Review strips:
+  `docs/assets/fx_meth/walk_the_plank{,_mirrored}_strip.png`,
+  `flaming_belch{,_mirrored}_strip.png`; README key-beat stills
+  regenerated. Contact-beat hit sparks are deliberately absent (the FX
+  layer skips METH rows; the banner/cinematic own the contact read).
 - **METH cinematic placeholder poses (Phase C, 2026-11-23).** The owner beat
   maps deliberately use existing clips only, so two beats read as
   placeholders until dedicated art exists: Peggy's **stomp beat reuses
@@ -712,14 +755,20 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   startup-attached whoosh/trail; landing/knockdown/wall dust with the
   one-shot wall latch; hitstop/pause freezing; and serialize() identical
   with FX spawning on vs off.
-- `game/tests/meth_cinematic_test.gd` — **85 checks** (Phase C, METH
+- `game/tests/meth_cinematic_test.gd` — **187 checks** (Phase C, METH
   cinematic): whiff/block/below-full-meter gates; the exact 210-frame
   Walk the Plank and Flaming Belch beat maps (clips and props per frame);
   both finishers, both stages, both facing sides; wall-clamped,
   never-scaled compositions; victim masking behind the front rim/shards;
   mid-cinematic serialize/load resuming identically; training no-KO
   restore plus the UI-confirm skip; CPU-vs-CPU completion; and pause
-  freezing.
+  freezing. The visual-review fix pass added the per-beat **numeric prop
+  visibility** checks (sprite alive with texture, on the correct ordered
+  layer — back props between the stage and the fighters, front props
+  above them — manifest anchor within 3px of the intended world point,
+  inside the 320x180 viewport, mirrored correctly for both facings);
+  those FAIL on the pre-fix driver (negative-z props drawn behind the
+  stage, fire cone anchored/mirrored wrong).
 - UI deferred, recorded here so they are not lost: **win-type
   pip letters (K/T/M/D)** need a per-round win-type history MatchRoot
   does not keep — a sim-side decision (the approved letter art waits on

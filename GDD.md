@@ -1247,10 +1247,10 @@ Visual ingredients:
 
 ### 10.2 Required Screens
 
-| Screen | Purpose | Status (2026-11-21, UI Phase 1) |
+| Screen | Purpose | Status (updated 2026-11-23, Training Mode) |
 |---|---|---|
 | Splash / Content Warning | Mature tone warning | **Shipped** (once per launch; press confirm to continue) |
-| Main Menu | Mode selection | **Shipped** (price board + chat strip hub: VERSUS, TRAINING*, SETTINGS, EXTRAS*, QUIT; *greyed) |
+| Main Menu | Mode selection | **Shipped** (price board hub: VERSUS, TRAINING, SETTINGS, EXTRAS* and QUIT; EXTRAS remains greyed, Training enters GDD §6.4) |
 | Title | Branding / start | **Shipped** (PRESS START, pulsing once per second) |
 | Character Select | Select fighter and palette | **Shipped** (2026-11-22, PR A: mugshot wall, portraits, rap-sheet booking, scribble cursors; palette cycling not yet built) |
 | Stage Select | Select stage for versus/training | **Shipped** (2026-11-22, PR A: scratch tickets, 18-frame RANDOM reveal) |

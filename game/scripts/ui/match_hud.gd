@@ -32,16 +32,25 @@ const COMBO_YELLOW := Color("f2d13a")
 
 # ---- layout (320x180 game pixels; P2 mirrors P1) ---------------------------
 const PORTRAIT_POS := [Vector2(4, 4), Vector2(292, 4)]
-const PORTRAIT_INNER := Vector2(22, 22)
+const PORTRAIT_INNER := Vector2(16, 15)
+# The taped photo's dark window inside the 24x24 frame, and the crop of the
+# 22x22 portrait shown through it (head and shoulders). The frame art is
+# opaque, so the photo draws ABOVE it (PM review of PR #92).
+const PORTRAIT_WINDOW := Vector2(4, 3)
+const PORTRAIT_CROP := Rect2(3, 1, 16, 15)
 const HEALTH_POS := [Vector2(30, 8), Vector2(172, 8)]
-const HEALTH_INTERIOR := Vector2(116, 8)
+# The cardboard strip between the tape caps; the strip is opaque, so fills
+# draw ABOVE the frame art (PM review of PR #92).
+const HEALTH_FILL_OFFSET := Vector2(10, 2)
+const HEALTH_INTERIOR := Vector2(98, 6)
 const NAME_Y := 19.0
 const PIP_Y := 31.0
 const PIP_GAP := 7.0
 const TIMER_POS := Vector2(148, 3)
 const TIMER_BOX_SIZE := Vector2(24, 20)
 const METER_POS := [Vector2(4, 170), Vector2(210, 170)]
-const METER_INTERIOR := Vector2(104, 6)
+const METER_FILL_OFFSET := Vector2(7, 2)
+const METER_INTERIOR := Vector2(90, 4)
 const COMBO_POS := [Vector2(8, 64), Vector2(202, 64)]
 const COMBO_DAMAGE_Y := 77.0
 const CALLOUT_Y := 80.0
@@ -154,8 +163,8 @@ func _build() -> void:
 			PORTRAIT_POS[side], Vector2(24, 24))
 		frame.z_index = 2
 		var photo := _art(root, null,
-			PORTRAIT_POS[side] + Vector2.ONE, PORTRAIT_INNER)
-		photo.z_index = 1
+			PORTRAIT_POS[side] + PORTRAIT_WINDOW, PORTRAIT_INNER)
+		photo.z_index = 3
 		portraits.append(photo)
 
 	# Health: frame art over a code-drawn fill, ghost segment behind it
@@ -164,14 +173,14 @@ func _build() -> void:
 		var frame := _art(root, HudArt.HEALTH_FRAME,
 			HEALTH_POS[side], Vector2(118, 10))
 		frame.z_index = 3
-		var ghost := _rect(root, HEALTH_POS[side] + Vector2.ONE,
+		var ghost := _rect(root, HEALTH_POS[side] + HEALTH_FILL_OFFSET,
 			Vector2(0, HEALTH_INTERIOR.y), GHOST)
-		ghost.z_index = 1
+		ghost.z_index = 4
 		ghost_fills.append(ghost)
-		var fill := _rect(root, HEALTH_POS[side] + Vector2.ONE,
+		var fill := _rect(root, HEALTH_POS[side] + HEALTH_FILL_OFFSET,
 			Vector2(HEALTH_INTERIOR.x, HEALTH_INTERIOR.y),
 			P1_HEALTH if side == 0 else P2_HEALTH)
-		fill.z_index = 2
+		fill.z_index = 5
 		health_fills.append(fill)
 
 	# Names in outlined Marker cream under each bar.
@@ -205,20 +214,20 @@ func _build() -> void:
 		var frame := _art(root, HudArt.METER_FRAME,
 			METER_POS[side], Vector2(106, 8))
 		frame.z_index = 3
-		var fill := _rect(root, METER_POS[side] + Vector2.ONE,
+		var fill := _rect(root, METER_POS[side] + METER_FILL_OFFSET,
 			Vector2(0, METER_INTERIOR.y), METER_FILL)
-		fill.z_index = 2
+		fill.z_index = 5
 		meter_fills.append(fill)
 		# Tick marks at 25 (Clip Cancel) and 50 (EX) of 100.
-		for fraction in [26, 52]:
-			var mark_x: float = METER_POS[side].x + 1.0
+		for fraction in [roundi(METER_INTERIOR.x * 0.25), roundi(METER_INTERIOR.x * 0.5)]:
+			var mark_x: float = METER_POS[side].x + METER_FILL_OFFSET.x
 			if side == 1:
-				mark_x = METER_POS[side].x + METER_INTERIOR.x - fraction - 1.0
+				mark_x += METER_INTERIOR.x - fraction
 			else:
 				mark_x += fraction - 1.0
-			var mark := _rect(root, Vector2(mark_x, METER_POS[side].y + 1.0),
+			var mark := _rect(root, Vector2(mark_x, METER_POS[side].y + METER_FILL_OFFSET.y),
 				Vector2(1, METER_INTERIOR.y), INK_DARK)
-			mark.z_index = 4
+			mark.z_index = 6
 		var ready := UiText.marker("METH READY",
 			Vector2(114 if side == 0 else 128, 168), METH_PINK, true)
 		if side == 1:
@@ -485,7 +494,7 @@ func _on_health(side: int, value: float, max_value: float) -> void:
 
 func _layout_health_fill(side: int) -> void:
 	var fraction: float = clampf(_health[side] / _max_health[side], 0.0, 1.0)
-	var width: float = HEALTH_INTERIOR.x * fraction
+	var width: float = roundf(HEALTH_INTERIOR.x * fraction)
 	var fill := health_fills[side]
 	var base := P1_HEALTH if side == 0 else P2_HEALTH
 	# The flash fade and the gentle low-health pulse live on the fill's
@@ -498,16 +507,16 @@ func _layout_health_fill(side: int) -> void:
 	fill.color = color
 	fill.size = Vector2(width, HEALTH_INTERIOR.y)
 	if side == 1:
-		fill.position.x = HEALTH_POS[1].x + 1.0 + (HEALTH_INTERIOR.x - width)
+		fill.position.x = HEALTH_POS[1].x + HEALTH_FILL_OFFSET.x + (HEALTH_INTERIOR.x - width)
 
 
 func _layout_ghost(side: int) -> void:
 	var fraction: float = clampf(_ghost[side] / _max_health[side], 0.0, 1.0)
-	var width: float = HEALTH_INTERIOR.x * fraction
+	var width: float = roundf(HEALTH_INTERIOR.x * fraction)
 	var ghost := ghost_fills[side]
 	ghost.size = Vector2(width, HEALTH_INTERIOR.y)
 	if side == 1:
-		ghost.position.x = HEALTH_POS[1].x + 1.0 + (HEALTH_INTERIOR.x - width)
+		ghost.position.x = HEALTH_POS[1].x + HEALTH_FILL_OFFSET.x + (HEALTH_INTERIOR.x - width)
 	ghost.visible = _ghost[side] > _health[side] + 0.5
 
 
@@ -522,7 +531,10 @@ func _refresh_portrait(side: int) -> void:
 	if path.is_empty():
 		portraits[side].texture = null  # the empty frame, never a crash
 	else:
-		portraits[side].texture = load(path)
+		var crop := AtlasTexture.new()
+		crop.atlas = load(path)
+		crop.region = PORTRAIT_CROP
+		portraits[side].texture = crop
 
 
 func _fighter_id(side: int) -> String:
@@ -544,13 +556,13 @@ func _on_p2_meter(value: float, max_value: float) -> void:
 
 func _on_meter(side: int, value: float, max_value: float) -> void:
 	var fraction: float = clampf(value / max_value, 0.0, 1.0)
-	var width: float = METER_INTERIOR.x * fraction
+	var width: float = roundf(METER_INTERIOR.x * fraction)
 	var fill := meter_fills[side]
 	fill.size = Vector2(width, METER_INTERIOR.y)
 	if side == 1:
-		fill.position.x = METER_POS[1].x + 1.0 + (METER_INTERIOR.x - width)
+		fill.position.x = METER_POS[1].x + METER_FILL_OFFSET.x + (METER_INTERIOR.x - width)
 	else:
-		fill.position.x = METER_POS[0].x + 1.0
+		fill.position.x = METER_POS[0].x + METER_FILL_OFFSET.x
 	var full := fraction >= 0.999
 	fill.color = METH_PINK if full else METER_FILL
 	meter_ready[side].visible = full

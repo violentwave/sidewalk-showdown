@@ -121,7 +121,7 @@ Current suites: **combat 408 checks**, round flow 35, character select 55,
 locomotion speed 7, stage select 94, stage floor 9, CPU opponent 41,
 combo system 68, combo fuzz 118, stun & breaker 55, The Clip 23,
 serialization 24, B6
-landing-whiff 5, UI flow 53, settings 16, UI assets 4, UI typography 42, select screens 24, results flow 20, match HUD 45
+landing-whiff 5, UI flow 53, settings 16, UI assets 4, UI typography 42, select screens 24, results flow 20, match HUD 47
 — all green in CI (`tests.yml`, every step under a `timeout-minutes`).
 `tests/air_probe.gd` and `tests/juggle_probe.gd` print balance metrics and
 assert nothing; `tests/juggle_route_probe.gd` brute-forces real-hitbox juggle

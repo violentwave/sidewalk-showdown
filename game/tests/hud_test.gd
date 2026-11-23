@@ -121,9 +121,21 @@ func _run() -> void:
 
 # ---------------- portraits --------------------------------------------------
 
+# Highest z_index among the HUD's TextureRects showing this frame art.
+func _frame_z(texture: Texture2D) -> int:
+	var z := -1000
+	for n in hud.find_children("*", "TextureRect", true, false):
+		if n.texture == texture:
+			z = maxi(z, n.z_index)
+	return z
+
+
 func _test_portraits() -> void:
 	await _new_match()
-	var path: String = str(hud.portraits[0].texture.resource_path)
+	_check("the portrait photo draws above the opaque photo-frame art",
+		hud.portraits[0].z_index > _frame_z(HudArt.PORTRAIT_FRAME),
+		"photo z=%d frame z=%d" % [hud.portraits[0].z_index, _frame_z(HudArt.PORTRAIT_FRAME)])
+	var path: String = str(hud.portraits[0].texture.atlas.resource_path)
 	_check("the P1 portrait shows the fighter's normal booking photo",
 		path.contains("hud_portrait_pegleg_peg_normal"),
 		"path=%s" % path)
@@ -131,8 +143,8 @@ func _test_portraits() -> void:
 	# Hurt face below 25% health.
 	_set_p2_health(p2.max_health * 0.2)
 	_check("the hurt portrait shows below 25% health",
-		str(hud.portraits[1].texture.resource_path).contains("_hurt"),
-		"path=%s" % str(hud.portraits[1].texture.resource_path))
+		str(hud.portraits[1].texture.atlas.resource_path).contains("_hurt"),
+		"path=%s" % str(hud.portraits[1].texture.atlas.resource_path))
 
 	# KO face after losing the round: force a KO and let the pips land.
 	_place_pair()
@@ -140,12 +152,12 @@ func _test_portraits() -> void:
 	p1._start_move(light_move())
 	await _step(130)
 	_check("the loser's portrait flips to the ko face after the round",
-		str(hud.portraits[1].texture.resource_path).contains("_ko"),
-		"path=%s" % str(hud.portraits[1].texture.resource_path))
+		str(hud.portraits[1].texture.atlas.resource_path).contains("_ko"),
+		"path=%s" % str(hud.portraits[1].texture.atlas.resource_path))
 	await _step(160)  # next round's intro; the refill clears the face
 	_check("a new round's refill restores the normal portrait",
-		str(hud.portraits[1].texture.resource_path).contains("_normal"),
-		"path=%s" % str(hud.portraits[1].texture.resource_path))
+		str(hud.portraits[1].texture.atlas.resource_path).contains("_normal"),
+		"path=%s" % str(hud.portraits[1].texture.atlas.resource_path))
 	scene.free()
 	await process_frame
 
@@ -154,8 +166,17 @@ func _test_portraits() -> void:
 
 func _test_health_and_ghost() -> void:
 	await _new_match()
+	_check("the health fills draw above the opaque cardboard frame art",
+		hud.health_fills[0].z_index > _frame_z(HudArt.HEALTH_FRAME)
+			and hud.ghost_fills[0].z_index > _frame_z(HudArt.HEALTH_FRAME)
+			and hud.meter_fills[0].z_index > _frame_z(HudArt.METER_FRAME),
+		"fill z=%d ghost z=%d meter z=%d health frame z=%d meter frame z=%d" % [
+			hud.health_fills[0].z_index, hud.ghost_fills[0].z_index,
+			hud.meter_fills[0].z_index, _frame_z(HudArt.HEALTH_FRAME),
+			_frame_z(HudArt.METER_FRAME)])
 	_check("the health fills start full",
-		hud.health_fills[0].size.x >= 115.0 and hud.health_fills[1].size.x >= 115.0,
+		hud.health_fills[0].size.x >= hud.HEALTH_INTERIOR.x - 1.0
+			and hud.health_fills[1].size.x >= hud.HEALTH_INTERIOR.x - 1.0,
 		"sizes=%s/%s" % [str(hud.health_fills[0].size.x),
 			str(hud.health_fills[1].size.x)])
 
@@ -242,7 +263,7 @@ func _test_meter_and_ready() -> void:
 
 	p1.add_meter(50.0)
 	_check("50 meter fills half the interior from the outer edge",
-		hud.meter_fills[0].size.x >= 51.0 and hud.meter_fills[0].size.x <= 53.0,
+		absf(hud.meter_fills[0].size.x - hud.METER_INTERIOR.x * 0.5) <= 1.0,
 		"width=%s" % str(hud.meter_fills[0].size.x))
 
 	p2.add_meter(100.0)

@@ -50,6 +50,9 @@ func _new_match() -> Node:
 	match_root.selected_p2_data = ROSTER.fighters[1]
 	match_root.selected_stage = ROSTER.stages[0]
 	root.add_child(match_root)
+	# Screenshots show the shipped HUD, not the F1 debug hit/push boxes.
+	if match_root.debug_overlay != null:
+		match_root.debug_overlay.show_boxes = false
 	await _step(1)
 	return match_root
 

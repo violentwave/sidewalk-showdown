@@ -160,12 +160,12 @@ banners and callouts clear.
 
 | Element | Position / art | Behavior |
 | --- | --- | --- |
-| Portraits | `hud_portrait_frame.png` 24x24 at (4,4)/(292,4); the 22x22 `hud_portrait_<id>_<state>.png` inside at +1,+1 | normal / **hurt** below 25% health / **ko** after losing the round (an opponent pip that grew while yours didn't; a refill clears it). Missing art = empty frame, no crash. |
-| Health | `hud_health_frame.png` 118x10 at (30,8)/(172,8); code-drawn 116x8 fill, P1 `#f29e26` / P2 `#e5473a`, draining toward the timer | a `#ff6b5a` ghost segment remembers the combo's damage point and drains to match **20 sim frames after the combo clears**; one flash per hit (never strobing); a gentle pulse under 20%. `reduce_flashing` makes the flash a 1-frame tint. |
+| Portraits | `hud_portrait_frame.png` 24x24 at (4,4)/(292,4); a 16x15 crop (x 3, y 1) of the 22x22 `hud_portrait_<id>_<state>.png` in the photo window at +4,+3, drawn ABOVE the opaque frame art | normal / **hurt** below 25% health / **ko** after losing the round (an opponent pip that grew while yours didn't; a refill clears it). Missing art = empty frame, no crash. |
+| Health | `hud_health_frame.png` 118x10 at (30,8)/(172,8); code-drawn 98x6 fill on the cardboard strip between the tape caps (+10,+2), drawn ABOVE the opaque frame art, whole-pixel widths, P1 `#f29e26` / P2 `#e5473a`, draining toward the timer | a `#ff6b5a` ghost segment remembers the combo's damage point and drains to match **20 sim frames after the combo clears**; one flash per hit (never strobing); a gentle pulse under 20%. `reduce_flashing` makes the flash a 1-frame tint. |
 | Names | outlined Marker cream at y 19 (P1 left from x 30, P2 right to x 290) | static per fighter |
 | Round pips | y 31 from each bar's outer end; P1 `hud_pip_square_*`, P2 `hud_pip_diamond_*` | grow with double-KO pips. **No win-type letters: MatchRoot keeps no per-round win history** (TODO: the K/T/M/D pip art is approved and waits on a sim-side decision). |
 | Timer | `hud_timer_box.png` at (148,3); two 8x12 cells from `hud_timer_digits.png` (0-9, cell 10 = infinity), centered | under 10 s the box tints dirty yellow and the digits tick one shade per 15 sim frames |
-| Meter | `hud_meter_frame.png` 106x8 at (4,170)/(210,170); 104x6 fill `#5ac8ff`, tick marks at 25 and 50 | at full the fill turns `#ff3d9a`, "METH READY" in outlined Marker pink sits beside the bar (P1 edge x 114, P2 edge x 206) and the 8x8 skull frames alternate every **15 sim frames** |
+| Meter | `hud_meter_frame.png` 106x8 at (4,170)/(210,170); 90x4 fill `#5ac8ff` between the tape caps (+7,+2) above the frame art, tick marks at 25 and 50 | at full the fill turns `#ff3d9a`, "METH READY" in outlined Marker pink sits beside the bar (P1 edge x 114, P2 edge x 206) and the 8x8 skull frames alternate every **15 sim frames** |
 | Banners | 160x32 `hud_banner_plate.png` centered (y 74) with the word sprite: round_1-5, decisive, fight, ko, time, double_ko, methtality | stamp in over **6 sim frames** from 8 px above in integer steps; spriteless messages (TAKES THE ROUND, WINS THE MATCH, DRAW, SUDDEN DEATH, ROUND 6+) render in outlined Marker cream on the plate. FIGHT auto-removes after 30 sim frames, METH after 120; round/KO banners persist until replaced (today's timing). |
 | Callouts | outlined Marker cream on the attacker's side at y 80 | COUNTER HIT / TECH, one at a time, **30 sim frames** each |
 | Combo counter | today's position (attacker's side, y 64), "<n> HITS" in outlined Marker `#f2d13a` | combo damage under it in m5x7 cream only while `gameplay.show_combo_damage` is on (reads `combo_tracker.total_damage`) |
@@ -377,7 +377,7 @@ on an approved file missing from the table, and exits non-zero.
   up; the 30-frame Results guard; REMATCH routes through the VS bumper
   and keeps fighters and stage; CHARACTER SELECT / STAGE SELECT /
   MAIN MENU all route correctly and unpause.
-- `game/tests/hud_test.gd` — 45 checks (UI Phase 2, against a scratch
+- `game/tests/hud_test.gd` — 47 checks (UI Phase 2, against a scratch
   settings.cfg): portrait states; health and the 20-frame ghost drain;
   the HUD tick frozen while paused; pip sprites; timer digit cells and
   the under-10 tint; meter width, the METH-pink full state and the

@@ -13,7 +13,7 @@
 > HUD timers moved onto a presentation-only per-sim-tick hook (frozen
 > by pause and hitstop, resyncing on restore), and five stored settings
 > consumed (commentary, show_combo_damage, reduce_flashing,
-> high_contrast_hud, hide_tripp_text). New suite hud_test 45 checks;
+> high_contrast_hud, hide_tripp_text). New suite hud_test 47 checks;
 > ui_typography grew to 42 (HUD label coverage), round_flow to 35
 > (decisive/FIGHT banner pins). Win-type pip letters stay out —
 > MatchRoot keeps no per-round win history (KNOWN_ISSUES). (Earlier on
@@ -132,7 +132,7 @@ Counts are PASS+FAIL lines observed in real headless runs, not doc claims.
 | `ui_typography_test.gd` | Phase 1 + PR A/B/C typography and contrast rules: every label in the eleven surfaces uses a pixel font at native size with every glyph present, no outline/shadow, integer positions, no scaling; cardboard labels fit their container and use the dark inks; no two labels overlap (ink extents) and labels over cards stay inside; the HUD labels pass the same rules at round start and mid-fight | **42**, 0 fail | yes — added 2026-11-21, extended 2026-11-22 (review fixes, select screens, match wrap, HUD) |
 | `select_screens_test.gd` | PR A select reskins: Mode/Difficulty choices unchanged (names, order, defaults, emits, back paths), difficulty tallies, rap-sheet photo + wall copy, per-player scribble cursors, ticket focus lift, the 18-frame RANDOM scratch-off and its hand-off | **24**, 0 fail | yes — added 2026-11-22 (PR A) |
 | `results_flow_test.gd` | PR B match wrap: the VS slide-in (12 integer steps), 20-frame skip guard, 150-frame duration and hand-off; Results appears at match end above the frozen match with the real winner/stats; serialize() identical while Results is up; the 30-frame Results guard; every Results option routes (REMATCH keeps fighters and stage through the VS bumper) | **20**, 0 fail | yes — added 2026-11-22 (PR B) |
-| `hud_test.gd` | UI Phase 2 HUD: portrait states, health and the 20-frame ghost drain, the sim-tick freeze under pause, pip sprites, timer digit cells and the under-10 tint, meter full/READY with the skull alternation, banner sprites with the text fallback and timing, attacker-side callouts, the gated combo damage, commentary modes, reduce_flashing and high_contrast, the serialize/load resync, and serialize() identical with the HUD bound and unbound | **45**, 0 fail | yes — added 2026-11-22 (UI Phase 2) |
+| `hud_test.gd` | UI Phase 2 HUD: portrait states, health and the 20-frame ghost drain, the sim-tick freeze under pause, pip sprites, timer digit cells and the under-10 tint, meter full/READY with the skull alternation, banner sprites with the text fallback and timing, attacker-side callouts, the gated combo damage, commentary modes, reduce_flashing and high_contrast, the serialize/load resync,, serialize() identical with the HUD bound and unbound, and fills/photo drawn above their opaque frame art | **47**, 0 fail | yes — added 2026-11-22 (UI Phase 2) |
 | `air_probe.gd` | Balance metrics only, asserts nothing, always exits 0 | 0 (metrics) | yes (separate job) |
 | `juggle_probe.gd` | Juggle balance metrics (every budget-legal launcher route, jab-only reference, candidate ladders), asserts nothing | 0 (metrics) | no |
 | `juggle_route_probe.gd` | Real-hitbox juggle route timing search (human timing; ~7 min) | 0 (metrics) | no |
@@ -308,7 +308,7 @@ Release blockers / decisions pending:
   SELECT / MAIN MENU; pinned by `results_flow_test` (20). **Phase 2
   (HUD) — SHIPPED on this branch (2026-11-22):** the full street-junk
   HUD reskin on the sim tick with five settings consumed, pinned by
-  `hud_test` (45). Controls/extras (Phase 4) follow the plan in
+  `hud_test` (47). Controls/extras (Phase 4) follow the plan in
   `docs/UI_HUD_SCREENS_PLAN.md`.
 
 - **Combo system** (design home: `docs/COMBO_SYSTEM_DESIGN.md`, merged

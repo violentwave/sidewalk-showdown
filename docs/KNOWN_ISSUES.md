@@ -605,7 +605,7 @@ landed 2026-11-21 — data recorded, no balance fixes applied yet):**
   up; the 30-frame Results input guard; REMATCH routes through the VS
   bumper and keeps fighters and stage; CHARACTER SELECT / STAGE SELECT /
   MAIN MENU all route correctly and unpause.
-- `game/tests/hud_test.gd` — **45 checks** (UI Phase 2, 2026-11-22; runs
+- `game/tests/hud_test.gd` — **47 checks** (UI Phase 2, 2026-11-22; runs
   against a scratch settings.cfg): portrait states (normal, hurt under
   25%, ko after the round, refill restores); health fills and the
   20-sim-frame combo ghost drain; the HUD tick frozen while paused; pip

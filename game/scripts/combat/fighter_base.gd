@@ -164,9 +164,10 @@ var frames_since_hit := 0
 # stun_frames_remaining > 0 the authored stun window replaces the move's
 # hitstun, shake-out presses shorten it, and the defender's silhouette
 # carries the stun tint. All counters tick on the sim clock past the
-# hitstop early-return, so hitstop and pause freeze them, and the input
-# freeze cap (hitstop_buffer_freeze_frames, 5) already bounds any buffered
-# shake press. Serialized (§9.5).
+# hitstop early-return, so hitstop and pause freeze them. Stun shake presses
+# remain bounded by the normal 5-frame hitstop input-freeze cap; breaker
+# chords have their own combo-gated, non-aging pending mask (§11/A2). Serialized
+# (§9.5).
 var stun_id: StringName = &""
 var stun_frames_remaining := 0
 # Window as applied (post scaling) — shake-out may not eat into the
@@ -191,6 +192,11 @@ var breaker_free_uses_left := 1
 var breaker_cooldown_frames := 0
 var breaker_used_this_combo := false
 var breaker_invuln_frames := 0
+# Breaker chord presses captured during THIS combo's hitstop. Bit i maps to
+# data.breaker_input[i]. The mask does not age during hitstop; on hitstop
+# release, a complete chord is re-armed at age zero and uses the ordinary
+# four-frame breaker window. Serialized so a mid-hitstop save is replay-exact.
+var breaker_pending_hitstop_mask := 0
 # The break's separating push, applied as a per-frame displacement in the sim
 # tick (a velocity would be zeroed by the recovering state machine).
 var breaker_push_dir := 0.0
@@ -416,6 +422,7 @@ func begin_round(spawn_pos: Vector2, opponent_x: float) -> void:
 	breaker_cooldown_frames = 0
 	breaker_used_this_combo = false
 	breaker_invuln_frames = 0
+	breaker_pending_hitstop_mask = 0
 	breaker_push_dir = 0.0
 	breaker_push_self_px = 0.0
 	breaker_push_other_px = 0.0
@@ -446,9 +453,11 @@ func _physics_process(_delta: float) -> void:
 
 	# Phase 3 stun/breaker counters (§9.5): all frame-counted, all ticking on
 	# the sim clock past the hitstop early-return, so hitstop and pause freeze
-	# them exactly like hitstun. Buffered inputs already respect the
-	# hitstop_buffer_freeze_frames cap (5) in _poll_input, so no buffered
-	# shake press or breaker press can outlive a freeze. The grace counters
+	# them exactly like hitstun. Buffered shake inputs respect the
+	# hitstop_buffer_freeze_frames cap (5); the breaker chord has its own
+	# pending mask, recorded only during this combo's HITSTUN + hitstop and
+	# re-armed into the ordinary four-frame window on hitstop release (§11/A2).
+	# The grace counters
 	# tick BEFORE the stun window: an immunity granted this frame (the stun
 	# just ended) counts its first full frame NEXT frame, so the authored
 	# immunity is exact, not off by one.
@@ -1392,6 +1401,7 @@ func _try_breaker() -> bool:
 
 func _apply_break(is_free: bool) -> void:
 	breaker_used_this_combo = true
+	breaker_pending_hitstop_mask = 0
 	breaker_cooldown_frames = data.breaker_cooldown_frames
 	# 20f throw-style protection (§11), gated in is_invulnerable_to() the
 	# same way the wake-up windows are — no new invulnerability system.
@@ -1628,6 +1638,7 @@ func reset_state() -> void:
 	breaker_free_uses_left = data.breaker_free_per_round if data else 1
 	breaker_cooldown_frames = 0
 	breaker_used_this_combo = false
+	breaker_pending_hitstop_mask = 0
 	breaker_invuln_frames = 0
 	breaker_push_dir = 0.0
 	breaker_push_self_px = 0.0
@@ -1676,15 +1687,67 @@ func _poll_input() -> void:
 		hitstop_buffer_freeze_frames = 0
 	if not input_enabled:
 		return
+	var just_pressed_actions: Array[StringName] = []
 	for action in ["light", "heavy", "special", "grab", "meth", "up"]:
 		if Input.is_action_just_pressed("p%d_%s" % [player_index, action]):
 			input_buffer[action] = 0
+			just_pressed_actions.append(StringName(action))
 			input_history.append(action)
 			if input_history.size() > 60:
 				input_history.pop_front()
 			# Macro dial capture: a fresh press can start or extend an
 			# authored sequence (§10.1). The press itself stays in the buffer.
 			_macro_on_press(action)
+	# A deliberate breaker chord on the impact frame can be polled just
+	# BEFORE MatchRoot resolves that frame's hit: this fighter still has its
+	# pre-hit state, then receive_hit() sets HITSTUN + hitstop later in the
+	# same sim frame. On the next poll it is in hitstun/hitstop, and the two
+	# buffer entries are age 1 (an input from one sim frame BEFORE impact is
+	# age 2 and must not count). An impact-frame chord is recognized together
+	# at age <= 1. Sequential chord presses are accumulated only when each
+	# action is freshly pressed during eligible hitstop, and must still fit
+	# the original four-frame buffer window when the pair completes.
+	# The mask is combo-scoped and does NOT modify hitstop_buffer_freeze_frames
+	# or the age of any other buffered action.
+	if hitstop_frames > 0 and state == State.HITSTUN and combo_hits > 0 \
+			and data != null:
+		var required_mask := _breaker_full_pending_mask()
+		if breaker_pending_hitstop_mask != required_mask:
+			var impact_frame_chord := not data.breaker_input.is_empty()
+			for action in data.breaker_input:
+				impact_frame_chord = impact_frame_chord \
+					and input_buffer.has(action) \
+					and int(input_buffer[action]) <= 1
+			if impact_frame_chord:
+				breaker_pending_hitstop_mask = required_mask
+			else:
+				for i in data.breaker_input.size():
+					var action: StringName = data.breaker_input[i]
+					if just_pressed_actions.has(action):
+						breaker_pending_hitstop_mask |= 1 << i
+				# A partial chord expires on the same four-frame window as
+				# ordinary buffered input. Once the complete chord is latched,
+				# its mask is held until this hitstop ends.
+				for i in data.breaker_input.size():
+					var bit := 1 << i
+					var action: StringName = data.breaker_input[i]
+					if breaker_pending_hitstop_mask & bit != 0 \
+							and (not input_buffer.has(action) \
+							or int(input_buffer[action]) > BREAKER_INPUT_WINDOW):
+						breaker_pending_hitstop_mask &= ~bit
+	# Hitstop has ended. A complete chord captured while this combo's
+	# defender was in hitstun is re-armed at age zero, so _try_breaker()
+	# applies its unchanged four-frame window starting now. The original
+	# 5-frame general buffer-freeze cap remains unchanged for every other
+	# action. A partial chord, a combo that ended, or a state that left
+	# hitstun is discarded.
+	elif hitstop_frames <= 0 and breaker_pending_hitstop_mask != 0:
+		var required_mask := _breaker_full_pending_mask()
+		if state == State.HITSTUN and combo_hits > 0 \
+				and data != null and breaker_pending_hitstop_mask == required_mask:
+			for action in data.breaker_input:
+				input_buffer[String(action)] = 0
+		breaker_pending_hitstop_mask = 0
 	if freeze_buffer_ages:
 		_macro_tick_ages(true)
 		return
@@ -1699,6 +1762,12 @@ func _consume(action: String, window: int) -> bool:
 		input_buffer.erase(action)
 		return true
 	return false
+
+
+func _breaker_full_pending_mask() -> int:
+	if data == null:
+		return 0
+	return (1 << data.breaker_input.size()) - 1
 
 func _axis(left: String, right: String) -> float:
 	if not input_enabled:
@@ -1729,6 +1798,7 @@ func _tick_combo() -> void:
 		combo_tracker.reset()
 		juggle_hits = 0
 		juggle_points = -1
+		breaker_pending_hitstop_mask = 0
 		combo_changed.emit(0)
 
 # ---------------- Misc ----------------
@@ -1856,6 +1926,7 @@ func serialize() -> Dictionary:
 		"breaker_free_uses_left": breaker_free_uses_left,
 		"breaker_cooldown_frames": breaker_cooldown_frames,
 		"breaker_used_this_combo": breaker_used_this_combo,
+		"breaker_pending_hitstop_mask": breaker_pending_hitstop_mask,
 		"breaker_invuln_frames": breaker_invuln_frames,
 		"breaker_push_dir": breaker_push_dir,
 		"breaker_push_self_px": breaker_push_self_px,
@@ -1919,6 +1990,7 @@ func load(data: Dictionary) -> void:
 	breaker_free_uses_left = data.get("breaker_free_uses_left", 1)
 	breaker_cooldown_frames = data.get("breaker_cooldown_frames", 0)
 	breaker_used_this_combo = data.get("breaker_used_this_combo", false)
+	breaker_pending_hitstop_mask = data.get("breaker_pending_hitstop_mask", 0)
 	breaker_invuln_frames = data.get("breaker_invuln_frames", 0)
 	breaker_push_dir = data.get("breaker_push_dir", 0.0)
 	breaker_push_self_px = data.get("breaker_push_self_px", 0.0)
